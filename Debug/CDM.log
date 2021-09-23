@@ -1,0 +1,10 @@
+﻿  analyzeFP.cpp
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(137,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(202,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(372,14): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(435,14): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+  CDM.cpp
+  stdafx.cpp
+  Generating Code...
+     Creating library C:\Users\Casa\source\repos\rpuig2001\CDM\Debug\CDM.lib and object C:\Users\Casa\source\repos\rpuig2001\CDM\Debug\CDM.exp
+  CDM.vcxproj -> C:\Users\Casa\source\repos\rpuig2001\CDM\Debug\CDM.dll
