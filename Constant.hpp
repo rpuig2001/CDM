@@ -5,7 +5,8 @@ const int TAG_ITEM_EOBT = 1;
 const int TAG_ITEM_TSAT = 2;
 const int TAG_ITEM_TTOT = 3;
 
-//const int TAG_FUNC_ADDTOCFL = 100;
+const int TAG_FUNC_EDITEOBT = 100;
+const int TAG_FUNC_NEWEOBT = 101;
 const int TAG_FUNC_ON_OFF = 102;
 
 const COLORREF TAG_GREEN = RGB(0, 190, 0);

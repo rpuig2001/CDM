@@ -34,15 +34,14 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-EOBT"
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
-	//RegisterTagItemFunction("Add to CFL", TAG_FUNC_ADDTOCFL);
+	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
 
-	// Register Tag Item "CDM-TSAT"
+	// Register Tag Item "CDM-TTOT"
 	RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
 
-	// Get Path of the Sid.json
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
 	pfad.resize(pfad.size() - strlen("CDM.dll"));
@@ -87,10 +86,27 @@ void CDM::sendMessage(string message) {
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
 	CFlightPlan fp = FlightPlanSelectASEL();
 
-	/*if (FunctionId == TAG_FUNC_ADDTOCFL)
+	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
+		OpenPopupEdit(Area, TAG_FUNC_NEWEOBT, fp.GetFlightPlanData().GetEstimatedDepartureTime());
+	}
 
-	}*/
+	if (FunctionId == TAG_FUNC_NEWEOBT) {
+		string editedEOBT = ItemString;
+		int otherNum;
+		bool hasNoNumber = true;
+		if (editedEOBT.length() <= 4) {
+
+			for (int i = 0; i < editedEOBT.length(); i++) {
+				if (isdigit(editedEOBT[i]) == false) {
+					hasNoNumber = false;
+				}
+			}
+			if (hasNoNumber) {
+				fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
+			}
+		}
+	}
 	if (FunctionId == TAG_FUNC_ON_OFF) {
 		if (find(AircraftIgnore.begin(), AircraftIgnore.end(), fp.GetCallsign()) != AircraftIgnore.end())
 			AircraftIgnore.erase(remove(AircraftIgnore.begin(), AircraftIgnore.end(), fp.GetCallsign()), AircraftIgnore.end());
@@ -113,16 +129,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	string origin = FlightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
 	string destination = FlightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
 
-	string sid = FlightPlan.GetFlightPlanData().GetSidName(); boost::to_upper(sid);
 	string depRwy = FlightPlan.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
-
-	string first_wp = sid.substr(0, sid.find_first_of("0123456789"));
-	if (0 != first_wp.length())
-		boost::to_upper(first_wp);
-	string sid_suffix;
-	if (first_wp.length() != sid.length()) {
-		sid_suffix = sid.substr(sid.find_first_of("0123456789"), sid.length());
-		boost::to_upper(sid_suffix);
+	bool isVfr = false;
+	if (strcmp(FlightPlan.GetFlightPlanData().GetPlanType(), "V") > -1) {
+		isVfr = true;
 	}
 
 	const char* EOBT = "";
@@ -130,7 +140,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	const char* TTOT = "";
 	string taxiTime;
 
-	if (origin == airport) {
+	if (origin == airport && !isVfr) {
 
 		int pos;
 		bool aircraftFind = false;
@@ -713,7 +723,6 @@ void CDM::OnTimer(int Counter) {
 		}
 	}
 
-	// Loading proper Sids, when logged in
 	if (GetConnectionType() != CONNECTION_TYPE_NO) {
 		slotList.clear();
 	}
