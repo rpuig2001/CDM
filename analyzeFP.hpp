@@ -42,6 +42,10 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
+	string getTaxiTime(double lat, double lon);
+
+	bool FindPoint(double x1, double y1, double x2, double y2, double x, double y);
+
 	string formatTime(string timeString);
 
 	string calculateTime(string timeString, double minsToAdd);

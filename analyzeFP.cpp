@@ -14,6 +14,8 @@ int disCount;
 ifstream sidDatei;
 char DllPathFile[_MAX_PATH];
 string pfad;
+string airport;
+string rateString;
 
 vector<string> AircraftIgnore;
 vector<string> slotList;
@@ -48,6 +50,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	debugMode = false;
 	initialSidLoad = false;
+
+	//Get data from xml config file
+	airport = getAirportFromXml();
+	rateString = getRateFromXml();
+
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -98,7 +105,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 }
 
 
-// Get FlightPlan, and therefore get the first waypoint of the flightplan (ie. SID). Check if the (RFL/1000) corresponds to the SID Min FL and report output "OK" or "FPL"
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
 {
 	string callsign = FlightPlan.GetCallsign();
@@ -119,18 +125,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		boost::to_upper(sid_suffix);
 	}
 
-	//Get data from xml config file
-	string airport = getAirportFromXml();
-	string rateString = getRateFromXml();
-
 	const char* EOBT = "";
 	const char* TSAT = "";
 	const char* TTOT = "";
+	string taxiTime;
 
 	if (origin == airport) {
-
-		//double lat = RadarTarget.GetPosition().GetPosition().m_Latitude;
-		//double lon = RadarTarget.GetPosition().GetPosition().m_Longitude;
 
 		int pos;
 		bool aircraftFind = false;
@@ -147,6 +147,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		string EOBTfinal = formatTime(EOBTstring);
 		EOBTfinal += "00";
 		EOBT = EOBTfinal.c_str();
+		string TSATfinal = "";
+		string TTOTFinal = "";
 
 		if (aircraftFind) {
 			string tempEOBT = EOBT;
@@ -156,38 +158,43 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				aircraftFind = false;
 			}
 		}
+
 		/*remarks.find("&") != std::string::npos && aircraftFind*/
 		if (false) {
 			string getTSAT = remarks.substr(remarks.find("&") + 1, 6);
 			TSAT = getTSAT.c_str();
-		}
-		else if (aircraftFind) {
-			TSAT = EOBT;
-			aircraftFind = false;
-			slotList.erase(slotList.begin() + pos);
-		}
-		else if (remarks.find("&") != std::string::npos) {
-			TSAT = EOBT;
-			remarks.erase(remarks.begin() + (remarks.length() - 10));
-			FlightPlan.GetFlightPlanData().SetRemarks(remarks.c_str());
-		}
-		else {
-			TSAT = EOBT;
-		}
+			string TTOTstring = slotList[pos].substr(slotList[pos].find(",") + 8, slotList[pos].length() - 1);
+			TTOT = TTOTstring.c_str();
+		} else {
+			if (aircraftFind) {
+				TSAT = EOBT;
+				aircraftFind = false;
+				slotList.erase(slotList.begin() + pos);
+			}
+			else if (remarks.find("&") != std::string::npos) {
+				TSAT = EOBT;
+				remarks.erase(remarks.begin() + (remarks.length() - 10));
+				FlightPlan.GetFlightPlanData().SetRemarks(remarks.c_str());
+			}
+			else {
+				TSAT = EOBT;
+			}
 
-		//TSAT
-		string TSATstring = TSAT;
-		string TSATfinal = formatTime(TSATstring);
-		TSAT = TSATfinal.c_str();
+			//TSAT
+			string TSATstring = TSAT;
+			TSATfinal = formatTime(TSATstring);
+			TSAT = TSATfinal.c_str();
 
-		//TTOT
-		string TTOTFinal = calculateTime(TSATstring, 15);
-		TTOT = TTOTFinal.c_str();
+			//TTOT
+			TTOTFinal = calculateTime(TSATstring, 15);
+			TTOT = TTOTFinal.c_str();
+		}
 
 		int rate = stoi(rateString);
 		double rateHour = (double)60 / rate;
 
 		if (!aircraftFind) {
+
 			if (remarks.find("&") != std::string::npos) {
 				remarks.erase(remarks.length() - 11, remarks.length() - 1);
 				FlightPlan.GetFlightPlanData().SetRemarks(remarks.c_str());
@@ -325,6 +332,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 			}
 		}
+	}
+}
+
+string CDM::getTaxiTime(double lat, double lon) {
+	//x=lat y=lon
+	double x1 = 2.712383, y1 = 39.543504, x2 = 2.719502, y2 = 39.548777;
+	if (FindPoint(2.712383, 39.543504, 2.719502, 39.548777, lat, lon)) {
+		return "15";
+	}
+	else {
+		return "1";
+	}
+}
+
+bool CDM::FindPoint(double x1, double y1, double x2, double y2, double x, double y) {
+
+	if (x > x1 and x < x2 and y > y1 and y < y2) {
+		return true;
+	}
+	else {
+		return false;
 	}
 }
 
