@@ -289,17 +289,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 		bool oldTSAT = false;
 		bool moreLessFive = false;
+		bool lastMinute = false;
+		bool notYetEOBT = false;
 
 		//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
 		int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
 		if (difTime > 5) {
 			oldTSAT = true;
 		}
+		else if (difTime >= 4 && difTime <= 5) {
+			lastMinute = true;
+		}
 		else if (difTime >= -5 && difTime <= 5) {
 			moreLessFive = true;
 		}
 
+		string completeEOBT = (string)EOBT;
+		string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
+		string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
 
+		int EOBTdifTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
+		if (EOBTdifTime > 100) {
+			notYetEOBT = true;
+		}
+		
 		if (ItemCode == TAG_ITEM_EOBT)
 		{
 			string ShowEOBT = (string)EOBT;
@@ -310,10 +323,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 		if (ItemCode == TAG_ITEM_TSAT)
 		{
-			if (oldTSAT) {
+			if (notYetEOBT) {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = TAG_RED;
-				strcpy_s(sItemString, 16, "OLD");
+				strcpy_s(sItemString, 16, "I");
+			}
+			else if (oldTSAT) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREENNOTACTIVE;
+				strcpy_s(sItemString, 16, " ");
+			}
+			else if (lastMinute) {
+				string ShowTSAT = (string)TSAT;
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_YELLOW;
+				strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 			}
 			else if (moreLessFive) {
 				string ShowTSAT = (string)TSAT;
@@ -324,19 +348,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			else {
 				string ShowTSAT = (string)TSAT;
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_GREY;
+				*pRGB = TAG_GREENNOTACTIVE;
 				strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 			}
 		}
 
 		if (ItemCode == TAG_ITEM_TTOT)
 		{
-			if (oldTSAT) {
+			if (oldTSAT || notYetEOBT) {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_RED;
-				strcpy_s(sItemString, 16, "OLD");
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, " ");
 			}
-			else if (moreLessFive) {
+			else if (moreLessFive || lastMinute) {
 				string ShowTTOT = (string)TTOT;
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = TAG_GREEN;
@@ -345,7 +369,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			else {
 				string ShowTTOT = (string)TTOT;
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_GREY;
+				*pRGB = TAG_GREEN;
 				strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 			}
 		}
