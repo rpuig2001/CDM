@@ -190,6 +190,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			TTOT = TTOTFinal.c_str();
 		}
 
+		/*CALCULATE TAXI TIME
+		if (RadarTarget.IsValid()) {
+			double lat = RadarTarget.GetPosition().GetPosition().m_Latitude;
+			double lon = RadarTarget.GetPosition().GetPosition().m_Longitude;
+			taxiTime = getTaxiTime(lat, lon);
+		}*/
+
 		int rate = stoi(rateString);
 		double rateHour = (double)60 / rate;
 
