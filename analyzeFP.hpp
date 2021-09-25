@@ -129,6 +129,8 @@ public:
 
 	string getRateFromXml();
 
+	bool OnCompileCommand(const char* sCommandLine);
+
 	virtual void OnTimer(int Count);
 
 protected:
