@@ -19,6 +19,8 @@ string rateString;
 
 vector<string> AircraftIgnore;
 vector<string> slotList;
+vector<string> tsacList;
+vector<string> asrtList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -36,11 +38,22 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
 	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
 
+	//Register Tag Item "CDM-TOBT"
+	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
+
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
 
 	// Register Tag Item "CDM-TTOT"
 	RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
+
+	// Register Tag Item "CDM-TSAC"
+	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
+	RegisterTagItemFunction("Add actual TSAT to TSAC", TAG_FUNC_ADDTSAC);
+	RegisterTagItemFunction("Remove TSAC", TAG_FUNC_REMOVETSAC);
+
+	// Register Tag Item "CDM-ASRT"
+	RegisterTagItemType("ASRT", TAG_ITEM_ASRT);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -104,9 +117,37 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 			if (hasNoNumber) {
 				fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
+				fp.GetFlightPlanData().AmendFlightPlan();
 			}
 		}
 	}
+	if (FunctionId == TAG_FUNC_ADDTSAC) {
+		for (int i = 0; i < tsacList.size(); i++)
+		{
+			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
+				tsacList.erase(tsacList.begin() + i);
+			}
+		}
+
+		for (int a = 0; a < slotList.size(); a++)
+		{
+			if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
+				string getTSAT = slotList[a].substr(slotList[a].find(",") + 8, 6);
+				string valuesToAdd = (string)fp.GetCallsign() + "," + getTSAT;
+				tsacList.push_back(valuesToAdd);
+			}
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_REMOVETSAC) {
+		for (int i = 0; i < tsacList.size(); i++)
+		{
+			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
+				tsacList.erase(tsacList.begin() + i);
+			}
+		}
+	}
+
 	if (FunctionId == TAG_FUNC_ON_OFF) {
 		if (find(AircraftIgnore.begin(), AircraftIgnore.end(), fp.GetCallsign()) != AircraftIgnore.end())
 			AircraftIgnore.erase(remove(AircraftIgnore.begin(), AircraftIgnore.end(), fp.GetCallsign()), AircraftIgnore.end());
@@ -124,7 +165,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
 {
 	string callsign = FlightPlan.GetCallsign();
-	string remarks = FlightPlan.GetFlightPlanData().GetRemarks();
 
 	string origin = FlightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
 	string destination = FlightPlan.GetFlightPlanData().GetDestination(); boost::to_upper(destination);
@@ -169,27 +209,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 
-		/*remarks.find("&") != std::string::npos && aircraftFind*/
-		if (false) {
-			string getTSAT = remarks.substr(remarks.find("&") + 1, 6);
-			TSAT = getTSAT.c_str();
-			string TTOTstring = slotList[pos].substr(slotList[pos].find(",") + 8, slotList[pos].length() - 1);
-			TTOT = TTOTstring.c_str();
-		} else {
-			if (aircraftFind) {
-				TSAT = EOBT;
-				aircraftFind = false;
-				slotList.erase(slotList.begin() + pos);
-			}
-			else if (remarks.find("&") != std::string::npos) {
-				TSAT = EOBT;
-				remarks.erase(remarks.begin() + (remarks.length() - 10));
-				FlightPlan.GetFlightPlanData().SetRemarks(remarks.c_str());
-			}
-			else {
-				TSAT = EOBT;
-			}
-
+			TSAT = EOBT;
 			//TSAT
 			string TSATstring = TSAT;
 			TSATfinal = formatTime(TSATstring);
@@ -198,7 +218,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			//TTOT
 			TTOTFinal = calculateTime(TSATstring, 15);
 			TTOT = TTOTFinal.c_str();
-		}
 
 		/*CALCULATE TAXI TIME
 		if (RadarTarget.IsValid()) {
@@ -210,22 +229,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		int rate = stoi(rateString);
 		double rateHour = (double)60 / rate;
 
-		if (!aircraftFind) {
-
-			if (remarks.find("&") != std::string::npos) {
-				remarks.erase(remarks.length() - 11, remarks.length() - 1);
-				FlightPlan.GetFlightPlanData().SetRemarks(remarks.c_str());
-			}
 			bool equalTTOT = true;
 			bool correctTTOT = true;
 			bool equalTempoTTOT = true;
 			bool alreadySetTOStd = false;
 
+			if (aircraftFind) {
+				slotList.erase(slotList.begin() + pos);
+			}
+
 			while (equalTTOT) {
 				correctTTOT = true;
 				for (int t = 0; t < slotList.size(); t++)
 				{
-					string listTTOT = slotList[t].substr(slotList[t].find(",") + 8, slotList[t].length() - 1);
+					string listTTOT = slotList[t].substr(slotList[t].length()-6, 6);
 					string listCallsign = slotList[t].substr(0, slotList[t].find(","));
 
 					if (TTOTFinal == listTTOT && callsign != listCallsign) {
@@ -257,13 +274,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					TSATfinal = calculateLessTime(TTOTFinal, 15);
 					TSAT = TSATfinal.c_str();
 					TTOT = TTOTFinal.c_str();
-					string valueToAdd = callsign + "," + EOBT + "," + TTOT;
+					string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
 					slotList.push_back(valueToAdd);
-					string stringToAdd = remarks + " TSAT&" + TSAT;
-					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 				}
 			}
-		}
 
 		//If oldTSAT
 		long int timeNow = static_cast<long int>(std::time(nullptr));
@@ -291,6 +305,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		bool moreLessFive = false;
 		bool lastMinute = false;
 		bool notYetEOBT = false;
+		bool actualTOBT = false;
 
 		//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
 		int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
@@ -308,17 +323,113 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
 		string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
 
-		int EOBTdifTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
+		int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
 		if (EOBTdifTime > 100) {
 			notYetEOBT = true;
 		}
-		
+
+		if (EOBTdifTime < 5 || EOBTdifTime > -5) {
+			actualTOBT = true;
+		}
+
+		//TSAC
+		bool TSACFound = false;
+		bool TSACNotTSAT = false;
+		string ThisTSAC = "";
+		for (int d = 0; d < tsacList.size(); d++)
+		{
+			if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
+				TSACFound = true;
+				ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
+			}
+		}		
+
+		if (TSACFound) {
+			string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
+			string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
+
+			int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
+			if (TSACDif > 5 || TSACDif < -5) {
+				TSACNotTSAT = true;
+			}
+		}
+
+		//ASRT
+		bool ASRTFound = false;
+		int ASRTpos = 0;
+		bool correctState = false;
+		string ASRTtext = " ";
+		for (int x = 0; x < asrtList.size(); x++)
+		{
+			string actualListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
+			if (actualListCallsign == callsign) {
+				ASRTFound = true;
+				ASRTpos = x;
+			}
+		}
+
+		if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH") {
+			correctState = true;
+		}
+
+		if (!ASRTFound) {
+			if (correctState) {
+				ASRTtext = hour + min;
+				asrtList.push_back(callsign + "," + ASRTtext);
+				ASRTFound = true;
+			}
+		}
+		else {
+			if (correctState) {
+				ASRTtext = asrtList[ASRTpos].substr(asrtList[ASRTpos].length() - 4, 4);
+			}
+			else if (!correctState) {
+				asrtList.erase(asrtList.begin() + ASRTpos);
+				ASRTFound = false;
+			}
+		}
+
+
 		if (ItemCode == TAG_ITEM_EOBT)
 		{
 			string ShowEOBT = (string)EOBT;
 			*pColorCode = TAG_COLOR_RGB_DEFINED;
 			*pRGB = TAG_GREY;
 			strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+		}
+
+		if (ItemCode == TAG_ITEM_TOBT)
+		{
+			string ShowEOBT = (string)EOBT;
+			if (actualTOBT) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+			}
+			else {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREENNOTACTIVE;
+				strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+			}
+		}
+
+		if (ItemCode == TAG_ITEM_TSAC)
+		{
+			if (TSACNotTSAT) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_YELLOW;
+				strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+			}
+			else if (TSACFound) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length()-2).c_str());
+			}
+			else {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, "____");
+			}
 		}
 
 		if (ItemCode == TAG_ITEM_TSAT)
@@ -371,6 +482,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = TAG_GREEN;
 				strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
+			}
+		}
+		
+		if (ItemCode == TAG_ITEM_ASRT)
+		{
+			if (ASRTFound) {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, ASRTtext.c_str());
+			}
+			else {
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, " ");
 			}
 		}
 	}
@@ -745,9 +870,5 @@ void CDM::OnTimer(int Counter) {
 		else {
 			disCount = 0;
 		}
-	}
-
-	if (GetConnectionType() != CONNECTION_TYPE_NO) {
-		slotList.clear();
 	}
 }
