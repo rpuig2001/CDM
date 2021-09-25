@@ -160,6 +160,20 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	AircraftIgnore.erase(remove(AircraftIgnore.begin(), AircraftIgnore.end(), FlightPlan.GetCallsign()), AircraftIgnore.end());
+
+	//Delete from vector
+	int pos;
+	bool aircraftFind = false;
+	for (int i = 0; i < slotList.size(); i++) {
+		if ((string)FlightPlan.GetCallsign() == slotList[i].substr(0, slotList[i].find(","))) {
+			aircraftFind = true;
+			pos = i;
+		}
+	}
+
+	if (aircraftFind) {
+		slotList.erase(slotList.begin() + pos);
+	}
 }
 
 
