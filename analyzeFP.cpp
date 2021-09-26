@@ -14,6 +14,7 @@ int disCount;
 ifstream sidDatei;
 char DllPathFile[_MAX_PATH];
 string pfad;
+string lfad;
 string airport;
 string rateString;
 
@@ -22,6 +23,7 @@ vector<string> slotList;
 vector<string> tsacList;
 vector<string> asrtList;
 vector<string> taxiTimesList;
+vector<string> TxtTimesVector;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -61,6 +63,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	pfad.resize(pfad.size() - strlen("CDM.dll"));
 	pfad += "CDMconfig.xml";
 
+	lfad = DllPathFile;
+	lfad.resize(lfad.size() - strlen("CDM.dll"));
+	lfad += "taxizones.txt";
+
 	debugMode = false;
 	initialSidLoad = false;
 
@@ -68,6 +74,14 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	airport = getAirportFromXml();
 	rateString = getRateFromXml();
 
+	//Get data from .txt file
+	fstream file;
+	string lineValue;
+	file.open(lfad.c_str(), std::ios::in);
+	while (getline(file, lineValue))
+	{
+		TxtTimesVector.push_back(lineValue);
+	}
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -193,28 +207,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	const char* EOBT = "";
 	const char* TSAT = "";
 	const char* TTOT = "";
-	string taxiTime;
+	int taxiTime;
 
 	if (origin == airport && !isVfr) {
-
-		//Taxi times
-		bool planeHasTaxiTimeAssigned = false;
-		for (int j = 0; j < taxiTimesList.size(); j++)
-		{
-			if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
-				planeHasTaxiTimeAssigned = true;
-			}
-		}
-
-		if (!planeHasTaxiTimeAssigned) {
-			if (RadarTarget.GetPosition().IsValid()) {
-				//double lat = RadarTarget.GetPosition().GetPosition().m_Latitude;
-				//double lon = RadarTarget.GetPosition().GetPosition().m_Longitude;
-				//string myTaxiTime = getTaxiTime(lat, lon);
-				//taxiTimesList.push_back(callsign + "," + taxiTime);
-				//sendMessage(myTaxiTime);
-			}
-		}
 
 		//If aircraft is in aircraftFind Base vector
 		int pos;
@@ -225,6 +220,58 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				pos = i;
 			}
 		}
+
+
+		//Taxi times
+		int TaxiTimePos = 0;
+		bool planeHasTaxiTimeAssigned = false;
+		for (int j = 0; j < taxiTimesList.size(); j++)
+		{
+			if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+				planeHasTaxiTimeAssigned = true;
+				TaxiTimePos = j;
+			}
+		}
+
+		if (aircraftFind) {
+			if (planeHasTaxiTimeAssigned) {
+				if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
+					if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
+						planeHasTaxiTimeAssigned = false;
+						taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+						slotList.erase(slotList.begin() + pos);
+						aircraftFind = false;
+					}
+				}
+				else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
+					if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
+						planeHasTaxiTimeAssigned = false;
+						taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+						slotList.erase(slotList.begin() + pos);
+						aircraftFind = false;
+					}
+				}
+			}
+		}
+
+		if (!planeHasTaxiTimeAssigned) {
+			if (RadarTargetSelect(callsign.c_str()).IsValid()) {
+				double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+				double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+				string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
+				taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
+				TaxiTimePos = taxiTimesList.size() - 1;
+			}
+		}
+
+		if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1)  == ",") {
+			taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() -1, 1));
+		}
+		else {
+			taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+		}
+
+
 
 		//EOBT
 		EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
@@ -251,7 +298,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			TSAT = TSATfinal.c_str();
 
 			//TTOT
-			TTOTFinal = calculateTime(TSATstring, 15);
+			TTOTFinal = calculateTime(TSATstring, taxiTime);
 			TTOT = TTOTFinal.c_str();
 
 		int rate = stoi(rateString);
@@ -275,22 +322,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					if (TTOTFinal == listTTOT && callsign != listCallsign) {
 						if (alreadySetTOStd) {
-							TTOTFinal = calculateTime(TTOTFinal, rateHour);
+							TTOTFinal = calculateTime(TTOTFinal, 0.5);
 							correctTTOT = false;
 						}
 						else {
-							TTOTFinal = calculateTime(listTTOT, rateHour);
+							TTOTFinal = calculateTime(listTTOT, 0.5);
 							correctTTOT = false;
 							alreadySetTOStd = true;
 						}
 					}
 					else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
 						if (alreadySetTOStd) {
-							TTOTFinal = calculateTime(TTOTFinal, rateHour);
+							TTOTFinal = calculateTime(TTOTFinal, 0.5);
 							correctTTOT = false;
 						}
 						else {
-							TTOTFinal = calculateTime(listTTOT, rateHour);
+							TTOTFinal = calculateTime(listTTOT, 0.5);
 							correctTTOT = false;
 							alreadySetTOStd = true;
 						}
@@ -299,7 +346,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				if (correctTTOT) {
 					equalTTOT = false;
-					TSATfinal = calculateLessTime(TTOTFinal, 15);
+					TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
 					TSAT = TSATfinal.c_str();
 					TTOT = TTOTFinal.c_str();
 					string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
@@ -529,18 +576,42 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
-string CDM::getTaxiTime(double lat, double lon) {
-	//x=lat y=lon
-	double x1 = 2.712383, y1 = 39.543504, x2 = 2.719502, y2 = 39.548777;
-	if (FindPoint(39.543504, 2.712383, 39.548777, 2.719502, lat, lon) == true) {
+string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
+	string line, bot_left_lat, bot_left_lon, top_right_lat, top_right_lon, TxtOrigin, TxtDepRwy, TxtTime;
+	vector<int> separators;
+	bool ZoneFound = false;
+
+	for (int t = 0; t < TxtTimesVector.size(); t++)
+	{
+		for (int g = 0; g < TxtTimesVector[t].length(); g++)
+		{
+			if (TxtTimesVector[t].substr(g, 1) == ":") {
+				separators.push_back(g);
+			}
+		}
+		line = TxtTimesVector[t];
+		TxtOrigin = line.substr(0, 4);
+		TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
+		bot_left_lat = line.substr(separators[1] + 1, separators[2] - separators[1] - 1);
+		bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2] - 1);
+		top_right_lat = line.substr(separators[3] + 1, separators[4] - separators[3] - 1);
+		top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4] - 1);
+		TxtTime = line.substr(separators[5] + 1, line.length() - 1);
+		if (TxtOrigin == origin) {
+			if (TxtDepRwy == depRwy) {
+				if (FindPoint(stod(bot_left_lat), stod(bot_left_lon), stod(top_right_lat), stod(top_right_lon), lat, lon) == true) {
+					return TxtTime;
+					ZoneFound = true;
+				}
+			}
+		}
+	}
+
+	if (!ZoneFound) {
 		return "15";
 	}
-	else if (FindPoint(39.546835, 2.721201, 39.555931, 2.734617, lat, lon) == true) {
-		return "10";
-	}
-	else {
-		return "1";
-	}
+
+	separators.clear();
 }
 
 bool CDM::FindPoint(double x1, double y1, double x2, double y2, double x, double y) {

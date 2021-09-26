@@ -42,7 +42,7 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
-	string getTaxiTime(double lat, double lon);
+	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
 	bool FindPoint(double x1, double y1, double x2, double y2, double x, double y);
 
