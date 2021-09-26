@@ -399,7 +399,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
 
 		int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
-		if (EOBTdifTime > 100) {
+		if (EOBTdifTime < -100) {
 			notYetEOBT = true;
 		}
 
