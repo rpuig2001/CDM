@@ -382,6 +382,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		bool notYetEOBT = false;
 		bool actualTOBT = false;
 
+		hour = "00";
+
+		if (hour != "00" && hour != "01") {
+			if (TSAThour == "00") {
+				TSAThour = "24";
+			}
+			else if (TSAThour == "01") {
+				TSAThour = "25";
+			}
+		}
 		//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
 		int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
 		if (difTime > 5) {
@@ -398,7 +408,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
 		string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
 
+		if (hour != "00") {
+			if (EOBThour == "00") {
+				EOBThour = "24";
+			}
+		}
+
 		int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
+
 		if (EOBTdifTime < -100) {
 			notYetEOBT = true;
 		}
