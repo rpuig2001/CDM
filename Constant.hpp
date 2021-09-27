@@ -7,12 +7,16 @@ const int TAG_ITEM_TTOT = 3;
 const int TAG_ITEM_TOBT = 4;
 const int TAG_ITEM_TSAC = 5;
 const int TAG_ITEM_ASRT = 6;
+const int TAG_ITEM_A = 7;
+const int TAG_ITEM_E = 8;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
 const int TAG_FUNC_ON_OFF = 102;
 const int TAG_FUNC_ADDTSAC = 103;
 const int TAG_FUNC_REMOVETSAC = 104;
+const int TAG_FUNC_ADDA = 105;
+const int TAG_FUNC_REMOVEA = 106;
 
 //const COLORREF TAG_GREEN = RGB(0, 190, 0);
 const COLORREF TAG_GREEN = RGB(95, 220, 1);

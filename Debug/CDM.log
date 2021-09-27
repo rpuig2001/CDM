@@ -1,10 +1,37 @@
-﻿  analyzeFP.cpp
-C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(137,21): warning C4018: '<': signed/unsigned mismatch
-C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(202,23): warning C4018: '<': signed/unsigned mismatch
-C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(372,14): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(435,14): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
-  CDM.cpp
-  stdafx.cpp
+﻿  CDM.cpp
+  analyzeFP.cpp
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(135,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(147,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(154,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(165,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(175,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(187,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(131,7): warning C4101: 'otherNum': unreferenced local variable
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(210,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(224,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(231,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(239,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(247,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(254,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(287,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(303,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(318,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(356,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(363,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(371,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(379,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(386,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(459,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(535,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(617,23): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(734,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(757,22): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(919,20): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(921,21): warning C4018: '<': signed/unsigned mismatch
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(1003,14): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(1066,14): warning C4244: 'initializing': conversion from 'double' to 'int', possible loss of data
   Generating Code...
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(950): warning C4715: 'CDM::getTaxiTime': not all control paths return a value
+C:\Users\Casa\source\repos\rpuig2001\CDM\analyzeFP.cpp(1313): warning C4715: 'CDM::OnCompileCommand': not all control paths return a value
      Creating library C:\Users\Casa\source\repos\rpuig2001\CDM\Debug\CDM.lib and object C:\Users\Casa\source\repos\rpuig2001\CDM\Debug\CDM.exp
   CDM.vcxproj -> C:\Users\Casa\source\repos\rpuig2001\CDM\Debug\CDM.dll
