@@ -382,26 +382,37 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		bool notYetEOBT = false;
 		bool actualTOBT = false;
 
-		hour = "00";
+		//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
 
-		if (hour != "00" && hour != "01") {
+		if (hour != "00") {
 			if (TSAThour == "00") {
 				TSAThour = "24";
 			}
-			else if (TSAThour == "01") {
-				TSAThour = "25";
+		}
+
+		int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
+
+		if (hour != TSAThour) {
+			if (difTime >= 44 && difTime <= 45) {
+				lastMinute = true;
+			}
+			else if (difTime >= -45 && difTime <= 45) {
+				moreLessFive = true;
+			}
+			else if (difTime > 45){
+				oldTSAT = true;
 			}
 		}
-		//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
-		int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
-		if (difTime > 5) {
-			oldTSAT = true;
-		}
-		else if (difTime >= 4 && difTime <= 5) {
-			lastMinute = true;
-		}
-		else if (difTime >= -5 && difTime <= 5) {
-			moreLessFive = true;
+		else {
+			if (difTime > 5) {
+				oldTSAT = true;
+			}
+			else if (difTime >= 4 && difTime <= 5) {
+				lastMinute = true;
+			}
+			else if (difTime >= -5 && difTime <= 5) {
+				moreLessFive = true;
+			}
 		}
 
 		string completeEOBT = (string)EOBT;
@@ -420,8 +431,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			notYetEOBT = true;
 		}
 
-		if (EOBTdifTime > 5 || EOBTdifTime < -5) {
-			actualTOBT = true;
+		if (hour != EOBThour) {
+			if (EOBTdifTime >= -45 && EOBTdifTime <= 45) {
+				actualTOBT = true;
+			}
+		}
+		else {
+			if (EOBTdifTime >= -5 && EOBTdifTime <= 5) {
+				actualTOBT = true;
+			}
 		}
 
 		//TSAC
@@ -493,7 +511,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		if (ItemCode == TAG_ITEM_TOBT)
 		{
 			string ShowEOBT = (string)EOBT;
-			if (actualTOBT) {
+			if (!actualTOBT) {
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = TAG_GREENNOTACTIVE;
 				strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
