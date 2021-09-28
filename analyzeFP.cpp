@@ -55,7 +55,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
 	RegisterTagItemFunction("Add actual TSAT to TSAC", TAG_FUNC_ADDTSAC);
-	RegisterTagItemFunction("Remove TSAC", TAG_FUNC_REMOVETSAC);
+	RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
 
 	// Register Tag Item "CDM-ASRT"
 	RegisterTagItemType("ASRT", TAG_ITEM_ASRT);
@@ -131,7 +131,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_NEWEOBT) {
 		string editedEOBT = ItemString;
-		int otherNum;
 		bool hasNoNumber = true;
 		if (editedEOBT.length() <= 4) {
 
@@ -164,11 +163,37 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_REMOVETSAC) {
+	if (FunctionId == TAG_FUNC_EDITTSAC) {
+		string tsacValue = "";
+		for (int i = 0; i < tsacList.size(); i++)
+		{
+			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
+				tsacValue = tsacList[i].substr(tsacList[i].find(",") + 1, 4);
+			}
+		}
+		OpenPopupEdit(Area, TAG_FUNC_NEWTSAC, tsacValue.c_str());
+	}
+
+	if (FunctionId == TAG_FUNC_NEWTSAC) {
 		for (int i = 0; i < tsacList.size(); i++)
 		{
 			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
 				tsacList.erase(tsacList.begin() + i);
+			}
+		}
+		string editedTSAC = ItemString;
+		if (editedTSAC.length() > 0) {
+			bool hasNoNumber = true;
+			if (editedTSAC.length() <= 4) {
+				for (int i = 0; i < editedTSAC.length(); i++) {
+					if (isdigit(editedTSAC[i]) == false) {
+						hasNoNumber = false;
+					}
+				}
+				if (hasNoNumber) {
+					string valuesToAdd = (string)fp.GetCallsign() + "," + (editedTSAC+"00");
+					tsacList.push_back(valuesToAdd);
+				}
 			}
 		}
 	}
@@ -205,23 +230,19 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 }
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
-	AircraftIgnore.erase(remove(AircraftIgnore.begin(), AircraftIgnore.end(), FlightPlan.GetCallsign()), AircraftIgnore.end());
-
+	string callsign = FlightPlan.GetCallsign();
 	//Delete from vector
-	int pos;
-	bool aircraftFind = false;
 	for (int i = 0; i < slotList.size(); i++) {
 		if ((string)FlightPlan.GetCallsign() == slotList[i].substr(0, slotList[i].find(","))) {
-			aircraftFind = true;
-			pos = i;
+			slotList.erase(slotList.begin() + i);
 		}
 	}
-
-	string callsign = FlightPlan.GetCallsign();
-
-	//Remove ACFT Find
-	if (aircraftFind) {
-		slotList.erase(slotList.begin() + pos);
+	//Remove Taxi Times List
+	for (int j = 0; j < taxiTimesList.size(); j++)
+	{
+		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+			taxiTimesList.erase(taxiTimesList.begin() + j);
+		}
 	}
 	//Remove TSAC
 	for (int i = 0; i < tsacList.size(); i++)
@@ -238,13 +259,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 			asrtList.erase(asrtList.begin() + x);
 		}
 	}
-	//Remove Taxi Times List
-	/*for (int x = 0; x < taxiTimesList.size(); x++)
-	{
-		if (taxiTimesList[x].substr(0, taxiTimesList[x].find(",")) == callsign) {
-			taxiTimesList.erase(taxiTimesList.begin() + x);
-		}
-	}*/
 	//Remove from listA
 	for (int i = 0; i < listA.size(); i++)
 	{
@@ -281,7 +295,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		const char* EOBT = "";
 		const char* TSAT = "";
 		const char* TTOT = "";
-		int taxiTime;
+		int taxiTime = 15;
 
 		//If aircraft is in aircraftFind Base vector
 		int pos;
@@ -344,83 +358,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 
 		bool gndStatusSet = false;
-		if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI") {
+		if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 			gndStatusSet = true;
 		}
 
-		//If GND state == DEPA delete plane from all lists and don't calculate Times
-		if ((string)FlightPlan.GetGroundState() == "DEPA") {
-			//Remove ACFT Find
-			if (aircraftFind) {
-				slotList.erase(slotList.begin() + pos);
-			}
-			//Remove TSAC
-			for (int i = 0; i < tsacList.size(); i++)
-			{
-				if (tsacList[i].substr(0, tsacList[i].find(",")) == callsign) {
-					tsacList.erase(tsacList.begin() + i);
-				}
-			}
-			//Remove ASRT
-			for (int x = 0; x < asrtList.size(); x++)
-			{
-				string actualListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
-				if (actualListCallsign == callsign) {
-					asrtList.erase(asrtList.begin() + x);
-				}
-			}
-			//Remove Taxi Times List
-			for (int x = 0; x < taxiTimesList.size(); x++)
-			{
-				string actualListCallsign = taxiTimesList[x].substr(0, taxiTimesList[x].find(","));
-				if (actualListCallsign == callsign) {
-					taxiTimesList.erase(taxiTimesList.begin() + x);
-				}
-			}
-			//Remove from listA
-			for (int i = 0; i < listA.size(); i++)
-			{
-				if (listA[i] == (string)FlightPlan.GetCallsign()) {
-					listA.erase(listA.begin() + i);
-				}
-			}
-			//Remove from OutOfTsat
-			for (int i = 0; i < OutOfTsat.size(); i++)
-			{
-				if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-					OutOfTsat.erase(OutOfTsat.begin() + i);
-				}
-			}
-
-			//Add basic lists
-			if (ItemCode == TAG_ITEM_EOBT)
-			{
-				string ShowEOBT = (string)EOBT;
-				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_GREY;
-				strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-			}
-			if (ItemCode == TAG_ITEM_TOBT)
-			{
-				string ShowEOBT = (string)EOBT;
-				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_GREEN;
-				strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-			}
-			if (ItemCode == TAG_ITEM_TSAC)
-			{
-				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_GREEN;
-				strcpy_s(sItemString, 16, "____");
-			}
-			if (ItemCode == TAG_ITEM_ASRT)
-			{
-				*pColorCode = TAG_COLOR_RGB_DEFINED;
-				*pRGB = TAG_GREEN;
-				strcpy_s(sItemString, 16, " ");
-			}
-
-		}else if (stillOutOfTsat && !gndStatusSet && !hasValueInA) {
+		if (stillOutOfTsat && !gndStatusSet) {
 			//Remove ACFT Find
 			if (aircraftFind) {
 				if (aircraftFind) {
@@ -468,7 +410,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI") {
+			if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 				correctState = true;
 			}
 
@@ -580,11 +522,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
-				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
-			}
-			else {
-				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+			if (planeHasTaxiTimeAssigned) {
+				if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
+					taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
+				}
+				else {
+					taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+				}
 			}
 
 			string TSATfinal = "";
@@ -706,7 +650,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			bool correctState = false;
-			if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI") {
+			if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 				correctState = true;
 			}
 

@@ -14,9 +14,10 @@ const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
 const int TAG_FUNC_ON_OFF = 102;
 const int TAG_FUNC_ADDTSAC = 103;
-const int TAG_FUNC_REMOVETSAC = 104;
-const int TAG_FUNC_ADDA = 105;
-const int TAG_FUNC_REMOVEA = 106;
+const int TAG_FUNC_EDITTSAC = 104;
+const int TAG_FUNC_NEWTSAC = 105;
+const int TAG_FUNC_ADDA = 106;
+const int TAG_FUNC_REMOVEA = 107;
 
 //const COLORREF TAG_GREEN = RGB(0, 190, 0);
 const COLORREF TAG_GREEN = RGB(95, 220, 1);
