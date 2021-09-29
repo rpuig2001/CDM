@@ -1298,7 +1298,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm save", sCommandLine))
 	{
-		sendMessage("Saving data CDM....");
+		sendMessage("Saving CDM data....");
 		//save data to file
 		ofstream outfile(sfad.c_str());
 
@@ -1313,7 +1313,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm load", sCommandLine))
 	{
-		sendMessage("Loading data CDM....");
+		sendMessage("Loading CDM data....");
 		slotList.clear();
 		//load data from file
 		fstream file;
