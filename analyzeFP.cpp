@@ -63,7 +63,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-A"
 	RegisterTagItemType("A", TAG_ITEM_A);
 	RegisterTagItemFunction("Add to column A", TAG_FUNC_ADDA);
-	RegisterTagItemFunction("Remove from column A", TAG_FUNC_REMOVEA);
 
 	// Register Tag Item "CDM-E"
 	RegisterTagItemType("E", TAG_ITEM_E);
@@ -191,7 +190,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 				if (hasNoNumber) {
-					string valuesToAdd = (string)fp.GetCallsign() + "," + (editedTSAC+"00");
+					string valuesToAdd = (string)fp.GetCallsign() + "," + (editedTSAC + "00");
 					tsacList.push_back(valuesToAdd);
 				}
 			}
@@ -200,23 +199,19 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_ADDA) {
 		bool callsignFound = false;
+		int Apos;
 		for (int i = 0; i < listA.size(); i++)
 		{
-			if (listA[i] == (string) fp.GetCallsign()) {
+			if (listA[i] == (string)fp.GetCallsign()) {
 				callsignFound = true;
+				Apos = i;
 			}
 		}
 		if (!callsignFound) {
 			listA.push_back(fp.GetCallsign());
 		}
-	}
-
-	if (FunctionId == TAG_FUNC_REMOVEA) {
-		for (int i = 0; i < listA.size(); i++)
-		{
-			if (listA[i] == (string)fp.GetCallsign()) {
-				listA.erase(listA.begin() + i);
-			}
+		else {
+			listA.erase(listA.begin() + Apos);
 		}
 	}
 
@@ -319,7 +314,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		for (int i = 0; i < OutOfTsat.size(); i++)
 		{
 			if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-				if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",")+1, 4)) {
+				if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",") + 1, 4)) {
 					stillOutOfTsat = true;
 					stillOutOfTsatPos = i;
 				}
@@ -358,7 +353,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 
 		bool gndStatusSet = false;
-		if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+		if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 			gndStatusSet = true;
 		}
 
@@ -373,7 +368,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			bool notYetEOBT = false;
 			bool actualTOBT = false;
 
-			string completeEOBT = (string) EOBT;
+			string completeEOBT = (string)EOBT;
 			string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
 			string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
 
@@ -410,7 +405,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+			if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 				correctState = true;
 			}
 
@@ -443,7 +438,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				string ShowEOBT = (string)EOBT;
 				if (!actualTOBT) {
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
+					*pRGB = TAG_GREENNOTACTIVE;
 					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 				}
 				else {
@@ -650,7 +645,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			bool correctState = false;
-			if ((string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+			if ((string)FlightPlan.GetGroundState() == "STUP" ||(string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 				correctState = true;
 			}
 
@@ -762,7 +757,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 				else if (!actualTOBT) {
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
+					*pRGB = TAG_GREENNOTACTIVE;
 					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 				}
 				else {
@@ -1281,6 +1276,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		TxtTimesVector.clear();
 		OutOfTsat.clear();
 		listA.clear();
+		//Get data from xml config file
+		airport = getAirportFromXml();
+		rateString = getRateFromXml();
+
+		//Get data from .txt file
+		fstream file;
+		string lineValue;
+		file.open(lfad.c_str(), std::ios::in);
+		while (getline(file, lineValue))
+		{
+			TxtTimesVector.push_back(lineValue);
+		}
 		return true;
 	}
 }
