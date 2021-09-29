@@ -15,6 +15,7 @@ ifstream sidDatei;
 char DllPathFile[_MAX_PATH];
 string pfad;
 string lfad;
+string sfad;
 string airport;
 string rateString;
 
@@ -75,6 +76,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	lfad = DllPathFile;
 	lfad.resize(lfad.size() - strlen("CDM.dll"));
 	lfad += "taxizones.txt";
+
+	sfad = DllPathFile;
+	sfad.resize(sfad.size() - strlen("CDM.dll"));
+	sfad += "savedData.txt";
 
 	debugMode = false;
 	initialSidLoad = false;
@@ -1287,6 +1292,36 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		while (getline(file, lineValue))
 		{
 			TxtTimesVector.push_back(lineValue);
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm save", sCommandLine))
+	{
+		sendMessage("Saving data CDM....");
+		//save data to file
+		ofstream outfile(sfad.c_str());
+
+		for (int i = 0; i < slotList.size(); i++)
+		{
+			outfile << slotList[i] << std::endl;
+		}
+
+		outfile.close();
+		return true;
+	}
+
+	if (startsWith(".cdm load", sCommandLine))
+	{
+		sendMessage("Loading data CDM....");
+		slotList.clear();
+		//load data from file
+		fstream file;
+		string lineValue;
+		file.open(sfad.c_str(), std::ios::in);
+		while (getline(file, lineValue))
+		{
+			slotList.push_back(lineValue);
 		}
 		return true;
 	}
