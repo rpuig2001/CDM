@@ -383,19 +383,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
-
-			if (hour != EOBThour) {
-				if (EOBTdifTime >= -45 && EOBTdifTime <= 45) {
-					actualTOBT = true;
-				}
-			}
-			else {
-				if (EOBTdifTime >= -5 && EOBTdifTime <= 5) {
-					actualTOBT = true;
-				}
-			}
-
 			//ASRT
 			bool ASRTFound = false;
 			int ASRTpos = 0;
@@ -441,16 +428,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			if (ItemCode == TAG_ITEM_TOBT)
 			{
 				string ShowEOBT = (string)EOBT;
-				if (!actualTOBT) {
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREENNOTACTIVE;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-				}
-				else {
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-				}
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = TAG_GREEN;
+				strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 			}
 			if (ItemCode == TAG_ITEM_TSAC)
 			{
