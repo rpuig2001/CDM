@@ -25,15 +25,15 @@ CDM includes the following times:
 
 ![image](https://i.gyazo.com/3c65d71bc812ccf6966c4694c9fa425d.png)
 
-- TSAT
+- TOBT
 
 ![image](https://i.gyazo.com/754f328e3d0fb087077cd2bfc89c1a54.png)
 
-- TTOT
+- TSAT
 
 ![image](https://i.gyazo.com/f4de2894de5f5b12733ad94896d9cdbb.png)
 
-- TSAT
+- TTOT
 
 ![image](https://i.gyazo.com/bfc39b46e67f53683236020c8fe57ea2.png)
 
@@ -58,20 +58,31 @@ CDM includes the following times:
 
 ## Functions and colors:
 - Column A: It toggles an A to remember the controller that the plane is waiting for something.
+  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: Always this color.
 
 - Column EOBT: It gets the EOBT set by the pilot in the flightplan.
+  - ![#b6b6b6](https://via.placeholder.com/15/b6b6b6/000000?text=+) `GREY`: Always this color.
 
 - Column TOBT: We can not simulate it, so it gets the EOBT and the colors is green.
+  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN`: From EOBT-35 to EOBT-5.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: After EOBT-5.
 
-- Column E: It shows a letter depending on the plane the status:
-  - P: 
-  - C: 
-  - I: 
+- Column E: It shows a letter depending on the plane timmings:
+  - P: EOBT is farther than the Actual Time - 35min.
+  - C: EOBT is less than 35min and TSAT hasn't expired (TSAT+6).
+  - I: TSAT has expired.
 
 - Column TSAT: It is the TTOT - the taxi time defined in the taxizones.txt, otherwise it sets 15min.
+  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN`: From EOBT-35 to TSAT-5 and after TSAT+6 if not expired.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: From TSAT-5 to TSAT+5.
+  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: From TSAT+5 to TSAT+6.
 
-- Column TTOT: No same TTOTs
+- Column TTOT: The plugin calculates a TSAT based on this column, the TTOT, you can't have planes with same TTOT, the time between departures is calculated from the rate/hour. So if you need 40 departures/hour, the plugin will calculate it for you with no equal TTOTs.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
 
 - Column TSAC: With the left click you can directly set the tsat and with the right click you can remove it or set the time you want. If this field is +/- 5min that the TSAT, the color change to orange to indicate that his TSAT has changed more than 5min.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: If between +/- 5min of TSAT.
+  - ![#ed852e](https://via.placeholder.com/15/ed852e/000000?text=+) `ORANGE`: If +/- 5min of TSAT.
 
 - Column ASRT: It sets the time when ST-UP, TAXI or DEPA state is set on the first time.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
