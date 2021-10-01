@@ -661,12 +661,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			if (hour != EOBThour) {
-				if (EOBTdifTime >= -45 && EOBTdifTime <= 45) {
+				if (EOBTdifTime >= -45) {
 					actualTOBT = true;
 				}
 			}
 			else {
-				if (EOBTdifTime >= -5 && EOBTdifTime <= 5) {
+				if (EOBTdifTime >= -5) {
 					actualTOBT = true;
 				}
 			}
