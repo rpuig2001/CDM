@@ -356,6 +356,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		if (stoi(min) < 10) {
 			min = "0" + min;
 		}
+		if (stoi(hour) < 10) {
+			hour = "0" + hour;
+		}
 
 		bool gndStatusSet = false;
 		if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
@@ -403,8 +406,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			if (!ASRTFound) {
 				if (correctState) {
-					ASRTtext = hour + min;
-					asrtList.push_back(callsign + "," + ASRTtext);
+					ASRTtext = formatTime(hour + min);
+					asrtList.push_back(callsign + "," + ASRTtext.substr(0,4));
 					ASRTFound = true;
 				}
 			}
