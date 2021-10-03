@@ -357,7 +357,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			min = "0" + min;
 		}
 		if (stoi(hour) < 10) {
-			hour = "0" + hour;
+			hour = "0" + hour.substr(1,1);
 		}
 
 		bool gndStatusSet = false;
@@ -776,25 +776,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			if (ItemCode == TAG_ITEM_TSAT)
 			{
+				string ShowTSAT = (string)TSAT;
 				if (notYetEOBT) {
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_RED;
 					strcpy_s(sItemString, 16, " ");
 				}
 				else if (lastMinute) {
-					string ShowTSAT = (string)TSAT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_YELLOW;
 					strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 				}
 				else if (moreLessFive) {
-					string ShowTSAT = (string)TSAT;
+					*pColorCode = TAG_COLOR_RGB_DEFINED;
+					*pRGB = TAG_GREEN;
+					strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
+				}
+				else if (oldTSAT) {
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 				}
 				else {
-					string ShowTSAT = (string)TSAT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_GREENNOTACTIVE;
 					strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
@@ -803,19 +806,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			if (ItemCode == TAG_ITEM_TTOT)
 			{
+				string ShowTTOT = (string)TTOT;
 				if (notYetEOBT) {
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, " ");
 				}
 				else if (moreLessFive || lastMinute) {
-					string ShowTTOT = (string)TTOT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 				}
 				else {
-					string ShowTTOT = (string)TTOT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
