@@ -9,6 +9,7 @@ const int TAG_ITEM_TSAC = 5;
 const int TAG_ITEM_ASRT = 6;
 const int TAG_ITEM_A = 7;
 const int TAG_ITEM_E = 8;
+const int TAG_ITEM_CTOT = 9;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;

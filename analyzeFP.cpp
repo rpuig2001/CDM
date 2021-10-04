@@ -16,6 +16,7 @@ char DllPathFile[_MAX_PATH];
 string pfad;
 string lfad;
 string sfad;
+string cfad;
 string airport;
 string rateString;
 
@@ -27,6 +28,7 @@ vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
 vector<string> OutOfTsat;
 vector<string> listA;
+vector<string> ctotList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -63,10 +65,13 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-A"
 	RegisterTagItemType("A", TAG_ITEM_A);
-	RegisterTagItemFunction("Add to column A", TAG_FUNC_ADDA);
+	RegisterTagItemFunction("Toggle A", TAG_FUNC_ADDA);
 
 	// Register Tag Item "CDM-E"
 	RegisterTagItemType("E", TAG_ITEM_E);
+
+	// Register Tag Item "CDM-CTOT"
+	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -80,6 +85,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	sfad = DllPathFile;
 	sfad.resize(sfad.size() - strlen("CDM.dll"));
 	sfad += "savedData.txt";
+
+	cfad = DllPathFile;
+	cfad.resize(cfad.size() - strlen("CDM.dll"));
+	cfad += "ctot.txt";
 
 	debugMode = false;
 	initialSidLoad = false;
@@ -95,6 +104,14 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	while (getline(file, lineValue))
 	{
 		TxtTimesVector.push_back(lineValue);
+	}
+
+	fstream fileCtot;
+	string lineValueCtot;
+	fileCtot.open(cfad.c_str(), std::ios::in);
+	while (getline(fileCtot, lineValueCtot))
+	{
+		ctotList.push_back(lineValueCtot);
 	}
 }
 
@@ -357,7 +374,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			min = "0" + min;
 		}
 		if (stoi(hour) < 10) {
-			hour = "0" + hour.substr(1,1);
+			hour = "0" + hour.substr(1, 1);
 		}
 
 		bool gndStatusSet = false;
@@ -386,6 +403,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
+			//CTOT
+			bool hasCTOT = false;
+			int ctotPos = 0;
+			for (int i = 0; i < ctotList.size(); i++)
+			{
+				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
+					slotList.erase(slotList.begin() + pos);
+					aircraftFind = false;
+					hasCTOT = true;
+					ctotPos = i;
+				}
+			}
+
 			//ASRT
 			bool ASRTFound = false;
 			int ASRTpos = 0;
@@ -407,7 +437,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			if (!ASRTFound) {
 				if (correctState) {
 					ASRTtext = formatTime(hour + min);
-					asrtList.push_back(callsign + "," + ASRTtext.substr(0,4));
+					asrtList.push_back(callsign + "," + ASRTtext.substr(0, 4));
 					ASRTFound = true;
 				}
 			}
@@ -459,6 +489,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
 				*pRGB = TAG_GREEN;
 				strcpy_s(sItemString, 16, "I");
+			}
+			if (ItemCode == TAG_ITEM_CTOT)
+			{
+				if (hasCTOT) {
+					*pColorCode = TAG_COLOR_RGB_DEFINED;
+					*pRGB = TAG_GREEN;
+					strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
+				}
 			}
 		}
 		else {
@@ -526,15 +564,56 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			TSAT = EOBT;
-			//TSAT
-			string TSATstring = TSAT;
-			TSATfinal = formatTime(TSATstring);
-			TSAT = TSATfinal.c_str();
+			//CTOT
+			bool hasCTOT = false;
+			int ctotPos = 0;
+			for (int i = 0; i < ctotList.size(); i++)
+			{
+				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
+					slotList.erase(slotList.begin() + pos);
+					aircraftFind = false;
+					hasCTOT = true;
+					ctotPos = i;
+				}
+			}
 
-			//TTOT
-			TTOTFinal = calculateTime(TSATstring, taxiTime);
-			TTOT = TTOTFinal.c_str();
+			if (hasCTOT) {
+				//TTOT with CTOT
+				TTOTFinal = formatTime(ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + "00");
+				TTOT = TTOTFinal.c_str();
+
+				//TSAT with CTOT
+				TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+				TSAT = TSATfinal.c_str();
+
+				//IF EOBT+TaxiTime >= CTOT+7 THEN CTOT LOST
+				if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 7))) {
+					hasCTOT = false;
+				}
+				else if ((stoi(calculateTime(EOBT, taxiTime)) < stoi(calculateTime(TTOTFinal, 7))) && stoi(EOBT) > (stoi(TSATfinal))) {
+					TSAT = EOBT;
+					//TSAT
+					string TSATstring = TSAT;
+					TSATfinal = formatTime(TSATstring);
+					TSAT = TSATfinal.c_str();
+
+					//TTOT
+					TTOTFinal = calculateTime(TSATstring, taxiTime);
+					TTOT = TTOTFinal.c_str();
+				}
+			}
+
+			if (!hasCTOT) {
+				TSAT = EOBT;
+				//TSAT
+				string TSATstring = TSAT;
+				TSATfinal = formatTime(TSATstring);
+				TSAT = TSATfinal.c_str();
+
+				//TTOT
+				TTOTFinal = calculateTime(TSATstring, taxiTime);
+				TTOT = TTOTFinal.c_str();
+			}
 
 			int rate = stoi(rateString);
 			double rateHour = (double)60 / rate;
@@ -552,29 +631,66 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				correctTTOT = true;
 				for (int t = 0; t < slotList.size(); t++)
 				{
-					string listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
+					string listTTOT;
 					string listCallsign = slotList[t].substr(0, slotList[t].find(","));
+					if (hasCTOT) {
+						if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
 
-					if (TTOTFinal == listTTOT && callsign != listCallsign) {
-						if (alreadySetTOStd) {
-							TTOTFinal = calculateTime(TTOTFinal, 0.5);
-							correctTTOT = false;
-						}
-						else {
-							TTOTFinal = calculateTime(listTTOT, 0.5);
-							correctTTOT = false;
-							alreadySetTOStd = true;
+							listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+
+							if (TTOTFinal == listTTOT && callsign != listCallsign) {
+								if (alreadySetTOStd) {
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctTTOT = false;
+								}
+								else {
+									TTOTFinal = calculateTime(listTTOT, 0.5);
+									correctTTOT = false;
+									alreadySetTOStd = true;
+								}
+							}
+							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
+								if (alreadySetTOStd) {
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctTTOT = false;
+								}
+								else {
+									TTOTFinal = calculateTime(listTTOT, 0.5);
+									correctTTOT = false;
+									alreadySetTOStd = true;
+								}
+							}
 						}
 					}
-					else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
-						if (alreadySetTOStd) {
-							TTOTFinal = calculateTime(TTOTFinal, 0.5);
-							correctTTOT = false;
+					else {
+						if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
+							listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
 						}
 						else {
-							TTOTFinal = calculateTime(listTTOT, 0.5);
-							correctTTOT = false;
-							alreadySetTOStd = true;
+							listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
+						}
+						if (TTOTFinal == listTTOT && callsign != listCallsign) {
+
+							if (alreadySetTOStd) {
+								TTOTFinal = calculateTime(TTOTFinal, 0.5);
+								correctTTOT = false;
+							}
+							else {
+								TTOTFinal = calculateTime(listTTOT, 0.5);
+								correctTTOT = false;
+								alreadySetTOStd = true;
+							}
+						}
+						else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
+							if (alreadySetTOStd) {
+								TTOTFinal = calculateTime(TTOTFinal, 0.5);
+								correctTTOT = false;
+							}
+							else {
+								TTOTFinal = calculateTime(listTTOT, 0.5);
+								correctTTOT = false;
+								alreadySetTOStd = true;
+							}
 						}
 					}
 				}
@@ -584,8 +700,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
 					TSAT = TSATfinal.c_str();
 					TTOT = TTOTFinal.c_str();
-					string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
-					slotList.push_back(valueToAdd);
+					if (hasCTOT) {
+						string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
+						slotList.push_back(valueToAdd);
+					}
+					else {
+						string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
+						slotList.push_back(valueToAdd);
+					}
 				}
 			}
 
@@ -633,7 +755,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			bool correctState = false;
-			if ((string)FlightPlan.GetGroundState() == "STUP" ||(string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+			if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 				correctState = true;
 			}
 
@@ -863,6 +985,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, "C");
+				}
+			}
+
+			if (ItemCode == TAG_ITEM_CTOT)
+			{
+				if (hasCTOT) {
+					*pColorCode = TAG_COLOR_RGB_DEFINED;
+					*pRGB = TAG_GREEN;
+					strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
 				}
 			}
 		}
@@ -1266,6 +1397,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		TxtTimesVector.clear();
 		OutOfTsat.clear();
 		listA.clear();
+		ctotList.clear();
 		//Get data from xml config file
 		airport = getAirportFromXml();
 		rateString = getRateFromXml();
@@ -1308,6 +1440,35 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		{
 			slotList.push_back(lineValue);
 		}
+		return true;
+	}
+
+	if (startsWith(".cdm ctot", sCommandLine))
+	{
+		sendMessage("Loading CTOTs data....");
+		ctotList.clear();
+		//load data from file
+		fstream file;
+		string lineValue;
+		file.open(cfad.c_str(), std::ios::in);
+		while (getline(file, lineValue))
+		{
+			ctotList.push_back(lineValue);
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm airport", sCommandLine))
+	{
+		sendMessage("Loading Airport....");
+		airport = getAirportFromXml();
+		return true;
+	}
+
+	if (startsWith(".cdm rate", sCommandLine))
+	{
+		sendMessage("Loading Rate/Hour....");
+		rateString = getRateFromXml();
 		return true;
 	}
 }
