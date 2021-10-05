@@ -57,7 +57,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
-	RegisterTagItemFunction("Add actual TSAT to TSAC", TAG_FUNC_ADDTSAC);
+	RegisterTagItemFunction("Add TSAT to TSAC", TAG_FUNC_ADDTSAC);
 	RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
 
 	// Register Tag Item "CDM-ASRT"
@@ -72,6 +72,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-CTOT"
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
+	RegisterTagItemFunction("Open CTOT Option list", TAG_FUNC_CTOTOPTIONS);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -234,6 +235,80 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 		else {
 			listA.erase(listA.begin() + Apos);
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_CTOTOPTIONS) {
+		bool hasCTOT = false;
+		for (int i = 0; i < ctotList.size(); i++)
+		{
+			if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
+				hasCTOT = true;
+			}
+		}
+		OpenPopupList(Area, "CTOT Options", 1);
+		AddPopupListElement("Add CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false,2, false);
+		if (hasCTOT) {
+			AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false,2, false);
+		}
+		else {
+			AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, true);
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_REMOVECTOT) {
+		for (int a = 0; a < slotList.size(); a++)
+		{
+			if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
+				slotList.erase(slotList.begin() + a);
+			}
+		}
+
+		for (int i = 0; i < ctotList.size(); i++)
+		{
+			if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
+				ctotList.erase(ctotList.begin() + i);
+			}
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_ADDCTOTSELECTED) {
+		string ctotText = "";
+		for (int i = 0; i < ctotList.size(); i++)
+		{
+			if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
+				ctotText = ctotList[i].substr(ctotList[i].find(",") + 1, 4);
+			}
+		}
+		OpenPopupEdit(Area, TAG_FUNC_ADDCTOT, ctotText.c_str());
+	}
+
+	if (FunctionId == TAG_FUNC_ADDCTOT) {
+		string editedCTOT= ItemString;
+		bool hasNoNumber = true;
+		if (editedCTOT.length() <= 4 && editedCTOT.length() > 0) {
+			for (int i = 0; i < editedCTOT.length(); i++) {
+				if (isdigit(editedCTOT[i]) == false) {
+					hasNoNumber = false;
+				}
+			}
+			if (hasNoNumber) {
+				for (int a = 0; a < slotList.size(); a++)
+				{
+					if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
+						slotList.erase(slotList.begin() + a);
+					}
+				}
+				for (int i = 0; i < ctotList.size(); i++)
+				{
+					if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
+						ctotList.erase(ctotList.begin() + i);
+					}
+				}
+				string callsign = fp.GetCallsign();
+				string valueToAdd = callsign + "," + editedCTOT;
+				ctotList.push_back(valueToAdd);
+			}
 		}
 	}
 
@@ -409,8 +484,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			for (int i = 0; i < ctotList.size(); i++)
 			{
 				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
-					slotList.erase(slotList.begin() + pos);
-					aircraftFind = false;
 					hasCTOT = true;
 					ctotPos = i;
 				}
@@ -570,8 +643,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			for (int i = 0; i < ctotList.size(); i++)
 			{
 				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
-					slotList.erase(slotList.begin() + pos);
-					aircraftFind = false;
 					hasCTOT = true;
 					ctotPos = i;
 				}
@@ -623,10 +694,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			bool equalTempoTTOT = true;
 			bool alreadySetTOStd = false;
 
-			if (aircraftFind) {
-				slotList.erase(slotList.begin() + pos);
-			}
-
 			while (equalTTOT) {
 				correctTTOT = true;
 				for (int t = 0; t < slotList.size(); t++)
@@ -649,7 +716,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									alreadySetTOStd = true;
 								}
 							}
-							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
+							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign) {
 								if (alreadySetTOStd) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctTTOT = false;
@@ -681,7 +748,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								alreadySetTOStd = true;
 							}
 						}
-						else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
+						else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign) {
 							if (alreadySetTOStd) {
 								TTOTFinal = calculateTime(TTOTFinal, 0.5);
 								correctTTOT = false;
@@ -701,12 +768,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					TSAT = TSATfinal.c_str();
 					TTOT = TTOTFinal.c_str();
 					if (hasCTOT) {
-						string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
-						slotList.push_back(valueToAdd);
+						if (aircraftFind) {
+							if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 8, 6)) {
+								slotList.erase(slotList.begin() + pos);
+								string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
+								slotList.push_back(valueToAdd);
+							}
+						}
+						else {
+							string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
+							slotList.push_back(valueToAdd);
+						}
 					}
 					else {
-						string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
-						slotList.push_back(valueToAdd);
+						if (aircraftFind) {
+							if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 6, 6)) {
+								slotList.erase(slotList.begin() + pos);
+								string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
+								slotList.push_back(valueToAdd);
+							}
+						}
+						else {
+							string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
+							slotList.push_back(valueToAdd);
+						}
 					}
 				}
 			}
