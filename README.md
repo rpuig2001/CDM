@@ -45,16 +45,29 @@ CDM includes the following times:
 
 ![image](https://i.gyazo.com/47ca5006438009d4fa573ba328cc0abb.png)
 
+- CTOT
+
+![image](https://i.gyazo.com/d6561232afdc79d7bdaa28901dec95e4.png)
+
 
 ### Define configurations
 - CDMconfig.xml
   - Add icao (ex. apt icao="LEAL").
   - Rate/hour (ex. rate ops="40").
+- ctot.txt
+  - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT``, ex:``VLG11P,1745`` (Each line has an aircraft)
 - taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:TAXITIME``, ex:``LEPA:24R:39.543504:2.712383:39.548777:2.719502:10``, if no taxizone defined, the default taxi time is set to 15 min.
 
 *Examples can be found in the given CDMconfig.xml and taxizones.txt file.*
 
+### Commands
+- ``.cdm reload`` - Reloads all CDM plugin.
+- ``.cdm rate`` - Reloads rate from the CDMconfig.xml file.
+- ``.cdm airport`` - Reloads airport from the CDMconfig.xml file.
+- ``.cdm ctot`` - Loads ctot.txt data.
+- ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
+- ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
 
 ## Functions and colors:
 - Column A: It toggles an A to remember the controller that the plane is waiting for something.
@@ -85,4 +98,7 @@ CDM includes the following times:
   - ![#ed852e](https://via.placeholder.com/15/ed852e/000000?text=+) `ORANGE`: If +/- 5min of TSAT.
 
 - Column ASRT: It sets the time when ST-UP, TAXI or DEPA state is set on the first time.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
+
+- Column CTOT: It shows aircraft's CTOT which can be added, modified or removed.
   - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
