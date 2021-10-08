@@ -20,7 +20,6 @@ string cfad;
 string airport;
 string rateString;
 
-vector<string> AircraftIgnore;
 vector<string> slotList;
 vector<string> tsacList;
 vector<string> asrtList;
@@ -45,6 +44,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-EOBT"
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
 	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
+	RegisterTagItemFunction("Add actual time to EOBT", TAG_FUNC_EOBTACTUALTIME);
 
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
@@ -95,8 +95,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	initialSidLoad = false;
 
 	//Get data from xml config file
-	airport = getAirportFromXml();
-	rateString = getRateFromXml();
+	airport = getFromXml("/CDM/apt/@icao");
+	rateString = getFromXml("/CDM/rate/@ops");
 
 	//Get data from .txt file
 	fstream file;
@@ -247,11 +247,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 		}
 		OpenPopupList(Area, "CTOT Options", 1);
-		AddPopupListElement("Add CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false,2, false);
 		if (hasCTOT) {
+			AddPopupListElement("Edit CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
 			AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false,2, false);
 		}
 		else {
+			AddPopupListElement("Add CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
 			AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, true);
 		}
 	}
@@ -312,12 +313,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_ON_OFF) {
-		if (find(AircraftIgnore.begin(), AircraftIgnore.end(), fp.GetCallsign()) != AircraftIgnore.end())
-			AircraftIgnore.erase(remove(AircraftIgnore.begin(), AircraftIgnore.end(), fp.GetCallsign()), AircraftIgnore.end());
-		else
-			AircraftIgnore.emplace_back(fp.GetCallsign());
-
+	if (FunctionId == TAG_FUNC_EOBTACTUALTIME) {
+		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/timeToAddEobtFunction/@minutes"))).c_str());
+		fp.GetFlightPlanData().AmendFlightPlan();
 	}
 }
 
@@ -1085,6 +1083,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
+string CDM::EobtPlusTime(string EOBT, int addedTime) {
+	long int timeNow = static_cast<long int>(std::time(nullptr));
+	string completeTime = unixTimeToHumanReadable(timeNow);
+	string hour = "";
+	string min = "";
+
+	hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+		min = completeTime.substr(completeTime.find(":") + 1, 2);
+	}
+	else {
+		min = completeTime.substr(completeTime.find(":") + 1, 1);
+	}
+
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
+	if (stoi(hour) < 10) {
+		hour = "0" + hour.substr(1, 1);
+	}
+
+	return calculateTime(hour + min + "00", addedTime);
+}
+
 string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	string line, bot_left_lat, bot_left_lon, top_right_lat, top_right_lon, TxtOrigin, TxtDepRwy, TxtTime;
 	vector<int> separators;
@@ -1414,43 +1437,14 @@ string CDM::unixTimeToHumanReadable(long int seconds)
 	return ans;
 }
 
-//Get Airport from the xml file
-string CDM::getAirportFromXml()
+//Get Data from the xml file
+string CDM::getFromXml(string xpath)
 {
 	xml_document doc;
 
 	// load the XML file
 	doc.load_file(pfad.c_str());
 
-	string xpath = "/CDM/apt/@icao";
-	pugi::xpath_node_set altPugi = doc.select_nodes(xpath.c_str());
-
-	std::vector<std::string> result;
-	for (auto xpath_node : altPugi) {
-		if (xpath_node.attribute() != nullptr)
-			result.push_back(xpath_node.attribute().value());
-		else
-			result.push_back(xpath_node.node().child_value());
-	}
-
-	if (result.size() > 0)
-	{
-		return result[0];
-	}
-	else {
-		return "";
-	}
-}
-
-//Get Rate/Hour from the xml file
-string CDM::getRateFromXml()
-{
-	xml_document doc;
-
-	// load the XML file
-	doc.load_file(pfad.c_str());
-
-	string xpath = "/CDM/rate/@ops";
 	pugi::xpath_node_set altPugi = doc.select_nodes(xpath.c_str());
 
 	std::vector<std::string> result;
@@ -1484,8 +1478,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		listA.clear();
 		ctotList.clear();
 		//Get data from xml config file
-		airport = getAirportFromXml();
-		rateString = getRateFromXml();
+		airport = getFromXml("/CDM/apt/@icao");
+		rateString = getFromXml("/CDM/rate/@ops");
 
 		//Get data from .txt file
 		fstream file;
@@ -1546,14 +1540,14 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm airport", sCommandLine))
 	{
 		sendMessage("Loading Airport....");
-		airport = getAirportFromXml();
+		airport = getFromXml("/CDM/apt/@icao");
 		return true;
 	}
 
 	if (startsWith(".cdm rate", sCommandLine))
 	{
 		sendMessage("Loading Rate/Hour....");
-		rateString = getRateFromXml();
+		rateString = getFromXml("/CDM/rate/@ops");
 		return true;
 	}
 }

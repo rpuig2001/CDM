@@ -13,7 +13,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "1.0.3"
+#define MY_PLUGIN_VERSION   "1.0.4"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -42,6 +42,8 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
+	string EobtPlusTime(string EOBT, int time);
+
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
 	bool FindPoint(double x1, double y1, double x2, double y2, double x, double y);
@@ -55,8 +57,6 @@ public:
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
 	string unixTimeToHumanReadable(long int seconds);
-
-	string getAirportFromXml();
 
 	template <typename Out>
 	void split(const string& s, char delim, Out result) {
@@ -127,7 +127,7 @@ public:
 
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
-	string getRateFromXml();
+	string getFromXml(string xpath);
 
 	bool OnCompileCommand(const char* sCommandLine);
 
