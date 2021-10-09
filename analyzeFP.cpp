@@ -893,6 +893,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				if (oldTSAT && !correctState) {
 					OutOfTsat.push_back(callsign + "," + EOBT);
+					if (remarks.find("&") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
 				}
 
 				string completeEOBT = (string)EOBT;
@@ -1137,6 +1143,34 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				TSATString = remarks.substr(remarks.find("&") + 1, 6);
 				TTOTString = remarks.substr(remarks.find("&") + 8, 6);
 				TSATFind = true;
+			}
+
+			if (aircraftFind) {
+				if (!TSATFind) {
+					slotList.erase(slotList.begin() + pos);
+				}
+				else if (TSATString != slotList[pos].substr(slotList[pos].find(",") + 8, 6) && TSATFind) {
+					if (hasCTOT) {
+						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString + ",c";
+						slotList[pos] = valueToAdd;
+					}
+					else {
+						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
+						slotList[pos] = valueToAdd;
+					}
+				}
+			}
+			else {
+				if (TSATFind) {
+					if (hasCTOT) {
+						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString + ",c";
+						slotList.push_back(valueToAdd.c_str());
+					}
+					else {
+						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
+						slotList.push_back(valueToAdd.c_str());
+					}
+				}
 			}
 
 			//If oldTSAT
@@ -1455,6 +1489,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
 					*pRGB = TAG_RED;
 					strcpy_s(sItemString, 16, "MAST");
+				}
+				if (ItemCode == TAG_ITEM_E)
+				{
+					*pColorCode = TAG_COLOR_RGB_DEFINED;
+					*pRGB = TAG_GREEN;
+					strcpy_s(sItemString, 16, "I");
 				}
 			}
 		}
