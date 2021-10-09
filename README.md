@@ -50,10 +50,26 @@ CDM includes the following times:
 ![image](https://i.gyazo.com/d6561232afdc79d7bdaa28901dec95e4.png)
 
 
+## MASTER AND SLAVE:
+- Master: The master is the "admin" of the CDM and is the only controller who calculates the times.
+  - Use ``.cdm master`` command (**TO LET THE CDM DO IT'S JOB, ONLY 1 CONTROLLER CAN BE THE MASTER AT THE SAME TIME**).
+- Slave: The Slave Monitors the CDM and is unable to add/edit CTOTs.
+  - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave`` command.
+
+## HOW TO DO A CONTROLLER CHANGE CORRECTLY:
+1. Check to have the same *CDMconfig.xml* and *taxizones.txt* configuration.
+2. The **Old controller**, which is the Master, uses the command ``.cdm save`` to get the *savedData.txt*.
+3. Once the **Old Controller** has this *savedData.txt* file, he send it to the **new controller**.
+4. The **new controller** adds this file to the Plugin .dll location and uses ``.cdm load`` command to have the same times.
+5. Then, the **Old controller** changes to Slave with command ``.cdm slave``.
+6. Once there are no master controllers, the **new controlles** gets the master "rol" the command ``.cdm master``.
+8. That's it!
+
 ### Define configurations
 - CDMconfig.xml
   - Add icao (ex. apt icao="LEAL").
   - Rate/hour (ex. rate ops="40").
+  - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
 - ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT``, ex:``VLG11P,1745`` (Each line has an aircraft)
 - taxizones.txt
