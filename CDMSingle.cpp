@@ -456,6 +456,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 		if (master) {
 
+			if ((string)FlightPlan.GetGroundState() == "DEPA") {
+				if (remarks.find("&") != string::npos) {
+					string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+					FlightPlan.GetFlightPlanData().AmendFlightPlan();
+					remarks = stringToAdd;
+				}
+			}
+
 			for (int i = 0; i < OutOfTsat.size(); i++)
 			{
 				if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
