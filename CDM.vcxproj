@@ -19,7 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="analyzeFP.hpp" />
+    <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="Libs\EuroScopePlugIn.h" />
@@ -27,7 +27,7 @@
     <ClInclude Include="targetver.h" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="analyzeFP.cpp" />
+    <ClCompile Include="CDMSingle.cpp" />
     <ClCompile Include="CDM.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>

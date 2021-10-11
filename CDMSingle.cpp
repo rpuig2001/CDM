@@ -1,5 +1,5 @@
 #include "stdafx.h"
-#include "analyzeFP.hpp"
+#include "CDMSingle.hpp"
 #include "pugixml.hpp"
 #include "pugixml.cpp"
 
@@ -701,12 +701,25 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					{
 						string listTTOT;
 						string listCallsign = slotList[t].substr(0, slotList[t].find(","));
+						string listDepRwy = "";
+						for (int i = 0; i < taxiTimesList.size(); i++)
+						{
+							if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
+								if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
+									listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
+								}
+								else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
+									listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
+								}
+							}
+						}
+
 						if (hasCTOT) {
 							if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
 
 								listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
 
-								if (TTOTFinal == listTTOT && callsign != listCallsign) {
+								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
 									if (alreadySetTOStd) {
 										TTOTFinal = calculateTime(TTOTFinal, 0.5);
 										correctTTOT = false;
@@ -717,7 +730,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										alreadySetTOStd = true;
 									}
 								}
-								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign) {
+								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy) {
 									if (alreadySetTOStd) {
 										TTOTFinal = calculateTime(TTOTFinal, 0.5);
 										correctTTOT = false;
@@ -737,7 +750,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else {
 								listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
 							}
-							if (TTOTFinal == listTTOT && callsign != listCallsign) {
+							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
 
 								if (alreadySetTOStd) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -749,7 +762,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									alreadySetTOStd = true;
 								}
 							}
-							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign) {
+							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy) {
 								if (alreadySetTOStd) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctTTOT = false;

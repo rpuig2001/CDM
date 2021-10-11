@@ -3,7 +3,7 @@
 
 #include "stdafx.h"
 #include "EuroScopePlugIn.h"
-#include "analyzeFP.hpp"
+#include "CDMSingle.hpp"
 
 CDM* gpMyPlugin = NULL;
 
