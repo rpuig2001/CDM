@@ -1550,14 +1550,37 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 		}
 		line = TxtTimesVector[t];
 		TxtOrigin = line.substr(0, 4);
-		TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
-		bot_left_lat = line.substr(separators[1] + 1, separators[2] - separators[1] - 1);
-		bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2] - 1);
-		top_right_lat = line.substr(separators[3] + 1, separators[4] - separators[3] - 1);
-		top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4] - 1);
-		TxtTime = line.substr(separators[5] + 1, line.length() - 1);
 		if (TxtOrigin == origin) {
+			TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
 			if (TxtDepRwy == depRwy) {
+				bot_left_lat = line.substr(separators[1] + 1, separators[2] - separators[1] - 1);
+				if (line.substr(separators[2] + 1, 1) == "-") {
+					bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2]);
+					top_right_lat = line.substr(separators[3] + 2, separators[4] - separators[3] - 1);
+					if (line.substr(separators[4] + 1, 1) == "-") {
+						top_right_lon = line.substr(separators[4] + 2, separators[5] - separators[4] + 1);
+					}
+					else {
+						top_right_lon = line.substr(separators[4] + 2, separators[5] - separators[4]);
+					}
+				}
+				else {
+					bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2] - 1);
+					top_right_lat = line.substr(separators[3] + 1, separators[4] - separators[3] - 1);
+					if (line.substr(separators[4] + 1, 1) == "-") {
+						top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4]);
+					}
+					else {
+						top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4] - 1);
+					}
+				}
+				if (line.substr(line.length() - 2, 1) == ":") {
+					TxtTime = line.substr(line.length() - 1, 1);
+				}
+				else {
+					TxtTime = line.substr(line.length() - 2, 2);
+				}
+
 				if (FindPoint(stod(bot_left_lat), stod(bot_left_lon), stod(top_right_lat), stod(top_right_lon), lat, lon) == true) {
 					return TxtTime;
 					ZoneFound = true;
@@ -1974,7 +1997,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		asrtList.clear();
 		taxiTimesList.clear();
 		string line = sCommandLine;
-		airport = to_upper_copy(line.substr(line.length() - 4));
+		airport = to_upper_copy(line.substr(line.length() - 4, 4));
 		sendMessage("NEW Airport: " + airport);
 		return true;
 	}
