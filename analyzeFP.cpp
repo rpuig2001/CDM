@@ -777,7 +777,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									if (remarks.find("&") != string::npos) {
 										string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
 										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-										FlightPlan.GetFlightPlanData().AmendFlightPlan();
 										remarks = stringToAdd;
 									}
 
@@ -794,7 +793,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (remarks.find("&") != string::npos) {
 									string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
 								}
 
@@ -813,7 +811,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									if (remarks.find("&") != string::npos) {
 										string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
 										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-										FlightPlan.GetFlightPlanData().AmendFlightPlan();
 										remarks = stringToAdd;
 									}
 
@@ -830,7 +827,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (remarks.find("&") != string::npos) {
 									string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
 								}
 
