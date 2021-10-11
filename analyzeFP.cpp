@@ -1957,15 +1957,17 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm airport", sCommandLine))
 	{
-		sendMessage("Loading Airport....");
-		airport = getFromXml("/CDM/apt/@icao");
+		string line = sCommandLine;
+		airport = to_upper_copy(line.substr(line.length() - 4));
+		sendMessage("NEW Airport: " + airport);
 		return true;
 	}
 
 	if (startsWith(".cdm rate", sCommandLine))
 	{
-		sendMessage("Loading Rate/Hour....");
-		rateString = getFromXml("/CDM/rate/@ops");
+		string line = sCommandLine;
+		rateString = line.substr(line.length() - 2);
+		sendMessage("NEW Rate/Hour: " + rateString);
 		return true;
 	}
 
