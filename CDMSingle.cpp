@@ -1966,6 +1966,13 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm airport", sCommandLine))
 	{
+		OutOfTsat.clear();
+		listA.clear();
+		ctotList.clear();
+		slotList.clear();
+		tsacList.clear();
+		asrtList.clear();
+		taxiTimesList.clear();
 		string line = sCommandLine;
 		airport = to_upper_copy(line.substr(line.length() - 4));
 		sendMessage("NEW Airport: " + airport);
