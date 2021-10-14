@@ -454,16 +454,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			hour = "0" + hour.substr(1, 1);
 		}
 
-		if (master) {
-
-			if ((string)FlightPlan.GetGroundState() == "DEPA") {
-				if (remarks.find("&") != string::npos) {
-					string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
-					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-					FlightPlan.GetFlightPlanData().AmendFlightPlan();
-					remarks = stringToAdd;
+		if (remarks.find("&") != string::npos) {
+			bool sppedUp = false;
+			if (RadarTargetSelect(callsign.c_str()).IsValid()) {
+				if (RadarTargetSelect(callsign.c_str()).GetGS() >= 40) {
+					sppedUp = true;
 				}
 			}
+
+			if ((string)FlightPlan.GetGroundState() == "DEPA" || sppedUp) {
+				string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+				FlightPlan.GetFlightPlanData().AmendFlightPlan();
+				remarks = stringToAdd;
+			}
+		}
+
+		if (master) {
 
 			for (int i = 0; i < OutOfTsat.size(); i++)
 			{
@@ -2000,7 +2007,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		OutOfTsat.clear();
 		listA.clear();
-		ctotList.clear();
 		slotList.clear();
 		tsacList.clear();
 		asrtList.clear();
