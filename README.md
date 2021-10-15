@@ -6,7 +6,9 @@ CDM includes the following times:
 - TSAT: Target Start-Up Approval Time.
 - TTOT: Target Take Off Time.
 - TSAC: Target Start-Up Approval Communicated.
+- ASAT: Actual Start-Up Approval Time.
 - ASRT: Actual Start-Up Request Time.
+- CTOT: Calculated Take Off Time.
 
 
 ## How to use:
@@ -15,11 +17,11 @@ CDM includes the following times:
 
 - A
 
-![image](https://i.gyazo.com/2a15bf80068f46e01f48fee6b3ef97e0.png)
+![image](https://i.gyazo.com/e7bae0d995a6f77b0e3b7fed115d854e.png)
 
 - EOBT
 
-![image](https://i.gyazo.com/83cebfb8543e58eca823b7a5a92fa3fa.png)
+![image](https://i.gyazo.com/e831b09bc5a75a8971bcae892ef16940.png)
 
 - E
 
@@ -35,11 +37,15 @@ CDM includes the following times:
 
 - TTOT
 
-![image](https://i.gyazo.com/bfc39b46e67f53683236020c8fe57ea2.png)
+![image](https://i.gyazo.com/931cb1578776283261382f3735fea5e7.png)
 
 - TSAC
 
-![image](https://i.gyazo.com/1d3792af2947ddae6bcde5075abb9582.png)
+![image](https://i.gyazo.com/6a28ed89ecfe8aab259d533febe45000.png)
+
+- ASAT
+
+![image](https://i.gyazo.com/ae930f513a05d85a9776631ff89fbf7d.png)
 
 - ASRT
 
@@ -47,11 +53,11 @@ CDM includes the following times:
 
 - CTOT
 
-![image](https://i.gyazo.com/d6561232afdc79d7bdaa28901dec95e4.png)
+![image](https://i.gyazo.com/fa2d4b6bc87832d2983bf6800bdb824d.png)
 
 
 ## MASTER AND SLAVE:
-- Master: The master is the "admin" of the CDM and is the only controller who calculates the times.
+- Master: The master is the "admin" of the CDM and is the only controller who calculates the times (TSAT, TTOT and ASRT)
   - Use ``.cdm master`` command (**TO LET THE CDM DO IT'S JOB, ONLY 1 CONTROLLER CAN BE THE MASTER AT THE SAME TIME**).
 - Slave: The Slave Monitors the CDM and is unable to add/edit CTOTs.
   - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave`` command.
@@ -79,8 +85,8 @@ CDM includes the following times:
 
 ### Commands
 - ``.cdm reload`` - Reloads all CDM plugin.
-- ``.cdm rate`` - Reloads rate from the CDMconfig.xml file.
-- ``.cdm airport`` - Reloads airport from the CDMconfig.xml file.
+- ``.cdm rate {rate}`` - Sets the selected rate.
+- ``.cdm airport {icao}`` - Sets the selected airport.
 - ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
 - ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
@@ -113,7 +119,11 @@ CDM includes the following times:
   - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: If between +/- 5min of TSAT.
   - ![#ed852e](https://via.placeholder.com/15/ed852e/000000?text=+) `ORANGE`: If +/- 5min of TSAT.
 
-- Column ASRT: It sets the time when ST-UP, TAXI or DEPA state is set on the first time.
+- Column ASAT: It sets the time when ST-UP, TAXI or DEPA state is set on the first time.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: If actual time < ASAT - 5min.
+  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: From ASAT+5 to always.
+
+- Column ASRT: It shows the requested StartUp time, which toggle function or sending a REA Msg.
   - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified or removed.
