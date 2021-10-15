@@ -628,14 +628,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 
 		if (remarks.find("&") != string::npos || remarks.find("ASRT") != string::npos) {
-			bool sppedUp = false;
-			if (RadarTargetSelect(callsign.c_str()).IsValid()) {
-				if (RadarTargetSelect(callsign.c_str()).GetGS() >= 50) {
-					sppedUp = true;
-				}
-			}
 
-			if ((string)FlightPlan.GetGroundState() == "DEPA" || sppedUp) {
+			if ((string)FlightPlan.GetGroundState() == "DEPA") {
 				if (remarks.find("&") != string::npos) {
 					string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
 					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
