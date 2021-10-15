@@ -630,7 +630,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		if (remarks.find("&") != string::npos || remarks.find("ASRT") != string::npos) {
 			bool sppedUp = false;
 			if (RadarTargetSelect(callsign.c_str()).IsValid()) {
-				if (RadarTargetSelect(callsign.c_str()).GetGS() >= 40) {
+				if (RadarTargetSelect(callsign.c_str()).GetGS() >= 50) {
 					sppedUp = true;
 				}
 			}
@@ -1217,12 +1217,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
 					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "") {
 						if (hour == ASATHour) {
-							if (ASATDifTIme <= 10 && ASATDifTIme >= 5) {
+							if (ASATDifTIme >= 5) {
 								ASATPlusFiveLessTen = true;
 							}
 						}
 						else {
-							if (ASATDifTIme <= 50 && ASATDifTIme >= 45) {
+							if (ASATDifTIme >= 45) {
 								ASATPlusFiveLessTen = true;
 							}
 						}
@@ -1624,12 +1624,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
 					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "") {
 						if (hour == ASATHour) {
-							if (ASATDifTIme <= 10 && ASATDifTIme >= 5) {
+							if (ASATDifTIme >= 5) {
 								ASATPlusFiveLessTen = true;
 							}
 						}
 						else {
-							if (ASATDifTIme <= 50 && ASATDifTIme >= 45) {
+							if (ASATDifTIme >= 45) {
 								ASATPlusFiveLessTen = true;
 							}
 						}
