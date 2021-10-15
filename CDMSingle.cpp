@@ -247,54 +247,72 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	if (FunctionId == TAG_FUNC_TOGGLEASRT) {
-		string remarks = fp.GetFlightPlanData().GetRemarks();
-		bool callsignFound = false;
-		int ASRTpos;
-		for (int i = 0; i < asrtList.size(); i++)
-		{
-			if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-				callsignFound = true;
-				ASRTpos = i;
+		if (master) {
+			string remarks = fp.GetFlightPlanData().GetRemarks();
+			bool callsignFound = false;
+			int ASRTpos;
+			for (int i = 0; i < asrtList.size(); i++)
+			{
+				if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
+					callsignFound = true;
+					ASRTpos = i;
+				}
 			}
-		}
-		if (!callsignFound) {
-			//Get Time now
-			long int timeNow = static_cast<long int>(std::time(nullptr));
-			string completeTime = unixTimeToHumanReadable(timeNow);
-			string hour = "";
-			string min = "";
+			if (!callsignFound) {
+				//Get Time now
+				long int timeNow = static_cast<long int>(std::time(nullptr));
+				string completeTime = unixTimeToHumanReadable(timeNow);
+				string hour = "";
+				string min = "";
 
-			hour = completeTime.substr(completeTime.find(":") - 2, 2);
+				hour = completeTime.substr(completeTime.find(":") - 2, 2);
 
-			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-				min = completeTime.substr(completeTime.find(":") + 1, 2);
+				if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+					min = completeTime.substr(completeTime.find(":") + 1, 2);
+				}
+				else {
+					min = completeTime.substr(completeTime.find(":") + 1, 1);
+				}
+
+				if (stoi(min) < 10) {
+					min = "0" + min;
+				}
+				if (stoi(hour) < 10) {
+					hour = "0" + hour.substr(1, 1);
+				}
+
+				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
+				if (remarks.find("ASRT") == string::npos) {
+					if (remarks.find("&") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("&")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks + " ASRT" + hour + min;
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
 			}
 			else {
-				min = completeTime.substr(completeTime.find(":") + 1, 1);
-			}
-
-			if (stoi(min) < 10) {
-				min = "0" + min;
-			}
-			if (stoi(hour) < 10) {
-				hour = "0" + hour.substr(1, 1);
-			}
-
-			asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
-			if (!(remarks.find("ASRT") != string::npos)) {
-				string stringToAdd = remarks + " ASRT" + hour + min;
-				fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-				fp.GetFlightPlanData().AmendFlightPlan();
-				remarks = stringToAdd;
-			}
-		}
-		else {
-			asrtList.erase(asrtList.begin() + ASRTpos);
-			if (remarks.find("ASRT") != string::npos) {
-				string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-				fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-				fp.GetFlightPlanData().AmendFlightPlan();
-				remarks = stringToAdd;
+				asrtList.erase(asrtList.begin() + ASRTpos);
+				if (remarks.find("ASRT") != string::npos) {
+					if (remarks.find("&") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
 			}
 		}
 	}
@@ -377,8 +395,95 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	if (FunctionId == TAG_FUNC_EOBTACTUALTIME) {
-		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0,4).c_str());
+		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 		fp.GetFlightPlanData().AmendFlightPlan();
+
+		if (master) {
+			string remarks = fp.GetFlightPlanData().GetRemarks();
+			bool callsignFound = false;
+			int ASRTpos;
+			for (int i = 0; i < asrtList.size(); i++)
+			{
+				if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
+					callsignFound = true;
+					ASRTpos = i;
+				}
+			}
+
+			//Get Time now
+			long int timeNow = static_cast<long int>(std::time(nullptr));
+			string completeTime = unixTimeToHumanReadable(timeNow);
+			string hour = "";
+			string min = "";
+
+			hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+				min = completeTime.substr(completeTime.find(":") + 1, 2);
+			}
+			else {
+				min = completeTime.substr(completeTime.find(":") + 1, 1);
+			}
+
+			if (stoi(min) < 10) {
+				min = "0" + min;
+			}
+			if (stoi(hour) < 10) {
+				hour = "0" + hour.substr(1, 1);
+			}
+
+			if (!callsignFound) {
+				if (remarks.find("ASRT") == string::npos) {
+					asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
+					if (remarks.find("&") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("&")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks + " ASRT" + hour + min;
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+			}
+			else {
+				asrtList.erase(asrtList.begin() + ASRTpos);
+
+				if (remarks.find("ASRT") != string::npos) {
+					if (remarks.find("&") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+
+				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
+				if (remarks.find("ASRT") == string::npos) {
+					if (remarks.find("&") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("&")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks + " ASRT" + hour + min;
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+			}
+		}
 	}
 }
 
@@ -412,6 +517,16 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 			asatList.erase(asatList.begin() + x);
 		}
 	}
+
+	//Remove ASRT
+	for (int x = 0; x < asrtList.size(); x++)
+	{
+		string actualListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
+		if (actualListCallsign == callsign) {
+			asrtList.erase(asrtList.begin() + x);
+		}
+	}
+
 	//Remove from listA
 	for (int i = 0; i < listA.size(); i++)
 	{
@@ -1061,6 +1176,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				//ASAT
 				bool ASATFound = false;
+				bool ASATPlusFiveLessTen = false;
 				int ASATpos = 0;
 				string ASATtext = " ";
 				for (int x = 0; x < asatList.size(); x++)
@@ -1086,6 +1202,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (!correctState) {
 						asatList.erase(asatList.begin() + ASATpos);
 						ASATFound = false;
+					}
+				}
+
+				if (ASATFound) {
+					string ASATHour = ASATtext.substr(0, 2);
+					string ASATMin = ASATtext.substr(2, 2);
+					if (hour != "00") {
+						if (ASATHour == "00") {
+							ASATHour = "24";
+						}
+					}
+
+					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "") {
+						if (hour == ASATHour) {
+							if (ASATDifTIme <= 10 && ASATDifTIme >= 5) {
+								ASATPlusFiveLessTen = true;
+							}
+						}
+						else {
+							if (ASATDifTIme <= 50 && ASATDifTIme >= 45) {
+								ASATPlusFiveLessTen = true;
+							}
+						}
 					}
 				}
 
@@ -1190,9 +1330,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (ItemCode == TAG_ITEM_ASAT)
 				{
 					if (ASATFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ASATtext.c_str());
+						if (ASATPlusFiveLessTen) {
+							*pColorCode = TAG_COLOR_RGB_DEFINED;
+							*pRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, ASATtext.c_str());
+						}
+						else {
+							*pColorCode = TAG_COLOR_RGB_DEFINED;
+							*pRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ASATtext.c_str());
+						}
 					}
 					else {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
@@ -1396,16 +1543,47 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
+
 				//ASRT
 				bool ASRTFound = false;
+				int ASRTPos;
 				string ASRTtext = "";
-				if (remarks.find("ASRT") != string::npos) {
-					ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
-					ASRTFound = true;
+				for (int x = 0; x < asrtList.size(); x++)
+				{
+					string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
+					if (MyListCallsign == callsign) {
+						ASRTFound = true;
+						ASRTPos = x;
+					}
+				}
+
+				if (ASRTFound) {
+					if (remarks.find("ASRT") != string::npos) {
+						//If ASRT changed
+						if (asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4) != remarks.substr(remarks.find("ASRT") + 4, 4)) {
+							ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
+							asrtList[ASRTPos] = callsign + "," + ASRTtext;
+						}
+						else {
+							ASRTtext = asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4);
+						}
+					}else{
+						//If ASRT not in remarks but yes in list
+						asrtList.erase(asrtList.begin() + ASRTPos);
+						ASRTFound = false;
+					}
+				}
+				else {
+					if (remarks.find("ASRT") != string::npos) {
+						//If Yes in remarks but not in list
+						ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
+						asrtList.push_back(callsign + "," + ASRTtext);
+					}
 				}
 
 				//ASAT
 				bool ASATFound = false;
+				bool ASATPlusFiveLessTen = false;
 				int ASATpos = 0;
 				string ASATtext = " ";
 				for (int x = 0; x < asatList.size(); x++)
@@ -1433,6 +1611,32 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						ASATFound = false;
 					}
 				}
+
+				if (ASATFound) {
+					string ASATHour = ASATtext.substr(0, 2);
+					string ASATMin = ASATtext.substr(2, 2);
+					if (hour != "00") {
+						if (ASATHour == "00") {
+							ASATHour = "24";
+						}
+					}
+
+					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "") {
+						if (hour == ASATHour) {
+							if (ASATDifTIme <= 10 && ASATDifTIme >= 5) {
+								ASATPlusFiveLessTen = true;
+							}
+						}
+						else {
+							if (ASATDifTIme <= 50 && ASATDifTIme >= 45) {
+								ASATPlusFiveLessTen = true;
+							}
+						}
+					}
+				}
+
+
 				if (ItemCode == TAG_ITEM_EOBT)
 				{
 					string ShowEOBT = (string)EOBT;
@@ -1535,9 +1739,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (ItemCode == TAG_ITEM_ASAT)
 				{
 					if (ASATFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ASATtext.c_str());
+						if (ASATPlusFiveLessTen) {
+							*pColorCode = TAG_COLOR_RGB_DEFINED;
+							*pRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, ASATtext.c_str());
+						}
+						else {
+							*pColorCode = TAG_COLOR_RGB_DEFINED;
+							*pRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ASATtext.c_str());
+						}
 					}
 					else {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
