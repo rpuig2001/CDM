@@ -30,10 +30,19 @@ vector<string> TxtTimesVector;
 vector<string> OutOfTsat;
 vector<string> listA;
 vector<string> ctotList;
+vector<string> colors;
 
 using namespace std;
 using namespace EuroScopePlugIn;
 using namespace pugi;
+
+COLORREF TAG_GREEN = RGB(0, 192, 0);
+COLORREF TAG_GREENNOTACTIVE = RGB(143, 216, 148);
+COLORREF TAG_GREY = RGB(182, 182, 182);
+COLORREF TAG_ORANGE = RGB(212, 133, 46);
+COLORREF TAG_YELLOW = RGB(212, 214, 7);
+COLORREF TAG_DARKYELLOW = RGB(245, 239, 13);
+COLORREF TAG_RED = RGB(190, 0, 0);
 
 // Run on Plugin Initialization
 CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
@@ -97,6 +106,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	cfad.resize(cfad.size() - strlen("CDM.dll"));
 	cfad += "ctot.txt";
 
+	lfad = DllPathFile;
+	lfad.resize(lfad.size() - strlen("CDM.dll"));
+	lfad += "colors.txt";
+
 	debugMode = false;
 	initialSidLoad = false;
 
@@ -122,6 +135,31 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	{
 		ctotList.push_back(lineValueCtot);
 	}
+
+	fstream fileColors;
+	string lineValueColors;
+	vector<int> sep;
+	fileColors.open(lfad.c_str(), std::ios::in);
+	while (getline(fileColors, lineValueColors))
+	{
+		if (lineValueColors.size() > 1) {
+			colors.push_back(lineValueColors.substr(7, lineValueColors.length() - 7));
+			for (int g = 0; g < colors[colors.size() - 1].length(); g++)
+			{
+				if (colors[colors.size() - 1].substr(g, 1) == ",") {
+					sep.push_back(g);
+				}
+			}
+		}
+	}
+
+	TAG_GREEN = RGB(stoi(colors[0].substr(0, sep[0])), stoi(colors[0].substr(sep[0] + 1, sep[1] - (sep[0] + 1))), stoi(colors[0].substr(sep[1] + 1, colors[0].length() - (sep[1] + 1))));
+	TAG_GREENNOTACTIVE = RGB(stoi(colors[1].substr(0, sep[2])), stoi(colors[1].substr(sep[2] + 1, sep[3] - (sep[2] + 1))), stoi(colors[1].substr(sep[3] + 1, colors[0].length() - (sep[3] + 1))));
+	TAG_GREY = RGB(stoi(colors[2].substr(0, sep[4])), stoi(colors[2].substr(sep[4] + 1, sep[5] - (sep[4] + 1))), stoi(colors[2].substr(sep[5] + 1, colors[2].length() - (sep[5] + 1))));
+	TAG_ORANGE = RGB(stoi(colors[3].substr(0, sep[6])), stoi(colors[3].substr(sep[6] + 1, sep[7] - (sep[6] + 1))), stoi(colors[3].substr(sep[7] + 1, colors[3].length() - (sep[7] + 1))));
+	TAG_YELLOW = RGB(stoi(colors[4].substr(0, sep[8])), stoi(colors[4].substr(sep[8] + 1, sep[9] - (sep[8] + 1))), stoi(colors[4].substr(sep[9] + 1, colors[4].length() - (sep[9] + 1))));
+	TAG_DARKYELLOW = RGB(stoi(colors[5].substr(0, sep[10])), stoi(colors[5].substr(sep[10] + 1, sep[11] - (sep[10] + 1))), stoi(colors[5].substr(sep[11] + 1, colors[5].length() - (sep[11] + 1))));
+	TAG_RED = RGB(stoi(colors[6].substr(0, sep[12])), stoi(colors[6].substr(sep[12] + 1, sep[13] - (sep[12] + 1))), stoi(colors[6].substr(sep[13] + 1, colors[6].length() - (sep[13] + 1))));
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -2343,6 +2381,19 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		string line = sCommandLine;
 		rateString = line.substr(line.length() - 2);
 		sendMessage("NEW Rate/Hour: " + rateString);
+		return true;
+	}
+
+	if (startsWith(".cdm lvo", sCommandLine))
+	{
+		rateString = getFromXml("/CDM/rateLvo/@ops");
+		sendMessage("Low Visibility Operations Rate Set: " + rateString);
+		return true;
+	}
+	if (startsWith(".cdm nvo", sCommandLine))
+	{
+		rateString = getFromXml("/CDM/rate/@ops");
+		sendMessage("Normal Visibility Operations Rate Set: " + rateString);
 		return true;
 	}
 

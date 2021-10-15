@@ -26,16 +26,6 @@ const int TAG_FUNC_ADDCTOTSELECTED = 110;
 const int TAG_FUNC_ADDCTOT = 111;
 const int TAG_FUNC_EOBTACTUALTIME = 112;
 
-
-//const COLORREF TAG_GREEN = RGB(0, 190, 0);
-const COLORREF TAG_GREEN = RGB(0, 192, 0);
-const COLORREF TAG_GREENNOTACTIVE = RGB(143, 216, 148);
-const COLORREF TAG_GREY = RGB(182, 182, 182);
-const COLORREF TAG_ORANGE = RGB(212, 133, 46);
-const COLORREF TAG_YELLOW = RGB(212, 214, 7);
-const COLORREF TAG_DARKYELLOW = RGB(245, 239, 13);
-const COLORREF TAG_RED = RGB(190, 0, 0);
-
 inline static bool startsWith(const char* pre, const char* str)
 {
 	size_t lenpre = strlen(pre), lenstr = strlen(str);
