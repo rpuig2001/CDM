@@ -72,9 +72,18 @@ CDM includes the following times:
 8. That's it!
 
 ### Define configurations
+- Colors.txt
+  - color1 = GREEN
+  - color2 = GREENNOTACTIVE
+  - color3 = GREY
+  - color4 = ORANGE
+  - color5 = YELLOW
+  - color6 = DARKYELLOW
+  - color7 = RED
 - CDMconfig.xml
-  - Add icao (ex. apt icao="LEAL").
-  - Rate/hour (ex. rate ops="40").
+  - Add icao (ex. apt icao="LEPA").
+  - Normal Visibility Operations Rate/hour (ex. rate ops="40").
+  - Low Visibility Operations Rate/hour (ex. rateLvo ops="20").
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
 - ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT``, ex:``VLG11P,1745`` (Each line has an aircraft)
@@ -90,6 +99,8 @@ CDM includes the following times:
 - ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
 - ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
+- ``.cdm lvo`` - It sets the configured rate for *LOW VISIBILITY OPERATIONS* in the CDMconfig.xml
+- ``.cdm nvo`` - It sets the configured rate for *NORMAL VISIBILITY OPERATIONS* in the CDMconfig.xml
 
 ## Functions and colors:
 - Column A: It toggles an A to remember the controller that the plane is waiting for something.
