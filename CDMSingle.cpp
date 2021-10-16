@@ -17,6 +17,7 @@ string pfad;
 string lfad;
 string sfad;
 string cfad;
+string vfad;
 string airport;
 string rateString;
 bool master;
@@ -106,9 +107,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	cfad.resize(cfad.size() - strlen("CDM.dll"));
 	cfad += "ctot.txt";
 
-	lfad = DllPathFile;
-	lfad.resize(lfad.size() - strlen("CDM.dll"));
-	lfad += "colors.txt";
+	vfad = DllPathFile;
+	vfad.resize(vfad.size() - strlen("CDM.dll"));
+	vfad += "colors.txt";
 
 	debugMode = false;
 	initialSidLoad = false;
@@ -139,7 +140,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	fstream fileColors;
 	string lineValueColors;
 	vector<int> sep;
-	fileColors.open(lfad.c_str(), std::ios::in);
+	fileColors.open(vfad.c_str(), std::ios::in);
 	while (getline(fileColors, lineValueColors))
 	{
 		if (lineValueColors.size() > 1) {
@@ -1915,45 +1916,39 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 
 	for (int t = 0; t < TxtTimesVector.size(); t++)
 	{
+		line = TxtTimesVector[t];
+		if (!separators.empty()) {
+			separators.clear();
+		}
 		for (int g = 0; g < TxtTimesVector[t].length(); g++)
 		{
-			if (TxtTimesVector[t].substr(g, 1) == ":") {
+			if (line.substr(g, 1) == ":") {
 				separators.push_back(g);
 			}
 		}
-		line = TxtTimesVector[t];
+
+		
 		TxtOrigin = line.substr(0, 4);
 		if (TxtOrigin == origin) {
-			TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
+			if (line.substr(separators[0] + 3, 1) == ":") {
+				TxtDepRwy = line.substr(separators[0] + 1, 2);
+			}
+			else {
+				TxtDepRwy = line.substr(separators[0] + 1, 3);
+			}
 			if (TxtDepRwy == depRwy) {
 				bot_left_lat = line.substr(separators[1] + 1, separators[2] - separators[1] - 1);
-				if (line.substr(separators[2] + 1, 1) == "-") {
-					bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2]);
-					top_right_lat = line.substr(separators[3] + 2, separators[4] - separators[3] - 1);
-					if (line.substr(separators[4] + 1, 1) == "-") {
-						top_right_lon = line.substr(separators[4] + 2, separators[5] - separators[4] + 1);
-					}
-					else {
-						top_right_lon = line.substr(separators[4] + 2, separators[5] - separators[4]);
-					}
-				}
-				else {
-					bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2] - 1);
-					top_right_lat = line.substr(separators[3] + 1, separators[4] - separators[3] - 1);
-					if (line.substr(separators[4] + 1, 1) == "-") {
-						top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4]);
-					}
-					else {
-						top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4] - 1);
-					}
-				}
+				bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2] - 1);
+				top_right_lat = line.substr(separators[3] + 1, separators[4] - separators[3] - 1);
+				top_right_lon = line.substr(separators[4] + 1, separators[5] - separators[4] - 1);
+
 				if (line.substr(line.length() - 2, 1) == ":") {
 					TxtTime = line.substr(line.length() - 1, 1);
 				}
 				else {
 					TxtTime = line.substr(line.length() - 2, 2);
 				}
-
+				
 				if (FindPoint(stod(bot_left_lat), stod(bot_left_lon), stod(top_right_lat), stod(top_right_lon), lat, lon) == true) {
 					return TxtTime;
 					ZoneFound = true;
