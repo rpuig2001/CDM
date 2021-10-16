@@ -49,7 +49,7 @@ CDM includes the following times:
 
 - ASRT
 
-![image](https://i.gyazo.com/47ca5006438009d4fa573ba328cc0abb.png)
+![image](https://i.gyazo.com/f320a807ee5f8f35c63cac38d671f1a2.png)
 
 - CTOT
 
