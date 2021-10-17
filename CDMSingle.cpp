@@ -323,8 +323,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
 				if (remarks.find("ASRT") == string::npos) {
-					if (remarks.find("&") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("&")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -340,8 +340,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			else {
 				asrtList.erase(asrtList.begin() + ASRTpos);
 				if (remarks.find("ASRT") != string::npos) {
-					if (remarks.find("&") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -480,8 +480,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (!callsignFound) {
 				if (remarks.find("ASRT") == string::npos) {
 					asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
-					if (remarks.find("&") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("&")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -498,8 +498,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				asrtList.erase(asrtList.begin() + ASRTpos);
 
 				if (remarks.find("ASRT") != string::npos) {
-					if (remarks.find("&") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -514,8 +514,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
 				if (remarks.find("ASRT") == string::npos) {
-					if (remarks.find("&") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("&")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("&"), remarks.length() - remarks.find("&"));
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -672,11 +672,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			hour = "0" + hour.substr(1, 1);
 		}
 
-		if (remarks.find("&") != string::npos || remarks.find("ASRT") != string::npos) {
+		if (remarks.find("%") != string::npos || remarks.find("ASRT") != string::npos) {
 
 			if ((string)FlightPlan.GetGroundState() == "DEPA") {
-				if (remarks.find("&") != string::npos) {
-					string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+				if (remarks.find("%") != string::npos) {
+					string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 					FlightPlan.GetFlightPlanData().AmendFlightPlan();
 					remarks = stringToAdd;
@@ -876,8 +876,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//aircraftFind false to recalculate Times due to fp change
 						slotList.erase(slotList.begin() + pos);
 						aircraftFind = false;
-						if (remarks.find("&") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+						if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 							FlightPlan.GetFlightPlanData().AmendFlightPlan();
 							remarks = stringToAdd;
@@ -1023,13 +1023,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
 									slotList[pos] = valueToAdd;
 
-									if (remarks.find("&") != string::npos) {
-										string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+									if (remarks.find("%") != string::npos) {
+										string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 										remarks = stringToAdd;
 									}
 
-									string stringToAdd = remarks + " &" + TSAT + "|" + TTOT;
+									string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
@@ -1039,13 +1039,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
 								slotList.push_back(valueToAdd);
 
-								if (remarks.find("&") != string::npos) {
-									string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+								if (remarks.find("%") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									remarks = stringToAdd;
 								}
 
-								string stringToAdd = remarks + " &" + TSAT + "|" + TTOT;
+								string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
 								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 								FlightPlan.GetFlightPlanData().AmendFlightPlan();
 								remarks = stringToAdd;
@@ -1057,13 +1057,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
 									slotList[pos] = valueToAdd;
 
-									if (remarks.find("&") != string::npos) {
-										string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+									if (remarks.find("%") != string::npos) {
+										string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 										remarks = stringToAdd;
 									}
 
-									string stringToAdd = remarks + " &" + TSAT + "|" + TTOT;
+									string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
@@ -1073,13 +1073,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
 								slotList.push_back(valueToAdd);
 
-								if (remarks.find("&") != string::npos) {
-									string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+								if (remarks.find("%") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									remarks = stringToAdd;
 								}
 
-								string stringToAdd = remarks + " &" + TSAT + "|" + TTOT;
+								string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
 								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 								FlightPlan.GetFlightPlanData().AmendFlightPlan();
 								remarks = stringToAdd;
@@ -1138,8 +1138,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				if (oldTSAT && !correctState) {
 					OutOfTsat.push_back(callsign + "," + EOBT);
-					if (remarks.find("&") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("&") - 1);
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						FlightPlan.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -1442,9 +1442,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		else {
 			bool TSATFind = false;
 			string TSATString, TTOTString;
-			if (remarks.find("&") != string::npos) {
-				TSATString = remarks.substr(remarks.find("&") + 1, 6);
-				TTOTString = remarks.substr(remarks.find("&") + 8, 6);
+			if (remarks.find("%") != string::npos) {
+				TSATString = remarks.substr(remarks.find("%") + 1, 6);
+				TTOTString = remarks.substr(remarks.find("%") + 8, 6);
 				TSATFind = true;
 			}
 
