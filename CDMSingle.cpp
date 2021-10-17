@@ -56,7 +56,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-EOBT"
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
 	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
-	RegisterTagItemFunction("Send REA Message", TAG_FUNC_EOBTACTUALTIME);
+	RegisterTagItemFunction("Send REA Message + Set ASRT", TAG_FUNC_REAASRT);
+	RegisterTagItemFunction("Send REA Message", TAG_FUNC_REA);
 
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
@@ -433,7 +434,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_EOBTACTUALTIME) {
+	if (FunctionId == TAG_FUNC_REA) {
+		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
+		fp.GetFlightPlanData().AmendFlightPlan();
+	}
+
+	if (FunctionId == TAG_FUNC_REAASRT) {
 		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 		fp.GetFlightPlanData().AmendFlightPlan();
 
@@ -1248,7 +1254,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
-					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "") {
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
 						if (hour == ASATHour) {
 							if (ASATDifTIme >= 5) {
 								ASATPlusFiveLessTen = true;
@@ -1655,7 +1661,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
-					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "") {
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
 						if (hour == ASATHour) {
 							if (ASATDifTIme >= 5) {
 								ASATPlusFiveLessTen = true;

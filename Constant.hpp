@@ -24,7 +24,8 @@ const int TAG_FUNC_CTOTOPTIONS = 108;
 const int TAG_FUNC_REMOVECTOT = 109;
 const int TAG_FUNC_ADDCTOTSELECTED = 110;
 const int TAG_FUNC_ADDCTOT = 111;
-const int TAG_FUNC_EOBTACTUALTIME = 112;
+const int TAG_FUNC_REAASRT = 112;
+const int TAG_FUNC_REA = 113;
 
 inline static bool startsWith(const char* pre, const char* str)
 {
