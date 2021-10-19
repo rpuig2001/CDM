@@ -63,13 +63,10 @@ CDM includes the following times:
   - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave`` command.
 
 ## HOW TO DO A CONTROLLER CHANGE CORRECTLY:
-1. Check to have the same *CDMconfig.xml* and *taxizones.txt* configuration.
-2. The **Old controller**, which is the Master, uses the command ``.cdm save`` to get the *savedData.txt*.
-3. Once the **Old Controller** has this *savedData.txt* file, he send it to the **new controller**.
-4. The **new controller** adds this file to the Plugin .dll location and uses ``.cdm load`` command to have the same times.
-5. Then, the **Old controller** changes to Slave with command ``.cdm slave``.
-6. Once there are no master controllers, the **new controlles** gets the master "rol" the command ``.cdm master``.
-8. That's it!
+1. Check to have the same *CDMconfig.xml* and *taxizones.txt* configuration, otherwise it won't work correctly.
+2. The **Old controller** changes to Slave with command ``.cdm slave``.
+3. Once there are no master controllers, the **new controlles** gets the master "rol" with the command ``.cdm master``.
+4. That's it!
 
 ### Define configurations
 - Colors.txt

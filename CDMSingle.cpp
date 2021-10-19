@@ -690,6 +690,57 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 
+		// Get Taxi times
+		int TaxiTimePos = 0;
+		bool planeHasTaxiTimeAssigned = false;
+		for (int j = 0; j < taxiTimesList.size(); j++)
+		{
+			if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+				planeHasTaxiTimeAssigned = true;
+				TaxiTimePos = j;
+			}
+		}
+
+		if (aircraftFind) {
+			if (planeHasTaxiTimeAssigned) {
+				if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
+					if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
+						planeHasTaxiTimeAssigned = false;
+						taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+						slotList.erase(slotList.begin() + pos);
+						aircraftFind = false;
+					}
+				}
+				else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
+					if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
+						planeHasTaxiTimeAssigned = false;
+						taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+						slotList.erase(slotList.begin() + pos);
+						aircraftFind = false;
+					}
+				}
+			}
+		}
+
+		if (!planeHasTaxiTimeAssigned) {
+			if (RadarTargetSelect(callsign.c_str()).IsValid()) {
+				double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+				double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+				string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
+				taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
+				TaxiTimePos = taxiTimesList.size() - 1;
+			}
+		}
+
+		if (planeHasTaxiTimeAssigned) {
+			if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
+				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
+			}
+			else {
+				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+			}
+		}
+
 		if (master) {
 
 			for (int i = 0; i < OutOfTsat.size(); i++)
@@ -815,57 +866,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 			else {
-
-				// Get Taxi times
-				int TaxiTimePos = 0;
-				bool planeHasTaxiTimeAssigned = false;
-				for (int j = 0; j < taxiTimesList.size(); j++)
-				{
-					if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
-						planeHasTaxiTimeAssigned = true;
-						TaxiTimePos = j;
-					}
-				}
-
-				if (aircraftFind) {
-					if (planeHasTaxiTimeAssigned) {
-						if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
-							if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
-								planeHasTaxiTimeAssigned = false;
-								taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-								slotList.erase(slotList.begin() + pos);
-								aircraftFind = false;
-							}
-						}
-						else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
-							if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
-								planeHasTaxiTimeAssigned = false;
-								taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-								slotList.erase(slotList.begin() + pos);
-								aircraftFind = false;
-							}
-						}
-					}
-				}
-
-				if (!planeHasTaxiTimeAssigned) {
-					if (RadarTargetSelect(callsign.c_str()).IsValid()) {
-						double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
-						double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-						string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
-						taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
-						TaxiTimePos = taxiTimesList.size() - 1;
-					}
-				}
-
-				if (planeHasTaxiTimeAssigned) {
-					if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
-						taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
-					}
-					else {
-						taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
-					}
-				}
 
 				string TSATfinal = "";
 				string TTOTFinal = "";
