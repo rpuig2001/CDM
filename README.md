@@ -112,7 +112,7 @@ CDM includes the following times:
 
 - Column E: It shows a letter depending on the plane timmings:
   - P: EOBT is farther than the Actual Time - 35min.
-  - C: EOBT is less than 35min and TSAT hasn't expired (TSAT+6).
+  - C: EOBT is less than 35min and TOBT hasn't expired (TOBT+6) or TSAT hasn't expired (TSAT+6).
   - I: TSAT has expired.
 
 - Column TSAT: It is the TTOT - the taxi time defined in the taxizones.txt, otherwise it sets 15min.
@@ -131,7 +131,7 @@ CDM includes the following times:
   - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: If actual time < ASAT - 5min.
   - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: From ASAT+5 to always.
 
-- Column ASRT: It shows the requested StartUp time, which toggle function or sending a REA Msg.
+- Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
   - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified or removed.
