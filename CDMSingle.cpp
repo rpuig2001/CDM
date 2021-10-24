@@ -193,10 +193,18 @@ void CDM::sendMessage(string message) {
 //
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
 	CFlightPlan fp = FlightPlanSelectASEL();
+	bool AtcMe = false;
+	if (master) {
+		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
+			AtcMe = true;
+		}
+	}
 
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
-		OpenPopupEdit(Area, TAG_FUNC_NEWEOBT, fp.GetFlightPlanData().GetEstimatedDepartureTime());
+		if (master && AtcMe) {
+			OpenPopupEdit(Area, TAG_FUNC_NEWEOBT, fp.GetFlightPlanData().GetEstimatedDepartureTime());
+		}
 	}
 
 	if (FunctionId == TAG_FUNC_NEWEOBT) {
@@ -254,7 +262,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		string editedTSAC = ItemString;
 		if (editedTSAC.length() > 0) {
 			bool hasNoNumber = true;
-			if (editedTSAC.length() <= 4) {
+			if (editedTSAC.length() == 4) {
 				for (int i = 0; i < editedTSAC.length(); i++) {
 					if (isdigit(editedTSAC[i]) == false) {
 						hasNoNumber = false;
@@ -287,7 +295,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	if (FunctionId == TAG_FUNC_TOGGLEASRT) {
-		if (master) {
+		if (master && AtcMe) {
 			string remarks = fp.GetFlightPlanData().GetRemarks();
 			bool callsignFound = false;
 			int ASRTpos;
@@ -358,7 +366,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	if (FunctionId == TAG_FUNC_CTOTOPTIONS) {
-		if (master) {
+		if (master && AtcMe) {
 			bool hasCTOT = false;
 			for (int i = 0; i < ctotList.size(); i++)
 			{
@@ -408,7 +416,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (FunctionId == TAG_FUNC_ADDCTOT) {
 		string editedCTOT = ItemString;
 		bool hasNoNumber = true;
-		if (editedCTOT.length() <= 4 && editedCTOT.length() > 0) {
+		if (editedCTOT.length() == 4) {
 			for (int i = 0; i < editedCTOT.length(); i++) {
 				if (isdigit(editedCTOT[i]) == false) {
 					hasNoNumber = false;
@@ -435,25 +443,27 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	if (FunctionId == TAG_FUNC_REA) {
-		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
-		fp.GetFlightPlanData().AmendFlightPlan();
+		if (master && AtcMe) {
+			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
+			fp.GetFlightPlanData().AmendFlightPlan();
+		}
 	}
 
 	if (FunctionId == TAG_FUNC_REAASRT) {
-		fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
-		fp.GetFlightPlanData().AmendFlightPlan();
+		if (master && AtcMe) {
+			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
+			fp.GetFlightPlanData().AmendFlightPlan();
 
-		if (master) {
-			string remarks = fp.GetFlightPlanData().GetRemarks();
-			bool callsignFound = false;
-			int ASRTpos;
-			for (int i = 0; i < asrtList.size(); i++)
-			{
-				if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-					callsignFound = true;
-					ASRTpos = i;
+				string remarks = fp.GetFlightPlanData().GetRemarks();
+				bool callsignFound = false;
+				int ASRTpos;
+				for (int i = 0; i < asrtList.size(); i++)
+				{
+					if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
+						callsignFound = true;
+						ASRTpos = i;
+					}
 				}
-			}
 
 			//Get Time now
 			long int timeNow = static_cast<long int>(std::time(nullptr));
@@ -930,9 +940,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				bool correctTTOT = true;
 				bool equalTempoTTOT = true;
 				bool alreadySetTOStd = false;
+				bool listHasCtot = false;
 
 				while (equalTTOT) {
 					correctTTOT = true;
+					listHasCtot = false;
 					for (int t = 0; t < slotList.size(); t++)
 					{
 						string listTTOT;
@@ -982,31 +994,37 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else {
 							if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
 								listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+								listHasCtot = true;
 							}
 							else {
 								listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
+								listHasCtot = false;
 							}
-							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
 
-								if (alreadySetTOStd) {
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctTTOT = false;
-								}
-								else {
-									TTOTFinal = calculateTime(listTTOT, 0.5);
-									correctTTOT = false;
-									alreadySetTOStd = true;
+							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
+								if (!listHasCtot) {
+									if (alreadySetTOStd) {
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctTTOT = false;
+									}
+									else {
+										TTOTFinal = calculateTime(listTTOT, 0.5);
+										correctTTOT = false;
+										alreadySetTOStd = true;
+									}
 								}
 							}
 							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy) {
-								if (alreadySetTOStd) {
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctTTOT = false;
-								}
-								else {
-									TTOTFinal = calculateTime(listTTOT, 0.5);
-									correctTTOT = false;
-									alreadySetTOStd = true;
+								if (!listHasCtot) {
+									if (alreadySetTOStd) {
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctTTOT = false;
+									}
+									else {
+										TTOTFinal = calculateTime(listTTOT, 0.5);
+										correctTTOT = false;
+										alreadySetTOStd = true;
+									}
 								}
 							}
 						}
@@ -1088,6 +1106,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
+				//Sync TTOT
+				if (remarks.find("%") != string::npos) {
+					if (TTOT != remarks.substr(remarks.find("%") + 8, 6)) {
+						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+				else if(aircraftFind){
+					string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
+					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+					FlightPlan.GetFlightPlanData().AmendFlightPlan();
+					remarks = stringToAdd;
+				}
+
 				//If oldTSAT
 				string TSAThour = TSATfinal.substr(TSATfinal.length() - 6, 2);
 				string TSATmin = TSATfinal.substr(TSATfinal.length() - 4, 2);
@@ -1141,9 +1175,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (remarks.find("%") != string::npos) {
 						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
 					}
+					for (int i = 0; i < asrtList.size(); i++)
+					{
+						if ((string)FlightPlan.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
+							asrtList.erase(asrtList.begin() + i);
+							if (remarks.find("ASRT") != string::npos) {
+								string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								remarks = stringToAdd;
+							}
+						}
+					}
+					FlightPlan.GetFlightPlanData().AmendFlightPlan();
 				}
 
 				string completeEOBT = (string)EOBT;
@@ -2420,6 +2465,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			sendMessage("CDM STATUS: SLAVE");
 		}
+		sendMessage("Airport: " + airport);
+		sendMessage("RATE: " + rateString);
 		return true;
 	}
 }
