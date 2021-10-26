@@ -682,21 +682,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			hour = "0" + hour.substr(1, 1);
 		}
 
-		if (remarks.find("%") != string::npos || remarks.find("ASRT") != string::npos) {
-
-			if ((string)FlightPlan.GetGroundState() == "DEPA") {
-				if (remarks.find("%") != string::npos) {
-					string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-					FlightPlan.GetFlightPlanData().AmendFlightPlan();
-					remarks = stringToAdd;
-				}
-				if (remarks.find("ASRT") != string::npos) {
-					string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-					FlightPlan.GetFlightPlanData().AmendFlightPlan();
-					remarks = stringToAdd;
-				}
+		bool stsDepa = false;
+		if ((string)FlightPlan.GetGroundState() == "DEPA") {
+			stsDepa = true;
+			if (remarks.find("%") != string::npos) {
+				string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+				FlightPlan.GetFlightPlanData().AmendFlightPlan();
+				remarks = stringToAdd;
+			}
+			if (remarks.find("ASRT") != string::npos) {
+				string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+				FlightPlan.GetFlightPlanData().AmendFlightPlan();
+				remarks = stringToAdd;
 			}
 		}
 
@@ -1115,7 +1114,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						remarks = stringToAdd;
 					}
 				}
-				else if(aircraftFind){
+				else if(aircraftFind && !stsDepa){
 					string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
 					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 					FlightPlan.GetFlightPlanData().AmendFlightPlan();
@@ -1255,6 +1254,54 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (MyListCallsign == callsign) {
 						ASRTFound = true;
 						ASRTtext = asrtList[x].substr(asrtList[x].find(",") + 1, 4);
+					}
+				}
+
+				//Sync ASRT
+				if (remarks.find("ASRT") != string::npos && ASRTFound) {
+					if (ASRTtext != remarks.substr(remarks.find("ASRT") + 4, 4)) {
+						if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+						else {
+							string stringToAdd = remarks + " ASRT" + ASRTtext;
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+					}
+				}
+				else if (ASRTFound && !stsDepa) {
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks + " ASRT" + ASRTtext;
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+				else if (remarks.find("ASRT") != string::npos && !ASRTFound) {
+					if (remarks.find("ASRT") != string::npos) {
+						if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+						else {
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
 					}
 				}
 
