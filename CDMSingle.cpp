@@ -20,6 +20,7 @@ string cfad;
 string vfad;
 string airport;
 string rateString;
+int expiredCTOTTime;
 bool master;
 
 vector<string> slotList;
@@ -120,6 +121,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Get data from xml config file
 	airport = getFromXml("/CDM/apt/@icao");
 	rateString = getFromXml("/CDM/rate/@ops");
+	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 
 	//Get data from .txt file
 	fstream file;
@@ -135,7 +137,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	fileCtot.open(cfad.c_str(), std::ios::in);
 	while (getline(fileCtot, lineValueCtot))
 	{
-		ctotList.push_back(lineValueCtot);
+		addCtotToMainList(lineValueCtot);
 	}
 
 	fstream fileColors;
@@ -376,11 +378,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 			OpenPopupList(Area, "CTOT Options", 1);
 			if (hasCTOT) {
-				AddPopupListElement("Edit CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
+				//AddPopupListElement("Edit CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
 				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
 			}
 			else {
-				AddPopupListElement("Add CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
+				//AddPopupListElement("Add CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
 				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, true);
 			}
 		}
@@ -402,7 +404,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_ADDCTOTSELECTED) {
+	/*if (FunctionId == TAG_FUNC_ADDCTOTSELECTED) {
 		string ctotText = "";
 		for (int i = 0; i < ctotList.size(); i++)
 		{
@@ -440,7 +442,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				ctotList.push_back(valueToAdd);
 			}
 		}
-	}
+	}*/
 
 	if (FunctionId == TAG_FUNC_REA) {
 		if (master && AtcMe) {
@@ -903,11 +905,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
 					TSAT = TSATfinal.c_str();
 
-					//IF EOBT+TaxiTime >= CTOT+7 THEN CTOT LOST
-					if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 7))) {
+					//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
+					if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 10))) {
 						hasCTOT = false;
 					}
-					else if ((stoi(calculateTime(EOBT, taxiTime)) < stoi(calculateTime(TTOTFinal, 7))) && stoi(EOBT) > (stoi(TSATfinal))) {
+					else if ((stoi(calculateTime(EOBT, taxiTime)) <= stoi(calculateTime(TTOTFinal, 10))) && stoi(EOBT) > (stoi(TSATfinal))) {
 						TSAT = EOBT;
 						//TSAT
 						string TSATstring = TSAT;
@@ -939,26 +941,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				bool correctTTOT = true;
 				bool equalTempoTTOT = true;
 				bool alreadySetTOStd = false;
-				bool listHasCtot = false;
 
 				while (equalTTOT) {
 					correctTTOT = true;
-					listHasCtot = false;
 					for (int t = 0; t < slotList.size(); t++)
 					{
 						string listTTOT;
 						string listCallsign = slotList[t].substr(0, slotList[t].find(","));
 						string listDepRwy = "";
+						bool depRwyFound = false;
 						for (int i = 0; i < taxiTimesList.size(); i++)
 						{
 							if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
 								if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
 									listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
+									depRwyFound = true;
 								}
 								else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
 									listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
+									depRwyFound = true;
 								}
 							}
+						}
+
+						if (!depRwyFound) {
+							listDepRwy = depRwy;
 						}
 
 						if (hasCTOT) {
@@ -993,37 +1000,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else {
 							if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
 								listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
-								listHasCtot = true;
 							}
 							else {
 								listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
-								listHasCtot = false;
 							}
 
 							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
-								if (!listHasCtot) {
-									if (alreadySetTOStd) {
-										TTOTFinal = calculateTime(TTOTFinal, 0.5);
-										correctTTOT = false;
-									}
-									else {
-										TTOTFinal = calculateTime(listTTOT, 0.5);
-										correctTTOT = false;
-										alreadySetTOStd = true;
-									}
+								if (alreadySetTOStd) {
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctTTOT = false;
+								}
+								else {
+									TTOTFinal = calculateTime(listTTOT, 0.5);
+									correctTTOT = false;
+									alreadySetTOStd = true;
 								}
 							}
 							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy) {
-								if (!listHasCtot) {
-									if (alreadySetTOStd) {
-										TTOTFinal = calculateTime(TTOTFinal, 0.5);
-										correctTTOT = false;
-									}
-									else {
-										TTOTFinal = calculateTime(listTTOT, 0.5);
-										correctTTOT = false;
-										alreadySetTOStd = true;
-									}
+								if (alreadySetTOStd) {
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctTTOT = false;
+								}
+								else {
+									TTOTFinal = calculateTime(listTTOT, 0.5);
+									correctTTOT = false;
+									alreadySetTOStd = true;
 								}
 							}
 						}
@@ -1982,6 +1983,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
+string CDM::getTimeNow() {
+	long int timeNow = static_cast<long int>(std::time(nullptr));
+	string completeTime = unixTimeToHumanReadable(timeNow);
+	string hour = "";
+	string min = "";
+
+	hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+		min = completeTime.substr(completeTime.find(":") + 1, 2);
+	}
+	else {
+		min = completeTime.substr(completeTime.find(":") + 1, 1);
+	}
+
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
+	if (stoi(hour) < 10) {
+		hour = "0" + hour.substr(1, 1);
+	}
+
+	return hour, min;
+}
+
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	long int timeNow = static_cast<long int>(std::time(nullptr));
 	string completeTime = unixTimeToHumanReadable(timeNow);
@@ -2380,6 +2406,56 @@ string CDM::getFromXml(string xpath)
 	}
 }
 
+bool CDM::addCtotToMainList(string lineValue) {
+	bool found = false;
+	for (int i = 0; i < slotList.size(); i++)
+	{
+		if (slotList[i].substr(0, slotList[i].find(",")) == lineValue.substr(0, lineValue.find(","))) {
+			bool oldCTOT = true;
+			string CTOTHour = slotList[i].substr(slotList[i].length() - 6, 2);
+			string CTOTMin = slotList[i].substr(slotList[i].length() - 4, 2);
+			string hour, min = getTimeNow();
+			int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
+			if (hour != CTOTHour) {
+				if (difTime <= expiredCTOTTime + 45) {
+					oldCTOT = false;
+				}
+			}
+			else {
+				if (difTime > expiredCTOTTime) {
+					oldCTOT = false;
+				}
+			}
+			if (!oldCTOT) {
+				slotList[i] = lineValue.substr(0, lineValue.find(",")) + ",999999,999999," + lineValue.substr(lineValue.find(",") + 1, 4) + "00,c";
+				found = true;
+				bool ctotFound = false;
+				for (string value: ctotList)
+				{
+					if (value.substr(0, value.find(",")) == lineValue.substr(0, lineValue.find(","))) {
+						ctotFound = true;
+					}
+				}
+				if (!ctotFound) {
+					ctotList.push_back(lineValue);
+				}
+			}
+		}
+	}
+	if (!found) {
+		slotList.push_back(lineValue.substr(0, lineValue.find(",")) + ",999999,999999," + lineValue.substr(lineValue.find(",") + 1, 4) + "00,c");
+		bool ctotFound = false;
+		for (string value : ctotList)
+		{
+			if (value.substr(0, value.find(",")) == lineValue.substr(0, lineValue.find(","))) {
+				ctotFound = true;
+			}
+		}
+		if (!ctotFound) {
+			ctotList.push_back(lineValue);
+		}
+	}
+}
 
 bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm reload", sCommandLine))
@@ -2406,6 +2482,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		{
 			TxtTimesVector.push_back(lineValue);
 		}
+		sendMessage("Done");
 		return true;
 	}
 
@@ -2415,12 +2492,13 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		//save data to file
 		ofstream outfile(sfad.c_str());
 
-		for (int i = 0; i < slotList.size(); i++)
+		for (string line: slotList)
 		{
-			outfile << slotList[i] << std::endl;
+			outfile << line << std::endl;
 		}
 
 		outfile.close();
+		sendMessage("Done");
 		return true;
 	}
 
@@ -2436,6 +2514,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		{
 			slotList.push_back(lineValue);
 		}
+		sendMessage("Done");
 		return true;
 	}
 
@@ -2449,8 +2528,17 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		file.open(cfad.c_str(), std::ios::in);
 		while (getline(file, lineValue))
 		{
-			ctotList.push_back(lineValue);
+			addCtotToMainList(lineValue);
 		}
+		sendMessage("Done");
+		return true;
+	}
+
+	if (startsWith(".cdm ctotTime", sCommandLine))
+	{
+		sendMessage("Reloading Ctot Expired time....");
+		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
+		sendMessage("Done");
 		return true;
 	}
 
