@@ -627,6 +627,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		int pos;
 		bool aircraftFind = false;
 		for (int i = 0; i < slotList.size(); i++) {
+			if (slotList[i].substr(slotList[i].length() - 1, 1) == "c") {
+				if (expiredCtot(slotList[i])) {
+					slotList.erase(slotList.begin() + i);
+					for (int a = 0; a < ctotList.size(); a++)
+					{
+						if (ctotList[a].substr(0, ctotList[a].find(",")) == callsign) {
+							ctotList.erase(ctotList.begin() + a);
+						}
+					}
+				}
+			}
 			if (callsign == slotList[i].substr(0, slotList[i].find(","))) {
 				aircraftFind = true;
 				pos = i;
@@ -1983,31 +1994,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
-string CDM::getTimeNow() {
-	long int timeNow = static_cast<long int>(std::time(nullptr));
-	string completeTime = unixTimeToHumanReadable(timeNow);
-	string hour = "";
-	string min = "";
-
-	hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-		min = completeTime.substr(completeTime.find(":") + 1, 2);
-	}
-	else {
-		min = completeTime.substr(completeTime.find(":") + 1, 1);
-	}
-
-	if (stoi(min) < 10) {
-		min = "0" + min;
-	}
-	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(1, 1);
-	}
-
-	return hour, min;
-}
-
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	long int timeNow = static_cast<long int>(std::time(nullptr));
 	string completeTime = unixTimeToHumanReadable(timeNow);
@@ -2183,6 +2169,57 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 	string timeFinal = hourFinal + minsFinal + secFinal;
 
 	return timeFinal;
+}
+
+
+bool CDM::expiredCtot(string line) {
+	if (line.substr(line.find(",") + 1, 6) != "999999") {
+		return false;
+	}
+
+	//Get Time now
+	long int timeNow = static_cast<long int>(std::time(nullptr));
+	string completeTime = unixTimeToHumanReadable(timeNow);
+	string hour = "";
+	string min = "";
+
+	hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+		min = completeTime.substr(completeTime.find(":") + 1, 2);
+	}
+	else {
+		min = completeTime.substr(completeTime.find(":") + 1, 1);
+	}
+
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
+	if (stoi(hour) < 10) {
+		hour = "0" + hour.substr(1, 1);
+	}
+
+	bool oldCTOT = true;
+	string CTOTHour = line.substr(line.length() - 8, 2);
+	string CTOTMin = line.substr(line.length() - 6, 2);
+	int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
+	if (hour != CTOTHour) {
+		if (difTime <= -expiredCTOTTime - 45) {
+			oldCTOT = false;
+		}
+	}
+	else {
+		if (difTime <= -expiredCTOTTime) {
+			oldCTOT = false;
+		}
+	}
+
+	if (oldCTOT) {
+		return true;
+	}
+	else {
+		return false;
+	}
 }
 
 string CDM::calculateLessTime(string timeString, double minsToAdd) {
@@ -2407,22 +2444,42 @@ string CDM::getFromXml(string xpath)
 }
 
 bool CDM::addCtotToMainList(string lineValue) {
+	//Get Time now
+	long int timeNow = static_cast<long int>(std::time(nullptr));
+	string completeTime = unixTimeToHumanReadable(timeNow);
+	string hour = "";
+	string min = "";
+
+	hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+		min = completeTime.substr(completeTime.find(":") + 1, 2);
+	}
+	else {
+		min = completeTime.substr(completeTime.find(":") + 1, 1);
+	}
+
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
+	if (stoi(hour) < 10) {
+		hour = "0" + hour.substr(1, 1);
+	}
 	bool found = false;
 	for (int i = 0; i < slotList.size(); i++)
 	{
 		if (slotList[i].substr(0, slotList[i].find(",")) == lineValue.substr(0, lineValue.find(","))) {
 			bool oldCTOT = true;
-			string CTOTHour = slotList[i].substr(slotList[i].length() - 6, 2);
-			string CTOTMin = slotList[i].substr(slotList[i].length() - 4, 2);
-			string hour, min = getTimeNow();
+			string CTOTHour = slotList[i].substr(slotList[i].length() - 8, 2);
+			string CTOTMin = slotList[i].substr(slotList[i].length() - 6, 2);
 			int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
 			if (hour != CTOTHour) {
-				if (difTime <= expiredCTOTTime + 45) {
+				if (difTime <= -expiredCTOTTime - 45) {
 					oldCTOT = false;
 				}
 			}
 			else {
-				if (difTime > expiredCTOTTime) {
+				if (difTime <= -expiredCTOTTime) {
 					oldCTOT = false;
 				}
 			}
@@ -2430,28 +2487,39 @@ bool CDM::addCtotToMainList(string lineValue) {
 				slotList[i] = lineValue.substr(0, lineValue.find(",")) + ",999999,999999," + lineValue.substr(lineValue.find(",") + 1, 4) + "00,c";
 				found = true;
 				bool ctotFound = false;
-				for (string value: ctotList)
+				for (int i = 0; i < ctotList.size(); i++)
 				{
-					if (value.substr(0, value.find(",")) == lineValue.substr(0, lineValue.find(","))) {
-						ctotFound = true;
+					if (ctotList[i].substr(0, ctotList[i].find(",")) == lineValue.substr(0, lineValue.find(","))) {
+						ctotList.erase(ctotList.begin() + i);
 					}
 				}
-				if (!ctotFound) {
-					ctotList.push_back(lineValue);
-				}
+				ctotList.push_back(lineValue);
 			}
 		}
 	}
 	if (!found) {
-		slotList.push_back(lineValue.substr(0, lineValue.find(",")) + ",999999,999999," + lineValue.substr(lineValue.find(",") + 1, 4) + "00,c");
-		bool ctotFound = false;
-		for (string value : ctotList)
-		{
-			if (value.substr(0, value.find(",")) == lineValue.substr(0, lineValue.find(","))) {
-				ctotFound = true;
+		bool oldCTOT = true;
+		string CTOTHour = lineValue.substr(lineValue.length() - 4, 2);
+		string CTOTMin = lineValue.substr(lineValue.length() - 2, 2);
+		int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
+		if (hour != CTOTHour) {
+			if (difTime <= -expiredCTOTTime - 45) {
+				oldCTOT = false;
 			}
 		}
-		if (!ctotFound) {
+		else {
+			if (difTime <= -expiredCTOTTime) {
+				oldCTOT = false;
+			}
+		}
+		if (!oldCTOT) {
+			slotList.push_back(lineValue.substr(0, lineValue.find(",")) + ",999999,999999," + lineValue.substr(lineValue.find(",") + 1, 4) + "00,c");
+			for (int i = 0; i < ctotList.size(); i++)
+			{
+				if (ctotList[i].substr(0, ctotList[i].find(",")) == lineValue.substr(0, lineValue.find(","))) {
+					ctotList.erase(ctotList.begin() + i);
+				}
+			}
 			ctotList.push_back(lineValue);
 		}
 	}

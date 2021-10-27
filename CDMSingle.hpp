@@ -42,8 +42,6 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
-	string getTimeNow();
-
 	string EobtPlusTime(string EOBT, int time);
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
@@ -53,6 +51,8 @@ public:
 	string formatTime(string timeString);
 
 	string calculateTime(string timeString, double minsToAdd);
+
+	bool expiredCtot(string line);
 
 	string calculateLessTime(string timeString, double minsToAdd);
 
