@@ -333,7 +333,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
 				if (remarks.find("ASRT") == string::npos) {
-					if (remarks.find("%") != string::npos) {
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else if (remarks.find("%") != string::npos) {
 						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
@@ -350,7 +356,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			else {
 				asrtList.erase(asrtList.begin() + ASRTpos);
 				if (remarks.find("ASRT") != string::npos) {
-					if (remarks.find("%") != string::npos) {
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else if (remarks.find("%") != string::npos) {
 						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
@@ -376,14 +388,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					hasCTOT = true;
 				}
 			}
-			OpenPopupList(Area, "CTOT Options", 1);
 			if (hasCTOT) {
+				OpenPopupList(Area, "CTOT Options", 1);
 				//AddPopupListElement("Edit CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
 				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
-			}
-			else {
-				//AddPopupListElement("Add CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
-				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, true);
 			}
 		}
 	}
@@ -400,6 +408,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		{
 			if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
 				ctotList.erase(ctotList.begin() + i);
+				string remarks = fp.GetFlightPlanData().GetRemarks();
+				if (remarks.find("CTOT") != string::npos) {
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
 			}
 		}
 	}
@@ -444,28 +467,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}*/
 
-	if (FunctionId == TAG_FUNC_REA) {
-		if (master && AtcMe) {
-			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
-			fp.GetFlightPlanData().AmendFlightPlan();
-		}
-	}
-
 	if (FunctionId == TAG_FUNC_REAASRT) {
 		if (master && AtcMe) {
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
 
-				string remarks = fp.GetFlightPlanData().GetRemarks();
-				bool callsignFound = false;
-				int ASRTpos;
-				for (int i = 0; i < asrtList.size(); i++)
-				{
-					if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-						callsignFound = true;
-						ASRTpos = i;
-					}
+			string remarks = fp.GetFlightPlanData().GetRemarks();
+			bool callsignFound = false;
+			int ASRTpos;
+			for (int i = 0; i < asrtList.size(); i++)
+			{
+				if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
+					callsignFound = true;
+					ASRTpos = i;
 				}
+			}
 
 			//Get Time now
 			long int timeNow = static_cast<long int>(std::time(nullptr));
@@ -490,9 +506,15 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 
 			if (!callsignFound) {
+				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
 				if (remarks.find("ASRT") == string::npos) {
-					asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
-					if (remarks.find("%") != string::npos) {
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						fp.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else if (remarks.find("%") != string::npos) {
 						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
@@ -507,27 +529,16 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 			else {
-				asrtList.erase(asrtList.begin() + ASRTpos);
-
+				asrtList[ASRTpos] = (string)fp.GetCallsign() + "," + hour + min;
 				if (remarks.find("ASRT") != string::npos) {
-					if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
 					}
-					else {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-				}
-
-				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
-				if (remarks.find("ASRT") == string::npos) {
-					if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+					else if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						fp.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						fp.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
@@ -540,6 +551,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 			}
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_REA) {
+		if (master && AtcMe) {
+			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
+			fp.GetFlightPlanData().AmendFlightPlan();
 		}
 	}
 }
@@ -700,6 +718,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			stsDepa = true;
 			if (remarks.find("%") != string::npos) {
 				string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+				FlightPlan.GetFlightPlanData().AmendFlightPlan();
+				remarks = stringToAdd;
+			}
+			if (remarks.find("CTOT") != string::npos) {
+				string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
 				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 				FlightPlan.GetFlightPlanData().AmendFlightPlan();
 				remarks = stringToAdd;
@@ -894,7 +918,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				if (aircraftFind) {
 					string tempEOBT = EOBT;
-					if (tempEOBT != slotList[pos].substr(slotList[pos].find(",") + 1, 6)) {
+					if (tempEOBT != slotList[pos].substr(slotList[pos].find(",") + 1, 6) && !hasCTOT) {
 						//aircraftFind false to recalculate Times due to fp change
 						slotList.erase(slotList.begin() + pos);
 						aircraftFind = false;
@@ -919,6 +943,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
 					if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 10))) {
 						hasCTOT = false;
+						if (remarks.find("CTOT") != string::npos) {
+							if (remarks.find("%") != string::npos) {
+								string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+							else {
+								string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+						}
 					}
 					else if ((stoi(calculateTime(EOBT, taxiTime)) <= stoi(calculateTime(TTOTFinal, 10))) && stoi(EOBT) > (stoi(TSATfinal))) {
 						TSAT = EOBT;
@@ -1052,13 +1090,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
 									slotList[pos] = valueToAdd;
 
-									if (remarks.find("%") != string::npos) {
+									if (remarks.find("CTOT") != string::npos) {
+										string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+										remarks = stringToAdd;
+									}
+									else if (remarks.find("%") != string::npos) {
 										string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 										remarks = stringToAdd;
 									}
 
-									string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
+									string stringToAdd = remarks + " CTOT" + ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + " %" + TSAT + "|" + TTOT;
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
@@ -1068,13 +1111,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
 								slotList.push_back(valueToAdd);
 
-								if (remarks.find("%") != string::npos) {
+								if (remarks.find("CTOT") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+									remarks = stringToAdd;
+								}
+								else if (remarks.find("%") != string::npos) {
 									string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									remarks = stringToAdd;
 								}
 
-								string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
+								string stringToAdd = remarks + " CTOT" + ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + " %" + TSAT + "|" + TTOT;
 								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 								FlightPlan.GetFlightPlanData().AmendFlightPlan();
 								remarks = stringToAdd;
@@ -1133,6 +1181,54 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					remarks = stringToAdd;
 				}
 
+				//Sync CTOT
+				if (remarks.find("CTOT") != string::npos && hasCTOT) {
+					string listCtot = ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4);
+					if (listCtot != remarks.substr(remarks.find("CTOT") + 4, 4)) {
+						if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("%")) + "CTOT" + listCtot + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+						else {
+							string stringToAdd = remarks + " CTOT" + listCtot;
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+					}
+				}
+				else if (hasCTOT && !stsDepa) {
+					string listCtot = ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4);
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%")) + "CTOT" + listCtot + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks + " CTOT" + listCtot;
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+				else if (remarks.find("CTOT") != string::npos && !hasCTOT) {
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+				}
+
 				//If oldTSAT
 				string TSAThour = TSATfinal.substr(TSATfinal.length() - 6, 2);
 				string TSATmin = TSATfinal.substr(TSATfinal.length() - 4, 2);
@@ -1183,11 +1279,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				if (oldTSAT && !correctState) {
 					OutOfTsat.push_back(callsign + "," + EOBT);
-					if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						remarks = stringToAdd;
-					}
 					for (int i = 0; i < asrtList.size(); i++)
 					{
 						if ((string)FlightPlan.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
@@ -1198,6 +1289,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								remarks = stringToAdd;
 							}
 						}
+					}
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						remarks = stringToAdd;
+					}
+					if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						remarks = stringToAdd;
 					}
 					FlightPlan.GetFlightPlanData().AmendFlightPlan();
 				}
@@ -1272,8 +1373,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				//Sync ASRT
 				if (remarks.find("ASRT") != string::npos && ASRTFound) {
 					if (ASRTtext != remarks.substr(remarks.find("ASRT") + 4, 4)) {
-						if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+						if (remarks.find("CTOT") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+						else if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 							FlightPlan.GetFlightPlanData().AmendFlightPlan();
 							remarks = stringToAdd;
@@ -1287,7 +1394,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 				else if (ASRTFound && !stsDepa) {
-					if (remarks.find("%") != string::npos) {
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else if (remarks.find("%") != string::npos) {
 						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						FlightPlan.GetFlightPlanData().AmendFlightPlan();
@@ -1301,19 +1414,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 				else if (remarks.find("ASRT") != string::npos && !ASRTFound) {
-					if (remarks.find("ASRT") != string::npos) {
-						if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-							FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-						else {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-							FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
+					if (remarks.find("CTOT") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else if (remarks.find("%") != string::npos) {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
+					}
+					else {
+						string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+						FlightPlan.GetFlightPlanData().AmendFlightPlan();
+						remarks = stringToAdd;
 					}
 				}
 
@@ -1661,6 +1778,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				else {
 					if (EOBTdifTime >= -5) {
 						actualTOBT = true;
+					}
+				}
+
+				//CTOT
+				if (remarks.find("CTOT") != string::npos) {
+					string rmkCtot = remarks.substr(remarks.find("CTOT") + 4, 4);
+					if (hasCTOT) {
+						if (ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 4) != rmkCtot) {
+							ctotList[ctotPos] == callsign + "," + rmkCtot;
+							if (slotList[pos].substr(slotList[pos].length() - 1, 1) != "c") {
+								slotList[pos] = slotList[pos] + ",c";
+							}
+						}
+					}
+					else {
+						ctotList.push_back(callsign + "," + rmkCtot);
+					}
+				}
+				else if (hasCTOT) {
+					ctotList.erase(ctotList.begin() + ctotPos);
+					if (slotList[pos].substr(slotList[pos].length() - 1, 1) == "c") {
+						slotList[pos] = slotList[pos].substr(0, slotList[pos].length() - 2);
 					}
 				}
 
