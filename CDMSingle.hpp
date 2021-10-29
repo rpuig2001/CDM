@@ -13,7 +13,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "1.1.1"
+#define MY_PLUGIN_VERSION   "1.1.2"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -46,7 +46,7 @@ public:
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
-	bool FindPoint(double x1, double y1, double x2, double y2, double x, double y);
+	bool FindPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, double x, double y);
 
 	string formatTime(string timeString);
 
