@@ -2159,9 +2159,11 @@ string CDM::EobtPlusTime(string EOBT, int addedTime) {
 }
 
 string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
-	string line, bot_left_lat, bot_left_lon, top_left_lat, top_left_lon, top_right_lat, top_right_lon, bot_right_lat, bot_right_lon, TxtOrigin, TxtDepRwy, TxtTime;
+	string line, TxtOrigin, TxtDepRwy, TxtTime;
 	vector<int> separators;
 	bool ZoneFound = false;
+	vector<double> pointsX;
+	vector<double> pointsY;
 
 	for (int t = 0; t < TxtTimesVector.size(); t++)
 	{
@@ -2186,17 +2188,17 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 				TxtDepRwy = line.substr(separators[0] + 1, 3);
 			}
 			if (TxtDepRwy == depRwy) {
-				bot_left_lat = line.substr(separators[1] + 1, separators[2] - separators[1] - 1);
-				bot_left_lon = line.substr(separators[2] + 1, separators[3] - separators[2] - 1);
+				pointsX.push_back(stod(line.substr(separators[1] + 1, separators[2] - separators[1] - 1)));
+				pointsY.push_back(stod(line.substr(separators[2] + 1, separators[3] - separators[2] - 1)));
 
-				top_left_lat = line.substr(separators[3] + 1, separators[4] - separators[3] - 1);
-				top_left_lon = line.substr(separators[4] + 1, separators[5] - separators[4] - 1);
+				pointsX.push_back(stod(line.substr(separators[3] + 1, separators[4] - separators[3] - 1)));
+				pointsY.push_back(stod(line.substr(separators[4] + 1, separators[5] - separators[4] - 1)));
 
-				top_right_lat = line.substr(separators[5] + 1, separators[6] - separators[5] - 1);
-				top_right_lon = line.substr(separators[6] + 1, separators[7] - separators[6] - 1);
+				pointsX.push_back(stod(line.substr(separators[5] + 1, separators[6] - separators[5] - 1)));
+				pointsY.push_back(stod(line.substr(separators[6] + 1, separators[7] - separators[6] - 1)));
 
-				bot_right_lat = line.substr(separators[7] + 1, separators[8] - separators[7] - 1);
-				bot_right_lon = line.substr(separators[8] + 1, separators[9] - separators[8] - 1);
+				pointsX.push_back(stod(line.substr(separators[7] + 1, separators[8] - separators[7] - 1)));
+				pointsY.push_back(stod(line.substr(separators[8] + 1, separators[9] - separators[8] - 1)));
 
 				if (line.substr(line.length() - 2, 1) == ":") {
 					TxtTime = line.substr(line.length() - 1, 1);
@@ -2205,7 +2207,7 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 					TxtTime = line.substr(line.length() - 2, 2);
 				}
 				
-				if (FindPoint(stod(bot_left_lat), stod(bot_left_lon), stod(top_left_lat), stod(top_left_lon), stod(top_right_lat), stod(top_right_lon), stod(bot_right_lat), stod(bot_right_lon), lat, lon) == true) {
+				if (FindPoint(4, pointsX, pointsY, lat, lon) == true) {
 					return TxtTime;
 					ZoneFound = true;
 				}
@@ -2220,9 +2222,16 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	separators.clear();
 }
 
-bool CDM::FindPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, double x, double y) {
+bool CDM::FindPoint(int npoints, vector<double> pointsX, vector<double> pointsY, double testx, double testy) {
 
-	if (x > x1 && x > x2 && x < x3 && x < x4 && y > y1 && y < y2 && y < y3 && y > y4) {
+	int i, j, c = 0;
+	for (i = 0, j = npoints - 1; i < npoints; j = i++) {
+		if (((pointsY[i] > testy) != (pointsY[j] > testy)) && (testx < (pointsX[j] - pointsX[i]) * (testy - pointsY[i]) / (pointsY[j] - pointsY[i]) + pointsX[i])) {
+			c = !c;
+		}
+	}
+
+	if (c%2 != 0) {
 		return true;
 	}
 	else {

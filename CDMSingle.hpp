@@ -46,7 +46,7 @@ public:
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
-	bool FindPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, double x, double y);
+	bool FindPoint(int nvert, vector<double> pointsX, vector<double> pointsY, double testx, double testy);
 
 	string formatTime(string timeString);
 
