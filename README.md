@@ -85,7 +85,7 @@ CDM includes the following times:
 - ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT``, ex:``VLG11P,1745`` (Each line has an aircraft)
 - taxizones.txt
-  - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:TAXITIME``, ex:``LEPA:24R:39.543504:2.712383:39.548777:2.719502:10``, if no taxizone defined, the default taxi time is set to 15 min.
+  - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``, ex:``LEPA:24R:39.543504:2.712383:39.548777:2.719502:10``, if no taxizone defined, the default taxi time is set to 15 min.
 
 *Examples can be found in the given CDMconfig.xml and taxizones.txt file.*
 
