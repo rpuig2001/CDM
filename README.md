@@ -79,13 +79,19 @@ CDM includes the following times:
   - color7 = RED
 - CDMconfig.xml
   - Add icao (ex. apt icao="LEPA").
+  - Select rate option:
+    - "0": It uses the specified rate in the rate.txt file for each runway, if not defined, it will get the default rate ops selected in the "rate ops" field (ex. defaultRate option="0").
+    - "1": It uses the default rate selected in the "rate ops" field for each rwy (ex. defaultRate option="1").
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="20").
+  - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
 - ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT``, ex:``VLG11P,1745`` (Each line has an aircraft)
 - taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``, ex:``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``, if no taxizone defined, the default taxi time is set to 15 min.
+  - rate.txt
+    - You can set the rate/hour for specific runway to use with the option ``defaultRate option="1"`` in the CDMconfig.xml. You can declare every runway rate with the following format: ``AIRPORT:RUNWAY=RATE``, ex:``LEBL:25L=40`` (Each line has a runway with his rate)
 
 *Examples can be found in the given CDMconfig.xml and taxizones.txt file.*
 
