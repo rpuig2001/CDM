@@ -42,6 +42,10 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
+	bool getRateOpt0();
+
+	int rateForRunway(string airport, string depRwy);
+
 	string EobtPlusTime(string EOBT, int time);
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);

@@ -18,10 +18,12 @@ string lfad;
 string sfad;
 string cfad;
 string vfad;
+string rfad;
 string airport;
 string rateString;
 int expiredCTOTTime;
 bool master;
+bool defaultRate;
 
 vector<string> slotList;
 vector<string> tsacList;
@@ -33,6 +35,7 @@ vector<string> OutOfTsat;
 vector<string> listA;
 vector<string> ctotList;
 vector<string> colors;
+vector<string> rate;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -113,6 +116,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	vfad.resize(vfad.size() - strlen("CDM.dll"));
 	vfad += "colors.txt";
 
+	rfad = DllPathFile;
+	rfad.resize(rfad.size() - strlen("CDM.dll"));
+	rfad += "rate.txt";
+
 	debugMode = false;
 	initialSidLoad = false;
 
@@ -120,8 +127,16 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Get data from xml config file
 	airport = getFromXml("/CDM/apt/@icao");
-	rateString = getFromXml("/CDM/rate/@ops");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
+	string rateOption = getFromXml("/CDM/defaultRate/@option");
+	if (rateOption == "0") {
+		getRateOpt0();
+		defaultRate = false;
+	}
+	else {
+		rateString = getFromXml("/CDM/rate/@ops");
+		defaultRate = true;
+	}
 
 	//Get data from .txt file
 	fstream file;
@@ -983,7 +998,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					TTOT = TTOTFinal.c_str();
 				}
 
-				int rate = stoi(rateString);
+				int rate;
+				if (defaultRate) {
+					rate = stoi(rateString);
+				}
+				else {
+					rate = rateForRunway(airport, depRwy);
+					if (rate == -1) {
+						rate = stoi(rateString);
+					}
+				}
 				double rateHour = (double)60 / rate;
 
 				bool equalTTOT = true;
@@ -2133,6 +2157,34 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
+bool CDM::getRateOpt0() {
+	//Get data from rate.txt file
+	fstream rateFile;
+	string lineValue;
+	rateFile.open(rfad.c_str(), std::ios::in);
+	while (getline(rateFile, lineValue))
+	{
+		rate.push_back(lineValue);
+	}
+	return true;
+}
+
+int CDM::rateForRunway(string airport, string depRwy) {
+	string lineAirport, lineDepRwy;
+	for (string line : rate) {
+		if (line.length() > 1) {
+			lineAirport = line.substr(0, line.find(":"));
+			if (lineAirport == airport) {
+				lineDepRwy = line.substr(line.find(":") + 1, line.find("=") - line.find(":") - 1);
+				if (lineDepRwy == depRwy) {
+					return stoi(line.substr(line.find("=") + 1, line.length() - line.find("=")));
+				}
+			}
+		}
+	}
+	return -1;
+}
+
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	long int timeNow = static_cast<long int>(std::time(nullptr));
 	string completeTime = unixTimeToHumanReadable(timeNow);
@@ -2782,16 +2834,26 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm rate", sCommandLine))
 	{
-		string line = sCommandLine;
-		rateString = line.substr(line.length() - 2);
-		sendMessage("NEW Rate/Hour: " + rateString);
+		if (defaultRate) {
+			string line = sCommandLine;
+			rateString = line.substr(line.length() - 2);
+			sendMessage("NEW Rate/Hour: " + rateString);
+		}
+		else {
+			sendMessage("This command is only available when using the default rate.");
+		}
 		return true;
 	}
 
 	if (startsWith(".cdm lvo", sCommandLine))
 	{
-		rateString = getFromXml("/CDM/rateLvo/@ops");
-		sendMessage("Low Visibility Operations Rate Set: " + rateString);
+		if (defaultRate) {
+			rateString = getFromXml("/CDM/rateLvo/@ops");
+			sendMessage("Low Visibility Operations Rate Set: " + rateString);
+		}
+		else {
+			sendMessage("This command is only available when using the default rate.");
+		}
 		return true;
 	}
 	if (startsWith(".cdm nvo", sCommandLine))
