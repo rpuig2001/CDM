@@ -129,13 +129,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	airport = getFromXml("/CDM/apt/@icao");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string rateOption = getFromXml("/CDM/defaultRate/@option");
+	rateString = getFromXml("/CDM/rate/@ops");
+	
 	if (rateOption == "0") {
 		getRateOpt0();
 		defaultRate = false;
-	}
-	else {
-		rateString = getFromXml("/CDM/rate/@ops");
-		defaultRate = true;
 	}
 
 	//Get data from .txt file
