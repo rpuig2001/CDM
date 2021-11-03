@@ -19,10 +19,9 @@ string sfad;
 string cfad;
 string vfad;
 string rfad;
-string airport;
+//string airport;
 string rateString;
 int expiredCTOTTime;
-bool master;
 bool defaultRate;
 
 vector<string> slotList;
@@ -36,6 +35,8 @@ vector<string> listA;
 vector<string> ctotList;
 vector<string> colors;
 vector<string> rate;
+vector<string> planeAiportList;
+vector<string> masterAirports;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -123,10 +124,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	debugMode = false;
 	initialSidLoad = false;
 
-	master = false;
-
 	//Get data from xml config file
-	airport = getFromXml("/CDM/apt/@icao");
+	//airport = getFromXml("/CDM/apt/@icao");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string rateOption = getFromXml("/CDM/defaultRate/@option");
 	rateString = getFromXml("/CDM/rate/@ops");
@@ -209,6 +208,15 @@ void CDM::sendMessage(string message) {
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
 	CFlightPlan fp = FlightPlanSelectASEL();
 	bool AtcMe = false;
+	bool master = false;
+
+	for (string apt : masterAirports)
+	{
+		if (apt == fp.GetFlightPlanData().GetOrigin()) {
+			master = true;
+		}
+	}
+
 	if (master) {
 		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
 			AtcMe = true;
@@ -542,6 +550,13 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 			slotList.erase(slotList.begin() + i);
 		}
 	}
+	//Remove Plane From airport List
+	for (int j = 0; j < planeAiportList.size(); j++)
+	{
+		if (planeAiportList[j].substr(0, planeAiportList[j].find(",")) == callsign) {
+			planeAiportList.erase(planeAiportList.begin() + j);
+		}
+	}
 	//Remove Taxi Times List
 	for (int j = 0; j < taxiTimesList.size(); j++)
 	{
@@ -606,7 +621,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 
 
-	if (origin == airport && !isVfr) {
+	if (!isVfr) {
 
 		const char* EOBT = "";
 		const char* TSAT = "";
@@ -756,6 +771,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 			else {
 				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+			}
+		}
+
+		//Get airport
+		bool aptFind = false;
+		for (int i = 0; i < planeAiportList.size(); i++)
+		{
+			if (planeAiportList[i].substr(0, planeAiportList[i].find(",")) == callsign) {
+				aptFind = true;
+				if (planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4) != origin) {
+					planeAiportList[i] = callsign + "," + origin;
+				}
+			}
+		}
+
+		if (!aptFind) {
+			planeAiportList.push_back(callsign + "," + origin);
+		}
+
+		bool master = false;
+		for (string apt : masterAirports)
+		{
+			if (apt == origin) {
+				master = true;
 			}
 		}
 
@@ -960,7 +999,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					rate = stoi(rateString);
 				}
 				else {
-					rate = rateForRunway(airport, depRwy);
+					rate = rateForRunway(origin, depRwy);
 					if (rate == -1) {
 						rate = stoi(rateString);
 					}
@@ -993,6 +1032,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 						}
+						string listAirport;
+						for (int i = 0; i < planeAiportList.size(); i++)
+						{
+							if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
+								listAirport = planeAiportList[i].substr(planeAiportList[i].find(",")+1, 4);
+							}
+						}
 
 						if (!depRwyFound) {
 							listDepRwy = depRwy;
@@ -1003,7 +1049,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 								listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
 
-								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
+								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 									if (alreadySetTOStd) {
 										TTOTFinal = calculateTime(TTOTFinal, 0.5);
 										correctTTOT = false;
@@ -1014,7 +1060,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										alreadySetTOStd = true;
 									}
 								}
-								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy) {
+								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 									if (alreadySetTOStd) {
 										TTOTFinal = calculateTime(TTOTFinal, 0.5);
 										correctTTOT = false;
@@ -1035,7 +1081,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
 							}
 
-							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy) {
+							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 								if (alreadySetTOStd) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctTTOT = false;
@@ -1046,7 +1092,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									alreadySetTOStd = true;
 								}
 							}
-							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy) {
+							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 								if (alreadySetTOStd) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctTTOT = false;
@@ -2697,7 +2743,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		listA.clear();
 		ctotList.clear();
 		//Get data from xml config file
-		airport = getFromXml("/CDM/apt/@icao");
 		rateString = getFromXml("/CDM/rate/@ops");
 
 		//Get data from .txt file
@@ -2768,21 +2813,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		return true;
 	}
 
-	if (startsWith(".cdm airport", sCommandLine))
-	{
-		OutOfTsat.clear();
-		listA.clear();
-		slotList.clear();
-		tsacList.clear();
-		asatList.clear();
-		asrtList.clear();
-		taxiTimesList.clear();
-		string line = sCommandLine;
-		airport = to_upper_copy(line.substr(line.length() - 4, 4));
-		sendMessage("NEW Airport: " + airport);
-		return true;
-	}
-
 	if (startsWith(".cdm rate", sCommandLine))
 	{
 		if (defaultRate) {
@@ -2816,28 +2846,88 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm master", sCommandLine))
 	{
-		master = true;
-		sendMessage("CDM STATUS: MASTER");
+		string line = sCommandLine; boost::to_upper(line);
+		string addedAirport = line.substr(line.length() - 4, 4);
+		bool found = false;
+		for (string apt : masterAirports)
+		{
+			if (apt == addedAirport) {
+				found = true;
+			}
+		}
+		if (!found) {
+			masterAirports.push_back(addedAirport);
+			sendMessage("ADDED " + addedAirport + " TO MASTER AIRPORTS");
+		}
+		else {
+			sendMessage("AIRPORT " + addedAirport + " ALREADY ADDED");
+		}
+
+		string apts = "";
+		if (masterAirports.size() > 0) {
+			for (string apt : masterAirports)
+			{
+				apts += apt + " ";
+			}
+			sendMessage("MASTER AIRPORTS: " + apts);
+		}
+		else {
+			sendMessage("NO MASTER AIPORTS");
+		}
+
 		return true;
 	}
 
 	if (startsWith(".cdm slave", sCommandLine))
 	{
-		master = false;
-		sendMessage("CDM STATUS: SLAVE");
+		string line = sCommandLine; boost::to_upper(line);
+		string addedAirport = line.substr(line.length() - 4, 4);
+		int pos = 0;
+		bool found = false;
+		for (int i = 0; i < masterAirports.size(); i++)
+		{
+			if (masterAirports[i].substr(masterAirports[i].find(",") + 1, 4) == addedAirport) {
+				pos = i;
+				found = true;
+			}
+		}
+		if (found) {
+			masterAirports.erase(masterAirports.begin() + pos);
+			sendMessage("REMOVED " + addedAirport + " TO MASTER AIPORTS LIST");
+		}
+		else {
+			sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
+		}
+
+		string apts = "";
+		if (masterAirports.size() > 0) {
+			for (string apt : masterAirports)
+			{
+				apts += apt + " ";
+			}
+			sendMessage("MASTER AIRPORTS: " + apts);
+		}
+		else {
+			sendMessage("NO MASTER AIPORTS");
+		}
+
 		return true;
 	}
 
 	if (startsWith(".cdm status", sCommandLine))
 	{
-		if (master) {
-			sendMessage("CDM STATUS: MASTER");
+		string apts = "";
+		if (masterAirports.size() > 0) {
+			for (string apt : masterAirports)
+			{
+				apts += apt + " ";
+			}
+			sendMessage("MASTER AIRPORTS: " + apts);
 		}
 		else {
-			sendMessage("CDM STATUS: SLAVE");
+			sendMessage("NO MASTER AIPORTS");
 		}
-		sendMessage("Airport: " + airport);
-		sendMessage("RATE: " + rateString);
+		sendMessage("DEFAULT RATE: " + rateString);
 		return true;
 	}
 }
