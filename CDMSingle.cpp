@@ -403,7 +403,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 			if (hasCTOT) {
 				OpenPopupList(Area, "CTOT Options", 1);
-				//AddPopupListElement("Edit CTOT", "", TAG_FUNC_ADDCTOTSELECTED, false, 2, false);
 				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
 			}
 		}
@@ -439,46 +438,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 		}
 	}
-
-	/*if (FunctionId == TAG_FUNC_ADDCTOTSELECTED) {
-		string ctotText = "";
-		for (int i = 0; i < ctotList.size(); i++)
-		{
-			if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
-				ctotText = ctotList[i].substr(ctotList[i].find(",") + 1, 4);
-			}
-		}
-		OpenPopupEdit(Area, TAG_FUNC_ADDCTOT, ctotText.c_str());
-	}
-
-	if (FunctionId == TAG_FUNC_ADDCTOT) {
-		string editedCTOT = ItemString;
-		bool hasNoNumber = true;
-		if (editedCTOT.length() == 4) {
-			for (int i = 0; i < editedCTOT.length(); i++) {
-				if (isdigit(editedCTOT[i]) == false) {
-					hasNoNumber = false;
-				}
-			}
-			if (hasNoNumber) {
-				for (int a = 0; a < slotList.size(); a++)
-				{
-					if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
-						slotList.erase(slotList.begin() + a);
-					}
-				}
-				for (int i = 0; i < ctotList.size(); i++)
-				{
-					if (ctotList[i].substr(0, ctotList[i].find(",")) == fp.GetCallsign()) {
-						ctotList.erase(ctotList.begin() + i);
-					}
-				}
-				string callsign = fp.GetCallsign();
-				string valueToAdd = callsign + "," + editedCTOT;
-				ctotList.push_back(valueToAdd);
-			}
-		}
-	}*/
 
 	if (FunctionId == TAG_FUNC_REAASRT) {
 		if (master && AtcMe) {
