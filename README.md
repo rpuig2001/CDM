@@ -13,6 +13,7 @@ CDM includes the following times:
 
 ## How to use:
 - Load up the plugin.
+- If there is no master controller, you should use the command ``.cdm master {airport}`` of the airport you want to become the master. You can have as many airport as you want, but there can ony be **1 MASTER at the same time** (The MASTER should be DELIVERY or the lowest ATC position to have access to all CDM actions).
 - Add The following items to the departure list with their actions:
 
 - A
@@ -58,14 +59,14 @@ CDM includes the following times:
 
 ## MASTER AND SLAVE:
 - Master: The master is the "admin" of the CDM and is the only controller who calculates the times (TSAT, TTOT and ASRT)
-  - Use ``.cdm master`` command (**TO LET THE CDM DO IT'S JOB, ONLY 1 CONTROLLER CAN BE THE MASTER AT THE SAME TIME**).
-- Slave: The Slave Monitors the CDM and is unable to add/edit CTOTs.
-  - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave`` command.
+  - Use ``.cdm master {airport}`` command (**TO LET THE CDM DO IT'S JOB, ONLY 1 CONTROLLER CAN BE THE MASTER AT THE SAME TIME**).
+- Slave: The Slave Monitors the CDM and has some limited actions.
+  - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave {airport}`` command.
 
 ## HOW TO DO A CONTROLLER CHANGE CORRECTLY:
 1. Check to have the same *CDMconfig.xml* and *taxizones.txt* configuration, otherwise it won't work correctly.
 2. The **Old controller** changes to Slave with command ``.cdm slave``.
-3. Once there are no master controllers, the **new controlles** gets the master "rol" with the command ``.cdm master``.
+3. Once there are no master controllers, the **new controlles** gets the master "rol" with the command ``.cdm master {airport}``.
 4. That's it!
 
 ### Define configurations
@@ -78,7 +79,6 @@ CDM includes the following times:
   - color6 = DARKYELLOW
   - color7 = RED
 - CDMconfig.xml
-  - Add icao (ex. apt icao="LEPA").
   - Select rate option:
     - "0": It uses the specified rate in the rate.txt file for each runway, if not defined, it will get the default rate ops selected in the "rate ops" field (ex. defaultRate option="0").
     - "1": It uses the default rate selected in the "rate ops" field for each rwy (ex. defaultRate option="1").
@@ -98,12 +98,13 @@ CDM includes the following times:
 ### Commands
 - ``.cdm reload`` - Reloads all CDM plugin.
 - ``.cdm rate {rate}`` - Sets the selected rate.
-- ``.cdm airport {icao}`` - Sets the selected airport.
 - ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
 - ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
 - ``.cdm lvo`` - It sets the configured rate for *LOW VISIBILITY OPERATIONS* in the CDMconfig.xml
 - ``.cdm nvo`` - It sets the configured rate for *NORMAL VISIBILITY OPERATIONS* in the CDMconfig.xml
+- ``.cdm master {airport}`` - Become the master of the selected airport.
+- ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 
 ## Functions and colors:
 - Column A: It toggles an A to remember the controller that the plane is waiting for something.

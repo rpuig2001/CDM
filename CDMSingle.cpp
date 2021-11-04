@@ -2847,70 +2847,77 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm master", sCommandLine))
 	{
 		string line = sCommandLine; boost::to_upper(line);
-		string addedAirport = line.substr(line.length() - 4, 4);
-		bool found = false;
-		for (string apt : masterAirports)
-		{
-			if (apt == addedAirport) {
-				found = true;
-			}
-		}
-		if (!found) {
-			masterAirports.push_back(addedAirport);
-			sendMessage("ADDED " + addedAirport + " TO MASTER AIRPORTS");
-		}
-		else {
-			sendMessage("AIRPORT " + addedAirport + " ALREADY ADDED");
-		}
-
-		string apts = "";
-		if (masterAirports.size() > 0) {
+		if (line.substr(line.length() - 7, 1) == " ") {
+			sendMessage("NO ARIPORT SET");
+		}else{
+			string addedAirport = line.substr(line.length() - 4, 4);
+			bool found = false;
 			for (string apt : masterAirports)
 			{
-				apts += apt + " ";
+				if (apt == addedAirport) {
+					found = true;
+				}
 			}
-			sendMessage("MASTER AIRPORTS: " + apts);
-		}
-		else {
-			sendMessage("NO MASTER AIPORTS");
-		}
+			if (!found) {
+				masterAirports.push_back(addedAirport);
+				sendMessage("ADDED " + addedAirport + " TO MASTER AIRPORTS");
+			}
+			else {
+				sendMessage("AIRPORT " + addedAirport + " ALREADY ADDED");
+			}
 
+			string apts = "";
+			if (masterAirports.size() > 0) {
+				for (string apt : masterAirports)
+				{
+					apts += apt + " ";
+				}
+				sendMessage("MASTER AIRPORTS: " + apts);
+			}
+			else {
+				sendMessage("NO MASTER AIRPORTS");
+			}
+		}
 		return true;
 	}
 
 	if (startsWith(".cdm slave", sCommandLine))
 	{
 		string line = sCommandLine; boost::to_upper(line);
-		string addedAirport = line.substr(line.length() - 4, 4);
-		int pos = 0;
-		bool found = false;
-		for (int i = 0; i < masterAirports.size(); i++)
-		{
-			if (masterAirports[i].substr(masterAirports[i].find(",") + 1, 4) == addedAirport) {
-				pos = i;
-				found = true;
-			}
-		}
-		if (found) {
-			masterAirports.erase(masterAirports.begin() + pos);
-			sendMessage("REMOVED " + addedAirport + " TO MASTER AIPORTS LIST");
+		if (line.substr(line.length() - 6, 1) == " ") {
+			sendMessage("NO ARIPORT SET");
 		}
 		else {
-			sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
-		}
-
-		string apts = "";
-		if (masterAirports.size() > 0) {
-			for (string apt : masterAirports)
+			string addedAirport = line.substr(line.length() - 4, 4);
+			int pos = 0;
+			bool found = false;
+			for (int i = 0; i < masterAirports.size(); i++)
 			{
-				apts += apt + " ";
+				if (masterAirports[i].substr(masterAirports[i].find(",") + 1, 4) == addedAirport) {
+					pos = i;
+					found = true;
+				}
 			}
-			sendMessage("MASTER AIRPORTS: " + apts);
-		}
-		else {
-			sendMessage("NO MASTER AIPORTS");
-		}
+			if (found) {
+				masterAirports.erase(masterAirports.begin() + pos);
+				sendMessage("REMOVED " + addedAirport + " TO MASTER AIPORTS LIST");
+			}
+			else {
+				sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
+			}
 
+			string apts = "";
+			if (masterAirports.size() > 0) {
+				for (string apt : masterAirports)
+				{
+					apts += apt + " ";
+				}
+				sendMessage("MASTER AIRPORTS: " + apts);
+			}
+			else {
+				sendMessage("NO MASTER AIRPORTS");
+			}
+		}
 		return true;
 	}
 
@@ -2925,7 +2932,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			sendMessage("MASTER AIRPORTS: " + apts);
 		}
 		else {
-			sendMessage("NO MASTER AIPORTS");
+			sendMessage("NO MASTER AIRPORTS");
 		}
 		sendMessage("DEFAULT RATE: " + rateString);
 		return true;
