@@ -134,6 +134,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		getRateOpt0();
 		defaultRate = false;
 	}
+	else {
+		defaultRate = true;
+	}
 
 	//Get data from .txt file
 	fstream file;
