@@ -1048,11 +1048,53 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						if (hasCTOT) {
-							if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
+							bool found = false;
+							while (!found) {
+								found = true;
+								if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
 
-								listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+									listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+
+									if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+										found = false;
+										if (alreadySetTOStd) {
+											TTOTFinal = calculateTime(TTOTFinal, 0.5);
+											correctTTOT = false;
+										}
+										else {
+											TTOTFinal = calculateTime(listTTOT, 0.5);
+											correctTTOT = false;
+											alreadySetTOStd = true;
+										}
+									}
+									else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+										found = false;
+										if (alreadySetTOStd) {
+											TTOTFinal = calculateTime(TTOTFinal, 0.5);
+											correctTTOT = false;
+										}
+										else {
+											TTOTFinal = calculateTime(listTTOT, 0.5);
+											correctTTOT = false;
+											alreadySetTOStd = true;
+										}
+									}
+								}
+							}
+						}
+						else {
+							bool found = false;
+							while (!found) {
+								found = true;
+								if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
+									listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+								}
+								else {
+									listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
+								}
 
 								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+									found = false;
 									if (alreadySetTOStd) {
 										TTOTFinal = calculateTime(TTOTFinal, 0.5);
 										correctTTOT = false;
@@ -1064,6 +1106,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+									found = false;
 									if (alreadySetTOStd) {
 										TTOTFinal = calculateTime(TTOTFinal, 0.5);
 										correctTTOT = false;
@@ -1073,37 +1116,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										correctTTOT = false;
 										alreadySetTOStd = true;
 									}
-								}
-							}
-						}
-						else {
-							if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
-								listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
-							}
-							else {
-								listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
-							}
-
-							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
-								if (alreadySetTOStd) {
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctTTOT = false;
-								}
-								else {
-									TTOTFinal = calculateTime(listTTOT, 0.5);
-									correctTTOT = false;
-									alreadySetTOStd = true;
-								}
-							}
-							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
-								if (alreadySetTOStd) {
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctTTOT = false;
-								}
-								else {
-									TTOTFinal = calculateTime(listTTOT, 0.5);
-									correctTTOT = false;
-									alreadySetTOStd = true;
 								}
 							}
 						}
