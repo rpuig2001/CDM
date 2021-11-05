@@ -2851,7 +2851,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		string line = sCommandLine; boost::to_upper(line);
 		if (line.substr(line.length() - 7, 1) == " ") {
-			sendMessage("NO ARIPORT SET");
+			sendMessage("NO AIRPORT SET");
 		}else{
 			string addedAirport = line.substr(line.length() - 4, 4);
 			bool found = false;
@@ -2888,7 +2888,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		string line = sCommandLine; boost::to_upper(line);
 		if (line.substr(line.length() - 6, 1) == " ") {
-			sendMessage("NO ARIPORT SET");
+			sendMessage("NO AIRPORT SET");
 		}
 		else {
 			string addedAirport = line.substr(line.length() - 4, 4);
