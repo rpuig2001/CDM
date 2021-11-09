@@ -2827,6 +2827,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Done");
 		return true;
 	}
+	
+	if (startsWith(".cdm debug", sCommandLine))
+	{
+		if(debugMode) {
+			sendMessage("Debug Mode Disable....");
+			debugMode = false;
+		}
+		else {
+			sendMessage("Debug Mode Enable....");
+			debugMode = true;
+		return true;
+	}
 
 	if (startsWith(".cdm rate", sCommandLine))
 	{
