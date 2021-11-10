@@ -46,6 +46,8 @@ public:
 
 	int rateForRunway(string airport, string depRwy);
 
+	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, double rateHour, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
+
 	string EobtPlusTime(string EOBT, int time);
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
