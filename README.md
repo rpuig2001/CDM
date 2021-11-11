@@ -105,6 +105,7 @@ CDM includes the following times:
 - ``.cdm nvo`` - It sets the configured rate for *NORMAL VISIBILITY OPERATIONS* in the CDMconfig.xml
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
+- ``.cdm refreshrate {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
 
 ## Functions and colors:
 - Column A: It toggles an A to remember the controller that the plane is waiting for something.

@@ -39,7 +39,6 @@ vector<string> colors;
 vector<string> rate;
 vector<string> planeAiportList;
 vector<string> masterAirports;
-vector<string> addedPlanes;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -1199,7 +1198,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
-									addedPlanes.push_back(callsign);
 								}
 							}
 							else {
@@ -1234,7 +1232,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 									FlightPlan.GetFlightPlanData().AmendFlightPlan();
 									remarks = stringToAdd;
-									addedPlanes.push_back(callsign);
 								}
 							}
 						}
