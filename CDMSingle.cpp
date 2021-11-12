@@ -149,7 +149,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	file.open(lfad.c_str(), std::ios::in);
 	while (getline(file, lineValue))
 	{
-		TxtTimesVector.push_back(lineValue);
+		if (lineValue.substr(0, 1) != "#") {
+			TxtTimesVector.push_back(lineValue);
+		}
 	}
 
 	fstream fileCtot;
@@ -3069,7 +3071,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		file.open(lfad.c_str(), std::ios::in);
 		while (getline(file, lineValue))
 		{
-			TxtTimesVector.push_back(lineValue);
+			if (lineValue.substr(0, 1) != "#") {
+				TxtTimesVector.push_back(lineValue);
+			}
 		}
 		sendMessage("Done");
 		return true;
