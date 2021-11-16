@@ -39,6 +39,7 @@ vector<string> colors;
 vector<string> rate;
 vector<string> planeAiportList;
 vector<string> masterAirports;
+vector<string> CDMairports;
 //vector<string> CTOTcheck;
 
 using namespace std;
@@ -134,16 +135,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Get data from xml config file
 	//airport = getFromXml("/CDM/apt/@icao");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
-	string rateOption = getFromXml("/CDM/defaultRate/@option");
 	rateString = getFromXml("/CDM/rate/@ops");
-
-	if (rateOption == "0") {
-		getRateOpt0();
-		defaultRate = false;
-	}
-	else {
-		defaultRate = true;
-	}
+	getRate();
 
 	//Get data from .txt file
 	fstream file;
@@ -643,6 +636,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 
 	if (!isVfr) {
+		bool isCDMairport = false;
+		for (string a : CDMairports)
+		{
+			if (origin == a) {
+				isCDMairport = true;
+			}
+		}
+
+		if(isCDMairport){
 
 		const char* EOBT = "";
 		const char* TSAT = "";
@@ -1094,15 +1096,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
-				int rate;
-				if (defaultRate) {
+				//Calculate Rate
+				int rate = rateForRunway(origin, depRwy);
+				if (rate == -1) {
 					rate = stoi(rateString);
-				}
-				else {
-					rate = rateForRunway(origin, depRwy);
-					if (rate == -1) {
-						rate = stoi(rateString);
-					}
 				}
 				double rateHour = (double)60 / rate;
 
@@ -2341,16 +2338,42 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 	}
+	else {
+	if (ItemCode == TAG_ITEM_EOBT)
+	{
+		*pColorCode = TAG_COLOR_RGB_DEFINED;
+		*pRGB = TAG_GREY;
+		strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+	}
+	if (ItemCode == TAG_ITEM_TOBT)
+	{
+		*pColorCode = TAG_COLOR_RGB_DEFINED;
+		*pRGB = TAG_GREY;
+		strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+	}
+	}
+	}
 }
 
-bool CDM::getRateOpt0() {
+bool CDM::getRate() {
 	//Get data from rate.txt file
 	fstream rateFile;
-	string lineValue;
+	string lineValue, myAirport;
 	rateFile.open(rfad.c_str(), std::ios::in);
+	bool found;
 	while (getline(rateFile, lineValue))
 	{
 		rate.push_back(lineValue);
+		myAirport = lineValue.substr(0,lineValue.find(":"));
+		found = false;
+		for (string airport : CDMairports) {
+			if (airport == myAirport) {
+				found = true;
+			}
+		}
+		if (!found) {
+			CDMairports.push_back(myAirport);
+		}
 	}
 	return true;
 }
