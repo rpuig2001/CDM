@@ -252,19 +252,64 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	if (FunctionId == TAG_FUNC_ADDTSAC) {
+		//Get Time now
+		long int timeNow = static_cast<long int>(std::time(nullptr));
+		string completeTime = unixTimeToHumanReadable(timeNow);
+		string hour = "";
+		string min = "";
+
+		hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+		if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+			min = completeTime.substr(completeTime.find(":") + 1, 2);
+		}
+		else {
+			min = completeTime.substr(completeTime.find(":") + 1, 1);
+		}
+
+		if (stoi(min) < 10) {
+			min = "0" + min;
+		}
+		if (stoi(hour) < 10) {
+			hour = "0" + hour.substr(1, 1);
+		}
+		bool notYetEOBT = false;
+		string completeEOBT = (string)fp.GetFlightPlanData().GetEstimatedDepartureTime();
+		completeEOBT = formatTime(completeEOBT);
+		string EOBThour = completeEOBT.substr(0, 2);
+		string EOBTmin = completeEOBT.substr(2, 2);
+
+		if (hour != "00") {
+			if (EOBThour == "00") {
+				EOBThour = "24";
+			}
+		}
+
+		int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
+		if (hour != EOBThour) {
+			if (EOBTdifTime < -75) {
+				notYetEOBT = true;
+			}
+		}
+		else {
+			if (EOBTdifTime < -35) {
+				notYetEOBT = true;
+			}
+		}
 		for (int i = 0; i < tsacList.size(); i++)
 		{
 			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
 				tsacList.erase(tsacList.begin() + i);
 			}
 		}
-
-		for (int a = 0; a < slotList.size(); a++)
-		{
-			if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
-				string getTSAT = slotList[a].substr(slotList[a].find(",") + 8, 6);
-				string valuesToAdd = (string)fp.GetCallsign() + "," + getTSAT;
-				tsacList.push_back(valuesToAdd);
+		if (!notYetEOBT) {
+			for (int a = 0; a < slotList.size(); a++)
+			{
+				if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
+					string getTSAT = slotList[a].substr(slotList[a].find(",") + 8, 6);
+					string valuesToAdd = (string)fp.GetCallsign() + "," + getTSAT;
+					tsacList.push_back(valuesToAdd);
+				}
 			}
 		}
 	}
