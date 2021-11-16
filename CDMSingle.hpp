@@ -13,7 +13,7 @@
 #include "rapidjson/stringbuffer.h"
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "1.1.4"
+#define MY_PLUGIN_VERSION   "1.1.5"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -63,6 +63,8 @@ public:
 	bool expiredCtot(string line);
 
 	string calculateLessTime(string timeString, double minsToAdd);
+
+	//string getCidByCallsign(string callsign);
 
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
