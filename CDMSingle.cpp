@@ -53,6 +53,10 @@ COLORREF TAG_ORANGE = RGB(212, 133, 46);
 COLORREF TAG_YELLOW = RGB(212, 214, 7);
 COLORREF TAG_DARKYELLOW = RGB(245, 239, 13);
 COLORREF TAG_RED = RGB(190, 0, 0);
+COLORREF TAG_EOBT = RGB(182, 182, 182);
+COLORREF TAG_TTOT = RGB(0, 192, 0);
+COLORREF TAG_ASRT = RGB(0, 192, 0);
+COLORREF TAG_CTOT = RGB(0, 192, 0);
 
 // Run on Plugin Initialization
 CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
@@ -163,12 +167,19 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	fileColors.open(vfad.c_str(), std::ios::in);
 	while (getline(fileColors, lineValueColors))
 	{
-		if (lineValueColors.size() > 1) {
-			colors.push_back(lineValueColors.substr(7, lineValueColors.length() - 7));
-			for (int g = 0; g < colors[colors.size() - 1].length(); g++)
-			{
-				if (colors[colors.size() - 1].substr(g, 1) == ",") {
-					sep.push_back(g);
+		if (lineValueColors.substr(0, 1) != "#") {
+			if (lineValueColors.size() > 1) {
+				if (lineValueColors.substr(7, 1) == ":") {
+					colors.push_back(lineValueColors.substr(8, lineValueColors.length() - 7));
+				}
+				else {
+					colors.push_back(lineValueColors.substr(7, lineValueColors.length() - 7));
+				}
+				for (int g = 0; g < colors[colors.size() - 1].length(); g++)
+				{
+					if (colors[colors.size() - 1].substr(g, 1) == ",") {
+						sep.push_back(g);
+					}
 				}
 			}
 		}
@@ -181,6 +192,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	TAG_YELLOW = RGB(stoi(colors[4].substr(0, sep[8])), stoi(colors[4].substr(sep[8] + 1, sep[9] - (sep[8] + 1))), stoi(colors[4].substr(sep[9] + 1, colors[4].length() - (sep[9] + 1))));
 	TAG_DARKYELLOW = RGB(stoi(colors[5].substr(0, sep[10])), stoi(colors[5].substr(sep[10] + 1, sep[11] - (sep[10] + 1))), stoi(colors[5].substr(sep[11] + 1, colors[5].length() - (sep[11] + 1))));
 	TAG_RED = RGB(stoi(colors[6].substr(0, sep[12])), stoi(colors[6].substr(sep[12] + 1, sep[13] - (sep[12] + 1))), stoi(colors[6].substr(sep[13] + 1, colors[6].length() - (sep[13] + 1))));
+	TAG_EOBT = RGB(stoi(colors[7].substr(0, sep[14])), stoi(colors[7].substr(sep[14] + 1, sep[15] - (sep[14] + 1))), stoi(colors[7].substr(sep[15] + 1, colors[7].length() - (sep[15] + 1))));
+	TAG_TTOT = RGB(stoi(colors[8].substr(0, sep[16])), stoi(colors[8].substr(sep[16] + 1, sep[17] - (sep[16] + 1))), stoi(colors[8].substr(sep[17] + 1, colors[8].length() - (sep[17] + 1))));
+	TAG_ASRT = RGB(stoi(colors[9].substr(0, sep[18])), stoi(colors[9].substr(sep[18] + 1, sep[19] - (sep[18] + 1))), stoi(colors[9].substr(sep[19] + 1, colors[9].length() - (sep[19] + 1))));
+	TAG_CTOT = RGB(stoi(colors[10].substr(0, sep[20])), stoi(colors[10].substr(sep[20] + 1, sep[21] - (sep[20] + 1))), stoi(colors[10].substr(sep[21] + 1, colors[10].length() - (sep[21] + 1))));
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -968,7 +983,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					string ShowEOBT = (string)EOBT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREY;
+					*pRGB = TAG_EOBT;
 					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 				}
 				if (ItemCode == TAG_ITEM_TOBT)
@@ -1007,7 +1022,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (hasCTOT) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_CTOT;
 						strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
 					}
 				}
@@ -1745,7 +1760,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					string ShowEOBT = (string)EOBT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREY;
+					*pRGB = TAG_EOBT;
 					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 				}
 
@@ -1823,17 +1838,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					string ShowTTOT = (string)TTOT;
 					if (notYetEOBT) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_TTOT;
 						strcpy_s(sItemString, 16, " ");
 					}
 					else if (moreLessFive || lastMinute) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_TTOT;
 						strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 					}
 					else {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_TTOT;
 						strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 					}
 				}
@@ -1863,12 +1878,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (ASRTFound) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_ASRT;
 						strcpy_s(sItemString, 16, ASRTtext.c_str());
 					}
 					else {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_ASRT;
 						strcpy_s(sItemString, 16, " ");
 					}
 				}
@@ -1905,7 +1920,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (hasCTOT) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_CTOT;
 						strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
 					}
 				}
@@ -2175,7 +2190,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					string ShowEOBT = (string)EOBT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREY;
+					*pRGB = TAG_EOBT;
 					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 				}
 
@@ -2254,17 +2269,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (TTOTString.length() > 0) {
 						if (notYetEOBT) {
 							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
+							*pRGB = TAG_TTOT;
 							strcpy_s(sItemString, 16, " ");
 						}
 						else if (moreLessFive || lastMinute) {
 							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
+							*pRGB = TAG_TTOT;
 							strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
 						}
 						else {
 							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
+							*pRGB = TAG_TTOT;
 							strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
 						}
 					}
@@ -2295,12 +2310,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (ASRTFound) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_ASRT;
 						strcpy_s(sItemString, 16, ASRTtext.c_str());
 					}
 					else {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_ASRT;
 						strcpy_s(sItemString, 16, " ");
 					}
 				}
@@ -2337,7 +2352,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (hasCTOT) {
 						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
+						*pRGB = TAG_CTOT;
 						strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
 					}
 				}
@@ -2347,7 +2362,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					string ShowEOBT = (string)EOBT;
 					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREY;
+					*pRGB = TAG_EOBT;
 					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 				}
 				if (ItemCode == TAG_ITEM_TSAC)
@@ -2387,7 +2402,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	if (ItemCode == TAG_ITEM_EOBT)
 	{
 		*pColorCode = TAG_COLOR_RGB_DEFINED;
-		*pRGB = TAG_GREY;
+		*pRGB = TAG_EOBT;
 		strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 	}
 	if (ItemCode == TAG_ITEM_TOBT)
