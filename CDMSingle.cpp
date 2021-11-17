@@ -19,11 +19,13 @@ string cfad;
 string vfad;
 string rfad;
 string rateString;
+string lvoRateString;
 int expiredCTOTTime;
 bool defaultRate;
 int countTime;
 int refreshTime;
 bool addTime;
+bool lvo;
 string myTimeToAdd;
 
 vector<string> slotList;
@@ -140,6 +142,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//airport = getFromXml("/CDM/apt/@icao");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
+	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
+	lvo = false;
 	getRate();
 
 	//Get data from .txt file
@@ -1157,10 +1161,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 
 				//Calculate Rate
-				int rate = rateForRunway(origin, depRwy);
-				if (rate == -1) {
-					rate = stoi(rateString);
+				int rate;
+
+				if (!lvo) {
+					rate = rateForRunway(origin, depRwy);
+					if (rate == -1) {
+						rate = stoi(rateString);
+					}
 				}
+				else {
+					rate = stoi(lvoRateString);
+				}
+
 				double rateHour = (double)60 / rate;
 
 				bool equalTTOT = true;
@@ -3381,30 +3393,30 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		return true;
 	}
 
-	if (startsWith(".cdm rate", sCommandLine))
+	if (startsWith(".cdm lvo on", sCommandLine))
 	{
-		if (defaultRate) {
-			string line = sCommandLine;
-			rateString = line.substr(line.length() - 2);
-			sendMessage("NEW Rate/Hour: " + rateString);
+		if (!lvo) {
+			sendMessage("Low Visibility Operations activated rate set: " + lvoRateString + " OPS/H");
+			lvo = true;
 		}
 		else {
-			sendMessage("This command is only available when using the default rate.");
+			sendMessage("Low Visibility Operations already activated");
 		}
 		return true;
 	}
 
-	if (startsWith(".cdm lvo", sCommandLine))
+	if (startsWith(".cdm lvo off", sCommandLine))
 	{
-		if (defaultRate) {
-			rateString = getFromXml("/CDM/rateLvo/@ops");
-			sendMessage("Low Visibility Operations Rate Set: " + rateString);
+		if (lvo) {
+			sendMessage("Low Visibility Operations desactivated");
+			lvo = false;
 		}
 		else {
-			sendMessage("This command is only available when using the default rate.");
+			sendMessage("Low Visibility Operations not activated");
 		}
 		return true;
 	}
+
 	if (startsWith(".cdm nvo", sCommandLine))
 	{
 		rateString = getFromXml("/CDM/rate/@ops");
