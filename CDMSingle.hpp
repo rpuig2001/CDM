@@ -11,6 +11,7 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#include "json/json.h"
 #define CURL_STATICLIB
 #include "curl/curl.h"
 
@@ -66,7 +67,9 @@ public:
 
 	string calculateLessTime(string timeString, double minsToAdd);
 
-	//string getCidByCallsign(string callsign);
+	bool checkIsNumber(string str);
+
+	string getCidByCallsign(string callsign);
 
 	int GetVersion();
 

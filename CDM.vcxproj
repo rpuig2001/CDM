@@ -22,6 +22,7 @@
     <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Config.h" />
     <ClInclude Include="Constant.hpp" />
+    <ClInclude Include="json_tool.h" />
     <ClInclude Include="Libs\EuroScopePlugIn.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
@@ -29,11 +30,15 @@
   <ItemGroup>
     <ClCompile Include="CDMSingle.cpp" />
     <ClCompile Include="CDM.cpp" />
+    <ClCompile Include="json_reader.cpp" />
+    <ClCompile Include="json_value.cpp" />
+    <ClCompile Include="json_writer.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
+    <None Include="json_valueiterator.inl" />
     <None Include="packages.config" />
   </ItemGroup>
   <PropertyGroup Label="Globals">

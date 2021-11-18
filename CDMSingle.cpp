@@ -20,12 +20,14 @@ string vfad;
 string rfad;
 string rateString;
 string lvoRateString;
+string ctotOption;
 int expiredCTOTTime;
 bool defaultRate;
 int countTime;
 int refreshTime;
 bool addTime;
 bool lvo;
+bool ctotCid;
 string myTimeToAdd;
 
 vector<string> slotList;
@@ -42,7 +44,7 @@ vector<string> rate;
 vector<string> planeAiportList;
 vector<string> masterAirports;
 vector<string> CDMairports;
-//vector<string> CTOTcheck;
+vector<string> CTOTcheck;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -142,11 +144,19 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Get data from xml config file
 	//airport = getFromXml("/CDM/apt/@icao");
+	ctotOption = getFromXml("/CDM/ctot/@option");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	lvo = false;
 	getRate();
+
+	if (ctotOption == "cid") {
+		ctotCid = true;
+	}
+	else {
+		ctotCid = false;
+	}
 
 	//Get data from .txt file
 	fstream file;
@@ -644,12 +654,12 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	}
 
 	//Remove ctotCheck
-	/*for (int i = 0; i < CTOTcheck.size(); i++)
+	for (int i = 0; i < CTOTcheck.size(); i++)
 	{
 		if (CTOTcheck[i] == callsign) {
 			CTOTcheck.erase(CTOTcheck.begin() + i);
 		}
-	}*/
+	}
 
 	//Remove ASAT
 	for (int x = 0; x < asatList.size(); x++)
@@ -738,27 +748,48 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 
-		//Check if has CTOT
-		/*bool ctotValidated = false;
-		for (int i = 0; i < CTOTcheck.size(); i++) {
-			if (callsign == CTOTcheck[i]) {
-				ctotValidated = true;
-			}
-		}
 
-		if (!ctotValidated && !aircraftFind) {
+		//Check if has CTOT
+		bool hasCTOT = false;
+		int ctotPos = 0;
+
+		//If opion is "cid"
+		if (ctotCid) {
+			bool ctotValidated = false;
+			for (int i = 0; i < CTOTcheck.size(); i++) {
+				if (callsign == CTOTcheck[i]) {
+					ctotValidated = true;
+				}
+			}
+
+			if (!ctotValidated && !aircraftFind) {
 				string cid = getCidByCallsign(callsign);
 				string savedCid;
+				string ctotCallsign;
 				for (int i = 0; i < slotList.size(); i++)
 				{
 					savedCid = slotList[i].substr(0, slotList[i].find(","));
-					if (cid == savedCid) {
-						slotList[i] = callsign + slotList[i].substr(slotList[i].find(","), slotList[i].length() - slotList[i].find(","));
-						aircraftFind = true;
-						CTOTcheck.push_back(callsign);
+					if (checkIsNumber(savedCid)) {
+						if (stoi(cid) == stoi(savedCid)) {
+							slotList[i] = callsign + slotList[i].substr(slotList[i].find(","), slotList[i].length() - slotList[i].find(","));
+							pos = i;
+							for (int a = 0; a < ctotList.size(); a++)
+							{
+								ctotCallsign = ctotList[a].substr(0, ctotList[a].find(","));
+								if (checkIsNumber(ctotCallsign)) {
+									if (stoi(cid) == stoi(ctotCallsign)) {
+										ctotList[a] = callsign + ctotList[a].substr(ctotList[a].find(","), ctotList[a].length() - ctotList[a].find(","));
+										hasCTOT = true;
+										ctotPos = i;
+									}
+								}
+							}
+						}
 					}
 				}
-		}*/
+				CTOTcheck.push_back(callsign);
+			}
+		}
 
 		//EOBT
 		EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
@@ -779,8 +810,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 
 		//CTOT
-		bool hasCTOT = false;
-		int ctotPos = 0;
 		for (int i = 0; i < ctotList.size(); i++)
 		{
 			if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
@@ -2973,12 +3002,27 @@ string CDM::calculateLessTime(string timeString, double minsToAdd) {
 	return timeFinal;
 }
 
+bool CDM::checkIsNumber(string str) {
+	bool hasNoNumber = true;
+	for (int i = 0; i < str.length(); i++) {
+		if (isdigit(str[i]) == false) {
+			hasNoNumber = false;
+		}
+	}
+	if (hasNoNumber) {
+		return true;
+	}
+	else {
+		return false;
+	}
+}
+
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
 	((std::string*)userp)->append((char*)contents, size * nmemb);
 	return size * nmemb;
 }
-/*
+
 string CDM::getCidByCallsign(string callsign) {
 	CURL* curl;
 	CURLcode res;
@@ -2993,21 +3037,22 @@ string CDM::getCidByCallsign(string callsign) {
 	}
 	Json::Reader reader;
 	Json::Value obj;
+	Json::FastWriter fastWriter;
 	reader.parse(readBuffer, obj);
 
-	Json::Reader reader;
-	Json::Value obj;
+	string foundCallsign;
 
-	const Json::Value& pilot = obj["characters"];
-	for (int i = 0; i < pilot.size(); i++) {
-		if (pilot[i]["callsign"] == callsign) {
-			Json::FastWriter fastWriter;
-			return fastWriter.write(pilot[i]["cid"]);
+	const Json::Value& pilots = obj["pilots"];
+	for (int i = 0; i < pilots.size(); i++) {
+		foundCallsign = fastWriter.write(pilots[i]["callsign"]);
+		if (foundCallsign.substr(1, foundCallsign.length()-3) == callsign) {
+			std::string myCid = fastWriter.write(pilots[i]["cid"]);
+			return myCid;
 		}
 	}
 	return "0";
 }
-*/
+
 
 int CDM::GetVersion() {
 	CURL* curl;
@@ -3397,6 +3442,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		sendMessage("Loading CTOTs data....");
 		ctotList.clear();
+		CTOTcheck.clear();
 		//load data from file
 		fstream file;
 		string lineValue;
