@@ -3363,7 +3363,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm help", sCommandLine))
 	{
-		sendMessage("CDM Commands: .cdm reload - .cdm ctot - .cdm save - .cdm load - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm lvo on - .cdm lvo off");
+		sendMessage("CDM Commands: .cdm reload - .cdm ctot - .cdm save - .cdm load - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm delay {minutes} - .cdm lvo on - .cdm lvo off");
 		return true;
 	}
 
