@@ -11,6 +11,8 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#define CURL_STATICLIB
+#include "curl/curl.h"
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
 #define MY_PLUGIN_VERSION   "1.1.5"
@@ -65,6 +67,8 @@ public:
 	string calculateLessTime(string timeString, double minsToAdd);
 
 	//string getCidByCallsign(string callsign);
+
+	int GetVersion();
 
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 

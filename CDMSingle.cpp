@@ -138,6 +138,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refreshTime = 30;
 	addTime = false;
 
+	GetVersion();
+
 	//Get data from xml config file
 	//airport = getFromXml("/CDM/apt/@icao");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
@@ -2971,11 +2973,11 @@ string CDM::calculateLessTime(string timeString, double minsToAdd) {
 	return timeFinal;
 }
 
-/*static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
 {
 	((std::string*)userp)->append((char*)contents, size * nmemb);
 	return size * nmemb;
-}*/
+}
 /*
 string CDM::getCidByCallsign(string callsign) {
 	CURL* curl;
@@ -3006,6 +3008,28 @@ string CDM::getCidByCallsign(string callsign) {
 	return "0";
 }
 */
+
+int CDM::GetVersion() {
+	CURL* curl;
+	CURLcode result;
+	std::string readBuffer = "";
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/rpuig2001/main/README.md");
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+	}
+
+	if (readBuffer != MY_PLUGIN_VERSION) {
+		string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have version " + MY_PLUGIN_VERSION " installed, install it in puigcloud.me/CDM";
+		DisplayUserMessage(MY_PLUGIN_NAME, "UPDATE", DisplayMsg.c_str(), true, false, false, false, false);
+	}
+
+		return -1;
+}
+
 int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2) {
 
 	string stringHour1 = hour1;
