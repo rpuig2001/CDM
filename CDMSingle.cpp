@@ -3015,7 +3015,7 @@ int CDM::GetVersion() {
 	std::string readBuffer = "";
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/rpuig2001/main/README.md");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://github.com/rpuig2001/CDM/blob/master/version.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		result = curl_easy_perform(curl);
