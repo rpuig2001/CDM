@@ -71,8 +71,8 @@ CDM includes the following times:
 
 ### Define configurations
 - Colors.txt
-  - color1 = GREEN
-  - color2 = GREENNOTACTIVE
+  - color1 = DARK GREEN
+  - color2 = LIGHT GREEN
   - color3 = GREY
   - color4 = ORANGE
   - color5 = YELLOW
@@ -114,14 +114,14 @@ CDM includes the following times:
 
 ## Functions and colors:
 - Column A: It toggles an A to remember the controller that the plane is waiting for something.
-  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: Always this color.
+  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: Always this color.
 
 - Column EOBT: It gets the EOBT set by the pilot in the flightplan.
-  - ![#b6b6b6](https://via.placeholder.com/15/b6b6b6/000000?text=+) `GREY`: Always this color.
+  - Color defined as ``color8``.
 
 - Column TOBT: We can not simulate it, so it gets the EOBT and the colors is green.
-  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN`: From EOBT-35 to EOBT-5.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: After EOBT-5.
+  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to EOBT-5.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: After EOBT-5.
 
 - Column E: It shows a letter depending on the plane timmings:
   - P: EOBT is farther than the Actual Time - 35min.
@@ -129,23 +129,23 @@ CDM includes the following times:
   - I: TSAT has expired.
 
 - Column TSAT: It is the TTOT - the taxi time defined in the taxizones.txt, otherwise it sets 15min.
-  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN`: From EOBT-35 to TSAT-5 and after TSAT+6 if not expired.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: From TSAT-5 to TSAT+5.
-  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: From TSAT+5 to TSAT+6.
+  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to TSAT-5 and after TSAT+6 if not expired.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: From TSAT-5 to TSAT+5.
+  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: From TSAT+5 to TSAT+6.
 
 - Column TTOT: The plugin calculates a TSAT based on this column, the TTOT, you can't have planes with same TTOT, the time between departures is calculated from the rate/hour. So if you need 40 departures/hour, the plugin will calculate it for you with no equal TTOTs.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
+  - Color defined as ``color9``.
 
 - Column TSAC: With the left click you can directly set the tsat and with the right click you can remove it or set the time you want. If this field is +/- 5min that the TSAT, the color change to orange to indicate that his TSAT has changed more than 5min.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: If between +/- 5min of TSAT.
-  - ![#ed852e](https://via.placeholder.com/15/ed852e/000000?text=+) `ORANGE`: If +/- 5min of TSAT.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN` or defined ``color1``: If between +/- 5min of TSAT.
+  - ![#ed852e](https://via.placeholder.com/15/ed852e/000000?text=+) `ORANGE` or defined ``color4``: If +/- 5min of TSAT.
 
 - Column ASAT: It sets the time when ST-UP, TAXI or DEPA state is set on the first time.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: If actual time < ASAT - 5min.
-  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW`: From ASAT+5 to always.
+  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: If actual time < ASAT - 5min.
+  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: From ASAT+5 to always.
 
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
+  - Color defined as ``color10``.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified or removed.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`: Always this color.
+  - Color defined as ``color11``.
