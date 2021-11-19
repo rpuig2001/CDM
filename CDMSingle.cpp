@@ -2731,44 +2731,92 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	string line, TxtOrigin, TxtDepRwy, TxtTime;
 	vector<int> separators;
 	bool ZoneFound = false;
+	CPosition Pos;
 
-	for (int t = 0; t < TxtTimesVector.size(); t++)
+	try
 	{
-		line = TxtTimesVector[t];
-		if (!separators.empty()) {
-			separators.clear();
-		}
-		for (int g = 0; g < TxtTimesVector[t].length(); g++)
+		for (int t = 0; t < TxtTimesVector.size(); t++)
 		{
-			if (line.substr(g, 1) == ":") {
-				separators.push_back(g);
+			line = TxtTimesVector[t];
+			if (!separators.empty()) {
+				separators.clear();
 			}
-		}
+			for (int g = 0; g < TxtTimesVector[t].length(); g++)
+			{
+				if (line.substr(g, 1) == ":") {
+					separators.push_back(g);
+				}
+			}
 
 
-		TxtOrigin = line.substr(0, separators[0]);
-		if (TxtOrigin == origin) {
-			TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
-			if (TxtDepRwy == depRwy) {
-				x1 = stod(line.substr(separators[1] + 1, separators[2] - separators[1] - 1));
-				y1 = stod(line.substr(separators[2] + 1, separators[3] - separators[2] - 1));
+			TxtOrigin = line.substr(0, separators[0]);
+			if (TxtOrigin == origin) {
+				TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
+				if (TxtDepRwy == depRwy) {
+					if (Pos.LoadFromStrings(line.substr(separators[2] + 1, separators[3] - separators[2] - 1).c_str(), line.substr(separators[1] + 1, separators[2] - separators[1] - 1).c_str()))
+					{
+						x1 = Pos.m_Latitude;
+						y1 = Pos.m_Longitude;
+					}
+					else
+					{
+						x1 = stod(line.substr(separators[1] + 1, separators[2] - separators[1] - 1));
+						y1 = stod(line.substr(separators[2] + 1, separators[3] - separators[2] - 1));
+					}
 
-				x2 = stod(line.substr(separators[3] + 1, separators[4] - separators[3] - 1));
-				y2 = stod(line.substr(separators[4] + 1, separators[5] - separators[4] - 1));
+					if (Pos.LoadFromStrings(line.substr(separators[4] + 1, separators[5] - separators[4] - 1).c_str(), line.substr(separators[3] + 1, separators[4] - separators[3] - 1).c_str()))
+					{
+						x2 = Pos.m_Latitude;
+						y2 = Pos.m_Longitude;
+					}
+					else
+					{
+						x2 = stod(line.substr(separators[3] + 1, separators[4] - separators[3] - 1));
+						y2 = stod(line.substr(separators[4] + 1, separators[5] - separators[4] - 1));
+					}
 
-				x3 = stod(line.substr(separators[5] + 1, separators[6] - separators[5] - 1));
-				y3 = stod(line.substr(separators[6] + 1, separators[7] - separators[6] - 1));
+					if (Pos.LoadFromStrings(line.substr(separators[6] + 1, separators[7] - separators[6] - 1).c_str(), line.substr(separators[5] + 1, separators[6] - separators[5] - 1).c_str()))
+					{
+						x3 = Pos.m_Latitude;
+						y3 = Pos.m_Longitude;
+					}
+					else
+					{
+						x3 = stod(line.substr(separators[5] + 1, separators[6] - separators[5] - 1));
+						y3 = stod(line.substr(separators[6] + 1, separators[7] - separators[6] - 1));
+					}
 
-				x4 = stod(line.substr(separators[7] + 1, separators[8] - separators[7] - 1));
-				y4 = stod(line.substr(separators[8] + 1, separators[9] - separators[8] - 1));
+					if (Pos.LoadFromStrings(line.substr(separators[8] + 1, separators[9] - separators[8] - 1).c_str(), line.substr(separators[7] + 1, separators[8] - separators[7] - 1).c_str()))
+					{
+						x4 = Pos.m_Latitude;
+						y4 = Pos.m_Longitude;
+					}
+					else
+					{
+						x4 = stod(line.substr(separators[7] + 1, separators[8] - separators[7] - 1));
+						y4 = stod(line.substr(separators[8] + 1, separators[9] - separators[8] - 1));
+					}
 
-				if (FindPoint(x1, y1, x2, y2, x3, y3, x4, y4, lat, lon)) {
-					TxtTime = line.substr(separators[9] + 1, line.length() - separators[9] - 1);
-					return TxtTime;
-					ZoneFound = true;
+					if (FindPoint(x1, y1, x2, y2, x3, y3, x4, y4, lat, lon)) {
+						TxtTime = line.substr(separators[9] + 1, line.length() - separators[9] - 1);
+						return TxtTime;
+						ZoneFound = true;
+					}
 				}
 			}
 		}
+	}
+	catch (std::runtime_error const& e)
+	{
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", e.what(), true, true, false, true, false);
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
+		return "15";
+	}
+	catch (...)
+	{
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", std::to_string(GetLastError()).c_str(), true, true, false, true, false);
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
+		return "15";
 	}
 
 	if (!ZoneFound) {
