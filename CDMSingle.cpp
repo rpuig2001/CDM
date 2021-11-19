@@ -901,6 +901,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
 				string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
 				taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
+				planeHasTaxiTimeAssigned = true;
 				TaxiTimePos = taxiTimesList.size() - 1;
 			}
 		}
