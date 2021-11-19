@@ -29,6 +29,7 @@ bool addTime;
 bool lvo;
 bool ctotCid;
 string myTimeToAdd;
+string taxiZonesUrl;
 
 vector<string> slotList;
 vector<string> tsacList;
@@ -148,6 +149,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
+	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	lvo = false;
 	getRate();
 
@@ -158,15 +160,21 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		ctotCid = false;
 	}
 
-	//Get data from .txt file
-	fstream file;
-	string lineValue;
-	file.open(lfad.c_str(), std::ios::in);
-	while (getline(file, lineValue))
-	{
-		if (lineValue.substr(0, 1) != "#") {
-			TxtTimesVector.push_back(lineValue);
+
+	if (taxiZonesUrl.length() <= 1) {
+		//Get data from .txt file
+		fstream file;
+		string lineValue;
+		file.open(lfad.c_str(), std::ios::in);
+		while (getline(file, lineValue))
+		{
+			if (lineValue.substr(0, 1) != "#") {
+				TxtTimesVector.push_back(lineValue);
+			}
 		}
+	}
+	else {
+		getTaxiZonesFromUrl(taxiZonesUrl);
 	}
 
 	fstream fileCtot;
@@ -3147,6 +3155,33 @@ int CDM::GetVersion() {
 		return -1;
 }
 
+bool CDM::getTaxiZonesFromUrl(string url) {
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+	}
+
+	std::istringstream is(readBuffer);
+
+	//Get data from .txt file
+	string lineValue;
+	while (getline(is, lineValue))
+	{
+		if (lineValue.substr(0, 1) != "#") {
+			TxtTimesVector.push_back(lineValue);
+		}
+	}
+	
+	return true;
+}
+
 int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2) {
 
 	string stringHour1 = hour1;
@@ -3407,11 +3442,20 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		fstream file;
 		string lineValue;
 		file.open(lfad.c_str(), std::ios::in);
-		while (getline(file, lineValue))
-		{
-			if (lineValue.substr(0, 1) != "#") {
-				TxtTimesVector.push_back(lineValue);
+		if (taxiZonesUrl.length() <= 1) {
+			//Get data from .txt file
+			fstream file;
+			string lineValue;
+			file.open(lfad.c_str(), std::ios::in);
+			while (getline(file, lineValue))
+			{
+				if (lineValue.substr(0, 1) != "#") {
+					TxtTimesVector.push_back(lineValue);
+				}
 			}
+		}
+		else {
+			getTaxiZonesFromUrl(taxiZonesUrl);
 		}
 		sendMessage("Done");
 		return true;
