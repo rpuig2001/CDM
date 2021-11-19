@@ -47,7 +47,7 @@ public:
 
 	bool getRate();
 
-	int rateForRunway(string airport, string depRwy);
+	int rateForRunway(string airport, string depRwy, bool lvoActive);
 
 	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, double rateHour, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
 

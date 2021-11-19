@@ -1192,20 +1192,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
-				//Calculate Rate
-				int rate;
-
-				if (!lvo) {
-					rate = rateForRunway(origin, depRwy);
-					if (rate == -1) {
-						rate = stoi(rateString);
-					}
-				}
-				else {
-					rate = stoi(lvoRateString);
-				}
-
-				double rateHour = (double)60 / rate;
+				
 
 				bool equalTTOT = true;
 				bool correctTTOT = true;
@@ -1213,6 +1200,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				bool alreadySetTOStd = false;
 
 				if (!aircraftFind) {
+					//Calculate Rate
+					int rate;
+
+					rate = rateForRunway(origin, depRwy, lvo);
+					if (rate == -1) {
+						if (!lvo) {
+							rate = stoi(rateString);
+						}
+						else {
+							rate = stoi(lvoRateString);
+						}
+					}
+
+					double rateHour = (double)60 / rate;
+
 					while (equalTTOT) {
 						correctTTOT = true;
 						for (int t = 0; t < slotList.size(); t++)
@@ -1411,6 +1413,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				//Refresh times every x sec
 				if (countTime > refreshTime * 1000) {
 					countTime = 0;
+
+					//Calculate Rate
+					int rate;
+
+					rate = rateForRunway(origin, depRwy, lvo);
+					if (rate == -1) {
+						if (!lvo) {
+							rate = stoi(rateString);
+						}
+						else {
+							rate = stoi(lvoRateString);
+						}
+					}
+
+					double rateHour = (double)60 / rate;
+
 					for (int i = 0; i < slotList.size(); i++)
 					{
 						string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
@@ -2482,7 +2500,7 @@ bool CDM::getRate() {
 	return true;
 }
 
-int CDM::rateForRunway(string airport, string depRwy) {
+int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
 	string lineAirport, lineDepRwy;
 	for (string line : rate) {
 		if (line.length() > 1) {
@@ -2490,7 +2508,12 @@ int CDM::rateForRunway(string airport, string depRwy) {
 			if (lineAirport == airport) {
 				lineDepRwy = line.substr(line.find(":") + 1, line.find("=") - line.find(":") - 1);
 				if (lineDepRwy == depRwy) {
-					return stoi(line.substr(line.find("=") + 1, line.length() - line.find("=")));
+					if (!lvoActive) {
+						return stoi(line.substr(line.find("=") + 1, line.length() - line.find("=")));
+					}
+					else {
+						return stoi(line.substr(line.find("_") + 1, line.length() - line.find("_")));
+					}
 				}
 			}
 		}
@@ -3521,7 +3544,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm lvo on", sCommandLine))
 	{
 		if (!lvo) {
-			sendMessage("Low Visibility Operations activated rate set: " + lvoRateString + " OPS/H");
+			sendMessage("Low Visibility Operations activated");
 			lvo = true;
 		}
 		else {
