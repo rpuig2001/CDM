@@ -29,6 +29,7 @@ bool addTime;
 bool lvo;
 bool ctotCid;
 string myTimeToAdd;
+string taxiZonesUrl;
 
 vector<string> slotList;
 vector<string> tsacList;
@@ -148,6 +149,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
+	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	lvo = false;
 	getRate();
 
@@ -158,15 +160,21 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		ctotCid = false;
 	}
 
-	//Get data from .txt file
-	fstream file;
-	string lineValue;
-	file.open(lfad.c_str(), std::ios::in);
-	while (getline(file, lineValue))
-	{
-		if (lineValue.substr(0, 1) != "#") {
-			TxtTimesVector.push_back(lineValue);
+
+	if (taxiZonesUrl.length() <= 1) {
+		//Get data from .txt file
+		fstream file;
+		string lineValue;
+		file.open(lfad.c_str(), std::ios::in);
+		while (getline(file, lineValue))
+		{
+			if (lineValue.substr(0, 1) != "#") {
+				TxtTimesVector.push_back(lineValue);
+			}
 		}
+	}
+	else {
+		getTaxiZonesFromUrl(taxiZonesUrl);
 	}
 
 	fstream fileCtot;
@@ -901,6 +909,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
 				string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
 				taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
+				planeHasTaxiTimeAssigned = true;
 				TaxiTimePos = taxiTimesList.size() - 1;
 			}
 		}
@@ -1191,20 +1200,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
-				//Calculate Rate
-				int rate;
-
-				if (!lvo) {
-					rate = rateForRunway(origin, depRwy);
-					if (rate == -1) {
-						rate = stoi(rateString);
-					}
-				}
-				else {
-					rate = stoi(lvoRateString);
-				}
-
-				double rateHour = (double)60 / rate;
+				
 
 				bool equalTTOT = true;
 				bool correctTTOT = true;
@@ -1212,6 +1208,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				bool alreadySetTOStd = false;
 
 				if (!aircraftFind) {
+					//Calculate Rate
+					int rate;
+
+					rate = rateForRunway(origin, depRwy, lvo);
+					if (rate == -1) {
+						if (!lvo) {
+							rate = stoi(rateString);
+						}
+						else {
+							rate = stoi(lvoRateString);
+						}
+					}
+
+					double rateHour = (double)60 / rate;
+
 					while (equalTTOT) {
 						correctTTOT = true;
 						for (int t = 0; t < slotList.size(); t++)
@@ -1410,6 +1421,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				//Refresh times every x sec
 				if (countTime > refreshTime * 1000) {
 					countTime = 0;
+
+					//Calculate Rate
+					int rate;
+
+					rate = rateForRunway(origin, depRwy, lvo);
+					if (rate == -1) {
+						if (!lvo) {
+							rate = stoi(rateString);
+						}
+						else {
+							rate = stoi(lvoRateString);
+						}
+					}
+
+					double rateHour = (double)60 / rate;
+
 					for (int i = 0; i < slotList.size(); i++)
 					{
 						string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
@@ -2481,7 +2508,7 @@ bool CDM::getRate() {
 	return true;
 }
 
-int CDM::rateForRunway(string airport, string depRwy) {
+int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
 	string lineAirport, lineDepRwy;
 	for (string line : rate) {
 		if (line.length() > 1) {
@@ -2489,7 +2516,12 @@ int CDM::rateForRunway(string airport, string depRwy) {
 			if (lineAirport == airport) {
 				lineDepRwy = line.substr(line.find(":") + 1, line.find("=") - line.find(":") - 1);
 				if (lineDepRwy == depRwy) {
-					return stoi(line.substr(line.find("=") + 1, line.length() - line.find("=")));
+					if (!lvoActive) {
+						return stoi(line.substr(line.find("=") + 1, line.length() - line.find("=")));
+					}
+					else {
+						return stoi(line.substr(line.find("_") + 1, line.length() - line.find("_")));
+					}
 				}
 			}
 		}
@@ -2731,44 +2763,92 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	string line, TxtOrigin, TxtDepRwy, TxtTime;
 	vector<int> separators;
 	bool ZoneFound = false;
+	CPosition Pos;
 
-	for (int t = 0; t < TxtTimesVector.size(); t++)
+	try
 	{
-		line = TxtTimesVector[t];
-		if (!separators.empty()) {
-			separators.clear();
-		}
-		for (int g = 0; g < TxtTimesVector[t].length(); g++)
+		for (int t = 0; t < TxtTimesVector.size(); t++)
 		{
-			if (line.substr(g, 1) == ":") {
-				separators.push_back(g);
+			line = TxtTimesVector[t];
+			if (!separators.empty()) {
+				separators.clear();
 			}
-		}
+			for (int g = 0; g < TxtTimesVector[t].length(); g++)
+			{
+				if (line.substr(g, 1) == ":") {
+					separators.push_back(g);
+				}
+			}
 
 
-		TxtOrigin = line.substr(0, separators[0]);
-		if (TxtOrigin == origin) {
-			TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
-			if (TxtDepRwy == depRwy) {
-				x1 = stod(line.substr(separators[1] + 1, separators[2] - separators[1] - 1));
-				y1 = stod(line.substr(separators[2] + 1, separators[3] - separators[2] - 1));
+			TxtOrigin = line.substr(0, separators[0]);
+			if (TxtOrigin == origin) {
+				TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
+				if (TxtDepRwy == depRwy) {
+					if (Pos.LoadFromStrings(line.substr(separators[2] + 1, separators[3] - separators[2] - 1).c_str(), line.substr(separators[1] + 1, separators[2] - separators[1] - 1).c_str()))
+					{
+						x1 = Pos.m_Latitude;
+						y1 = Pos.m_Longitude;
+					}
+					else
+					{
+						x1 = stod(line.substr(separators[1] + 1, separators[2] - separators[1] - 1));
+						y1 = stod(line.substr(separators[2] + 1, separators[3] - separators[2] - 1));
+					}
 
-				x2 = stod(line.substr(separators[3] + 1, separators[4] - separators[3] - 1));
-				y2 = stod(line.substr(separators[4] + 1, separators[5] - separators[4] - 1));
+					if (Pos.LoadFromStrings(line.substr(separators[4] + 1, separators[5] - separators[4] - 1).c_str(), line.substr(separators[3] + 1, separators[4] - separators[3] - 1).c_str()))
+					{
+						x2 = Pos.m_Latitude;
+						y2 = Pos.m_Longitude;
+					}
+					else
+					{
+						x2 = stod(line.substr(separators[3] + 1, separators[4] - separators[3] - 1));
+						y2 = stod(line.substr(separators[4] + 1, separators[5] - separators[4] - 1));
+					}
 
-				x3 = stod(line.substr(separators[5] + 1, separators[6] - separators[5] - 1));
-				y3 = stod(line.substr(separators[6] + 1, separators[7] - separators[6] - 1));
+					if (Pos.LoadFromStrings(line.substr(separators[6] + 1, separators[7] - separators[6] - 1).c_str(), line.substr(separators[5] + 1, separators[6] - separators[5] - 1).c_str()))
+					{
+						x3 = Pos.m_Latitude;
+						y3 = Pos.m_Longitude;
+					}
+					else
+					{
+						x3 = stod(line.substr(separators[5] + 1, separators[6] - separators[5] - 1));
+						y3 = stod(line.substr(separators[6] + 1, separators[7] - separators[6] - 1));
+					}
 
-				x4 = stod(line.substr(separators[7] + 1, separators[8] - separators[7] - 1));
-				y4 = stod(line.substr(separators[8] + 1, separators[9] - separators[8] - 1));
+					if (Pos.LoadFromStrings(line.substr(separators[8] + 1, separators[9] - separators[8] - 1).c_str(), line.substr(separators[7] + 1, separators[8] - separators[7] - 1).c_str()))
+					{
+						x4 = Pos.m_Latitude;
+						y4 = Pos.m_Longitude;
+					}
+					else
+					{
+						x4 = stod(line.substr(separators[7] + 1, separators[8] - separators[7] - 1));
+						y4 = stod(line.substr(separators[8] + 1, separators[9] - separators[8] - 1));
+					}
 
-				if (FindPoint(x1, y1, x2, y2, x3, y3, x4, y4, lat, lon)) {
-					TxtTime = line.substr(separators[9] + 1, line.length() - separators[9] - 1);
-					return TxtTime;
-					ZoneFound = true;
+					if (FindPoint(x1, y1, x2, y2, x3, y3, x4, y4, lat, lon)) {
+						TxtTime = line.substr(separators[9] + 1, line.length() - separators[9] - 1);
+						return TxtTime;
+						ZoneFound = true;
+					}
 				}
 			}
 		}
+	}
+	catch (std::runtime_error const& e)
+	{
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", e.what(), true, true, false, true, false);
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
+		return "15";
+	}
+	catch (...)
+	{
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", std::to_string(GetLastError()).c_str(), true, true, false, true, false);
+		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
+		return "15";
 	}
 
 	if (!ZoneFound) {
@@ -3075,6 +3155,33 @@ int CDM::GetVersion() {
 		return -1;
 }
 
+bool CDM::getTaxiZonesFromUrl(string url) {
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+	}
+
+	std::istringstream is(readBuffer);
+
+	//Get data from .txt file
+	string lineValue;
+	while (getline(is, lineValue))
+	{
+		if (lineValue.substr(0, 1) != "#") {
+			TxtTimesVector.push_back(lineValue);
+		}
+	}
+	
+	return true;
+}
+
 int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2) {
 
 	string stringHour1 = hour1;
@@ -3335,11 +3442,20 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		fstream file;
 		string lineValue;
 		file.open(lfad.c_str(), std::ios::in);
-		while (getline(file, lineValue))
-		{
-			if (lineValue.substr(0, 1) != "#") {
-				TxtTimesVector.push_back(lineValue);
+		if (taxiZonesUrl.length() <= 1) {
+			//Get data from .txt file
+			fstream file;
+			string lineValue;
+			file.open(lfad.c_str(), std::ios::in);
+			while (getline(file, lineValue))
+			{
+				if (lineValue.substr(0, 1) != "#") {
+					TxtTimesVector.push_back(lineValue);
+				}
 			}
+		}
+		else {
+			getTaxiZonesFromUrl(taxiZonesUrl);
 		}
 		sendMessage("Done");
 		return true;
@@ -3472,7 +3588,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm lvo on", sCommandLine))
 	{
 		if (!lvo) {
-			sendMessage("Low Visibility Operations activated rate set: " + lvoRateString + " OPS/H");
+			sendMessage("Low Visibility Operations activated");
 			lvo = true;
 		}
 		else {

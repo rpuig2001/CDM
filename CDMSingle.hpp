@@ -16,7 +16,7 @@
 #include "curl/curl.h"
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "1.1.5"
+#define MY_PLUGIN_VERSION   "1.1.6"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -47,7 +47,7 @@ public:
 
 	bool getRate();
 
-	int rateForRunway(string airport, string depRwy);
+	int rateForRunway(string airport, string depRwy, bool lvoActive);
 
 	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, double rateHour, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
 
@@ -72,6 +72,8 @@ public:
 	string getCidByCallsign(string callsign);
 
 	int GetVersion();
+
+	bool getTaxiZonesFromUrl(string url);
 
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
