@@ -119,7 +119,7 @@
       <PreprocessorDefinitions>WIN32;_DEBUG;EDFFCHECKFP_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>pch.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Users\Casa\source\repos\rpuig2001\CDM\Libs;C:\Users\Casa\source\repos\rpuig2001\CDM\Libs\include;C:\Users\Casa\source\repos\rpuig2001\CDM\Libs\include\curl\x32 Debug\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Libs;CLibs\include;Libs\include\curl\x32 Debug\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
@@ -159,7 +159,7 @@
       <PreprocessorDefinitions>WIN32;NDEBUG;EDFFCHECKFP_EXPORTS;_WINDOWS;_USRDLL;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <ConformanceMode>true</ConformanceMode>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <AdditionalIncludeDirectories>C:\Users\Casa\source\repos\rpuig2001\CDM\Libs;C:\Users\Casa\source\repos\rpuig2001\CDM\Libs\include;C:\Users\Casa\source\repos\rpuig2001\CDM\Libs\include\curl\x32 Release\include</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>Libs;CLibs\include;Libs\include\curl\x32 Release\include</AdditionalIncludeDirectories>
     </ClCompile>
     <Link>
       <SubSystem>Console</SubSystem>
