@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <regex>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
