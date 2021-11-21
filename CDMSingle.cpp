@@ -788,7 +788,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
-				if (!ctotValidated && !aircraftFind) {
+				if (!ctotValidated) {
 					string cid = getCidByCallsign(callsign);
 					string savedCid;
 					string ctotCallsign;
@@ -806,7 +806,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										if (stoi(cid) == stoi(ctotCallsign)) {
 											ctotList[a] = callsign + ctotList[a].substr(ctotList[a].find(","), ctotList[a].length() - ctotList[a].find(","));
 											hasCTOT = true;
-											ctotPos = i;
+											ctotPos = a;
 										}
 									}
 								}
@@ -1143,7 +1143,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							TSAT = TSATfinal.c_str();
 
 							//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
-							if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 10))) {
+							string myTimeString = hour + min + "00";
+							if (stoi(calculateTime(myTimeString, taxiTime)) > stoi(calculateTime(TTOTFinal, 10))) {
 								hasCTOT = false;
 								if (remarks.find("CTOT") != string::npos) {
 									if (remarks.find("%") != string::npos) {
@@ -1160,7 +1161,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 							}
-							else if ((stoi(calculateTime(EOBT, taxiTime)) <= stoi(calculateTime(TTOTFinal, 10))) && stoi(EOBT) > (stoi(TSATfinal))) {
+							else if ((stoi(calculateTime(myTimeString, taxiTime)) <= stoi(calculateTime(TTOTFinal, 10))) && stoi(myTimeString) > (stoi(TSATfinal))) {
 								TSAT = EOBT;
 								//TSAT
 								string TSATstring = TSAT;
@@ -1621,7 +1622,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						correctState = true;
 					}
 
-					if (oldTSAT && !correctState) {
+					if (oldTSAT && !correctState && !hasCTOT) {
 						OutOfTsat.push_back(callsign + "," + EOBT);
 						for (int i = 0; i < asrtList.size(); i++)
 						{
@@ -2079,7 +2080,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						correctState = true;
 					}
 
-					if (oldTSAT && !correctState) {
+					if (oldTSAT && !correctState && !hasCTOT) {
 						OutOfTsat.push_back(callsign + "," + EOBT);
 					}
 
@@ -3530,6 +3531,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Loading CTOTs data....");
 		ctotList.clear();
 		CTOTcheck.clear();
+		slotList.clear();
 		//load data from file
 		fstream file;
 		string lineValue;
