@@ -51,17 +51,18 @@ using namespace std;
 using namespace EuroScopePlugIn;
 using namespace pugi;
 
-COLORREF TAG_GREEN = RGB(0, 192, 0);
-COLORREF TAG_GREENNOTACTIVE = RGB(143, 216, 148);
-COLORREF TAG_GREY = RGB(182, 182, 182);
-COLORREF TAG_ORANGE = RGB(212, 133, 46);
-COLORREF TAG_YELLOW = RGB(212, 214, 7);
-COLORREF TAG_DARKYELLOW = RGB(245, 239, 13);
-COLORREF TAG_RED = RGB(190, 0, 0);
-COLORREF TAG_EOBT = RGB(182, 182, 182);
-COLORREF TAG_TTOT = RGB(0, 192, 0);
-COLORREF TAG_ASRT = RGB(0, 192, 0);
-COLORREF TAG_CTOT = RGB(0, 192, 0);
+COLORREF TAG_GREEN = 0xFFFFFFFF;
+COLORREF TAG_GREENNOTACTIVE = 0xFFFFFFFF;
+COLORREF TAG_GREY = 0xFFFFFFFF;
+COLORREF TAG_ORANGE = 0xFFFFFFFF;
+COLORREF TAG_YELLOW = 0xFFFFFFFF;
+COLORREF TAG_DARKYELLOW = 0xFFFFFFFF;
+COLORREF TAG_RED = 0xFFFFFFFF;
+COLORREF TAG_EOBT = 0xFFFFFFFF;
+COLORREF TAG_TTOT = 0xFFFFFFFF;
+COLORREF TAG_ASRT = 0xFFFFFFFF;
+COLORREF TAG_CTOT = 0xFFFFFFFF;
+
 
 // Run on Plugin Initialization
 CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER, MY_PLUGIN_COPYRIGHT)
@@ -189,37 +190,53 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string lineValueColors;
 	vector<int> sep;
 	fileColors.open(vfad.c_str(), std::ios::in);
+	COLORREF color = RGB(0, 0, 0);
+	smatch match;
 	while (getline(fileColors, lineValueColors))
 	{
-		if (lineValueColors.substr(0, 1) != "#") {
-			if (lineValueColors.size() > 1) {
-				if (lineValueColors.substr(7, 1) == ":") {
-					colors.push_back(lineValueColors.substr(8, lineValueColors.length() - 7));
-				}
-				else {
-					colors.push_back(lineValueColors.substr(7, lineValueColors.length() - 7));
-				}
-				for (int g = 0; g < colors[colors.size() - 1].length(); g++)
-				{
-					if (colors[colors.size() - 1].substr(g, 1) == ",") {
-						sep.push_back(g);
-					}
-				}
+		if (regex_match(lineValueColors, match, regex("^color(\\d+):(\\d+),(\\d+),(\\d+)$", regex::icase)))
+		{
+			color = RGB(stoi(match[2]), stoi(match[3]), stoi(match[4]));
+			switch (stoi(match[1]))
+			{
+				case 1:
+					TAG_GREEN = color;
+					break;
+				case 2:
+					TAG_GREENNOTACTIVE = color;
+					break;
+				case 3:
+					TAG_GREY = color;
+					break;
+				case 4:
+					TAG_ORANGE = color;
+					break;
+				case 5:
+					TAG_YELLOW = color;
+					break;
+				case 6:
+					TAG_DARKYELLOW = color;
+					break;
+				case 7:
+					TAG_RED = color;
+					break;
+				case 8:
+					TAG_EOBT = color;
+					break;
+				case 9:
+					TAG_TTOT = color;
+					break;
+				case 10:
+					TAG_ASRT = color;
+					break;
+				case 11:
+					TAG_CTOT = color;
+					break;
+				default:
+					break;
 			}
 		}
 	}
-
-	TAG_GREEN = RGB(stoi(colors[0].substr(0, sep[0])), stoi(colors[0].substr(sep[0] + 1, sep[1] - (sep[0] + 1))), stoi(colors[0].substr(sep[1] + 1, colors[0].length() - (sep[1] + 1))));
-	TAG_GREENNOTACTIVE = RGB(stoi(colors[1].substr(0, sep[2])), stoi(colors[1].substr(sep[2] + 1, sep[3] - (sep[2] + 1))), stoi(colors[1].substr(sep[3] + 1, colors[0].length() - (sep[3] + 1))));
-	TAG_GREY = RGB(stoi(colors[2].substr(0, sep[4])), stoi(colors[2].substr(sep[4] + 1, sep[5] - (sep[4] + 1))), stoi(colors[2].substr(sep[5] + 1, colors[2].length() - (sep[5] + 1))));
-	TAG_ORANGE = RGB(stoi(colors[3].substr(0, sep[6])), stoi(colors[3].substr(sep[6] + 1, sep[7] - (sep[6] + 1))), stoi(colors[3].substr(sep[7] + 1, colors[3].length() - (sep[7] + 1))));
-	TAG_YELLOW = RGB(stoi(colors[4].substr(0, sep[8])), stoi(colors[4].substr(sep[8] + 1, sep[9] - (sep[8] + 1))), stoi(colors[4].substr(sep[9] + 1, colors[4].length() - (sep[9] + 1))));
-	TAG_DARKYELLOW = RGB(stoi(colors[5].substr(0, sep[10])), stoi(colors[5].substr(sep[10] + 1, sep[11] - (sep[10] + 1))), stoi(colors[5].substr(sep[11] + 1, colors[5].length() - (sep[11] + 1))));
-	TAG_RED = RGB(stoi(colors[6].substr(0, sep[12])), stoi(colors[6].substr(sep[12] + 1, sep[13] - (sep[12] + 1))), stoi(colors[6].substr(sep[13] + 1, colors[6].length() - (sep[13] + 1))));
-	TAG_EOBT = RGB(stoi(colors[7].substr(0, sep[14])), stoi(colors[7].substr(sep[14] + 1, sep[15] - (sep[14] + 1))), stoi(colors[7].substr(sep[15] + 1, colors[7].length() - (sep[15] + 1))));
-	TAG_TTOT = RGB(stoi(colors[8].substr(0, sep[16])), stoi(colors[8].substr(sep[16] + 1, sep[17] - (sep[16] + 1))), stoi(colors[8].substr(sep[17] + 1, colors[8].length() - (sep[17] + 1))));
-	TAG_ASRT = RGB(stoi(colors[9].substr(0, sep[18])), stoi(colors[9].substr(sep[18] + 1, sep[19] - (sep[18] + 1))), stoi(colors[9].substr(sep[19] + 1, colors[9].length() - (sep[19] + 1))));
-	TAG_CTOT = RGB(stoi(colors[10].substr(0, sep[20])), stoi(colors[10].substr(sep[20] + 1, sep[21] - (sep[20] + 1))), stoi(colors[10].substr(sep[21] + 1, colors[10].length() - (sep[21] + 1))));
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
@@ -706,6 +723,7 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
 {
+	COLORREF ItemRGB = 0xFFFFFFFF;
 	string callsign = FlightPlan.GetCallsign();
 
 	string origin = FlightPlan.GetFlightPlanData().GetOrigin(); boost::to_upper(origin);
@@ -728,431 +746,434 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 
-		if(isCDMairport){
+		if(isCDMairport)
+		{
+			const char* EOBT = "";
+			const char* TSAT = "";
+			const char* TTOT = "";
+			int taxiTime = 15;
 
-		const char* EOBT = "";
-		const char* TSAT = "";
-		const char* TTOT = "";
-		int taxiTime = 15;
-
-		//If aircraft is in aircraftFind Base vector
-		int pos;
-		bool aircraftFind = false;
-		for (int i = 0; i < slotList.size(); i++) {
-			if (slotList[i].substr(slotList[i].length() - 1, 1) == "c") {
-				if (expiredCtot(slotList[i])) {
-					slotList.erase(slotList.begin() + i);
-					for (int a = 0; a < ctotList.size(); a++)
-					{
-						if (ctotList[a].substr(0, ctotList[a].find(",")) == callsign) {
-							ctotList.erase(ctotList.begin() + a);
+			//If aircraft is in aircraftFind Base vector
+			int pos;
+			bool aircraftFind = false;
+			for (int i = 0; i < slotList.size(); i++) {
+				if (slotList[i].substr(slotList[i].length() - 1, 1) == "c") {
+					if (expiredCtot(slotList[i])) {
+						slotList.erase(slotList.begin() + i);
+						for (int a = 0; a < ctotList.size(); a++)
+						{
+							if (ctotList[a].substr(0, ctotList[a].find(",")) == callsign) {
+								ctotList.erase(ctotList.begin() + a);
+							}
 						}
 					}
 				}
-			}
-			if (callsign == slotList[i].substr(0, slotList[i].find(","))) {
-				aircraftFind = true;
-				pos = i;
-			}
-		}
-
-
-		//Check if has CTOT
-		bool hasCTOT = false;
-		int ctotPos = 0;
-
-		//If opion is "cid"
-		if (ctotCid) {
-			bool ctotValidated = false;
-			for (int i = 0; i < CTOTcheck.size(); i++) {
-				if (callsign == CTOTcheck[i]) {
-					ctotValidated = true;
+				if (callsign == slotList[i].substr(0, slotList[i].find(","))) {
+					aircraftFind = true;
+					pos = i;
 				}
 			}
 
-			if (!ctotValidated && !aircraftFind) {
-				string cid = getCidByCallsign(callsign);
-				string savedCid;
-				string ctotCallsign;
-				for (int i = 0; i < slotList.size(); i++)
-				{
-					savedCid = slotList[i].substr(0, slotList[i].find(","));
-					if (checkIsNumber(savedCid)) {
-						if (stoi(cid) == stoi(savedCid)) {
-							slotList[i] = callsign + slotList[i].substr(slotList[i].find(","), slotList[i].length() - slotList[i].find(","));
-							pos = i;
-							for (int a = 0; a < ctotList.size(); a++)
-							{
-								ctotCallsign = ctotList[a].substr(0, ctotList[a].find(","));
-								if (checkIsNumber(ctotCallsign)) {
-									if (stoi(cid) == stoi(ctotCallsign)) {
-										ctotList[a] = callsign + ctotList[a].substr(ctotList[a].find(","), ctotList[a].length() - ctotList[a].find(","));
-										hasCTOT = true;
-										ctotPos = i;
+
+			//Check if has CTOT
+			bool hasCTOT = false;
+			int ctotPos = 0;
+
+			//If opion is "cid"
+			if (ctotCid) {
+				bool ctotValidated = false;
+				for (int i = 0; i < CTOTcheck.size(); i++) {
+					if (callsign == CTOTcheck[i]) {
+						ctotValidated = true;
+					}
+				}
+
+				if (!ctotValidated && !aircraftFind) {
+					string cid = getCidByCallsign(callsign);
+					string savedCid;
+					string ctotCallsign;
+					for (int i = 0; i < slotList.size(); i++)
+					{
+						savedCid = slotList[i].substr(0, slotList[i].find(","));
+						if (checkIsNumber(savedCid)) {
+							if (stoi(cid) == stoi(savedCid)) {
+								slotList[i] = callsign + slotList[i].substr(slotList[i].find(","), slotList[i].length() - slotList[i].find(","));
+								pos = i;
+								for (int a = 0; a < ctotList.size(); a++)
+								{
+									ctotCallsign = ctotList[a].substr(0, ctotList[a].find(","));
+									if (checkIsNumber(ctotCallsign)) {
+										if (stoi(cid) == stoi(ctotCallsign)) {
+											ctotList[a] = callsign + ctotList[a].substr(ctotList[a].find(","), ctotList[a].length() - ctotList[a].find(","));
+											hasCTOT = true;
+											ctotPos = i;
+										}
 									}
 								}
 							}
 						}
 					}
-				}
-				CTOTcheck.push_back(callsign);
-			}
-		}
-
-		//EOBT
-		EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
-		string EOBTstring = EOBT;
-		string EOBTfinal = formatTime(EOBTstring);
-		EOBTfinal += "00";
-		EOBT = EOBTfinal.c_str();
-		bool stillOutOfTsat = false;
-		int stillOutOfTsatPos;
-
-		//If column A set
-		bool hasValueInA = false;
-		for (int i = 0; i < listA.size(); i++)
-		{
-			if (listA[i] == (string)FlightPlan.GetCallsign()) {
-				hasValueInA = true;
-			}
-		}
-
-		//CTOT
-		for (int i = 0; i < ctotList.size(); i++)
-		{
-			if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
-				hasCTOT = true;
-				ctotPos = i;
-			}
-		}
-
-		//Get Time NOW
-		long int timeNow = static_cast<long int>(std::time(nullptr));
-		string completeTime = unixTimeToHumanReadable(timeNow);
-		string hour = "";
-		string min = "";
-
-		hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-		if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-			min = completeTime.substr(completeTime.find(":") + 1, 2);
-		}
-		else {
-			min = completeTime.substr(completeTime.find(":") + 1, 1);
-		}
-
-		if (stoi(min) < 10) {
-			min = "0" + min;
-		}
-		if (stoi(hour) < 10) {
-			hour = "0" + hour.substr(1, 1);
-		}
-
-		bool stsDepa = false;
-		if ((string)FlightPlan.GetGroundState() == "DEPA") {
-			stsDepa = true;
-			if (remarks.find("%") != string::npos) {
-				string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-				FlightPlan.GetFlightPlanData().AmendFlightPlan();
-				remarks = stringToAdd;
-			}
-			if (remarks.find("CTOT") != string::npos) {
-				string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-				FlightPlan.GetFlightPlanData().AmendFlightPlan();
-				remarks = stringToAdd;
-			}
-			if (remarks.find("ASRT") != string::npos) {
-				string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-				FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-				FlightPlan.GetFlightPlanData().AmendFlightPlan();
-				remarks = stringToAdd;
-			}
-		}
-
-		// Get Taxi times
-		int TaxiTimePos = 0;
-		bool planeHasTaxiTimeAssigned = false;
-		for (int j = 0; j < taxiTimesList.size(); j++)
-		{
-			if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
-				planeHasTaxiTimeAssigned = true;
-				TaxiTimePos = j;
-			}
-		}
-
-		if (aircraftFind) {
-			if (planeHasTaxiTimeAssigned) {
-				if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
-					if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
-						planeHasTaxiTimeAssigned = false;
-						taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-						slotList.erase(slotList.begin() + pos);
-						aircraftFind = false;
-					}
-				}
-				else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
-					if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
-						planeHasTaxiTimeAssigned = false;
-						taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-						slotList.erase(slotList.begin() + pos);
-						aircraftFind = false;
-					}
+					CTOTcheck.push_back(callsign);
 				}
 			}
-		}
 
-		if (!planeHasTaxiTimeAssigned) {
-			if (RadarTargetSelect(callsign.c_str()).IsValid()) {
-				double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
-				double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-				string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
-				taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
-				planeHasTaxiTimeAssigned = true;
-				TaxiTimePos = taxiTimesList.size() - 1;
+			//EOBT
+			EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
+			string EOBTstring = EOBT;
+			string EOBTfinal = formatTime(EOBTstring);
+			EOBTfinal += "00";
+			EOBT = EOBTfinal.c_str();
+			bool stillOutOfTsat = false;
+			int stillOutOfTsatPos;
+
+			//If column A set
+			bool hasValueInA = false;
+			for (int i = 0; i < listA.size(); i++)
+			{
+				if (listA[i] == (string)FlightPlan.GetCallsign()) {
+					hasValueInA = true;
+				}
 			}
-		}
 
-		if (planeHasTaxiTimeAssigned) {
-			if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
-				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
+			//CTOT
+			for (int i = 0; i < ctotList.size(); i++)
+			{
+				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
+					hasCTOT = true;
+					ctotPos = i;
+				}
+			}
+
+			//Get Time NOW
+			long int timeNow = static_cast<long int>(std::time(nullptr));
+			string completeTime = unixTimeToHumanReadable(timeNow);
+			string hour = "";
+			string min = "";
+
+			hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+				min = completeTime.substr(completeTime.find(":") + 1, 2);
 			}
 			else {
-				taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+				min = completeTime.substr(completeTime.find(":") + 1, 1);
 			}
-		}
 
-		//Get airport
-		bool aptFind = false;
-		for (int i = 0; i < planeAiportList.size(); i++)
-		{
-			if (planeAiportList[i].substr(0, planeAiportList[i].find(",")) == callsign) {
-				aptFind = true;
-				if (planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4) != origin) {
-					planeAiportList[i] = callsign + "," + origin;
+			if (stoi(min) < 10) {
+				min = "0" + min;
+			}
+			if (stoi(hour) < 10) {
+				hour = "0" + hour.substr(1, 1);
+			}
+
+			bool stsDepa = false;
+			if ((string)FlightPlan.GetGroundState() == "DEPA") {
+				stsDepa = true;
+				if (remarks.find("%") != string::npos) {
+					string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+					FlightPlan.GetFlightPlanData().AmendFlightPlan();
+					remarks = stringToAdd;
+				}
+				if (remarks.find("CTOT") != string::npos) {
+					string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+					FlightPlan.GetFlightPlanData().AmendFlightPlan();
+					remarks = stringToAdd;
+				}
+				if (remarks.find("ASRT") != string::npos) {
+					string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+					FlightPlan.GetFlightPlanData().AmendFlightPlan();
+					remarks = stringToAdd;
 				}
 			}
-		}
 
-		if (!aptFind) {
-			planeAiportList.push_back(callsign + "," + origin);
-		}
-
-		bool master = false;
-		for (string apt : masterAirports)
-		{
-			if (apt == origin) {
-				master = true;
-			}
-		}
-
-		if (master) {
-
-			bool gndStatusSet = false;
-			if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
-				gndStatusSet = true;
-			}
-
-			for (int i = 0; i < OutOfTsat.size(); i++)
+			// Get Taxi times
+			int TaxiTimePos = 0;
+			bool planeHasTaxiTimeAssigned = false;
+			for (int j = 0; j < taxiTimesList.size(); j++)
 			{
-				if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-					if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",") + 1, 4)) {
-						stillOutOfTsat = true;
-						stillOutOfTsatPos = i;
+				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+					planeHasTaxiTimeAssigned = true;
+					TaxiTimePos = j;
+				}
+			}
+
+			if (aircraftFind) {
+				if (planeHasTaxiTimeAssigned) {
+					if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
+						if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
+							planeHasTaxiTimeAssigned = false;
+							taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+							slotList.erase(slotList.begin() + pos);
+							aircraftFind = false;
+						}
+					}
+					else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
+						if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
+							planeHasTaxiTimeAssigned = false;
+							taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+							slotList.erase(slotList.begin() + pos);
+							aircraftFind = false;
+						}
+					}
+				}
+			}
+
+			if (!planeHasTaxiTimeAssigned) {
+				if (RadarTargetSelect(callsign.c_str()).IsValid()) {
+					double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+					double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+					string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
+					taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
+					planeHasTaxiTimeAssigned = true;
+					TaxiTimePos = taxiTimesList.size() - 1;
+				}
+			}
+
+			if (planeHasTaxiTimeAssigned) {
+				if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
+					taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
+				}
+				else {
+					taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+				}
+			}
+
+			//Get airport
+			bool aptFind = false;
+			for (int i = 0; i < planeAiportList.size(); i++)
+			{
+				if (planeAiportList[i].substr(0, planeAiportList[i].find(",")) == callsign) {
+					aptFind = true;
+					if (planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4) != origin) {
+						planeAiportList[i] = callsign + "," + origin;
+					}
+				}
+			}
+
+			if (!aptFind) {
+				planeAiportList.push_back(callsign + "," + origin);
+			}
+
+			bool master = false;
+			for (string apt : masterAirports)
+			{
+				if (apt == origin) {
+					master = true;
+				}
+			}
+
+			if (master) {
+
+				bool gndStatusSet = false;
+				if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+					gndStatusSet = true;
+				}
+
+				for (int i = 0; i < OutOfTsat.size(); i++)
+				{
+					if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+						if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",") + 1, 4)) {
+							stillOutOfTsat = true;
+							stillOutOfTsatPos = i;
+						}
+						else {
+							OutOfTsat.erase(OutOfTsat.begin() + i);
+						}
+					}
+				}
+
+				if (stillOutOfTsat && !gndStatusSet) {
+					//Remove ACFT Find
+					if (aircraftFind) {
+						if (aircraftFind) {
+							slotList.erase(slotList.begin() + pos);
+						}
+					}
+					//Show basic lists with no info, only EOBT, TOBT, ASAT and *TSAC*
+					bool notYetEOBT = false;
+					bool actualTOBT = false;
+
+					string completeEOBT = (string)EOBT;
+					string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
+					string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
+
+					if (hour != "00") {
+						if (EOBThour == "00") {
+							EOBThour = "24";
+						}
+					}
+
+					//ASAT
+					bool ASATFound = false;
+					int ASATpos = 0;
+					bool correctState = false;
+					string ASATtext = " ";
+					for (int x = 0; x < asatList.size(); x++)
+					{
+						string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
+						if (actualListCallsign == callsign) {
+							ASATFound = true;
+							ASATpos = x;
+						}
+					}
+
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+						correctState = true;
+					}
+
+					if (!ASATFound) {
+						if (correctState) {
+							ASATtext = formatTime(hour + min);
+							asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
+							ASATFound = true;
+						}
 					}
 					else {
-						OutOfTsat.erase(OutOfTsat.begin() + i);
+						if (correctState) {
+							ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
+						}
+						else if (!correctState) {
+							asatList.erase(asatList.begin() + ASATpos);
+							ASATFound = false;
+						}
 					}
-				}
-			}
 
-			if (stillOutOfTsat && !gndStatusSet) {
-				//Remove ACFT Find
-				if (aircraftFind) {
-					if (aircraftFind) {
-						slotList.erase(slotList.begin() + pos);
+					if (ItemCode == TAG_ITEM_EOBT)
+					{
+						string ShowEOBT = (string)EOBT;
+						ItemRGB = TAG_EOBT;
+						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 					}
-				}
-				//Show basic lists with no info, only EOBT, TOBT, ASAT and *TSAC*
-				bool notYetEOBT = false;
-				bool actualTOBT = false;
-
-				string completeEOBT = (string)EOBT;
-				string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
-				string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
-
-				if (hour != "00") {
-					if (EOBThour == "00") {
-						EOBThour = "24";
+					else if (ItemCode == TAG_ITEM_TOBT)
+					{
+						string ShowEOBT = (string)EOBT;
+						ItemRGB = TAG_GREEN;
+						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 					}
-				}
-
-				//ASAT
-				bool ASATFound = false;
-				int ASATpos = 0;
-				bool correctState = false;
-				string ASATtext = " ";
-				for (int x = 0; x < asatList.size(); x++)
-				{
-					string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
-					if (actualListCallsign == callsign) {
-						ASATFound = true;
-						ASATpos = x;
+					else if (ItemCode == TAG_ITEM_TSAC)
+					{
+						ItemRGB = TAG_GREEN;
+						strcpy_s(sItemString, 16, "____");
 					}
-				}
-
-				if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
-					correctState = true;
-				}
-
-				if (!ASATFound) {
-					if (correctState) {
-						ASATtext = formatTime(hour + min);
-						asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
-						ASATFound = true;
+					else if (ItemCode == TAG_ITEM_ASAT)
+					{
+						ItemRGB = TAG_GREEN;
+						if (ASATFound)
+							strcpy_s(sItemString, 16, ASATtext.c_str());
+						else
+							strcpy_s(sItemString, 16, " ");
+					}
+					else if (ItemCode == TAG_ITEM_E)
+					{
+						ItemRGB = TAG_GREEN;
+						strcpy_s(sItemString, 16, "I");
+					}
+					else if (ItemCode == TAG_ITEM_CTOT)
+					{
+						if (hasCTOT) {
+							ItemRGB = TAG_CTOT;
+							strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
+						}
 					}
 				}
 				else {
-					if (correctState) {
-						ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
-					}
-					else if (!correctState) {
-						asatList.erase(asatList.begin() + ASATpos);
-						ASATFound = false;
-					}
-				}
 
-				if (ItemCode == TAG_ITEM_EOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_EOBT;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-				}
-				if (ItemCode == TAG_ITEM_TOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-				}
-				if (ItemCode == TAG_ITEM_TSAC)
-				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
-					strcpy_s(sItemString, 16, "____");
-				}
-				if (ItemCode == TAG_ITEM_ASAT)
-				{
-					if (ASATFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ASATtext.c_str());
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, " ");
-					}
-				}
-				if (ItemCode == TAG_ITEM_E)
-				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
-					strcpy_s(sItemString, 16, "I");
-				}
-				if (ItemCode == TAG_ITEM_CTOT)
-				{
-					if (hasCTOT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_CTOT;
-						strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
-					}
-				}
-			}
-			else {
-
-				if (addTime) {
-					string myHour = myTimeToAdd.substr(0, 2);
-					if (myHour == "00") {
-						myHour = "24";
-					}
-					string myMin = myTimeToAdd.substr(2, 2);
-					if (GetdifferenceTime(hour, min, myHour, myMin) <= 0) {
-						if (stoi(myTimeToAdd) > stoi(EOBT) && !gndStatusSet) {
-							EOBTfinal = myTimeToAdd;
-							EOBT = EOBTfinal.c_str();
-							FlightPlan.GetFlightPlanData().SetEstimatedDepartureTime(myTimeToAdd.c_str());
-							FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							if (aircraftFind) {
-								string tempTTOT, tempTSAT;
-
-								if (hasCTOT) {
-									tempTTOT = calculateTime(slotList[pos].substr(slotList[pos].length() - 8, 6), taxiTime);
-									tempTSAT = calculateTime(slotList[pos].substr(slotList[pos].length() - 15, 6), taxiTime);
-								}
-								else {
-									tempTTOT = calculateTime(slotList[pos].substr(slotList[pos].length() - 6, 6), taxiTime);
-									tempTSAT = calculateTime(slotList[pos].substr(slotList[pos].length() - 13, 6), taxiTime);
-								}
-
-								slotList[pos] = callsign + "," + EOBT + "," + tempTSAT + "," + tempTTOT;
-							}
+					if (addTime) {
+						string myHour = myTimeToAdd.substr(0, 2);
+						if (myHour == "00") {
+							myHour = "24";
 						}
-					}
-					else {
-						addTime = false;
-					}
-				}
+						string myMin = myTimeToAdd.substr(2, 2);
+						if (GetdifferenceTime(hour, min, myHour, myMin) <= 0) {
+							if (stoi(myTimeToAdd) > stoi(EOBT) && !gndStatusSet) {
+								EOBTfinal = myTimeToAdd;
+								EOBT = EOBTfinal.c_str();
+								FlightPlan.GetFlightPlanData().SetEstimatedDepartureTime(myTimeToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								if (aircraftFind) {
+									string tempTTOT, tempTSAT;
 
-				string TSATfinal = "";
-				string TTOTFinal = "";
+									if (hasCTOT) {
+										tempTTOT = calculateTime(slotList[pos].substr(slotList[pos].length() - 8, 6), taxiTime);
+										tempTSAT = calculateTime(slotList[pos].substr(slotList[pos].length() - 15, 6), taxiTime);
+									}
+									else {
+										tempTTOT = calculateTime(slotList[pos].substr(slotList[pos].length() - 6, 6), taxiTime);
+										tempTSAT = calculateTime(slotList[pos].substr(slotList[pos].length() - 13, 6), taxiTime);
+									}
 
-				if (aircraftFind) {
-					string tempEOBT = EOBT;
-					if (tempEOBT != slotList[pos].substr(slotList[pos].find(",") + 1, 6) && !hasCTOT) {
-						//aircraftFind false to recalculate Times due to fp change
-						slotList.erase(slotList.begin() + pos);
-						aircraftFind = false;
-						if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-							FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-					}
-				}
-
-				if (!aircraftFind) {
-					if (hasCTOT) {
-						//TTOT with CTOT
-						TTOTFinal = formatTime(ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + "00");
-						TTOT = TTOTFinal.c_str();
-
-						//TSAT with CTOT
-						TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-						TSAT = TSATfinal.c_str();
-
-						//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
-						if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 10))) {
-							hasCTOT = false;
-							if (remarks.find("CTOT") != string::npos) {
-								if (remarks.find("%") != string::npos) {
-									string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
-									remarks = stringToAdd;
-								}
-								else {
-									string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
-									remarks = stringToAdd;
+									slotList[pos] = callsign + "," + EOBT + "," + tempTSAT + "," + tempTTOT;
 								}
 							}
 						}
-						else if ((stoi(calculateTime(EOBT, taxiTime)) <= stoi(calculateTime(TTOTFinal, 10))) && stoi(EOBT) > (stoi(TSATfinal))) {
+						else {
+							addTime = false;
+						}
+					}
+
+					string TSATfinal = "";
+					string TTOTFinal = "";
+
+					if (aircraftFind) {
+						string tempEOBT = EOBT;
+						if (tempEOBT != slotList[pos].substr(slotList[pos].find(",") + 1, 6) && !hasCTOT) {
+							//aircraftFind false to recalculate Times due to fp change
+							slotList.erase(slotList.begin() + pos);
+							aircraftFind = false;
+							if (remarks.find("%") != string::npos) {
+								string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+						}
+					}
+
+					if (!aircraftFind) {
+						if (hasCTOT) {
+							//TTOT with CTOT
+							TTOTFinal = formatTime(ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + "00");
+							TTOT = TTOTFinal.c_str();
+
+							//TSAT with CTOT
+							TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+							TSAT = TSATfinal.c_str();
+
+							//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
+							if (stoi(calculateTime(EOBT, taxiTime)) > stoi(calculateTime(TTOTFinal, 10))) {
+								hasCTOT = false;
+								if (remarks.find("CTOT") != string::npos) {
+									if (remarks.find("%") != string::npos) {
+										string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+										FlightPlan.GetFlightPlanData().AmendFlightPlan();
+										remarks = stringToAdd;
+									}
+									else {
+										string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+										FlightPlan.GetFlightPlanData().AmendFlightPlan();
+										remarks = stringToAdd;
+									}
+								}
+							}
+							else if ((stoi(calculateTime(EOBT, taxiTime)) <= stoi(calculateTime(TTOTFinal, 10))) && stoi(EOBT) > (stoi(TSATfinal))) {
+								TSAT = EOBT;
+								//TSAT
+								string TSATstring = TSAT;
+								TSATfinal = formatTime(TSATstring);
+								TSAT = TSATfinal.c_str();
+
+								//TTOT
+								TTOTFinal = calculateTime(TSATstring, taxiTime);
+								TTOT = TTOTFinal.c_str();
+							}
+						}
+
+						if (!hasCTOT) {
 							TSAT = EOBT;
 							//TSAT
 							string TSATstring = TSAT;
@@ -1164,105 +1185,130 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							TTOT = TTOTFinal.c_str();
 						}
 					}
-
-					if (!hasCTOT) {
-						TSAT = EOBT;
-						//TSAT
-						string TSATstring = TSAT;
-						TSATfinal = formatTime(TSATstring);
-						TSAT = TSATfinal.c_str();
-
-						//TTOT
-						TTOTFinal = calculateTime(TSATstring, taxiTime);
-						TTOT = TTOTFinal.c_str();
-					}
-				}
-				else {
-					if (hasCTOT) {
-						//TSAT
-						string TSATstring = slotList[pos].substr(slotList[pos].length() - 15, 6);
-						TSATfinal = formatTime(TSATstring);
-						TSAT = TSATfinal.c_str();
-
-						//TTOT
-						TTOTFinal = slotList[pos].substr(slotList[pos].length() - 8, 6);
-						TTOT = TTOTFinal.c_str();
-					}
 					else {
-						//TSAT
-						string TSATstring = slotList[pos].substr(slotList[pos].length() - 13, 6);
-						TSATfinal = formatTime(TSATstring);
-						TSAT = TSATfinal.c_str();
+						if (hasCTOT) {
+							//TSAT
+							string TSATstring = slotList[pos].substr(slotList[pos].length() - 15, 6);
+							TSATfinal = formatTime(TSATstring);
+							TSAT = TSATfinal.c_str();
 
-						//TTOT
-						TTOTFinal = slotList[pos].substr(slotList[pos].length() - 6, 6);
-						TTOT = TTOTFinal.c_str();
+							//TTOT
+							TTOTFinal = slotList[pos].substr(slotList[pos].length() - 8, 6);
+							TTOT = TTOTFinal.c_str();
+						}
+						else {
+							//TSAT
+							string TSATstring = slotList[pos].substr(slotList[pos].length() - 13, 6);
+							TSATfinal = formatTime(TSATstring);
+							TSAT = TSATfinal.c_str();
+
+							//TTOT
+							TTOTFinal = slotList[pos].substr(slotList[pos].length() - 6, 6);
+							TTOT = TTOTFinal.c_str();
+						}
 					}
-				}
 
 				
 
-				bool equalTTOT = true;
-				bool correctTTOT = true;
-				bool equalTempoTTOT = true;
-				bool alreadySetTOStd = false;
+					bool equalTTOT = true;
+					bool correctTTOT = true;
+					bool equalTempoTTOT = true;
+					bool alreadySetTOStd = false;
 
-				if (!aircraftFind) {
-					//Calculate Rate
-					int rate;
+					if (!aircraftFind) {
+						//Calculate Rate
+						int rate;
 
-					rate = rateForRunway(origin, depRwy, lvo);
-					if (rate == -1) {
-						if (!lvo) {
-							rate = stoi(rateString);
+						rate = rateForRunway(origin, depRwy, lvo);
+						if (rate == -1) {
+							if (!lvo) {
+								rate = stoi(rateString);
+							}
+							else {
+								rate = stoi(lvoRateString);
+							}
 						}
-						else {
-							rate = stoi(lvoRateString);
-						}
-					}
 
-					double rateHour = (double)60 / rate;
+						double rateHour = (double)60 / rate;
 
-					while (equalTTOT) {
-						correctTTOT = true;
-						for (int t = 0; t < slotList.size(); t++)
-						{
-							string listTTOT;
-							string listCallsign = slotList[t].substr(0, slotList[t].find(","));
-							string listDepRwy = "";
-							bool depRwyFound = false;
-							for (int i = 0; i < taxiTimesList.size(); i++)
+						while (equalTTOT) {
+							correctTTOT = true;
+							for (int t = 0; t < slotList.size(); t++)
 							{
-								if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
-									if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
-										listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
-										depRwyFound = true;
-									}
-									else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
-										listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
-										depRwyFound = true;
+								string listTTOT;
+								string listCallsign = slotList[t].substr(0, slotList[t].find(","));
+								string listDepRwy = "";
+								bool depRwyFound = false;
+								for (int i = 0; i < taxiTimesList.size(); i++)
+								{
+									if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
+										if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
+											listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
+											depRwyFound = true;
+										}
+										else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
+											listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
+											depRwyFound = true;
+										}
 									}
 								}
-							}
-							string listAirport;
-							for (int i = 0; i < planeAiportList.size(); i++)
-							{
-								if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
-									listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
+								string listAirport;
+								for (int i = 0; i < planeAiportList.size(); i++)
+								{
+									if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
+										listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
+									}
 								}
-							}
 
-							if (!depRwyFound) {
-								listDepRwy = depRwy;
-							}
+								if (!depRwyFound) {
+									listDepRwy = depRwy;
+								}
 
-							if (hasCTOT) {
-								bool found = false;
-								while (!found) {
-									found = true;
-									if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
+								if (hasCTOT) {
+									bool found = false;
+									while (!found) {
+										found = true;
+										if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
 
-										listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+											listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+
+											if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+												found = false;
+												if (alreadySetTOStd) {
+													TTOTFinal = calculateTime(TTOTFinal, 0.5);
+													correctTTOT = false;
+												}
+												else {
+													TTOTFinal = calculateTime(listTTOT, 0.5);
+													correctTTOT = false;
+													alreadySetTOStd = true;
+												}
+											}
+											else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+												found = false;
+												if (alreadySetTOStd) {
+													TTOTFinal = calculateTime(TTOTFinal, 0.5);
+													correctTTOT = false;
+												}
+												else {
+													TTOTFinal = calculateTime(listTTOT, 0.5);
+													correctTTOT = false;
+													alreadySetTOStd = true;
+												}
+											}
+										}
+									}
+								}
+								else {
+									bool found = false;
+									while (!found) {
+										found = true;
+										if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
+											listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+										}
+										else {
+											listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
+										}
 
 										if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 											found = false;
@@ -1291,55 +1337,38 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 							}
-							else {
-								bool found = false;
-								while (!found) {
-									found = true;
-									if (slotList[t].substr(slotList[t].length() - 1, 1) == "c") {
-										listTTOT = slotList[t].substr(slotList[t].length() - 8, 6);
+
+							if (correctTTOT) {
+								equalTTOT = false;
+								TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+								TSAT = TSATfinal.c_str();
+								TTOT = TTOTFinal.c_str();
+								if (hasCTOT) {
+									if (aircraftFind) {
+										if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 8, 6)) {
+											string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
+											slotList[pos] = valueToAdd;
+
+											if (remarks.find("CTOT") != string::npos) {
+												string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+												FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+												remarks = stringToAdd;
+											}
+											else if (remarks.find("%") != string::npos) {
+												string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+												FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+												remarks = stringToAdd;
+											}
+
+											string stringToAdd = remarks + " CTOT" + ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + " %" + TSAT + "|" + TTOT;
+											FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+											FlightPlan.GetFlightPlanData().AmendFlightPlan();
+											remarks = stringToAdd;
+										}
 									}
 									else {
-										listTTOT = slotList[t].substr(slotList[t].length() - 6, 6);
-									}
-
-									if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
-										found = false;
-										if (alreadySetTOStd) {
-											TTOTFinal = calculateTime(TTOTFinal, 0.5);
-											correctTTOT = false;
-										}
-										else {
-											TTOTFinal = calculateTime(listTTOT, 0.5);
-											correctTTOT = false;
-											alreadySetTOStd = true;
-										}
-									}
-									else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
-										found = false;
-										if (alreadySetTOStd) {
-											TTOTFinal = calculateTime(TTOTFinal, 0.5);
-											correctTTOT = false;
-										}
-										else {
-											TTOTFinal = calculateTime(listTTOT, 0.5);
-											correctTTOT = false;
-											alreadySetTOStd = true;
-										}
-									}
-								}
-							}
-						}
-
-						if (correctTTOT) {
-							equalTTOT = false;
-							TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-							TSAT = TSATfinal.c_str();
-							TTOT = TTOTFinal.c_str();
-							if (hasCTOT) {
-								if (aircraftFind) {
-									if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 8, 6)) {
 										string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
-										slotList[pos] = valueToAdd;
+										slotList.push_back(valueToAdd);
 
 										if (remarks.find("CTOT") != string::npos) {
 											string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
@@ -1359,31 +1388,26 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 								else {
-									string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
-									slotList.push_back(valueToAdd);
+									if (aircraftFind) {
+										if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 6, 6)) {
+											string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
+											slotList[pos] = valueToAdd;
 
-									if (remarks.find("CTOT") != string::npos) {
-										string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-										remarks = stringToAdd;
-									}
-									else if (remarks.find("%") != string::npos) {
-										string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-										remarks = stringToAdd;
-									}
+											if (remarks.find("%") != string::npos) {
+												string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+												FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+												remarks = stringToAdd;
+											}
 
-									string stringToAdd = remarks + " CTOT" + ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + " %" + TSAT + "|" + TTOT;
-									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
-									remarks = stringToAdd;
-								}
-							}
-							else {
-								if (aircraftFind) {
-									if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 6, 6)) {
+											string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
+											FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+											FlightPlan.GetFlightPlanData().AmendFlightPlan();
+											remarks = stringToAdd;
+										}
+									}
+									else {
 										string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
-										slotList[pos] = valueToAdd;
+										slotList.push_back(valueToAdd);
 
 										if (remarks.find("%") != string::npos) {
 											string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
@@ -1397,130 +1421,130 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										remarks = stringToAdd;
 									}
 								}
-								else {
-									string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT;
-									slotList.push_back(valueToAdd);
+							}
+						}
+					}
 
-									if (remarks.find("%") != string::npos) {
-										string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-										FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-										remarks = stringToAdd;
+					countTime += 1;
+					//Refresh times every x sec
+					if (countTime > refreshTime * 1000) {
+						countTime = 0;
+
+						//Calculate Rate
+						int rate;
+
+						rate = rateForRunway(origin, depRwy, lvo);
+						if (rate == -1) {
+							if (!lvo) {
+								rate = stoi(rateString);
+							}
+							else {
+								rate = stoi(lvoRateString);
+							}
+						}
+
+						double rateHour = (double)60 / rate;
+
+						for (int i = 0; i < slotList.size(); i++)
+						{
+							string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
+							int myTTime = 15;
+
+							myCallsign = slotList[i].substr(0, slotList[i].find(","));
+							CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
+
+							for (int s = 0; s < planeAiportList.size(); s++)
+							{
+								if (myCallsign == planeAiportList[s].substr(0, planeAiportList[s].find(","))) {
+									myAirport = planeAiportList[s].substr(planeAiportList[s].find(",") + 1, 4);
+								}
+							}
+
+							bool depRwyFound = false;
+							for (int t = 0; t < taxiTimesList.size(); t++)
+							{
+								if (myCallsign == taxiTimesList[t].substr(0, taxiTimesList[t].find(","))) {
+									if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 3, 1) == ",") {
+										myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 2);
+										depRwyFound = true;
+									}
+									else if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 4, 1) == ",") {
+										myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 3);
+										depRwyFound = true;
 									}
 
-									string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
-									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
-									remarks = stringToAdd;
+									if (taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 1) == ",") {
+										myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 1, 1));
+									}
+									else {
+										myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 2));
+									}
 								}
 							}
+
+							myRemarks = myFlightPlan.GetFlightPlanData().GetRemarks();
+							bool myhasCTOT = false;
+							int myCtotPos = 0;
+							for (int s = 0; s < ctotList.size(); s++)
+							{
+								if (myCallsign == ctotList[s].substr(0, ctotList[s].find(","))) {
+									myhasCTOT = true;
+									myCtotPos = s;
+								}
+							}
+
+							myEOBT = slotList[i].substr(slotList[i].find(",") + 1, 6);
+
+							if (myhasCTOT) {
+								//TSAT and TTOT with CTOT
+								myTTOT = formatTime(ctotList[myCtotPos].substr(ctotList[myCtotPos].find(",") + 1, 4) + "00");
+								myTSAT = calculateLessTime(myTTOT, myTTime);
+							}
+							else {
+								myTSAT = myEOBT;
+								myTTOT = calculateTime(myEOBT, myTTime);
+							}
+
+							refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, rateHour, myhasCTOT, myCtotPos, i, true);
 						}
 					}
-				}
 
-				countTime += 1;
-				//Refresh times every x sec
-				if (countTime > refreshTime * 1000) {
-					countTime = 0;
-
-					//Calculate Rate
-					int rate;
-
-					rate = rateForRunway(origin, depRwy, lvo);
-					if (rate == -1) {
-						if (!lvo) {
-							rate = stoi(rateString);
-						}
-						else {
-							rate = stoi(lvoRateString);
+					//Sync TTOT
+					if (remarks.find("%") != string::npos) {
+						if (TTOT != remarks.substr(remarks.find("%") + 8, 6)) {
+							string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
 						}
 					}
-
-					double rateHour = (double)60 / rate;
-
-					for (int i = 0; i < slotList.size(); i++)
-					{
-						string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
-						int myTTime = 15;
-
-						myCallsign = slotList[i].substr(0, slotList[i].find(","));
-						CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
-
-						for (int s = 0; s < planeAiportList.size(); s++)
-						{
-							if (myCallsign == planeAiportList[s].substr(0, planeAiportList[s].find(","))) {
-								myAirport = planeAiportList[s].substr(planeAiportList[s].find(",") + 1, 4);
-							}
-						}
-
-						bool depRwyFound = false;
-						for (int t = 0; t < taxiTimesList.size(); t++)
-						{
-							if (myCallsign == taxiTimesList[t].substr(0, taxiTimesList[t].find(","))) {
-								if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 3, 1) == ",") {
-									myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 2);
-									depRwyFound = true;
-								}
-								else if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 4, 1) == ",") {
-									myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 3);
-									depRwyFound = true;
-								}
-
-								if (taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 1) == ",") {
-									myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 1, 1));
-								}
-								else {
-									myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 2));
-								}
-							}
-						}
-
-						myRemarks = myFlightPlan.GetFlightPlanData().GetRemarks();
-						bool myhasCTOT = false;
-						int myCtotPos = 0;
-						for (int s = 0; s < ctotList.size(); s++)
-						{
-							if (myCallsign == ctotList[s].substr(0, ctotList[s].find(","))) {
-								myhasCTOT = true;
-								myCtotPos = s;
-							}
-						}
-
-						myEOBT = slotList[i].substr(slotList[i].find(",") + 1, 6);
-
-						if (myhasCTOT) {
-							//TSAT and TTOT with CTOT
-							myTTOT = formatTime(ctotList[myCtotPos].substr(ctotList[myCtotPos].find(",") + 1, 4) + "00");
-							myTSAT = calculateLessTime(myTTOT, myTTime);
-						}
-						else {
-							myTSAT = myEOBT;
-							myTTOT = calculateTime(myEOBT, myTTime);
-						}
-
-						refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, rateHour, myhasCTOT, myCtotPos, i, true);
-					}
-				}
-
-				//Sync TTOT
-				if (remarks.find("%") != string::npos) {
-					if (TTOT != remarks.substr(remarks.find("%") + 8, 6)) {
-						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+					else if (aircraftFind && !stsDepa) {
+						string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
 						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 						FlightPlan.GetFlightPlanData().AmendFlightPlan();
 						remarks = stringToAdd;
 					}
-				}
-				else if (aircraftFind && !stsDepa) {
-					string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
-					FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-					FlightPlan.GetFlightPlanData().AmendFlightPlan();
-					remarks = stringToAdd;
-				}
 
-				//Sync CTOT
-				if (remarks.find("CTOT") != string::npos && hasCTOT) {
-					string listCtot = ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4);
-					if (listCtot != remarks.substr(remarks.find("CTOT") + 4, 4)) {
+					//Sync CTOT
+					if (remarks.find("CTOT") != string::npos && hasCTOT) {
+						string listCtot = ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4);
+						if (listCtot != remarks.substr(remarks.find("CTOT") + 4, 4)) {
+							if (remarks.find("%") != string::npos) {
+								string stringToAdd = remarks.substr(0, remarks.find("%")) + "CTOT" + listCtot + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+							else {
+								string stringToAdd = remarks + " CTOT" + listCtot;
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+						}
+					}
+					else if (hasCTOT && !stsDepa) {
+						string listCtot = ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4);
 						if (remarks.find("%") != string::npos) {
 							string stringToAdd = remarks.substr(0, remarks.find("%")) + "CTOT" + listCtot + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
@@ -1534,189 +1558,194 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							remarks = stringToAdd;
 						}
 					}
-				}
-				else if (hasCTOT && !stsDepa) {
-					string listCtot = ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4);
-					if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%")) + "CTOT" + listCtot + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+					else if (remarks.find("CTOT") != string::npos && !hasCTOT) {
+						if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+						else {
+							string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
+						}
+					}
+
+					//If oldTSAT
+					string TSAThour = TSATfinal.substr(TSATfinal.length() - 6, 2);
+					string TSATmin = TSATfinal.substr(TSATfinal.length() - 4, 2);
+
+					bool oldTSAT = false;
+					bool moreLessFive = false;
+					bool lastMinute = false;
+					bool notYetEOBT = false;
+					bool actualTOBT = false;
+
+					//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
+
+					if (hour != "00") {
+						if (TSAThour == "00") {
+							TSAThour = "24";
+						}
+					}
+
+					int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
+
+					if (hour != TSAThour) {
+						if (difTime >= 44 && difTime <= 45) {
+							lastMinute = true;
+						}
+						else if (difTime >= -45 && difTime <= 45) {
+							moreLessFive = true;
+						}
+						else if (difTime > 45) {
+							oldTSAT = true;
+						}
 					}
 					else {
-						string stringToAdd = remarks + " CTOT" + listCtot;
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+						if (difTime > 5) {
+							oldTSAT = true;
+						}
+						else if (difTime >= 4 && difTime <= 5) {
+							lastMinute = true;
+						}
+						else if (difTime >= -5 && difTime <= 5) {
+							moreLessFive = true;
+						}
 					}
-				}
-				else if (remarks.find("CTOT") != string::npos && !hasCTOT) {
-					if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+
+					bool correctState = false;
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+						correctState = true;
+					}
+
+					if (oldTSAT && !correctState) {
+						OutOfTsat.push_back(callsign + "," + EOBT);
+						for (int i = 0; i < asrtList.size(); i++)
+						{
+							if ((string)FlightPlan.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
+								asrtList.erase(asrtList.begin() + i);
+								if (remarks.find("ASRT") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+									FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+									remarks = stringToAdd;
+								}
+							}
+						}
+						if (remarks.find("CTOT") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							remarks = stringToAdd;
+						}
+						if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							remarks = stringToAdd;
+						}
 						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+					}
+
+					string completeEOBT = (string)EOBT;
+					string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
+					string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
+
+					if (hour != "00") {
+						if (EOBThour == "00") {
+							EOBThour = "24";
+						}
+					}
+
+					int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
+					if (hour != EOBThour) {
+						if (EOBTdifTime < -75) {
+							notYetEOBT = true;
+						}
 					}
 					else {
-						string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+						if (EOBTdifTime < -35) {
+							notYetEOBT = true;
+						}
 					}
-				}
 
-				//If oldTSAT
-				string TSAThour = TSATfinal.substr(TSATfinal.length() - 6, 2);
-				string TSATmin = TSATfinal.substr(TSATfinal.length() - 4, 2);
-
-				bool oldTSAT = false;
-				bool moreLessFive = false;
-				bool lastMinute = false;
-				bool notYetEOBT = false;
-				bool actualTOBT = false;
-
-				//Hour(LOCAL), Min(LOCAL), Hour(PLANE), Min(PLANE)
-
-				if (hour != "00") {
-					if (TSAThour == "00") {
-						TSAThour = "24";
+					if (hour != EOBThour) {
+						if (EOBTdifTime >= -45) {
+							actualTOBT = true;
+						}
 					}
-				}
+					else {
+						if (EOBTdifTime >= -5) {
+							actualTOBT = true;
+						}
+					}
 
-				int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
-
-				if (hour != TSAThour) {
-					if (difTime >= 44 && difTime <= 45) {
-						lastMinute = true;
-					}
-					else if (difTime >= -45 && difTime <= 45) {
-						moreLessFive = true;
-					}
-					else if (difTime > 45) {
-						oldTSAT = true;
-					}
-				}
-				else {
-					if (difTime > 5) {
-						oldTSAT = true;
-					}
-					else if (difTime >= 4 && difTime <= 5) {
-						lastMinute = true;
-					}
-					else if (difTime >= -5 && difTime <= 5) {
-						moreLessFive = true;
-					}
-				}
-
-				bool correctState = false;
-				if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
-					correctState = true;
-				}
-
-				if (oldTSAT && !correctState) {
-					OutOfTsat.push_back(callsign + "," + EOBT);
-					for (int i = 0; i < asrtList.size(); i++)
+					//TSAC
+					bool TSACFound = false;
+					bool TSACNotTSAT = false;
+					string ThisTSAC = "";
+					for (int d = 0; d < tsacList.size(); d++)
 					{
-						if ((string)FlightPlan.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-							asrtList.erase(asrtList.begin() + i);
-							if (remarks.find("ASRT") != string::npos) {
-								string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+						if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
+							TSACFound = true;
+							ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
+						}
+					}
+
+					if (TSACFound) {
+						string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
+						string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
+
+						int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
+						if (TSACDif > 5 || TSACDif < -5) {
+							TSACNotTSAT = true;
+						}
+					}
+
+					//ASRT
+					bool ASRTFound = false;
+					string ASRTtext = " ";
+					for (int x = 0; x < asrtList.size(); x++)
+					{
+						string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
+						if (MyListCallsign == callsign) {
+							ASRTFound = true;
+							ASRTtext = asrtList[x].substr(asrtList[x].find(",") + 1, 4);
+						}
+					}
+
+					//Sync ASRT
+					if (remarks.find("ASRT") != string::npos && ASRTFound) {
+						if (ASRTtext != remarks.substr(remarks.find("ASRT") + 4, 4)) {
+							if (remarks.find("CTOT") != string::npos) {
+								string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
 								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+							else if (remarks.find("%") != string::npos) {
+								string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
+								remarks = stringToAdd;
+							}
+							else {
+								string stringToAdd = remarks + " ASRT" + ASRTtext;
+								FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+								FlightPlan.GetFlightPlanData().AmendFlightPlan();
 								remarks = stringToAdd;
 							}
 						}
 					}
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						remarks = stringToAdd;
-					}
-					if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						remarks = stringToAdd;
-					}
-					FlightPlan.GetFlightPlanData().AmendFlightPlan();
-				}
-
-				string completeEOBT = (string)EOBT;
-				string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
-				string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
-
-				if (hour != "00") {
-					if (EOBThour == "00") {
-						EOBThour = "24";
-					}
-				}
-
-				int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
-				if (hour != EOBThour) {
-					if (EOBTdifTime < -75) {
-						notYetEOBT = true;
-					}
-				}
-				else {
-					if (EOBTdifTime < -35) {
-						notYetEOBT = true;
-					}
-				}
-
-				if (hour != EOBThour) {
-					if (EOBTdifTime >= -45) {
-						actualTOBT = true;
-					}
-				}
-				else {
-					if (EOBTdifTime >= -5) {
-						actualTOBT = true;
-					}
-				}
-
-				//TSAC
-				bool TSACFound = false;
-				bool TSACNotTSAT = false;
-				string ThisTSAC = "";
-				for (int d = 0; d < tsacList.size(); d++)
-				{
-					if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
-						TSACFound = true;
-						ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
-					}
-				}
-
-				if (TSACFound) {
-					string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
-					string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
-
-					int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
-					if (TSACDif > 5 || TSACDif < -5) {
-						TSACNotTSAT = true;
-					}
-				}
-
-				//ASRT
-				bool ASRTFound = false;
-				string ASRTtext = " ";
-				for (int x = 0; x < asrtList.size(); x++)
-				{
-					string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
-					if (MyListCallsign == callsign) {
-						ASRTFound = true;
-						ASRTtext = asrtList[x].substr(asrtList[x].find(",") + 1, 4);
-					}
-				}
-
-				//Sync ASRT
-				if (remarks.find("ASRT") != string::npos && ASRTFound) {
-					if (ASRTtext != remarks.substr(remarks.find("ASRT") + 4, 4)) {
+					else if (ASRTFound && !stsDepa) {
 						if (remarks.find("CTOT") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+							string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
 							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 							FlightPlan.GetFlightPlanData().AmendFlightPlan();
 							remarks = stringToAdd;
 						}
 						else if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+							string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
 							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
 							FlightPlan.GetFlightPlanData().AmendFlightPlan();
 							remarks = stringToAdd;
@@ -1728,760 +1757,696 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							remarks = stringToAdd;
 						}
 					}
-				}
-				else if (ASRTFound && !stsDepa) {
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else {
-						string stringToAdd = remarks + " ASRT" + ASRTtext;
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-				}
-				else if (remarks.find("ASRT") != string::npos && !ASRTFound) {
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-						FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
-						FlightPlan.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-				}
-
-				//ASAT
-				bool ASATFound = false;
-				bool ASATPlusFiveLessTen = false;
-				int ASATpos = 0;
-				string ASATtext = " ";
-				for (int x = 0; x < asatList.size(); x++)
-				{
-					string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
-					if (actualListCallsign == callsign) {
-						ASATFound = true;
-						ASATpos = x;
-					}
-				}
-
-				if (!ASATFound) {
-					if (correctState) {
-						ASATtext = hour + min;
-						asatList.push_back(callsign + "," + ASATtext);
-						ASATFound = true;
-					}
-				}
-				else {
-					if (correctState) {
-						ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
-					}
-					else if (!correctState) {
-						asatList.erase(asatList.begin() + ASATpos);
-						ASATFound = false;
-					}
-				}
-
-				if (ASATFound) {
-					string ASATHour = ASATtext.substr(0, 2);
-					string ASATMin = ASATtext.substr(2, 2);
-					if (hour != "00") {
-						if (ASATHour == "00") {
-							ASATHour = "24";
+					else if (remarks.find("ASRT") != string::npos && !ASRTFound) {
+						if (remarks.find("CTOT") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
 						}
-					}
-
-					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
-					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
-						if (hour == ASATHour) {
-							if (ASATDifTIme >= 5) {
-								ASATPlusFiveLessTen = true;
-							}
+						else if (remarks.find("%") != string::npos) {
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
 						}
 						else {
-							if (ASATDifTIme >= 45) {
-								ASATPlusFiveLessTen = true;
-							}
+							string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
+							FlightPlan.GetFlightPlanData().SetRemarks(stringToAdd.c_str());
+							FlightPlan.GetFlightPlanData().AmendFlightPlan();
+							remarks = stringToAdd;
 						}
 					}
-				}
 
-
-				if (ItemCode == TAG_ITEM_EOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_EOBT;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-				}
-
-				if (ItemCode == TAG_ITEM_TOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					if (notYetEOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREENNOTACTIVE;
-						strcpy_s(sItemString, 16, " ");
+					//ASAT
+					bool ASATFound = false;
+					bool ASATPlusFiveLessTen = false;
+					int ASATpos = 0;
+					string ASATtext = " ";
+					for (int x = 0; x < asatList.size(); x++)
+					{
+						string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
+						if (actualListCallsign == callsign) {
+							ASATFound = true;
+							ASATpos = x;
+						}
 					}
-					else if (!actualTOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREENNOTACTIVE;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+
+					if (!ASATFound) {
+						if (correctState) {
+							ASATtext = hour + min;
+							asatList.push_back(callsign + "," + ASATtext);
+							ASATFound = true;
+						}
 					}
 					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						if (correctState) {
+							ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
+						}
+						else if (!correctState) {
+							asatList.erase(asatList.begin() + ASATpos);
+							ASATFound = false;
+						}
 					}
-				}
 
-				if (ItemCode == TAG_ITEM_TSAC)
-				{
-					if (TSACNotTSAT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_ORANGE;
-						strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
-					}
-					else if (TSACFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, "____");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_TSAT)
-				{
-					string ShowTSAT = (string)TSAT;
-					if (notYetEOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_RED;
-						strcpy_s(sItemString, 16, " ");
-					}
-					else if (lastMinute) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
-					}
-					else if (moreLessFive) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
-					}
-					else if (oldTSAT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREENNOTACTIVE;
-						strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_TTOT)
-				{
-					string ShowTTOT = (string)TTOT;
-					if (notYetEOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_TTOT;
-						strcpy_s(sItemString, 16, " ");
-					}
-					else if (moreLessFive || lastMinute) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_TTOT;
-						strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_TTOT;
-						strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_ASAT)
-				{
 					if (ASATFound) {
-						if (ASATPlusFiveLessTen) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_YELLOW;
-							strcpy_s(sItemString, 16, ASATtext.c_str());
+						string ASATHour = ASATtext.substr(0, 2);
+						string ASATMin = ASATtext.substr(2, 2);
+						if (hour != "00") {
+							if (ASATHour == "00") {
+								ASATHour = "24";
+							}
 						}
-						else {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, ASATtext.c_str());
-						}
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, " ");
-					}
-				}
 
-				if (ItemCode == TAG_ITEM_ASRT)
-				{
-					if (ASRTFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_ASRT;
-						strcpy_s(sItemString, 16, ASRTtext.c_str());
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_ASRT;
-						strcpy_s(sItemString, 16, " ");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_A)
-				{
-					if (hasValueInA) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 16, "A");
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, " ");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_E)
-				{
-					if (notYetEOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, "P");
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, "C");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_CTOT)
-				{
-					if (hasCTOT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_CTOT;
-						strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
-					}
-				}
-			}
-		}
-		else {
-			bool TSATFind = false;
-			string TSATString, TTOTString;
-			if (remarks.find("%") != string::npos) {
-				TSATString = remarks.substr(remarks.find("%") + 1, 6);
-				TTOTString = remarks.substr(remarks.find("%") + 8, 6);
-				TSATFind = true;
-			}
-
-			if (aircraftFind) {
-				if (!TSATFind) {
-					slotList.erase(slotList.begin() + pos);
-				}
-				else if (TSATString != slotList[pos].substr(slotList[pos].find(",") + 8, 6) && TSATFind) {
-					if (hasCTOT) {
-						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString + ",c";
-						slotList[pos] = valueToAdd;
-					}
-					else {
-						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
-						slotList[pos] = valueToAdd;
-					}
-				}
-			}
-			else {
-				if (TSATFind) {
-					if (hasCTOT) {
-						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString + ",c";
-						slotList.push_back(valueToAdd.c_str());
-					}
-					else {
-						string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
-						slotList.push_back(valueToAdd.c_str());
-					}
-				}
-			}
-
-			//If oldTSAT
-			if (TSATFind) {
-				string TSAThour = TSATString.substr(TSATString.length() - 6, 2);
-				string TSATmin = TSATString.substr(TSATString.length() - 4, 2);
-
-				bool oldTSAT = false;
-				bool moreLessFive = false;
-				bool lastMinute = false;
-				bool notYetEOBT = false;
-				bool actualTOBT = false;
-
-				if (hour != "00") {
-					if (TSAThour == "00") {
-						TSAThour = "24";
-					}
-				}
-
-				int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
-
-				if (hour != TSAThour) {
-					if (difTime >= 44 && difTime <= 45) {
-						lastMinute = true;
-					}
-					else if (difTime >= -45 && difTime <= 45) {
-						moreLessFive = true;
-					}
-					else if (difTime > 45) {
-						oldTSAT = true;
-					}
-				}
-				else {
-					if (difTime > 5) {
-						oldTSAT = true;
-					}
-					else if (difTime >= 4 && difTime <= 5) {
-						lastMinute = true;
-					}
-					else if (difTime >= -5 && difTime <= 5) {
-						moreLessFive = true;
-					}
-				}
-
-				bool correctState = false;
-				if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
-					correctState = true;
-				}
-
-				if (oldTSAT && !correctState) {
-					OutOfTsat.push_back(callsign + "," + EOBT);
-				}
-
-				string completeEOBT = (string)EOBT;
-				string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
-				string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
-
-				if (hour != "00") {
-					if (EOBThour == "00") {
-						EOBThour = "24";
-					}
-				}
-
-				int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
-				if (hour != EOBThour) {
-					if (EOBTdifTime < -75) {
-						notYetEOBT = true;
-					}
-				}
-				else {
-					if (EOBTdifTime < -35) {
-						notYetEOBT = true;
-					}
-				}
-
-				if (hour != EOBThour) {
-					if (EOBTdifTime >= -45) {
-						actualTOBT = true;
-					}
-				}
-				else {
-					if (EOBTdifTime >= -5) {
-						actualTOBT = true;
-					}
-				}
-
-				//CTOT
-				if (remarks.find("CTOT") != string::npos) {
-					string rmkCtot = remarks.substr(remarks.find("CTOT") + 4, 4);
-					if (hasCTOT) {
-						if (ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 4) != rmkCtot) {
-							ctotList[ctotPos] == callsign + "," + rmkCtot;
-							if (slotList[pos].substr(slotList[pos].length() - 1, 1) != "c") {
-								slotList[pos] = slotList[pos] + ",c";
+						int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
+						if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
+							if (hour == ASATHour) {
+								if (ASATDifTIme >= 5) {
+									ASATPlusFiveLessTen = true;
+								}
+							}
+							else {
+								if (ASATDifTIme >= 45) {
+									ASATPlusFiveLessTen = true;
+								}
 							}
 						}
 					}
-					else {
-						ctotList.push_back(callsign + "," + rmkCtot);
-					}
-				}
-				else if (hasCTOT) {
-					ctotList.erase(ctotList.begin() + ctotPos);
-					if (slotList[pos].substr(slotList[pos].length() - 1, 1) == "c") {
-						slotList[pos] = slotList[pos].substr(0, slotList[pos].length() - 2);
-					}
-				}
-
-				//TSAC
-				bool TSACFound = false;
-				bool TSACNotTSAT = false;
-				string ThisTSAC = "";
-				for (int d = 0; d < tsacList.size(); d++)
-				{
-					if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
-						TSACFound = true;
-						ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
-					}
-				}
-
-				if (TSACFound) {
-					string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
-					string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
-
-					int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
-					if (TSACDif > 5 || TSACDif < -5) {
-						TSACNotTSAT = true;
-					}
-				}
 
 
-				//ASRT
-				bool ASRTFound = false;
-				int ASRTPos;
-				string ASRTtext = "";
-				for (int x = 0; x < asrtList.size(); x++)
-				{
-					string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
-					if (MyListCallsign == callsign) {
-						ASRTFound = true;
-						ASRTPos = x;
-					}
-				}
-
-				if (ASRTFound) {
-					if (remarks.find("ASRT") != string::npos) {
-						//If ASRT changed
-						if (asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4) != remarks.substr(remarks.find("ASRT") + 4, 4)) {
-							ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
-							asrtList[ASRTPos] = callsign + "," + ASRTtext;
-						}
-						else {
-							ASRTtext = asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4);
-						}
-					}
-					else {
-						//If ASRT not in remarks but yes in list
-						asrtList.erase(asrtList.begin() + ASRTPos);
-						ASRTFound = false;
-					}
-				}
-				else {
-					if (remarks.find("ASRT") != string::npos) {
-						//If Yes in remarks but not in list
-						ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
-						asrtList.push_back(callsign + "," + ASRTtext);
-					}
-				}
-
-				//ASAT
-				bool ASATFound = false;
-				bool ASATPlusFiveLessTen = false;
-				int ASATpos = 0;
-				string ASATtext = " ";
-				for (int x = 0; x < asatList.size(); x++)
-				{
-					string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
-					if (actualListCallsign == callsign) {
-						ASATFound = true;
-						ASATpos = x;
-					}
-				}
-
-				if (!ASATFound) {
-					if (correctState) {
-						ASATtext = hour + min;
-						asatList.push_back(callsign + "," + ASATtext);
-						ASATFound = true;
-					}
-				}
-				else {
-					if (correctState) {
-						ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
-					}
-					else if (!correctState) {
-						asatList.erase(asatList.begin() + ASATpos);
-						ASATFound = false;
-					}
-				}
-
-				if (ASATFound) {
-					string ASATHour = ASATtext.substr(0, 2);
-					string ASATMin = ASATtext.substr(2, 2);
-					if (hour != "00") {
-						if (ASATHour == "00") {
-							ASATHour = "24";
-						}
-					}
-
-					int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
-					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
-						if (hour == ASATHour) {
-							if (ASATDifTIme >= 5) {
-								ASATPlusFiveLessTen = true;
-							}
-						}
-						else {
-							if (ASATDifTIme >= 45) {
-								ASATPlusFiveLessTen = true;
-							}
-						}
-					}
-				}
-
-
-				if (ItemCode == TAG_ITEM_EOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_EOBT;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-				}
-
-				if (ItemCode == TAG_ITEM_TOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					if (notYetEOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREENNOTACTIVE;
-						strcpy_s(sItemString, 16, " ");
-					}
-					else if (!actualTOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREENNOTACTIVE;
+					if (ItemCode == TAG_ITEM_EOBT)
+					{
+						string ShowEOBT = (string)EOBT;
+						//*pColorCode = TAG_COLOR_RGB_DEFINED;
+						ItemRGB = TAG_EOBT;
 						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_TSAC)
-				{
-					if (TSACNotTSAT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_ORANGE;
-						strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
-					}
-					else if (TSACFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, "____");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_TSAT)
-				{
-					if (TSATString.length() > 0) {
+					else if (ItemCode == TAG_ITEM_TOBT)
+					{
+						string ShowEOBT = (string)EOBT;
 						if (notYetEOBT) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_RED;
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREENNOTACTIVE;
+							strcpy_s(sItemString, 16, " ");
+						}
+						else if (!actualTOBT) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREENNOTACTIVE;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+						else {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+					}
+					else if (ItemCode == TAG_ITEM_TSAC)
+					{
+						if (TSACNotTSAT) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_ORANGE;
+							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+						}
+						else if (TSACFound) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+						}
+						else {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, "____");
+						}
+					}
+					else if (ItemCode == TAG_ITEM_TSAT)
+					{
+						string ShowTSAT = (string)TSAT;
+						if (notYetEOBT) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, " ");
 						}
 						else if (lastMinute) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_YELLOW;
-							strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 						}
 						else if (moreLessFive) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 						}
 						else if (oldTSAT) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 						}
 						else {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREENNOTACTIVE;
-							strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREENNOTACTIVE;
+							strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 						}
 					}
-				}
-
-				if (ItemCode == TAG_ITEM_TTOT)
-				{
-					if (TTOTString.length() > 0) {
+					else if (ItemCode == TAG_ITEM_TTOT)
+					{
+						string ShowTTOT = (string)TTOT;
 						if (notYetEOBT) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_TTOT;
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_TTOT;
 							strcpy_s(sItemString, 16, " ");
 						}
 						else if (moreLessFive || lastMinute) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_TTOT;
-							strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_TTOT;
+							strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 						}
 						else {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_TTOT;
-							strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_TTOT;
+							strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 						}
 					}
-				}
-
-				if (ItemCode == TAG_ITEM_ASAT)
-				{
-					if (ASATFound) {
-						if (ASATPlusFiveLessTen) {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_YELLOW;
-							strcpy_s(sItemString, 16, ASATtext.c_str());
+					else if (ItemCode == TAG_ITEM_ASAT)
+					{
+						if (ASATFound) {
+							if (ASATPlusFiveLessTen) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, ASATtext.c_str());
+							}
+							else {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, ASATtext.c_str());
+							}
 						}
 						else {
-							*pColorCode = TAG_COLOR_RGB_DEFINED;
-							*pRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, ASATtext.c_str());
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, " ");
 						}
 					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, " ");
+					else if (ItemCode == TAG_ITEM_ASRT)
+					{
+						if (ASRTFound) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_ASRT;
+							strcpy_s(sItemString, 16, ASRTtext.c_str());
+						}
+						else {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_ASRT;
+							strcpy_s(sItemString, 16, " ");
+						}
 					}
-				}
-
-				if (ItemCode == TAG_ITEM_ASRT)
-				{
-					if (ASRTFound) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_ASRT;
-						strcpy_s(sItemString, 16, ASRTtext.c_str());
+					else if (ItemCode == TAG_ITEM_A)
+					{
+						if (hasValueInA) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, "A");
+						}
+						else {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, " ");
+						}
 					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_ASRT;
-						strcpy_s(sItemString, 16, " ");
+					else if (ItemCode == TAG_ITEM_E)
+					{
+						if (notYetEOBT) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, "P");
+						}
+						else {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, "C");
+						}
 					}
-				}
-
-				if (ItemCode == TAG_ITEM_A)
-				{
-					if (hasValueInA) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 16, "A");
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, " ");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_E)
-				{
-					if (notYetEOBT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, "P");
-					}
-					else {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_GREEN;
-						strcpy_s(sItemString, 16, "C");
-					}
-				}
-
-				if (ItemCode == TAG_ITEM_CTOT)
-				{
-					if (hasCTOT) {
-						*pColorCode = TAG_COLOR_RGB_DEFINED;
-						*pRGB = TAG_CTOT;
-						strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
+					else if (ItemCode == TAG_ITEM_CTOT)
+					{
+						if (hasCTOT) {
+							//*pColorCode = TAG_COLOR_RGB_DEFINED;
+							ItemRGB = TAG_CTOT;
+							strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
+						}
 					}
 				}
 			}
 			else {
-				if (ItemCode == TAG_ITEM_EOBT)
-				{
-					string ShowEOBT = (string)EOBT;
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_EOBT;
-					strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+				bool TSATFind = false;
+				string TSATString, TTOTString;
+				if (remarks.find("%") != string::npos) {
+					TSATString = remarks.substr(remarks.find("%") + 1, 6);
+					TTOTString = remarks.substr(remarks.find("%") + 8, 6);
+					TSATFind = true;
 				}
-				if (ItemCode == TAG_ITEM_TSAC)
-				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
-					strcpy_s(sItemString, 16, "____");
+
+				if (aircraftFind) {
+					if (!TSATFind) {
+						slotList.erase(slotList.begin() + pos);
+					}
+					else if (TSATString != slotList[pos].substr(slotList[pos].find(",") + 8, 6) && TSATFind) {
+						if (hasCTOT) {
+							string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString + ",c";
+							slotList[pos] = valueToAdd;
+						}
+						else {
+							string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
+							slotList[pos] = valueToAdd;
+						}
+					}
 				}
-				if (ItemCode == TAG_ITEM_TOBT)
-				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_RED;
-					strcpy_s(sItemString, 16, "MAST");
+				else {
+					if (TSATFind) {
+						if (hasCTOT) {
+							string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString + ",c";
+							slotList.push_back(valueToAdd.c_str());
+						}
+						else {
+							string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
+							slotList.push_back(valueToAdd.c_str());
+						}
+					}
 				}
-				if (ItemCode == TAG_ITEM_TSAT)
-				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_RED;
-					strcpy_s(sItemString, 16, "MAST");
+
+				//If oldTSAT
+				if (TSATFind) {
+					string TSAThour = TSATString.substr(TSATString.length() - 6, 2);
+					string TSATmin = TSATString.substr(TSATString.length() - 4, 2);
+
+					bool oldTSAT = false;
+					bool moreLessFive = false;
+					bool lastMinute = false;
+					bool notYetEOBT = false;
+					bool actualTOBT = false;
+
+					if (hour != "00") {
+						if (TSAThour == "00") {
+							TSAThour = "24";
+						}
+					}
+
+					int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
+
+					if (hour != TSAThour) {
+						if (difTime >= 44 && difTime <= 45) {
+							lastMinute = true;
+						}
+						else if (difTime >= -45 && difTime <= 45) {
+							moreLessFive = true;
+						}
+						else if (difTime > 45) {
+							oldTSAT = true;
+						}
+					}
+					else {
+						if (difTime > 5) {
+							oldTSAT = true;
+						}
+						else if (difTime >= 4 && difTime <= 5) {
+							lastMinute = true;
+						}
+						else if (difTime >= -5 && difTime <= 5) {
+							moreLessFive = true;
+						}
+					}
+
+					bool correctState = false;
+					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+						correctState = true;
+					}
+
+					if (oldTSAT && !correctState) {
+						OutOfTsat.push_back(callsign + "," + EOBT);
+					}
+
+					string completeEOBT = (string)EOBT;
+					string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
+					string EOBTmin = completeEOBT.substr(completeEOBT.length() - 4, 2);
+
+					if (hour != "00") {
+						if (EOBThour == "00") {
+							EOBThour = "24";
+						}
+					}
+
+					int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
+					if (hour != EOBThour) {
+						if (EOBTdifTime < -75) {
+							notYetEOBT = true;
+						}
+					}
+					else {
+						if (EOBTdifTime < -35) {
+							notYetEOBT = true;
+						}
+					}
+
+					if (hour != EOBThour) {
+						if (EOBTdifTime >= -45) {
+							actualTOBT = true;
+						}
+					}
+					else {
+						if (EOBTdifTime >= -5) {
+							actualTOBT = true;
+						}
+					}
+
+					//CTOT
+					if (remarks.find("CTOT") != string::npos) {
+						string rmkCtot = remarks.substr(remarks.find("CTOT") + 4, 4);
+						if (hasCTOT) {
+							if (ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 4) != rmkCtot) {
+								ctotList[ctotPos] == callsign + "," + rmkCtot;
+								if (slotList[pos].substr(slotList[pos].length() - 1, 1) != "c") {
+									slotList[pos] = slotList[pos] + ",c";
+								}
+							}
+						}
+						else {
+							ctotList.push_back(callsign + "," + rmkCtot);
+						}
+					}
+					else if (hasCTOT) {
+						ctotList.erase(ctotList.begin() + ctotPos);
+						if (slotList[pos].substr(slotList[pos].length() - 1, 1) == "c") {
+							slotList[pos] = slotList[pos].substr(0, slotList[pos].length() - 2);
+						}
+					}
+
+					//TSAC
+					bool TSACFound = false;
+					bool TSACNotTSAT = false;
+					string ThisTSAC = "";
+					for (int d = 0; d < tsacList.size(); d++)
+					{
+						if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
+							TSACFound = true;
+							ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
+						}
+					}
+
+					if (TSACFound) {
+						string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
+						string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
+
+						int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
+						if (TSACDif > 5 || TSACDif < -5) {
+							TSACNotTSAT = true;
+						}
+					}
+
+
+					//ASRT
+					bool ASRTFound = false;
+					int ASRTPos;
+					string ASRTtext = "";
+					for (int x = 0; x < asrtList.size(); x++)
+					{
+						string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
+						if (MyListCallsign == callsign) {
+							ASRTFound = true;
+							ASRTPos = x;
+						}
+					}
+
+					if (ASRTFound) {
+						if (remarks.find("ASRT") != string::npos) {
+							//If ASRT changed
+							if (asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4) != remarks.substr(remarks.find("ASRT") + 4, 4)) {
+								ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
+								asrtList[ASRTPos] = callsign + "," + ASRTtext;
+							}
+							else {
+								ASRTtext = asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4);
+							}
+						}
+						else {
+							//If ASRT not in remarks but yes in list
+							asrtList.erase(asrtList.begin() + ASRTPos);
+							ASRTFound = false;
+						}
+					}
+					else {
+						if (remarks.find("ASRT") != string::npos) {
+							//If Yes in remarks but not in list
+							ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
+							asrtList.push_back(callsign + "," + ASRTtext);
+						}
+					}
+
+					//ASAT
+					bool ASATFound = false;
+					bool ASATPlusFiveLessTen = false;
+					int ASATpos = 0;
+					string ASATtext = " ";
+					for (int x = 0; x < asatList.size(); x++)
+					{
+						string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
+						if (actualListCallsign == callsign) {
+							ASATFound = true;
+							ASATpos = x;
+						}
+					}
+
+					if (!ASATFound) {
+						if (correctState) {
+							ASATtext = hour + min;
+							asatList.push_back(callsign + "," + ASATtext);
+							ASATFound = true;
+						}
+					}
+					else {
+						if (correctState) {
+							ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
+						}
+						else if (!correctState) {
+							asatList.erase(asatList.begin() + ASATpos);
+							ASATFound = false;
+						}
+					}
+
+					if (ASATFound) {
+						string ASATHour = ASATtext.substr(0, 2);
+						string ASATMin = ASATtext.substr(2, 2);
+						if (hour != "00") {
+							if (ASATHour == "00") {
+								ASATHour = "24";
+							}
+						}
+
+						int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
+						if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
+							if (hour == ASATHour) {
+								if (ASATDifTIme >= 5) {
+									ASATPlusFiveLessTen = true;
+								}
+							}
+							else {
+								if (ASATDifTIme >= 45) {
+									ASATPlusFiveLessTen = true;
+								}
+							}
+						}
+					}
+
+
+					if (ItemCode == TAG_ITEM_EOBT)
+					{
+						string ShowEOBT = (string)EOBT;
+						ItemRGB = TAG_EOBT;
+						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+					}
+					else if (ItemCode == TAG_ITEM_TOBT)
+					{
+						string ShowEOBT = (string)EOBT;
+						if (notYetEOBT) {
+							ItemRGB = TAG_GREENNOTACTIVE;
+							strcpy_s(sItemString, 16, " ");
+						}
+						else if (!actualTOBT) {
+							ItemRGB = TAG_GREENNOTACTIVE;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+						else {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+					}
+					else if (ItemCode == TAG_ITEM_TSAC)
+					{
+						if (TSACNotTSAT) {
+							ItemRGB = TAG_ORANGE;
+							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+						}
+						else if (TSACFound) {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+						}
+						else {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, "____");
+						}
+					}
+					else if (ItemCode == TAG_ITEM_TSAT)
+					{
+						if (TSATString.length() > 0) {
+							if (notYetEOBT) {
+								ItemRGB = TAG_RED;
+								strcpy_s(sItemString, 16, " ");
+							}
+							else if (lastMinute) {
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							}
+							else if (moreLessFive) {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							}
+							else if (oldTSAT) {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							}
+							else {
+								ItemRGB = TAG_GREENNOTACTIVE;
+								strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							}
+						}
+					}
+					else if (ItemCode == TAG_ITEM_TTOT)
+					{
+						if (TTOTString.length() > 0) {
+							if (notYetEOBT) {
+								ItemRGB = TAG_TTOT;
+								strcpy_s(sItemString, 16, " ");
+							}
+							else if (moreLessFive || lastMinute) {
+								ItemRGB = TAG_TTOT;
+								strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+							}
+							else {
+								ItemRGB = TAG_TTOT;
+								strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+							}
+						}
+					}
+					else if (ItemCode == TAG_ITEM_ASAT)
+					{
+						if (ASATFound) {
+							if (ASATPlusFiveLessTen) {
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, ASATtext.c_str());
+							}
+							else {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, ASATtext.c_str());
+							}
+						}
+						else {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, " ");
+						}
+					}
+					else if (ItemCode == TAG_ITEM_ASRT)
+					{
+						if (ASRTFound) {
+							ItemRGB = TAG_ASRT;
+							strcpy_s(sItemString, 16, ASRTtext.c_str());
+						}
+						else {
+							ItemRGB = TAG_ASRT;
+							strcpy_s(sItemString, 16, " ");
+						}
+					}
+					else if (ItemCode == TAG_ITEM_A)
+					{
+						if (hasValueInA) {
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, "A");
+						}
+						else {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, " ");
+						}
+					}
+					else if (ItemCode == TAG_ITEM_E)
+					{
+						if (notYetEOBT) {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, "P");
+						}
+						else {
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, "C");
+						}
+					}
+					else if (ItemCode == TAG_ITEM_CTOT)
+					{
+						if (hasCTOT) {
+							ItemRGB = TAG_CTOT;
+							strcpy_s(sItemString, 16, ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4).c_str());
+						}
+					}
 				}
-				if (ItemCode == TAG_ITEM_TTOT)
+				else
 				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_RED;
-					strcpy_s(sItemString, 16, "MAST");
-				}
-				if (ItemCode == TAG_ITEM_E)
-				{
-					*pColorCode = TAG_COLOR_RGB_DEFINED;
-					*pRGB = TAG_GREEN;
-					strcpy_s(sItemString, 16, "I");
+					if (ItemCode == TAG_ITEM_EOBT)
+					{
+						string ShowEOBT = (string)EOBT;
+						ItemRGB = TAG_EOBT;
+						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+					}
+					else if (ItemCode == TAG_ITEM_TSAC)
+					{
+						ItemRGB = TAG_GREEN;
+						strcpy_s(sItemString, 16, "____");
+					}
+					else if (ItemCode == TAG_ITEM_TOBT)
+					{
+						ItemRGB = TAG_RED;
+						strcpy_s(sItemString, 16, "MAST");
+					}
+					else if (ItemCode == TAG_ITEM_TSAT)
+					{
+						ItemRGB = TAG_RED;
+						strcpy_s(sItemString, 16, "MAST");
+					}
+					else if (ItemCode == TAG_ITEM_TTOT)
+					{
+						ItemRGB = TAG_RED;
+						strcpy_s(sItemString, 16, "MAST");
+					}
+					else if (ItemCode == TAG_ITEM_E)
+					{
+						ItemRGB = TAG_GREEN;
+						strcpy_s(sItemString, 16, "I");
+					}
 				}
 			}
 		}
-	}
-	else {
-	if (ItemCode == TAG_ITEM_EOBT)
-	{
-		*pColorCode = TAG_COLOR_RGB_DEFINED;
-		*pRGB = TAG_EOBT;
-		strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-	}
-	if (ItemCode == TAG_ITEM_TOBT)
-	{
-		*pColorCode = TAG_COLOR_RGB_DEFINED;
-		*pRGB = TAG_GREY;
-		strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-	}
-	}
+		else
+		{
+			if (ItemCode == TAG_ITEM_EOBT)
+			{
+				ItemRGB = TAG_EOBT;
+				strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+			}
+			else if (ItemCode == TAG_ITEM_TOBT)
+			{
+				ItemRGB = TAG_GREY;
+				strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+			}
+		}
+
+		if (ItemRGB != 0xFFFFFFFF)
+		{
+			*pColorCode = TAG_COLOR_RGB_DEFINED;
+			*pRGB = ItemRGB;
+		}
 	}
 }
 
