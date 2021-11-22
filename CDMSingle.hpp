@@ -56,7 +56,7 @@ public:
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
-	bool FindPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, double pointx, double pointy);
+	CPosition readPosition(string lat, string lon);
 
 	int inPoly(int nvert, double* vertx, double* verty, double testx, double testy);
 
