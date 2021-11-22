@@ -74,8 +74,6 @@ public:
 
 	string calculateTime(string timeString, double minsToAdd);
 
-	bool expiredCtot(string line);
-
 	string calculateLessTime(string timeString, double minsToAdd);
 
 	bool checkIsNumber(string str);

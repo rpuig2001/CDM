@@ -759,17 +759,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			int pos;
 			bool aircraftFind = false;
 			for (int i = 0; i < slotList.size(); i++) {
-				if (slotList[i].substr(slotList[i].length() - 1, 1) == "c") {
-					if (expiredCtot(slotList[i])) {
-						slotList.erase(slotList.begin() + i);
-						for (int a = 0; a < ctotList.size(); a++)
-						{
-							if (ctotList[a].substr(0, ctotList[a].find(",")) == callsign) {
-								ctotList.erase(ctotList.begin() + a);
-							}
-						}
-					}
-				}
 				if (callsign == slotList[i].substr(0, slotList[i].find(","))) {
 					aircraftFind = true;
 					pos = i;
@@ -2868,57 +2857,6 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 	return timeFinal;
 }
 
-
-bool CDM::expiredCtot(string line) {
-	if (line.substr(line.find(",") + 1, 6) != "999999") {
-		return false;
-	}
-
-	//Get Time now
-	long int timeNow = static_cast<long int>(std::time(nullptr));
-	string completeTime = unixTimeToHumanReadable(timeNow);
-	string hour = "";
-	string min = "";
-
-	hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-		min = completeTime.substr(completeTime.find(":") + 1, 2);
-	}
-	else {
-		min = completeTime.substr(completeTime.find(":") + 1, 1);
-	}
-
-	if (stoi(min) < 10) {
-		min = "0" + min;
-	}
-	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(1, 1);
-	}
-
-	bool oldCTOT = true;
-	string CTOTHour = line.substr(line.length() - 8, 2);
-	string CTOTMin = line.substr(line.length() - 6, 2);
-	int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
-	if (hour != CTOTHour) {
-		if (difTime <= -expiredCTOTTime - 45) {
-			oldCTOT = false;
-		}
-	}
-	else {
-		if (difTime <= -expiredCTOTTime) {
-			oldCTOT = false;
-		}
-	}
-
-	if (oldCTOT) {
-		return true;
-	}
-	else {
-		return false;
-	}
-}
-
 string CDM::calculateLessTime(string timeString, double minsToAdd) {
 	if (timeString.length() <= 0) {
 		timeString = "0000" + timeString;
@@ -3269,14 +3207,14 @@ bool CDM::addCtotToMainList(string lineValue) {
 			bool oldCTOT = true;
 			string CTOTHour = slotList[i].substr(slotList[i].length() - 8, 2);
 			string CTOTMin = slotList[i].substr(slotList[i].length() - 6, 2);
-			int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
+			int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
 			if (hour != CTOTHour) {
-				if (difTime <= -expiredCTOTTime - 45) {
+				if (difTime >= expiredCTOTTime + 40) {
 					oldCTOT = false;
 				}
 			}
 			else {
-				if (difTime <= -expiredCTOTTime) {
+				if (difTime >= expiredCTOTTime) {
 					oldCTOT = false;
 				}
 			}
@@ -3298,14 +3236,14 @@ bool CDM::addCtotToMainList(string lineValue) {
 		bool oldCTOT = true;
 		string CTOTHour = lineValue.substr(lineValue.length() - 4, 2);
 		string CTOTMin = lineValue.substr(lineValue.length() - 2, 2);
-		int difTime = GetdifferenceTime(hour, min, CTOTHour, CTOTMin);
+		int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
 		if (hour != CTOTHour) {
-			if (difTime <= -expiredCTOTTime - 45) {
+			if (difTime >= expiredCTOTTime + 40) {
 				oldCTOT = false;
 			}
 		}
 		else {
-			if (difTime <= -expiredCTOTTime) {
+			if (difTime >= expiredCTOTTime) {
 				oldCTOT = false;
 			}
 		}
@@ -3328,6 +3266,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Reloading CDM....");
 		slotList.clear();
 		tsacList.clear();
+		CTOTcheck.clear();
 		asatList.clear();
 		asrtList.clear();
 		taxiTimesList.clear();
