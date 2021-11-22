@@ -1179,6 +1179,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else {
 						if (hasCTOT) {
+							if (aircraftFind) {
+								if (slotList[pos].substr(slotList[pos].find(",") + 1, 6) == "999999") {
+									slotList[pos] = slotList[pos].substr(0, slotList[pos].find(",")) + "," + FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()+"00" + slotList[pos].substr(slotList[pos].find(",") + 7, slotList[pos].length() - slotList[pos].find(","));
+								}
+							}
 							//TSAT
 							string TSATstring = slotList[pos].substr(slotList[pos].length() - 15, 6);
 							TSATfinal = formatTime(TSATstring);
@@ -2610,7 +2615,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 			string TTOT = TTOTFinal.c_str();
 			if (hasCTOT) {
 				if (aircraftFind) {
-					if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 8, 6)) {
+					if (TTOTFinal != slotList[pos].substr(slotList[pos].length() - 8, 6) || slotList[pos].substr(slotList[pos].find(",") + 8, 6) == "999999") {
 						string valueToAdd = callsign + "," + EOBT + "," + TSAT + "," + TTOT + ",c";
 						slotList[pos] = valueToAdd;
 
