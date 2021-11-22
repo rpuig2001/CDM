@@ -140,7 +140,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	initialSidLoad = false;
 
 	countTime = 0;
-	refreshTime = 30;
 	addTime = false;
 
 	GetVersion();
@@ -149,6 +148,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//airport = getFromXml("/CDM/apt/@icao");
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 	ctotOption = getFromXml("/CDM/ctot/@option");
+	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"))*500;
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
@@ -1424,7 +1424,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					countTime += 1;
 					//Refresh times every x sec
-					if (countTime > refreshTime * 1000) {
+					if (countTime > refreshTime) {
 						countTime = 0;
 
 						//Calculate Rate
@@ -3308,11 +3308,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm refreshtime", sCommandLine)) {
 		string line = sCommandLine;
 		if (line.substr(line.length() - 3, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 2));
+			refreshTime = stoi(line.substr(line.length() - 2))*500;
 			sendMessage("Refresh Time se to: " + to_string(refreshTime));
 		}
 		else if (line.substr(line.length() - 2, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 1));
+			refreshTime = stoi(line.substr(line.length() - 1))*500;
 			sendMessage("Refresh Time se to: " + to_string(refreshTime));
 		}
 		else {
