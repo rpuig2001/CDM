@@ -30,6 +30,7 @@ bool lvo;
 bool ctotCid;
 string myTimeToAdd;
 string taxiZonesUrl;
+int defTaxiTime;
 
 vector<string> slotList;
 vector<string> tsacList;
@@ -146,6 +147,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Get data from xml config file
 	//airport = getFromXml("/CDM/apt/@icao");
+	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 	ctotOption = getFromXml("/CDM/ctot/@option");
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
@@ -751,7 +753,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			const char* EOBT = "";
 			const char* TSAT = "";
 			const char* TTOT = "";
-			int taxiTime = 15;
+			int taxiTime = defTaxiTime;
 
 			//If aircraft is in aircraftFind Base vector
 			int pos;
@@ -1449,7 +1451,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						for (int i = 0; i < slotList.size(); i++)
 						{
 							string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
-							int myTTime = 15;
+							int myTTime = defTaxiTime;
 
 							myCallsign = slotList[i].substr(0, slotList[i].find(","));
 							CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
@@ -2765,19 +2767,7 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
 	}
 
-	return "15";
-}
-
-CPosition CDM::readPosition(string lat, string lon)
-{
-	CPosition p;
-
-	if (!p.LoadFromStrings(lon.c_str(), lat.c_str()))
-	{
-		p.m_Latitude = stod(lat);
-		p.m_Longitude = stod(lon);
-	}
-	return p;
+	return to_string(defTaxiTime);
 }
 
 int CDM::inPoly(int nvert, double* vertx, double* verty, double testx, double testy)

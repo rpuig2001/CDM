@@ -56,7 +56,17 @@ public:
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
-	CPosition readPosition(string lat, string lon);
+	CPosition readPosition(string lat, string lon)
+	{
+		CPosition p;
+
+		if (!p.LoadFromStrings(lon.c_str(), lat.c_str()))
+		{
+			p.m_Latitude = stod(lat);
+			p.m_Longitude = stod(lon);
+		}
+		return p;
+	}
 
 	int inPoly(int nvert, double* vertx, double* verty, double testx, double testy);
 
