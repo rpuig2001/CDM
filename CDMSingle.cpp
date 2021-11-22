@@ -2725,82 +2725,32 @@ string CDM::EobtPlusTime(string EOBT, int addedTime) {
 }
 
 string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
-	double x1, y1, x2, y2, x3, y3, x4, y4;
 	string line, TxtOrigin, TxtDepRwy, TxtTime;
-	vector<int> separators;
-	bool ZoneFound = false;
-	CPosition Pos;
+	CPosition p1, p2, p3, p4;
+	smatch match;
 
 	try
 	{
 		for (int t = 0; t < TxtTimesVector.size(); t++)
 		{
-			line = TxtTimesVector[t];
-			if (!separators.empty()) {
-				separators.clear();
-			}
-			for (int g = 0; g < TxtTimesVector[t].length(); g++)
+			if (regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)", regex::icase)))
 			{
-				if (line.substr(g, 1) == ":") {
-					separators.push_back(g);
-				}
-			}
+				if (origin != match[1])
+					continue;
 
+				if (depRwy != match[2])
+					continue;
 
-			TxtOrigin = line.substr(0, separators[0]);
-			if (TxtOrigin == origin) {
-				TxtDepRwy = line.substr(separators[0] + 1, separators[1] - separators[0] - 1);
-				if (TxtDepRwy == depRwy) {
-					if (Pos.LoadFromStrings(line.substr(separators[2] + 1, separators[3] - separators[2] - 1).c_str(), line.substr(separators[1] + 1, separators[2] - separators[1] - 1).c_str()))
-					{
-						x1 = Pos.m_Latitude;
-						y1 = Pos.m_Longitude;
-					}
-					else
-					{
-						x1 = stod(line.substr(separators[1] + 1, separators[2] - separators[1] - 1));
-						y1 = stod(line.substr(separators[2] + 1, separators[3] - separators[2] - 1));
-					}
+				p1 = readPosition(match[3], match[4]);
+				p2 = readPosition(match[5], match[6]);
+				p3 = readPosition(match[7], match[8]);
+				p4 = readPosition(match[9], match[10]);
 
-					if (Pos.LoadFromStrings(line.substr(separators[4] + 1, separators[5] - separators[4] - 1).c_str(), line.substr(separators[3] + 1, separators[4] - separators[3] - 1).c_str()))
-					{
-						x2 = Pos.m_Latitude;
-						y2 = Pos.m_Longitude;
-					}
-					else
-					{
-						x2 = stod(line.substr(separators[3] + 1, separators[4] - separators[3] - 1));
-						y2 = stod(line.substr(separators[4] + 1, separators[5] - separators[4] - 1));
-					}
+				double LatArea[] = { p1.m_Latitude,p2.m_Latitude,p3.m_Latitude,p4.m_Latitude };
+				double LonArea[] = { p1.m_Longitude,p2.m_Longitude,p3.m_Longitude,p4.m_Longitude };
 
-					if (Pos.LoadFromStrings(line.substr(separators[6] + 1, separators[7] - separators[6] - 1).c_str(), line.substr(separators[5] + 1, separators[6] - separators[5] - 1).c_str()))
-					{
-						x3 = Pos.m_Latitude;
-						y3 = Pos.m_Longitude;
-					}
-					else
-					{
-						x3 = stod(line.substr(separators[5] + 1, separators[6] - separators[5] - 1));
-						y3 = stod(line.substr(separators[6] + 1, separators[7] - separators[6] - 1));
-					}
-
-					if (Pos.LoadFromStrings(line.substr(separators[8] + 1, separators[9] - separators[8] - 1).c_str(), line.substr(separators[7] + 1, separators[8] - separators[7] - 1).c_str()))
-					{
-						x4 = Pos.m_Latitude;
-						y4 = Pos.m_Longitude;
-					}
-					else
-					{
-						x4 = stod(line.substr(separators[7] + 1, separators[8] - separators[7] - 1));
-						y4 = stod(line.substr(separators[8] + 1, separators[9] - separators[8] - 1));
-					}
-
-					if (FindPoint(x1, y1, x2, y2, x3, y3, x4, y4, lat, lon)) {
-						TxtTime = line.substr(separators[9] + 1, line.length() - separators[9] - 1);
-						return TxtTime;
-						ZoneFound = true;
-					}
-				}
+				if (inPoly(4, LatArea, LonArea, lat, lon) % 2 != 0)
+					return match[11];
 			}
 		}
 	}
@@ -2808,32 +2758,26 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	{
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", e.what(), true, true, false, true, false);
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
-		return "15";
 	}
 	catch (...)
 	{
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", std::to_string(GetLastError()).c_str(), true, true, false, true, false);
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
-		return "15";
 	}
 
-	if (!ZoneFound) {
-		return "15";
-	}
-
-	separators.clear();
+	return "15";
 }
 
-bool CDM::FindPoint(double x1, double y1, double x2, double y2, double x3, double y3, double x4, double y4, double pointx, double pointy) {
-	double myX[] = { x1,x2,x3,x4 };
-	double myY[] = { y1,y2,y3,y4 };
+CPosition CDM::readPosition(string lat, string lon)
+{
+	CPosition p;
 
-	int final = inPoly(4, myX, myY, pointx, pointy);
-
-	if (final % 2 != 0) {
-		return true;
+	if (!p.LoadFromStrings(lon.c_str(), lat.c_str()))
+	{
+		p.m_Latitude = stod(lat);
+		p.m_Longitude = stod(lon);
 	}
-	return false;
+	return p;
 }
 
 int CDM::inPoly(int nvert, double* vertx, double* verty, double testx, double testy)
