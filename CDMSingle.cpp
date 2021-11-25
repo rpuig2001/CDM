@@ -3309,11 +3309,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		string line = sCommandLine;
 		if (line.substr(line.length() - 3, 1) == " ") {
 			refreshTime = stoi(line.substr(line.length() - 2))*500;
-			sendMessage("Refresh Time se to: " + to_string(refreshTime));
+			sendMessage("Refresh Time se to: " + to_string(line.length() - 2));
 		}
 		else if (line.substr(line.length() - 2, 1) == " ") {
 			refreshTime = stoi(line.substr(line.length() - 1))*500;
-			sendMessage("Refresh Time se to: " + to_string(refreshTime));
+			sendMessage("Refresh Time se to: " + to_string(line.length() - 1));
 		}
 		else {
 			sendMessage("INCORRECT REFRESH TIME VALUE...");
