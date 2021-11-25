@@ -93,6 +93,7 @@ CDM includes the following times:
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if if no URL needed, just leave it blank (ex. Taxizones url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
+  - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
 - ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT`` or ``XXXXXX,CTOT``, ex: ``XXXXXX,1745`` - XXXXXX is vatsim user's CID or ``VLG11P,1745`` (Each line has an aircraft)
 - taxizones.txt
@@ -103,7 +104,7 @@ CDM includes the following times:
 *Examples can be found in the givenfiles.*
 
 ### Commands
-- ``.cdm reload`` - Reloads all CDM plugin.
+- ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
 - ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
 - ``.cdm load`` - Loads savedData.txt to sync times with other controllers.

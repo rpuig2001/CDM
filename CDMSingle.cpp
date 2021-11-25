@@ -153,6 +153,13 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
+	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
+	debugMode = false;
+	if (stringDebugMode == "true") {
+		debugMode = true;
+		sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
+	}
+
 	lvo = false;
 	getRate();
 
@@ -165,6 +172,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 
 	if (taxiZonesUrl.length() <= 1) {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM LOCAL TXT FILE");
+		}
 		//Get data from .txt file
 		fstream file;
 		string lineValue;
@@ -177,6 +187,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		}
 	}
 	else {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
+		}
 		getTaxiZonesFromUrl(taxiZonesUrl);
 	}
 
@@ -913,9 +926,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			if (!planeHasTaxiTimeAssigned) {
-				if (RadarTargetSelect(callsign.c_str()).IsValid()) {
+				if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
 					double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 					double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+					if (debugMode) {
+						sendMessage("[DEBUG MESSAGE] - " + callsign + " LAT: " + to_string(lat) + " LON: " + to_string(lon) + " DEP RWY: " + depRwy);
+					}
 					string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
 					taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
 					planeHasTaxiTimeAssigned = true;
@@ -1425,6 +1441,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					countTime += 1;
 					//Refresh times every x sec
 					if (countTime > refreshTime) {
+						if (debugMode) {
+							sendMessage("[DEBUG MESSAGE] - REFRESHING");
+						}
 						countTime = 0;
 
 						//Calculate Rate
@@ -3280,13 +3299,40 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		listA.clear();
 		ctotList.clear();
 		//Get data from xml config file
+		defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
+		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds")) * 500;
+		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 		rateString = getFromXml("/CDM/rate/@ops");
+		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
+		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
+		string stringDebugMode = getFromXml("/CDM/Debug/@mode");
+		if (stringDebugMode == "true") {
+			debugMode = true;
+			sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
+		}
+		else {
+			debugMode = false;
+		}
+
+		lvo = false;
+		getRate();
+
+		ctotOption = getFromXml("/CDM/ctot/@option");
+		if (ctotOption == "cid") {
+			ctotCid = true;
+		}
+		else {
+			ctotCid = false;
+		}
 
 		//Get data from .txt file
 		fstream file;
 		string lineValue;
 		file.open(lfad.c_str(), std::ios::in);
 		if (taxiZonesUrl.length() <= 1) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM LOCAL TXT FILE");
+			}
 			//Get data from .txt file
 			fstream file;
 			string lineValue;
@@ -3299,6 +3345,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 		}
 		else {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
+			}
 			getTaxiZonesFromUrl(taxiZonesUrl);
 		}
 		sendMessage("Done");
@@ -3309,11 +3358,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		string line = sCommandLine;
 		if (line.substr(line.length() - 3, 1) == " ") {
 			refreshTime = stoi(line.substr(line.length() - 2))*500;
-			sendMessage("Refresh Time se to: " + to_string(line.length() - 2));
+			sendMessage("Refresh Time set to: " + to_string(line.length() - 2));
 		}
 		else if (line.substr(line.length() - 2, 1) == " ") {
 			refreshTime = stoi(line.substr(line.length() - 1))*500;
-			sendMessage("Refresh Time se to: " + to_string(line.length() - 1));
+			sendMessage("Refresh Time set to: " + to_string(line.length() - 1));
 		}
 		else {
 			sendMessage("INCORRECT REFRESH TIME VALUE...");
