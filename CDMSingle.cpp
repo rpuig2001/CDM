@@ -2464,6 +2464,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			*pRGB = ItemRGB;
 		}
 	}
+	else {
+		if (ItemCode == TAG_ITEM_EOBT)
+		{
+			ItemRGB = TAG_EOBT;
+			strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+		}
+	}
 }
 
 bool CDM::getRate() {
