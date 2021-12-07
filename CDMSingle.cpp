@@ -63,6 +63,7 @@ COLORREF TAG_EOBT = 0xFFFFFFFF;
 COLORREF TAG_TTOT = 0xFFFFFFFF;
 COLORREF TAG_ASRT = 0xFFFFFFFF;
 COLORREF TAG_CTOT = 0xFFFFFFFF;
+COLORREF SU_SET_COLOR = 0xFFFFFFFF;
 
 
 // Run on Plugin Initialization
@@ -246,6 +247,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 					break;
 				case 11:
 					TAG_CTOT = color;
+					break;
+				case 12:
+					SU_SET_COLOR = color;
 					break;
 				default:
 					break;
@@ -970,6 +974,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (apt == origin) {
 					master = true;
 				}
+			}
+
+			bool SU_ISSET = false;
+			if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+				SU_ISSET = true;
 			}
 
 			if (master) {
@@ -1860,7 +1869,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (ItemCode == TAG_ITEM_TOBT)
 					{
 						string ShowEOBT = (string)EOBT;
-						if (notYetEOBT) {
+						if (SU_ISSET) {
+							ItemRGB = SU_SET_COLOR;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+						else if (notYetEOBT) {
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
 							ItemRGB = TAG_GREENNOTACTIVE;
 							strcpy_s(sItemString, 16, " ");
@@ -1897,7 +1910,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (ItemCode == TAG_ITEM_TSAT)
 					{
 						string ShowTSAT = (string)TSAT;
-						if (notYetEOBT) {
+						if (SU_ISSET) {
+							ItemRGB = SU_SET_COLOR;
+							strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
+						}
+						else if (notYetEOBT) {
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
 							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, " ");
@@ -2280,7 +2297,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (ItemCode == TAG_ITEM_TOBT)
 					{
 						string ShowEOBT = (string)EOBT;
-						if (notYetEOBT) {
+						if (SU_ISSET) {
+							ItemRGB = SU_SET_COLOR;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+						else if (notYetEOBT) {
 							ItemRGB = TAG_GREENNOTACTIVE;
 							strcpy_s(sItemString, 16, " ");
 						}
@@ -2311,7 +2332,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (ItemCode == TAG_ITEM_TSAT)
 					{
 						if (TSATString.length() > 0) {
-							if (notYetEOBT) {
+							if (SU_ISSET) {
+								ItemRGB = SU_SET_COLOR;
+								strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
+							}
+							else if (notYetEOBT) {
 								ItemRGB = TAG_RED;
 								strcpy_s(sItemString, 16, " ");
 							}
@@ -2446,15 +2471,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 		else
 		{
+			string EOBTstring = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
+			string EOBTfinal = formatTime(EOBTstring);
+
 			if (ItemCode == TAG_ITEM_EOBT)
 			{
 				ItemRGB = TAG_EOBT;
-				strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+				strcpy_s(sItemString, 16, EOBTfinal.c_str());
 			}
 			else if (ItemCode == TAG_ITEM_TOBT)
 			{
 				ItemRGB = TAG_GREY;
-				strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+				strcpy_s(sItemString, 16, EOBTfinal.c_str());
 			}
 		}
 
@@ -2465,10 +2493,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 	}
 	else {
+		string EOBTstring = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
+		string EOBTfinal = formatTime(EOBTstring);
+
 		if (ItemCode == TAG_ITEM_EOBT)
 		{
 			ItemRGB = TAG_EOBT;
-			strcpy_s(sItemString, 16, FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+			strcpy_s(sItemString, 16, EOBTfinal.c_str());
 		}
 	}
 }
