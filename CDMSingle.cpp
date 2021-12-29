@@ -47,6 +47,7 @@ vector<string> planeAiportList;
 vector<string> masterAirports;
 vector<string> CDMairports;
 vector<string> CTOTcheck;
+vector<string> finalTimesList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -682,6 +683,14 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 			planeAiportList.erase(planeAiportList.begin() + j);
 		}
 	}
+
+	//Remove Plane From finalTimesList
+	for (int i = 0; i < finalTimesList.size(); i++) {
+		if (finalTimesList[i] == callsign) {
+			finalTimesList.erase(finalTimesList.begin() + i);
+		}
+	}
+
 	//Remove Taxi Times List
 	for (int j = 0; j < taxiTimesList.size(); j++)
 	{
@@ -986,6 +995,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				bool gndStatusSet = false;
 				if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 					gndStatusSet = true;
+					bool aicraftInFinalTimesList = false;
+					for (string aircraft : finalTimesList) {
+						if (aircraft == callsign) {
+							aicraftInFinalTimesList = true;
+						}
+					}
+					if (!aicraftInFinalTimesList) {
+						finalTimesList.push_back(callsign);
+					}
+				}
+				else {
+					for (int i = 0; i < finalTimesList.size(); i++) {
+						if (finalTimesList[i] == callsign) {
+							finalTimesList.erase(finalTimesList.begin() + i);
+						}
+					}
 				}
 
 				for (int i = 0; i < OutOfTsat.size(); i++)
@@ -1476,61 +1501,70 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							int myTTime = defTaxiTime;
 
 							myCallsign = slotList[i].substr(0, slotList[i].find(","));
-							CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
-
-							for (int s = 0; s < planeAiportList.size(); s++)
-							{
-								if (myCallsign == planeAiportList[s].substr(0, planeAiportList[s].find(","))) {
-									myAirport = planeAiportList[s].substr(planeAiportList[s].find(",") + 1, 4);
+							//Check if aircraft has state and no need to recalculate
+							bool aicraftInFinalTimesList = false;
+							for (string aircraft : finalTimesList) {
+								if (aircraft == myCallsign) {
+									aicraftInFinalTimesList = true;
 								}
 							}
+							if (!aicraftInFinalTimesList) {
+								CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
 
-							bool depRwyFound = false;
-							for (int t = 0; t < taxiTimesList.size(); t++)
-							{
-								if (myCallsign == taxiTimesList[t].substr(0, taxiTimesList[t].find(","))) {
-									if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 3, 1) == ",") {
-										myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 2);
-										depRwyFound = true;
-									}
-									else if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 4, 1) == ",") {
-										myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 3);
-										depRwyFound = true;
-									}
-
-									if (taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 1) == ",") {
-										myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 1, 1));
-									}
-									else {
-										myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 2));
+								for (int s = 0; s < planeAiportList.size(); s++)
+								{
+									if (myCallsign == planeAiportList[s].substr(0, planeAiportList[s].find(","))) {
+										myAirport = planeAiportList[s].substr(planeAiportList[s].find(",") + 1, 4);
 									}
 								}
-							}
 
-							myRemarks = myFlightPlan.GetFlightPlanData().GetRemarks();
-							bool myhasCTOT = false;
-							int myCtotPos = 0;
-							for (int s = 0; s < ctotList.size(); s++)
-							{
-								if (myCallsign == ctotList[s].substr(0, ctotList[s].find(","))) {
-									myhasCTOT = true;
-									myCtotPos = s;
+								bool depRwyFound = false;
+								for (int t = 0; t < taxiTimesList.size(); t++)
+								{
+									if (myCallsign == taxiTimesList[t].substr(0, taxiTimesList[t].find(","))) {
+										if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 3, 1) == ",") {
+											myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 2);
+											depRwyFound = true;
+										}
+										else if (taxiTimesList[t].substr(taxiTimesList[t].find(",") + 4, 1) == ",") {
+											myDepRwy = taxiTimesList[t].substr(taxiTimesList[t].find(",") + 1, 3);
+											depRwyFound = true;
+										}
+
+										if (taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 1) == ",") {
+											myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 1, 1));
+										}
+										else {
+											myTTime = stoi(taxiTimesList[t].substr(taxiTimesList[t].length() - 2, 2));
+										}
+									}
 								}
-							}
 
-							myEOBT = slotList[i].substr(slotList[i].find(",") + 1, 6);
+								myRemarks = myFlightPlan.GetFlightPlanData().GetRemarks();
+								bool myhasCTOT = false;
+								int myCtotPos = 0;
+								for (int s = 0; s < ctotList.size(); s++)
+								{
+									if (myCallsign == ctotList[s].substr(0, ctotList[s].find(","))) {
+										myhasCTOT = true;
+										myCtotPos = s;
+									}
+								}
 
-							if (myhasCTOT) {
-								//TSAT and TTOT with CTOT
-								myTTOT = formatTime(ctotList[myCtotPos].substr(ctotList[myCtotPos].find(",") + 1, 4) + "00");
-								myTSAT = calculateLessTime(myTTOT, myTTime);
-							}
-							else {
-								myTSAT = myEOBT;
-								myTTOT = calculateTime(myEOBT, myTTime);
-							}
+								myEOBT = slotList[i].substr(slotList[i].find(",") + 1, 6);
 
-							refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, rateHour, myhasCTOT, myCtotPos, i, true);
+								if (myhasCTOT) {
+									//TSAT and TTOT with CTOT
+									myTTOT = formatTime(ctotList[myCtotPos].substr(ctotList[myCtotPos].find(",") + 1, 4) + "00");
+									myTSAT = calculateLessTime(myTTOT, myTTime);
+								}
+								else {
+									myTSAT = myEOBT;
+									myTTOT = calculateTime(myEOBT, myTTime);
+								}
+
+								refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, rateHour, myhasCTOT, myCtotPos, i, true);
+							}
 						}
 					}
 
@@ -3048,7 +3082,7 @@ int CDM::GetVersion() {
 	}
 
 	if (readBuffer != MY_PLUGIN_VERSION) {
-		string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have version " + MY_PLUGIN_VERSION " installed, install it in puigcloud.me/CDM";
+		string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have version " + MY_PLUGIN_VERSION " installed, download it from puigcloud.me/CDM";
 		DisplayUserMessage(MY_PLUGIN_NAME, "UPDATE", DisplayMsg.c_str(), true, false, false, false, false);
 	}
 
