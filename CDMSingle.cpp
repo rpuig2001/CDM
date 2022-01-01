@@ -1996,14 +1996,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (ItemCode == TAG_ITEM_ASAT)
 					{
 						if (ASATFound) {
-							if (ASATPlusFiveLessTen) {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_YELLOW;
-								strcpy_s(sItemString, 16, ASATtext.c_str());
+							if ((string)FlightPlan.GetGroundState() == "" || (string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP") {
+								if (ASATPlusFiveLessTen) {
+									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, ASATtext.c_str());
+								}
+								else {
+									ItemRGB = TAG_GREEN;
+									strcpy_s(sItemString, 16, ASATtext.c_str());
+								}
 							}
 							else {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_GREEN;
+								ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, ASATtext.c_str());
 							}
 						}
@@ -2412,12 +2416,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else if (ItemCode == TAG_ITEM_ASAT)
 					{
 						if (ASATFound) {
-							if (ASATPlusFiveLessTen) {
-								ItemRGB = TAG_YELLOW;
-								strcpy_s(sItemString, 16, ASATtext.c_str());
+							if ((string)FlightPlan.GetGroundState() == "" || (string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP") {
+								if (ASATPlusFiveLessTen) {
+									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, ASATtext.c_str());
+								}
+								else {
+									ItemRGB = TAG_GREEN;
+									strcpy_s(sItemString, 16, ASATtext.c_str());
+								}
 							}
 							else {
-								ItemRGB = TAG_GREEN;
+								ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, ASATtext.c_str());
 							}
 						}
