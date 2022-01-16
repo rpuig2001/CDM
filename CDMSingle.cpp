@@ -22,6 +22,7 @@ string rateString;
 string lvoRateString;
 string ctotOption;
 int expiredCTOTTime;
+bool eventMode;
 bool defaultRate;
 int countTime;
 int refreshTime;
@@ -48,6 +49,7 @@ vector<string> masterAirports;
 vector<string> CDMairports;
 vector<string> CTOTcheck;
 vector<string> finalTimesList;
+vector<string> eventModeList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -155,6 +157,13 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
+	string getEventMode = getFromXml("/CDM/eventMode/@mode");
+	if (getEventMode == "1") {
+		eventMode = true;
+	}
+	else {
+		eventMode = false;
+	}
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	debugMode = false;
 	if (stringDebugMode == "true") {
@@ -574,6 +583,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_REAASRT) {
 		if (master && AtcMe) {
+			if (eventMode) {
+				eventModeList.push_back(fp.GetCallsign());
+			}
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
 
@@ -661,6 +673,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_REA) {
 		if (master && AtcMe) {
+			if (eventMode) {
+				eventModeList.push_back(fp.GetCallsign());
+			}
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
 		}
@@ -743,6 +758,13 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	{
 		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
 			OutOfTsat.erase(OutOfTsat.begin() + i);
+		}
+	}
+	//Remove from EventModeList
+	for (int i = 0; i < eventModeList.size(); i++)
+	{
+		if (callsign == eventModeList[i]) {
+			eventModeList.erase(eventModeList.begin() + i);
 		}
 	}
 }
@@ -833,6 +855,32 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
+			//check if has CTOT
+			for (int i = 0; i < ctotList.size(); i++)
+			{
+				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
+					hasCTOT = true;
+					ctotPos = i;
+				}
+			}
+			bool isValidToCalculateEventMode = true;
+			if (eventMode) {
+				isValidToCalculateEventMode = false;
+				if (remarks.length() > 0) {
+					isValidToCalculateEventMode = true;
+				}
+				else {
+					for (string cs : eventModeList) {
+						if (cs == callsign) {
+							isValidToCalculateEventMode = true;
+						}
+					}
+				}
+			}
+
+			//It'll calculate pilot's times if EventMode is off("0") or (hasCtot or a Rea has been done to calculate's times)
+			if(hasCTOT || isValidToCalculateEventMode){
+
 			//EOBT
 			EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 			string EOBTstring = EOBT;
@@ -848,15 +896,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			{
 				if (listA[i] == (string)FlightPlan.GetCallsign()) {
 					hasValueInA = true;
-				}
-			}
-
-			//CTOT
-			for (int i = 0; i < ctotList.size(); i++)
-			{
-				if (callsign == ctotList[i].substr(0, ctotList[i].find(","))) {
-					hasCTOT = true;
-					ctotPos = i;
 				}
 			}
 
@@ -2544,6 +2583,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			strcpy_s(sItemString, 16, EOBTfinal.c_str());
 		}
 	}
+	}
 }
 
 bool CDM::getRate() {
@@ -2794,35 +2834,34 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 	}
 }
 
-
 /*
 * Mehod to push FlightStrip Data to other controllers (old Amend)
-*/
+
 void CDM::PushToOtherControllers(CFlightPlan fp) {
 	
 }
-
+*/
 /*
 * Method to calculate TSAT from TTOT
-*/
+
 void CDM::CalculateTSAT(string TTOT) {
 
 }
-
+*/
 /*
 * Method to calculate TTOT
-*/
+
 void CDM::CalculateAvailableTTOT(string TTOT) {
 
 }
-
+*/
 /*
 * Method to check if plane has CTOT
-*/
+
 void CDM::CheckCtot(string TTOT) {
 
 }
-
+*/
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	long int timeNow = static_cast<long int>(std::time(nullptr));
 	string completeTime = unixTimeToHumanReadable(timeNow);
