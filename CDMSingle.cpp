@@ -3438,7 +3438,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Reloading CDM....");
 		slotList.clear();
 		tsacList.clear();
-		CTOTcheck.clear();
 		asatList.clear();
 		asrtList.clear();
 		taxiTimesList.clear();
@@ -3446,26 +3445,39 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		OutOfTsat.clear();
 		listA.clear();
 		ctotList.clear();
+		colors.clear();
+		rate.clear();
+		planeAiportList.clear();
+		masterAirports.clear();
+		CDMairports.clear();
+		CTOTcheck.clear();
+		finalTimesList.clear();
+		eventModeList.clear();
 		//Get data from xml config file
 		defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
+		ctotOption = getFromXml("/CDM/ctot/@option");
 		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds")) * 500;
 		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 		rateString = getFromXml("/CDM/rate/@ops");
 		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
+		string getEventMode = getFromXml("/CDM/eventMode/@mode");
+		if (getEventMode == "1") {
+			eventMode = true;
+		}
+		else {
+			eventMode = false;
+		}
 		string stringDebugMode = getFromXml("/CDM/Debug/@mode");
+		debugMode = false;
 		if (stringDebugMode == "true") {
 			debugMode = true;
 			sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
-		}
-		else {
-			debugMode = false;
 		}
 
 		lvo = false;
 		getRate();
 
-		ctotOption = getFromXml("/CDM/ctot/@option");
 		if (ctotOption == "cid") {
 			ctotCid = true;
 		}
@@ -3473,10 +3485,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			ctotCid = false;
 		}
 
-		//Get data from .txt file
-		fstream file;
-		string lineValue;
-		file.open(lfad.c_str(), std::ios::in);
+
 		if (taxiZonesUrl.length() <= 1) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM LOCAL TXT FILE");
@@ -3498,6 +3507,69 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 			getTaxiZonesFromUrl(taxiZonesUrl);
 		}
+
+		fstream fileCtot;
+		string lineValueCtot;
+		fileCtot.open(cfad.c_str(), std::ios::in);
+		while (getline(fileCtot, lineValueCtot))
+		{
+			addCtotToMainList(lineValueCtot);
+		}
+
+		fstream fileColors;
+		string lineValueColors;
+		vector<int> sep;
+		fileColors.open(vfad.c_str(), std::ios::in);
+		COLORREF color = RGB(0, 0, 0);
+		smatch match;
+		while (getline(fileColors, lineValueColors))
+		{
+			if (regex_match(lineValueColors, match, regex("^color(\\d+):(\\d+),(\\d+),(\\d+)$", regex::icase)))
+			{
+				color = RGB(stoi(match[2]), stoi(match[3]), stoi(match[4]));
+				switch (stoi(match[1]))
+				{
+				case 1:
+					TAG_GREEN = color;
+					break;
+				case 2:
+					TAG_GREENNOTACTIVE = color;
+					break;
+				case 3:
+					TAG_GREY = color;
+					break;
+				case 4:
+					TAG_ORANGE = color;
+					break;
+				case 5:
+					TAG_YELLOW = color;
+					break;
+				case 6:
+					TAG_DARKYELLOW = color;
+					break;
+				case 7:
+					TAG_RED = color;
+					break;
+				case 8:
+					TAG_EOBT = color;
+					break;
+				case 9:
+					TAG_TTOT = color;
+					break;
+				case 10:
+					TAG_ASRT = color;
+					break;
+				case 11:
+					TAG_CTOT = color;
+					break;
+				case 12:
+					SU_SET_COLOR = color;
+					break;
+				default:
+					break;
+				}
+			}
+		}
 		sendMessage("Done");
 		return true;
 	}
@@ -3506,11 +3578,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		string line = sCommandLine;
 		if (line.substr(line.length() - 3, 1) == " ") {
 			refreshTime = stoi(line.substr(line.length() - 2))*500;
-			sendMessage("Refresh Time set to: " + to_string(line.length() - 2));
+			sendMessage("Refresh Time set to: " + line.substr(line.length() - 2));
 		}
 		else if (line.substr(line.length() - 2, 1) == " ") {
 			refreshTime = stoi(line.substr(line.length() - 1))*500;
-			sendMessage("Refresh Time set to: " + to_string(line.length() - 1));
+			sendMessage("Refresh Time set to: " + line.substr(line.length() - 1));
 		}
 		else {
 			sendMessage("INCORRECT REFRESH TIME VALUE...");
