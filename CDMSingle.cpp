@@ -36,7 +36,6 @@ int defTaxiTime;
 vector<string> slotList;
 vector<string> tsacList;
 vector<string> asatList;
-vector<string> asrtList;
 vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
 vector<string> OutOfTsat;
@@ -49,7 +48,6 @@ vector<string> masterAirports;
 vector<string> CDMairports;
 vector<string> CTOTcheck;
 vector<string> finalTimesList;
-vector<string> eventModeList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -85,6 +83,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
+	RegisterTagItemFunction("Ready TOBT", TAG_FUNC_READYTOBT);
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
@@ -152,7 +151,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//airport = getFromXml("/CDM/apt/@icao");
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 	ctotOption = getFromXml("/CDM/ctot/@option");
-	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"))*500;
+	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"))*50;
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
@@ -454,17 +453,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_TOGGLEASRT) {
 		if (master && AtcMe) {
-			string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
-			bool callsignFound = false;
-			int ASRTpos;
-			for (int i = 0; i < asrtList.size(); i++)
-			{
-				if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-					callsignFound = true;
-					ASRTpos = i;
-				}
-			}
-			if (!callsignFound) {
+			string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
+			if (annotAsrt.empty()) {
 				//Get Time now
 				long int timeNow = static_cast<long int>(std::time(nullptr));
 				string completeTime = unixTimeToHumanReadable(timeNow);
@@ -487,49 +477,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					hour = "0" + hour.substr(1, 1);
 				}
 
-				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
-				if (remarks.find("ASRT") == string::npos) {
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						remarks = stringToAdd;
-					}
-					else if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else {
-						string stringToAdd = remarks + " ASRT" + hour + min;
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-				}
+				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 			}
 			else {
-				asrtList.erase(asrtList.begin() + ASRTpos);
-				if (remarks.find("ASRT") != string::npos) {
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-				}
+				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 			}
 		}
 	}
@@ -583,89 +534,56 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_REAASRT) {
 		if (master && AtcMe) {
-			if (eventMode) {
-				eventModeList.push_back(fp.GetCallsign());
-			}
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
+			if (!eventMode) {
+				//Get Time now
+				long int timeNow = static_cast<long int>(std::time(nullptr));
+				string completeTime = unixTimeToHumanReadable(timeNow);
+				string hour = "";
+				string min = "";
 
-			string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
-			bool callsignFound = false;
-			int ASRTpos;
-			for (int i = 0; i < asrtList.size(); i++)
-			{
-				if ((string)fp.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-					callsignFound = true;
-					ASRTpos = i;
+				hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+				if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+					min = completeTime.substr(completeTime.find(":") + 1, 2);
 				}
-			}
+				else {
+					min = completeTime.substr(completeTime.find(":") + 1, 1);
+				}
 
-			//Get Time now
-			long int timeNow = static_cast<long int>(std::time(nullptr));
-			string completeTime = unixTimeToHumanReadable(timeNow);
-			string hour = "";
-			string min = "";
+				if (stoi(min) < 10) {
+					min = "0" + min;
+				}
+				if (stoi(hour) < 10) {
+					hour = "0" + hour.substr(1, 1);
+				}
 
-			hour = completeTime.substr(completeTime.find(":") - 2, 2);
+				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
+				if (annotAsrt.empty()) {
+					//Get Time now
+					long int timeNow = static_cast<long int>(std::time(nullptr));
+					string completeTime = unixTimeToHumanReadable(timeNow);
+					string hour = "";
+					string min = "";
 
-			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-				min = completeTime.substr(completeTime.find(":") + 1, 2);
-			}
-			else {
-				min = completeTime.substr(completeTime.find(":") + 1, 1);
-			}
+					hour = completeTime.substr(completeTime.find(":") - 2, 2);
 
-			if (stoi(min) < 10) {
-				min = "0" + min;
-			}
-			if (stoi(hour) < 10) {
-				hour = "0" + hour.substr(1, 1);
-			}
-
-			if (!callsignFound) {
-				asrtList.push_back((string)fp.GetCallsign() + "," + hour + min);
-				if (remarks.find("ASRT") == string::npos) {
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
-					else if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+					if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+						min = completeTime.substr(completeTime.find(":") + 1, 2);
 					}
 					else {
-						string stringToAdd = remarks + " ASRT" + hour + min;
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+						min = completeTime.substr(completeTime.find(":") + 1, 1);
 					}
-				}
-			}
-			else {
-				asrtList[ASRTpos] = (string)fp.GetCallsign() + "," + hour + min;
-				if (remarks.find("ASRT") != string::npos) {
-					if (remarks.find("CTOT") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+
+					if (stoi(min) < 10) {
+						min = "0" + min;
 					}
-					else if (remarks.find("%") != string::npos) {
-						string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + hour + min + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
+					if (stoi(hour) < 10) {
+						hour = "0" + hour.substr(1, 1);
 					}
-					else {
-						string stringToAdd = remarks + " ASRT" + hour + min;
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						//fp.GetFlightPlanData().AmendFlightPlan();
-						remarks = stringToAdd;
-					}
+
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 				}
 			}
 		}
@@ -673,11 +591,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_REA) {
 		if (master && AtcMe) {
-			if (eventMode) {
-				eventModeList.push_back(fp.GetCallsign());
-			}
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_READYTOBT) {
+		if (master && AtcMe) {
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, GetActualTime().c_str());
 		}
 	}
 }
@@ -737,15 +658,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 		}
 	}
 
-	//Remove ASRT
-	for (int x = 0; x < asrtList.size(); x++)
-	{
-		string actualListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
-		if (actualListCallsign == callsign) {
-			asrtList.erase(asrtList.begin() + x);
-		}
-	}
-
 	//Remove from listA
 	for (int i = 0; i < listA.size(); i++)
 	{
@@ -758,13 +670,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	{
 		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
 			OutOfTsat.erase(OutOfTsat.begin() + i);
-		}
-	}
-	//Remove from EventModeList
-	for (int i = 0; i < eventModeList.size(); i++)
-	{
-		if (callsign == eventModeList[i]) {
-			eventModeList.erase(eventModeList.begin() + i);
 		}
 	}
 }
@@ -864,27 +769,26 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 			bool isValidToCalculateEventMode = true;
+			string tobt = "";
 			if (eventMode) {
 				isValidToCalculateEventMode = false;
-				if (remarks.length() > 0) {
+				tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+				if (tobt.length() > 0) {
 					isValidToCalculateEventMode = true;
-				}
-				else {
-					for (string cs : eventModeList) {
-						if (cs == callsign) {
-							isValidToCalculateEventMode = true;
-						}
-					}
 				}
 			}
 
 			//It'll calculate pilot's times if EventMode is off("0") or (hasCtot or a Rea has been done to calculate's times)
 			if(hasCTOT || isValidToCalculateEventMode){
-
 			//EOBT
 			EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 			string EOBTstring = EOBT;
 			string EOBTfinal = formatTime(EOBTstring);
+
+			if (tobt.length() > 0) {
+				EOBTfinal = tobt;
+			}
+
 			EOBTfinal += "00";
 			EOBT = EOBTfinal.c_str();
 			bool stillOutOfTsat = false;
@@ -1122,9 +1026,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					if (ItemCode == TAG_ITEM_EOBT)
 					{
-						string ShowEOBT = (string)EOBT;
+						string ShowEOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 						ItemRGB = TAG_EOBT;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						strcpy_s(sItemString, 16, ShowEOBT.c_str());
 					}
 					else if (ItemCode == TAG_ITEM_TOBT)
 					{
@@ -1719,17 +1623,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					if (oldTSAT && !correctState && !hasCTOT) {
 						OutOfTsat.push_back(callsign + "," + EOBT);
-						for (int i = 0; i < asrtList.size(); i++)
-						{
-							if ((string)FlightPlan.GetCallsign() == asrtList[i].substr(0, asrtList[i].find(","))) {
-								asrtList.erase(asrtList.begin() + i);
-								if (remarks.find("ASRT") != string::npos) {
-									string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-									FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-									remarks = stringToAdd;
-								}
-							}
-						}
+						FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 						if (remarks.find("CTOT") != string::npos) {
 							string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
 							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
@@ -1798,82 +1692,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
-					//ASRT
-					bool ASRTFound = false;
-					string ASRTtext = " ";
-					for (int x = 0; x < asrtList.size(); x++)
-					{
-						string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
-						if (MyListCallsign == callsign) {
-							ASRTFound = true;
-							ASRTtext = asrtList[x].substr(asrtList[x].find(",") + 1, 4);
-						}
-					}
-
-					//Sync ASRT
-					if (remarks.find("ASRT") != string::npos && ASRTFound) {
-						if (ASRTtext != remarks.substr(remarks.find("ASRT") + 4, 4)) {
-							if (remarks.find("CTOT") != string::npos) {
-								string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-								//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-								remarks = stringToAdd;
-							}
-							else if (remarks.find("%") != string::npos) {
-								string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-								//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-								remarks = stringToAdd;
-							}
-							else {
-								string stringToAdd = remarks + " ASRT" + ASRTtext;
-								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-								//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-								remarks = stringToAdd;
-							}
-						}
-					}
-					else if (ASRTFound && !stsDepa) {
-						if (remarks.find("CTOT") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-							//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-						else if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("%")) + "ASRT" + ASRTtext + " " + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-							//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-						else {
-							string stringToAdd = remarks + " ASRT" + ASRTtext;
-							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-							//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-					}
-					else if (remarks.find("ASRT") != string::npos && !ASRTFound) {
-						if (remarks.find("CTOT") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("CTOT"), remarks.length() - remarks.find("CTOT"));
-							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-							//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-						else if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-							//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-						else {
-							string stringToAdd = remarks.substr(0, remarks.find("ASRT") - 1);
-							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-							//FlightPlan.GetFlightPlanData().AmendFlightPlan();
-							remarks = stringToAdd;
-						}
-					}
-
 					//ASAT
 					bool ASATFound = false;
 					bool ASATPlusFiveLessTen = false;
@@ -1932,10 +1750,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					if (ItemCode == TAG_ITEM_EOBT)
 					{
-						string ShowEOBT = (string)EOBT;
+						string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 						//*pColorCode = TAG_COLOR_RGB_DEFINED;
 						ItemRGB = TAG_EOBT;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						strcpy_s(sItemString, 16, ShowEOBT.c_str());
 					}
 					else if (ItemCode == TAG_ITEM_TOBT)
 					{
@@ -2056,7 +1874,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else if (ItemCode == TAG_ITEM_ASRT)
 					{
-						if (ASRTFound) {
+						string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+						if (!ASRTtext.empty()) {
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
 							ItemRGB = TAG_ASRT;
 							strcpy_s(sItemString, 16, ASRTtext.c_str());
@@ -2268,45 +2087,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
-
-					//ASRT
-					bool ASRTFound = false;
-					int ASRTPos;
-					string ASRTtext = "";
-					for (int x = 0; x < asrtList.size(); x++)
-					{
-						string MyListCallsign = asrtList[x].substr(0, asrtList[x].find(","));
-						if (MyListCallsign == callsign) {
-							ASRTFound = true;
-							ASRTPos = x;
-						}
-					}
-
-					if (ASRTFound) {
-						if (remarks.find("ASRT") != string::npos) {
-							//If ASRT changed
-							if (asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4) != remarks.substr(remarks.find("ASRT") + 4, 4)) {
-								ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
-								asrtList[ASRTPos] = callsign + "," + ASRTtext;
-							}
-							else {
-								ASRTtext = asrtList[ASRTPos].substr(asrtList[ASRTPos].find(",") + 1, 4);
-							}
-						}
-						else {
-							//If ASRT not in remarks but yes in list
-							asrtList.erase(asrtList.begin() + ASRTPos);
-							ASRTFound = false;
-						}
-					}
-					else {
-						if (remarks.find("ASRT") != string::npos) {
-							//If Yes in remarks but not in list
-							ASRTtext = remarks.substr(remarks.find("ASRT") + 4, 4);
-							asrtList.push_back(callsign + "," + ASRTtext);
-						}
-					}
-
 					//ASAT
 					bool ASATFound = false;
 					bool ASATPlusFiveLessTen = false;
@@ -2365,9 +2145,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					if (ItemCode == TAG_ITEM_EOBT)
 					{
-						string ShowEOBT = (string)EOBT;
+						string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 						ItemRGB = TAG_EOBT;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						strcpy_s(sItemString, 16, ShowEOBT.c_str());
 					}
 					else if (ItemCode == TAG_ITEM_TOBT)
 					{
@@ -2475,14 +2255,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else if (ItemCode == TAG_ITEM_ASRT)
 					{
-						if (ASRTFound) {
-							ItemRGB = TAG_ASRT;
-							strcpy_s(sItemString, 16, ASRTtext.c_str());
-						}
-						else {
-							ItemRGB = TAG_ASRT;
-							strcpy_s(sItemString, 16, " ");
-						}
+					string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+					if (!ASRTtext.empty()) {
+						//*pColorCode = TAG_COLOR_RGB_DEFINED;
+						ItemRGB = TAG_ASRT;
+						strcpy_s(sItemString, 16, ASRTtext.c_str());
+					}
+					else {
+						//*pColorCode = TAG_COLOR_RGB_DEFINED;
+						ItemRGB = TAG_ASRT;
+						strcpy_s(sItemString, 16, " ");
+					}
 					}
 					else if (ItemCode == TAG_ITEM_A)
 					{
@@ -2518,9 +2301,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (ItemCode == TAG_ITEM_EOBT)
 					{
-						string ShowEOBT = (string)EOBT;
+						string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 						ItemRGB = TAG_EOBT;
-						strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						strcpy_s(sItemString, 16, ShowEOBT.c_str());
 					}
 					else if (ItemCode == TAG_ITEM_TSAC)
 					{
@@ -2640,10 +2423,12 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 		correctTTOT = true;
 		for (int t = 0; t < slotList.size(); t++)
 		{
+			
 			string listTTOT;
 			string listCallsign = slotList[t].substr(0, slotList[t].find(","));
 			string listDepRwy = "";
 			bool depRwyFound = false;
+			PushToOtherControllers(FlightPlanSelect(listCallsign.c_str()));
 			for (int i = 0; i < taxiTimesList.size(); i++)
 			{
 				if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
@@ -2836,11 +2621,14 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 
 /*
 * Mehod to push FlightStrip Data to other controllers (old Amend)
-
-void CDM::PushToOtherControllers(CFlightPlan fp) {
-	
-}
 */
+void CDM::PushToOtherControllers(CFlightPlan fp) {
+	for (CController c = ControllerSelectFirst(); c.IsValid(); c = ControllerSelectNext(c)) {
+		if (c.IsController()) {
+			fp.PushFlightStrip(c.GetCallsign());
+		}
+	}
+}
 /*
 * Method to calculate TSAT from TTOT
 
@@ -2862,6 +2650,32 @@ void CDM::CheckCtot(string TTOT) {
 
 }
 */
+
+string CDM::GetActualTime() {
+	//Get Time now
+	long int timeNow = static_cast<long int>(std::time(nullptr));
+	string completeTime = unixTimeToHumanReadable(timeNow);
+	string hour = "";
+	string min = "";
+
+	hour = completeTime.substr(completeTime.find(":") - 2, 2);
+
+	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+		min = completeTime.substr(completeTime.find(":") + 1, 2);
+	}
+	else {
+		min = completeTime.substr(completeTime.find(":") + 1, 1);
+	}
+
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
+	if (stoi(hour) < 10) {
+		hour = "0" + hour.substr(1, 1);
+	}
+	return hour + min;
+}
+
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	long int timeNow = static_cast<long int>(std::time(nullptr));
 	string completeTime = unixTimeToHumanReadable(timeNow);
@@ -3439,7 +3253,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		slotList.clear();
 		tsacList.clear();
 		asatList.clear();
-		asrtList.clear();
 		taxiTimesList.clear();
 		TxtTimesVector.clear();
 		OutOfTsat.clear();
@@ -3452,7 +3265,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		CDMairports.clear();
 		CTOTcheck.clear();
 		finalTimesList.clear();
-		eventModeList.clear();
 		//Get data from xml config file
 		defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 		ctotOption = getFromXml("/CDM/ctot/@option");
@@ -3577,11 +3389,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm refreshtime", sCommandLine)) {
 		string line = sCommandLine;
 		if (line.substr(line.length() - 3, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 2))*500;
+			refreshTime = stoi(line.substr(line.length() - 2))*50;
 			sendMessage("Refresh Time set to: " + line.substr(line.length() - 2));
 		}
 		else if (line.substr(line.length() - 2, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 1))*500;
+			refreshTime = stoi(line.substr(line.length() - 1))*50;
 			sendMessage("Refresh Time set to: " + line.substr(line.length() - 1));
 		}
 		else {

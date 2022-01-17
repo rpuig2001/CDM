@@ -58,6 +58,8 @@ public:
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
 
+	string GetActualTime();
+
 	CPosition readPosition(string lat, string lon)
 	{
 		CPosition p;
