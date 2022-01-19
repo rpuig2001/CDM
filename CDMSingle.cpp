@@ -34,7 +34,6 @@ string taxiZonesUrl;
 int defTaxiTime;
 
 vector<string> slotList;
-vector<string> tsacList;
 vector<string> asatList;
 vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
@@ -380,42 +379,22 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				notYetEOBT = true;
 			}
 		}
-		for (int i = 0; i < tsacList.size(); i++)
-		{
-			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
-				tsacList.erase(tsacList.begin() + i);
-			}
-		}
 		if (!notYetEOBT) {
 			for (int a = 0; a < slotList.size(); a++)
 			{
 				if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
 					string getTSAT = slotList[a].substr(slotList[a].find(",") + 8, 6);
-					string valuesToAdd = (string)fp.GetCallsign() + "," + getTSAT;
-					tsacList.push_back(valuesToAdd);
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(2, getTSAT.c_str());
 				}
 			}
 		}
 	}
 
 	if (FunctionId == TAG_FUNC_EDITTSAC) {
-		string tsacValue = "";
-		for (int i = 0; i < tsacList.size(); i++)
-		{
-			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
-				tsacValue = tsacList[i].substr(tsacList[i].find(",") + 1, 4);
-			}
-		}
-		OpenPopupEdit(Area, TAG_FUNC_NEWTSAC, tsacValue.c_str());
+		OpenPopupEdit(Area, TAG_FUNC_NEWTSAC, fp.GetControllerAssignedData().GetFlightStripAnnotation(2));
 	}
 
 	if (FunctionId == TAG_FUNC_NEWTSAC) {
-		for (int i = 0; i < tsacList.size(); i++)
-		{
-			if (tsacList[i].substr(0, tsacList[i].find(",")) == fp.GetCallsign()) {
-				tsacList.erase(tsacList.begin() + i);
-			}
-		}
 		string editedTSAC = ItemString;
 		if (editedTSAC.length() > 0) {
 			bool hasNoNumber = true;
@@ -426,8 +405,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 				if (hasNoNumber) {
-					string valuesToAdd = (string)fp.GetCallsign() + "," + (editedTSAC + "00");
-					tsacList.push_back(valuesToAdd);
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(2, editedTSAC.c_str());
 				}
 			}
 		}
@@ -631,13 +609,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	{
 		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
 			taxiTimesList.erase(taxiTimesList.begin() + j);
-		}
-	}
-	//Remove TSAC
-	for (int i = 0; i < tsacList.size(); i++)
-	{
-		if (tsacList[i].substr(0, tsacList[i].find(",")) == callsign) {
-			tsacList.erase(tsacList.begin() + i);
 		}
 	}
 
@@ -1671,20 +1642,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					//TSAC
-					bool TSACFound = false;
 					bool TSACNotTSAT = false;
-					string ThisTSAC = "";
-					for (int d = 0; d < tsacList.size(); d++)
-					{
-						if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
-							TSACFound = true;
-							ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
-						}
-					}
+					string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
 
-					if (TSACFound) {
-						string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
-						string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
+					if (!annotTSAC.empty()) {
+						string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
+						string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
 
 						int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
 						if (TSACDif > 5 || TSACDif < -5) {
@@ -1783,12 +1746,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (TSACNotTSAT) {
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
 							ItemRGB = TAG_ORANGE;
-							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+							strcpy_s(sItemString, 16, annotTSAC.c_str());
 						}
-						else if (TSACFound) {
+						else if (!annotTSAC.empty()) {
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
 							ItemRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+							strcpy_s(sItemString, 16, annotTSAC.c_str());
 						}
 						else {
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
@@ -2066,20 +2029,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					//TSAC
-					bool TSACFound = false;
 					bool TSACNotTSAT = false;
-					string ThisTSAC = "";
-					for (int d = 0; d < tsacList.size(); d++)
-					{
-						if (callsign == tsacList[d].substr(0, tsacList[d].find(","))) {
-							TSACFound = true;
-							ThisTSAC = tsacList[d].substr(tsacList[d].find(",") + 1, 6);
-						}
-					}
+					string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
 
-					if (TSACFound) {
-						string TSAChour = ThisTSAC.substr(ThisTSAC.length() - 6, 2);
-						string TSACmin = ThisTSAC.substr(ThisTSAC.length() - 4, 2);
+					if (!annotTSAC.empty()) {
+						string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
+						string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
 
 						int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
 						if (TSACDif > 5 || TSACDif < -5) {
@@ -2173,11 +2128,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					{
 						if (TSACNotTSAT) {
 							ItemRGB = TAG_ORANGE;
-							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+							strcpy_s(sItemString, 16, annotTSAC.c_str());
 						}
-						else if (TSACFound) {
+						else if (!annotTSAC.empty()) {
 							ItemRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, ThisTSAC.substr(0, ThisTSAC.length() - 2).c_str());
+							strcpy_s(sItemString, 16, annotTSAC.c_str());
 						}
 						else {
 							ItemRGB = TAG_GREEN;
@@ -3251,7 +3206,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		sendMessage("Reloading CDM....");
 		slotList.clear();
-		tsacList.clear();
 		asatList.clear();
 		taxiTimesList.clear();
 		TxtTimesVector.clear();
