@@ -335,58 +335,64 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	if (FunctionId == TAG_FUNC_ADDTSAC) {
-		//Get Time now
-		long int timeNow = static_cast<long int>(std::time(nullptr));
-		string completeTime = unixTimeToHumanReadable(timeNow);
-		string hour = "";
-		string min = "";
+		string annotTSAC = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
+		if (annotTSAC.empty()) {
+			//Get Time now
+			long int timeNow = static_cast<long int>(std::time(nullptr));
+			string completeTime = unixTimeToHumanReadable(timeNow);
+			string hour = "";
+			string min = "";
 
-		hour = completeTime.substr(completeTime.find(":") - 2, 2);
+			hour = completeTime.substr(completeTime.find(":") - 2, 2);
 
-		if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-			min = completeTime.substr(completeTime.find(":") + 1, 2);
-		}
-		else {
-			min = completeTime.substr(completeTime.find(":") + 1, 1);
-		}
-
-		if (stoi(min) < 10) {
-			min = "0" + min;
-		}
-		if (stoi(hour) < 10) {
-			hour = "0" + hour.substr(1, 1);
-		}
-		bool notYetEOBT = false;
-		string completeEOBT = (string)fp.GetFlightPlanData().GetEstimatedDepartureTime();
-		completeEOBT = formatTime(completeEOBT);
-		string EOBThour = completeEOBT.substr(0, 2);
-		string EOBTmin = completeEOBT.substr(2, 2);
-
-		if (hour != "00") {
-			if (EOBThour == "00") {
-				EOBThour = "24";
+			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
+				min = completeTime.substr(completeTime.find(":") + 1, 2);
 			}
-		}
+			else {
+				min = completeTime.substr(completeTime.find(":") + 1, 1);
+			}
 
-		int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
-		if (hour != EOBThour) {
-			if (EOBTdifTime < -75) {
-				notYetEOBT = true;
+			if (stoi(min) < 10) {
+				min = "0" + min;
 			}
-		}
-		else {
-			if (EOBTdifTime < -35) {
-				notYetEOBT = true;
+			if (stoi(hour) < 10) {
+				hour = "0" + hour.substr(1, 1);
 			}
-		}
-		if (!notYetEOBT) {
-			for (int a = 0; a < slotList.size(); a++)
-			{
-				if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
-					string getTSAT = slotList[a].substr(slotList[a].find(",") + 8, 6);
-					fp.GetControllerAssignedData().SetFlightStripAnnotation(2, getTSAT.c_str());
+			bool notYetEOBT = false;
+			string completeEOBT = (string)fp.GetFlightPlanData().GetEstimatedDepartureTime();
+			completeEOBT = formatTime(completeEOBT);
+			string EOBThour = completeEOBT.substr(0, 2);
+			string EOBTmin = completeEOBT.substr(2, 2);
+
+			if (hour != "00") {
+				if (EOBThour == "00") {
+					EOBThour = "24";
 				}
 			}
+
+			int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
+			if (hour != EOBThour) {
+				if (EOBTdifTime < -75) {
+					notYetEOBT = true;
+				}
+			}
+			else {
+				if (EOBTdifTime < -35) {
+					notYetEOBT = true;
+				}
+			}
+			if (!notYetEOBT) {
+				for (int a = 0; a < slotList.size(); a++)
+				{
+					if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
+						string getTSAT = slotList[a].substr(slotList[a].find(",") + 8, 4);
+						fp.GetControllerAssignedData().SetFlightStripAnnotation(2, getTSAT.c_str());
+					}
+				}
+			}
+		}
+		else {
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(2, "");
 		}
 	}
 
@@ -583,6 +589,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	string callsign = FlightPlan.GetCallsign();
+	deleteFlightStrips(callsign);
 	//Delete from vector
 	for (int i = 0; i < slotList.size(); i++) {
 		if ((string)FlightPlan.GetCallsign() == slotList[i].substr(0, slotList[i].find(","))) {
@@ -2656,6 +2663,14 @@ string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	return calculateTime(hour + min + "00", addedTime);
 }
 
+void CDM::deleteFlightStrips(string callsign) {
+	CFlightPlan fp = FlightPlanSelect(callsign.c_str());
+	fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+	fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
+	fp.GetControllerAssignedData().SetFlightStripAnnotation(2, "");
+	fp.GetControllerAssignedData().SetFlightStripAnnotation(3, "");
+}
+
 string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	string line, TxtOrigin, TxtDepRwy, TxtTime;
 	CPosition p1, p2, p3, p4;
@@ -3205,6 +3220,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm reload", sCommandLine))
 	{
 		sendMessage("Reloading CDM....");
+		for (string cs : slotList) {
+			deleteFlightStrips(cs.substr(0, cs.find(",")));
+		}
 		slotList.clear();
 		asatList.clear();
 		taxiTimesList.clear();

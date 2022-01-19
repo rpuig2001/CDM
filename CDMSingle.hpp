@@ -54,6 +54,8 @@ public:
 
 	void PushToOtherControllers(CFlightPlan fp);
 
+	void deleteFlightStrips(string callsign);
+
 	string EobtPlusTime(string EOBT, int time);
 
 	string getTaxiTime(double lat, double lon, string origin, string depRwy);
