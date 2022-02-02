@@ -141,7 +141,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	debugMode = false;
 	initialSidLoad = false;
 
-	countTime = 0;
+	countTime = stoi(GetTimeNow());
 	addTime = false;
 
 	GetVersion();
@@ -150,7 +150,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//airport = getFromXml("/CDM/apt/@icao");
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 	ctotOption = getFromXml("/CDM/ctot/@option");
-	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"))*50;
+	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
@@ -338,19 +338,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		string annotTSAC = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
 		if (annotTSAC.empty()) {
 			//Get Time now
-			long int timeNow = static_cast<long int>(std::time(nullptr));
-			string completeTime = unixTimeToHumanReadable(timeNow);
-			string hour = "";
-			string min = "";
-
-			hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-				min = completeTime.substr(completeTime.find(":") + 1, 2);
-			}
-			else {
-				min = completeTime.substr(completeTime.find(":") + 1, 1);
-			}
+			time_t rawtime;
+			struct tm* ptm;
+			time(&rawtime);
+			ptm = gmtime(&rawtime);
+			string hour = to_string(ptm->tm_hour % 24);
+			string min = to_string(ptm->tm_min);
 
 			if (stoi(min) < 10) {
 				min = "0" + min;
@@ -440,19 +433,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
 			if (annotAsrt.empty()) {
 				//Get Time now
-				long int timeNow = static_cast<long int>(std::time(nullptr));
-				string completeTime = unixTimeToHumanReadable(timeNow);
-				string hour = "";
-				string min = "";
-
-				hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-				if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-					min = completeTime.substr(completeTime.find(":") + 1, 2);
-				}
-				else {
-					min = completeTime.substr(completeTime.find(":") + 1, 1);
-				}
+				time_t rawtime;
+				struct tm* ptm;
+				time(&rawtime);
+				ptm = gmtime(&rawtime);
+				string hour = to_string(ptm->tm_hour % 24);
+				string min = to_string(ptm->tm_min);
 
 				if (stoi(min) < 10) {
 					min = "0" + min;
@@ -522,19 +508,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			fp.GetFlightPlanData().AmendFlightPlan();
 			if (!eventMode) {
 				//Get Time now
-				long int timeNow = static_cast<long int>(std::time(nullptr));
-				string completeTime = unixTimeToHumanReadable(timeNow);
-				string hour = "";
-				string min = "";
-
-				hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-				if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-					min = completeTime.substr(completeTime.find(":") + 1, 2);
-				}
-				else {
-					min = completeTime.substr(completeTime.find(":") + 1, 1);
-				}
+				time_t rawtime;
+				struct tm* ptm;
+				time(&rawtime);
+				ptm = gmtime(&rawtime);
+				string hour = to_string(ptm->tm_hour % 24);
+				string min = to_string(ptm->tm_min);
 
 				if (stoi(min) < 10) {
 					min = "0" + min;
@@ -545,28 +524,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
 				if (annotAsrt.empty()) {
-					//Get Time now
-					long int timeNow = static_cast<long int>(std::time(nullptr));
-					string completeTime = unixTimeToHumanReadable(timeNow);
-					string hour = "";
-					string min = "";
-
-					hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-					if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-						min = completeTime.substr(completeTime.find(":") + 1, 2);
-					}
-					else {
-						min = completeTime.substr(completeTime.find(":") + 1, 1);
-					}
-
-					if (stoi(min) < 10) {
-						min = "0" + min;
-					}
-					if (stoi(hour) < 10) {
-						hour = "0" + hour.substr(1, 1);
-					}
-
 					fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 				}
 			}
@@ -782,19 +739,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			//Get Time NOW
-			long int timeNow = static_cast<long int>(std::time(nullptr));
-			string completeTime = unixTimeToHumanReadable(timeNow);
-			string hour = "";
-			string min = "";
-
-			hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-			if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-				min = completeTime.substr(completeTime.find(":") + 1, 2);
-			}
-			else {
-				min = completeTime.substr(completeTime.find(":") + 1, 1);
-			}
+			time_t rawtime;
+			struct tm* ptm;
+			time(&rawtime);
+			ptm = gmtime(&rawtime);
+			string hour = to_string(ptm->tm_hour % 24);
+			string min = to_string(ptm->tm_min);
 
 			if (stoi(min) < 10) {
 				min = "0" + min;
@@ -1391,13 +1341,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
-					countTime += 1;
 					//Refresh times every x sec
-					if (countTime > refreshTime) {
+					if (countTime - stoi(GetTimeNow()) < -refreshTime) {
 						if (debugMode) {
 							sendMessage("[DEBUG MESSAGE] - REFRESHING");
 						}
-						countTime = 0;
+						countTime = stoi(GetTimeNow());
 
 						//Calculate Rate
 						int rate;
@@ -2615,19 +2564,12 @@ void CDM::CheckCtot(string TTOT) {
 
 string CDM::GetActualTime() {
 	//Get Time now
-	long int timeNow = static_cast<long int>(std::time(nullptr));
-	string completeTime = unixTimeToHumanReadable(timeNow);
-	string hour = "";
-	string min = "";
-
-	hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-		min = completeTime.substr(completeTime.find(":") + 1, 2);
-	}
-	else {
-		min = completeTime.substr(completeTime.find(":") + 1, 1);
-	}
+	time_t rawtime;
+	struct tm* ptm;
+	time(&rawtime);
+	ptm = gmtime(&rawtime);
+	string hour = to_string(ptm->tm_hour % 24);
+	string min = to_string(ptm->tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -2639,19 +2581,12 @@ string CDM::GetActualTime() {
 }
 
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
-	long int timeNow = static_cast<long int>(std::time(nullptr));
-	string completeTime = unixTimeToHumanReadable(timeNow);
-	string hour = "";
-	string min = "";
-
-	hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-		min = completeTime.substr(completeTime.find(":") + 1, 2);
-	}
-	else {
-		min = completeTime.substr(completeTime.find(":") + 1, 1);
-	}
+	time_t rawtime;
+	struct tm* ptm;
+	time(&rawtime);
+	ptm = gmtime(&rawtime);
+	string hour = to_string(ptm->tm_hour % 24);
+	string min = to_string(ptm->tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -2992,119 +2927,16 @@ int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2)
 	return time1 - time2;
 }
 
-string CDM::unixTimeToHumanReadable(long int seconds)
-{
+string CDM::GetTimeNow() {
+	time_t rawtime;
+	struct tm* ptm;
+	time(&rawtime);
+	ptm = gmtime(&rawtime);
+	string hour = to_string(ptm->tm_hour % 24);
+	string min = to_string(ptm->tm_min);
+	string sec = to_string(ptm->tm_sec);
 
-	// Save the time in Human
-	// readable format
-	string ans = "";
-
-	// Number of days in month
-	// in normal year
-	int daysOfMonth[] = { 31, 28, 31, 30, 31, 30,
-						  31, 31, 30, 31, 30, 31 };
-
-	long int currYear, daysTillNow, extraTime,
-		extraDays, index, date, month, hours,
-		minutes, secondss, flag = 0;
-
-	// Calculate total days unix time T
-	daysTillNow = seconds / (24 * 60 * 60);
-	extraTime = seconds % (24 * 60 * 60);
-	currYear = 1970;
-
-	// Calculating current year
-	while (daysTillNow >= 365) {
-		if (currYear % 400 == 0
-			|| (currYear % 4 == 0
-				&& currYear % 100 != 0)) {
-			daysTillNow -= 366;
-		}
-		else {
-			daysTillNow -= 365;
-		}
-		currYear += 1;
-	}
-
-	// Updating extradays because it
-	// will give days till previous day
-	// and we have include current day
-	extraDays = daysTillNow + 1;
-
-	if (currYear % 400 == 0
-		|| (currYear % 4 == 0
-			&& currYear % 100 != 0))
-		flag = 1;
-
-	// Calculating MONTH and DATE
-	month = 0, index = 0;
-	if (flag == 1) {
-		while (true) {
-
-			if (index == 1) {
-				if (extraDays - 29 < 0)
-					break;
-				month += 1;
-				extraDays -= 29;
-			}
-			else {
-				if (extraDays
-					- daysOfMonth[index]
-					< 0) {
-					break;
-				}
-				month += 1;
-				extraDays -= daysOfMonth[index];
-			}
-			index += 1;
-		}
-	}
-	else {
-		while (true) {
-
-			if (extraDays
-				- daysOfMonth[index]
-				< 0) {
-				break;
-			}
-			month += 1;
-			extraDays -= daysOfMonth[index];
-			index += 1;
-		}
-	}
-
-	// Current Month
-	if (extraDays > 0) {
-		month += 1;
-		date = extraDays;
-	}
-	else {
-		if (month == 2 && flag == 1)
-			date = 29;
-		else {
-			date = daysOfMonth[month - 1];
-		}
-	}
-
-	// Calculating HH:MM:YYYY
-	hours = extraTime / 3600;
-	minutes = (extraTime % 3600) / 60;
-	secondss = (extraTime % 3600) % 60;
-
-	ans += to_string(date);
-	ans += "/";
-	ans += to_string(month);
-	ans += "/";
-	ans += to_string(currYear);
-	ans += " ";
-	ans += to_string(hours);
-	ans += ":";
-	ans += to_string(minutes);
-	ans += ":";
-	ans += to_string(secondss);
-
-	// Return the time
-	return ans;
+	return hour + min + sec;
 }
 
 //Get Data from the xml file
@@ -3136,19 +2968,12 @@ string CDM::getFromXml(string xpath)
 
 bool CDM::addCtotToMainList(string lineValue) {
 	//Get Time now
-	long int timeNow = static_cast<long int>(std::time(nullptr));
-	string completeTime = unixTimeToHumanReadable(timeNow);
-	string hour = "";
-	string min = "";
-
-	hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-	if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-		min = completeTime.substr(completeTime.find(":") + 1, 2);
-	}
-	else {
-		min = completeTime.substr(completeTime.find(":") + 1, 1);
-	}
+	time_t rawtime;
+	struct tm* ptm;
+	time(&rawtime);
+	ptm = gmtime(&rawtime);
+	string hour = to_string(ptm->tm_hour % 24);
+	string min = to_string(ptm->tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -3240,7 +3065,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		//Get data from xml config file
 		defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 		ctotOption = getFromXml("/CDM/ctot/@option");
-		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds")) * 500;
+		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 		rateString = getFromXml("/CDM/rate/@ops");
 		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
@@ -3365,7 +3190,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			sendMessage("Refresh Time set to: " + line.substr(line.length() - 2));
 		}
 		else if (line.substr(line.length() - 2, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 1))*50;
+			refreshTime = stoi(line.substr(line.length() - 1));
 			sendMessage("Refresh Time set to: " + line.substr(line.length() - 1));
 		}
 		else {
@@ -3399,19 +3224,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm delay", sCommandLine))
 	{
 		//Get Time NOW
-		long int timeNow = static_cast<long int>(std::time(nullptr));
-		string completeTime = unixTimeToHumanReadable(timeNow);
-		string hour = "";
-		string min = "";
-
-		hour = completeTime.substr(completeTime.find(":") - 2, 2);
-
-		if (completeTime.substr(completeTime.find(":") + 3, 1) == ":") {
-			min = completeTime.substr(completeTime.find(":") + 1, 2);
-		}
-		else {
-			min = completeTime.substr(completeTime.find(":") + 1, 1);
-		}
+		time_t rawtime;
+		struct tm* ptm;
+		time(&rawtime);
+		ptm = gmtime(&rawtime);
+		string hour = to_string(ptm->tm_hour % 24);
+		string min = to_string(ptm->tm_min);
 
 		if (stoi(min) < 10) {
 			min = "0" + min;

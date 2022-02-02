@@ -82,6 +82,8 @@ public:
 
 	string calculateLessTime(string timeString, double minsToAdd);
 
+	string GetTimeNow();
+
 	bool checkIsNumber(string str);
 
 	string getCidByCallsign(string callsign);
@@ -91,8 +93,6 @@ public:
 	bool getTaxiZonesFromUrl(string url);
 
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
-
-	string unixTimeToHumanReadable(long int seconds);
 
 	template <typename Out>
 	void split(const string& s, char delim, Out result) {
