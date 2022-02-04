@@ -1408,7 +1408,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 
-								myRemarks = myFlightPlan.GetFlightPlanData().GetRemarks();
+								myRemarks = myFlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(3);
 								bool myhasCTOT = false;
 								int myCtotPos = 0;
 								for (int s = 0; s < ctotList.size(); s++)
