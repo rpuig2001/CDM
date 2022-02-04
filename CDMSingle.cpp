@@ -83,6 +83,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
 	RegisterTagItemFunction("Ready TOBT", TAG_FUNC_READYTOBT);
+	RegisterTagItemFunction("Edit TOBT", TAG_FUNC_EDITTOBT);
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
@@ -540,6 +541,32 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, GetActualTime().c_str());
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_EDITTOBT) {
+		if (master && AtcMe) {
+			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, fp.GetControllerAssignedData().GetFlightStripAnnotation(0));
+		}
+	}
+	if (FunctionId == TAG_FUNC_NEWTOBT) {
+		string editedTOBT = ItemString;
+		bool hasNoNumber = true;
+		if (editedTOBT.length() <= 4) {
+
+			for (int i = 0; i < editedTOBT.length(); i++) {
+				if (isdigit(editedTOBT[i]) == false) {
+					hasNoNumber = false;
+				}
+			}
+			if (hasNoNumber) {
+				if (editedTOBT.empty()) {
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+				}
+				else {
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
+				}
+			}
 		}
 	}
 }
