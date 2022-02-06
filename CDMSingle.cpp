@@ -337,7 +337,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	if (FunctionId == TAG_FUNC_ADDTSAC) {
 		string annotTSAC = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
-		if (annotTSAC.empty()) {
+		string completeTOBT = (string)fp.GetControllerAssignedData().GetFlightStripAnnotation(0);
+		if (annotTSAC.empty() && !completeTOBT.empty()) {
 			//Get Time now
 			time_t rawtime;
 			struct tm* ptm;
@@ -352,30 +353,29 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (stoi(hour) < 10) {
 				hour = "0" + hour.substr(1, 1);
 			}
-			bool notYetEOBT = false;
-			string completeEOBT = (string)fp.GetFlightPlanData().GetEstimatedDepartureTime();
-			completeEOBT = formatTime(completeEOBT);
-			string EOBThour = completeEOBT.substr(0, 2);
-			string EOBTmin = completeEOBT.substr(2, 2);
+
+			bool notYetTOBT = false;
+			string TOBThour = completeTOBT.substr(0, 2);
+			string TOBTmin = completeTOBT.substr(2, 2);
 
 			if (hour != "00") {
-				if (EOBThour == "00") {
-					EOBThour = "24";
+				if (TOBThour == "00") {
+					TOBThour = "24";
 				}
 			}
 
-			int EOBTdifTime = GetdifferenceTime(hour, min, EOBThour, EOBTmin);
-			if (hour != EOBThour) {
+			int EOBTdifTime = GetdifferenceTime(hour, min, TOBThour, TOBTmin);
+			if (hour != TOBThour) {
 				if (EOBTdifTime < -75) {
-					notYetEOBT = true;
+					notYetTOBT = true;
 				}
 			}
 			else {
 				if (EOBTdifTime < -35) {
-					notYetEOBT = true;
+					notYetTOBT = true;
 				}
 			}
-			if (!notYetEOBT) {
+			if (!notYetTOBT) {
 				for (int a = 0; a < slotList.size(); a++)
 				{
 					if (slotList[a].substr(0, slotList[a].find(",")) == fp.GetCallsign()) {
