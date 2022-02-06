@@ -3305,6 +3305,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm ctot", sCommandLine))
 	{
 		sendMessage("Loading CTOTs data....");
+		sendMessage("Command disabled...");
+		/*
 		ctotList.clear();
 		CTOTcheck.clear();
 		slotList.clear();
@@ -3317,6 +3319,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			addCtotToMainList(lineValue);
 		}
 		sendMessage("Done");
+		*/
 		return true;
 	}
 
