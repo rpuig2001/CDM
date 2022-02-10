@@ -1,4 +1,4 @@
-# CDM plugin
+# CDM plugin V2 (BETA)
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 CDM includes the following times:
 - EOBT: Estimated off block time.
@@ -30,7 +30,7 @@ CDM includes the following times:
 
 - TOBT
 
-![image](https://i.gyazo.com/754f328e3d0fb087077cd2bfc89c1a54.png)
+![image](https://gyazo.com/477c7a3aa1e68cebaffbb01d685abe15.png)
 
 - TSAT
 
@@ -63,14 +63,15 @@ CDM includes the following times:
 - Slave: The Slave Monitors the CDM and has some limited actions.
   - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave {airport}`` command.
 
-## HOW TO DO A CONTROLLER CHANGE CORRECTLY:
+### HOW TO DO A CONTROLLER CHANGE CORRECTLY:
 1. Check to have the same *CDMconfig.xml* and *taxizones.txt* configuration, otherwise it won't work correctly.
 2. The **Old controller** changes to Slave with command ``.cdm slave``.
 3. Once there are no master controllers, the **new controlles** gets the master "rol" with the command ``.cdm master {airport}``.
 4. That's it!
 
-### Define configurations
-- Colors.txt
+## Define configurations
+
+### Colors.txt
   - color1 = DARK GREEN
   - color2 = LIGHT GREEN
   - color3 = GREY
@@ -83,7 +84,8 @@ CDM includes the following times:
   - color10 = ASRT STATIC COLOR
   - color11 = CTOT STATIC COLOR
   - color12 = CHANGES TOBT, TSAT and ASAT to the defined color WHEN S/U STATUS IS SET
-- CDMconfig.xml
+ 
+### CDMconfig.xml
   - Select CTOT option (``ctot option="callsign or cid"``):
     - "callsign": It gets CTOT if the callsign is the same as the defined in ctot.txt (ex. defaultRate option="VLG11A,2213").
     - "cid": It gets CTOT if the cid is the same as the defined in ctot.txt (ex. defaultRate option="XXXXXX,2213").
@@ -95,18 +97,22 @@ CDM includes the following times:
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
-- ctot.txt
+  - Eventmode is activated ("1") or desactivated ("0") (ex: eventMode mode="1") - **IMPORTANT** EventMode is a new mode and **VERY RECOMMENDED** during events and daily for a better perfomence and service where TOBT will be functional. With this mode, the CDM, will calculate TSAT and TTOT after setting the actual time to TOBT with "READY TOBT" function or a custom time with "EDIT TOBT" function.
+ 
+### ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT`` or ``XXXXXX,CTOT``, ex: ``XXXXXX,1745`` - XXXXXX is vatsim user's CID or ``VLG11P,1745`` (Each line has an aircraft)
-- taxizones.txt
+ 
+### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``, ex:``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``, if no taxizone defined, the default taxi time is set to 15 min.
-  - rate.txt
-    - You can set the rate/hour for specific runway and airport, if not declared, **AIRPORT WILL NOT BE CONSIDERED A CDM AIRPORT**. You can declare every runway rate with the following format: ``AIRPORT:RUNWAY=NormalRate_LvoRate``, ex:``LEBL:25L=40_20`` (Each line has a runway with his rate)
+
+### rate.txt
+  - You can set the rate/hour for specific runway and airport, if not declared, **AIRPORT WILL NOT BE CONSIDERED A CDM AIRPORT**. You can declare every runway rate with the following format: ``AIRPORT:RUNWAY=NormalRate_LvoRate``, ex:``LEBL:25L=40_20`` (Each line has a runway with his rate)
 
 *Examples can be found in the givenfiles.*
 
-### Commands
+## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
-- ``.cdm ctot`` - Loads ctot.txt data.
+- [DISABLED] ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
 - ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
 - ``.cdm master {airport}`` - Become the master of the selected airport.
@@ -124,7 +130,7 @@ CDM includes the following times:
 - Column EOBT: It gets the EOBT set by the pilot in the flightplan.
   - Color defined as ``color8``.
 
-- Column TOBT: We can not simulate it, so it gets the EOBT and the colors is green.
+- Column TOBT: If EventMode is disabled, We can not simulate it, so it gets the EOBT and the colors is green. Otherwise TOBT will be functional and will calculate TSAT and TTOT from the TOBT time. To delete it simple edit the time and press enter deleting the content.
   - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to EOBT-5.
   - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: After EOBT-5.
 
