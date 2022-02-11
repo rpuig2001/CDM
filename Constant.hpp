@@ -29,6 +29,7 @@ const int TAG_FUNC_REA = 113;
 const int TAG_FUNC_READYTOBT = 114;
 const int TAG_FUNC_EDITTOBT = 115;
 const int TAG_FUNC_NEWTOBT = 116;
+const int TAG_FUNC_READYTOBTASRT = 117;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

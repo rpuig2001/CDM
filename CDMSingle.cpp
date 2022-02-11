@@ -83,6 +83,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
 	RegisterTagItemFunction("Ready TOBT", TAG_FUNC_READYTOBT);
+	RegisterTagItemFunction("Ready TOBT + Set ASRT", TAG_FUNC_READYTOBTASRT);
 	RegisterTagItemFunction("Edit TOBT", TAG_FUNC_EDITTOBT);
 
 	// Register Tag Item "CDM-TSAT"
@@ -541,6 +542,33 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, GetActualTime().c_str());
+		}
+	}
+
+	if (FunctionId == TAG_FUNC_READYTOBTASRT) {
+		if (master && AtcMe) {
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, GetActualTime().c_str());
+			if (eventMode) {
+				//Get Time now
+				time_t rawtime;
+				struct tm* ptm;
+				time(&rawtime);
+				ptm = gmtime(&rawtime);
+				string hour = to_string(ptm->tm_hour % 24);
+				string min = to_string(ptm->tm_min);
+
+				if (stoi(min) < 10) {
+					min = "0" + min;
+				}
+				if (stoi(hour) < 10) {
+					hour = "0" + hour.substr(1, 1);
+				}
+
+				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
+				if (annotAsrt.empty()) {
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
+				}
+			}
 		}
 	}
 
