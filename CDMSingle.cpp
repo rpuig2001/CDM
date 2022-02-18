@@ -2589,9 +2589,15 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 * Mehod to push FlightStrip Data to other controllers (old Amend)
 */
 void CDM::PushToOtherControllers(CFlightPlan fp) {
+	string callsign = "";
 	for (CController c = ControllerSelectFirst(); c.IsValid(); c = ControllerSelectNext(c)) {
 		if (c.IsController()) {
-			fp.PushFlightStrip(c.GetCallsign());
+			callsign = c.GetCallsign();
+			if (callsign.size() > 3) {
+				if (callsign.substr(callsign.size() - 3) == "DEL" || callsign.substr(callsign.size() - 3) == "GND" || callsign.substr(callsign.size() - 3) != "TWR" || callsign.substr(callsign.size() - 3) != "APP") {
+					fp.PushFlightStrip(c.GetCallsign());
+				}
+			}
 		}
 	}
 }
