@@ -1,18 +1,18 @@
 {
     "MDI": {
 		"BCN-EVENT": {
-                "TIME": 3,
+                		"TIME": 3,
 				"DEPA": "ALL",
 				"DEST": "LEBL",
-				"VALID-DATE": "02/04",
-				"VALID-TIME": "1115-1530"
+				"VALIDDATE": "02/04",
+				"VALIDTIME": "1115-1530"
         }
 		"LON-EVENT": {
-                "TIME": 10,
+                		"TIME": 10,
 				"DEPA": "ALL",
 				"DEST": "EGLL",
-				"VALID-DATE": "02/04",
-				"VALID-TIME": "1115-1530"
+				"VALIDDATE": "02/04",
+				"VALIDTIME": "1115-1530"
         }
     }
 }
