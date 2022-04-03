@@ -88,6 +88,8 @@ public:
 
 	string getCidByCallsign(string callsign);
 
+	void getFlowData();
+
 	int GetVersion();
 
 	bool getTaxiZonesFromUrl(string url);

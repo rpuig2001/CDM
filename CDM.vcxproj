@@ -21,6 +21,7 @@
   <ItemGroup>
     <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Constant.hpp" />
+    <ClInclude Include="Flow.h" />
     <ClInclude Include="json_tool.h" />
     <ClInclude Include="Libs\EuroScopePlugIn.h" />
     <ClInclude Include="Plane.h" />
@@ -30,6 +31,7 @@
   <ItemGroup>
     <ClCompile Include="CDMSingle.cpp" />
     <ClCompile Include="CDM.cpp" />
+    <ClCompile Include="Flow.cpp" />
     <ClCompile Include="json_reader.cpp" />
     <ClCompile Include="json_value.cpp" />
     <ClCompile Include="json_writer.cpp" />

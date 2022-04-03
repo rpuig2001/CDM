@@ -3,6 +3,7 @@
 #include "pugixml.hpp"
 #include "pugixml.cpp"
 #include "Plane.h"
+#include "Flow.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -35,6 +36,7 @@ string taxiZonesUrl;
 int defTaxiTime;
 
 vector<Plane> slotList;
+vector<Flow> flowData;
 vector<string> asatList;
 vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
@@ -181,6 +183,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	else {
 		ctotCid = false;
 	}
+
+	//Flow Data
+	getFlowData();
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -2926,6 +2931,37 @@ string CDM::getCidByCallsign(string callsign) {
 		}
 	}
 	return "0";
+}
+
+void CDM::getFlowData() {
+	CURL* curl;
+	CURLcode res;
+	std::string readBuffer;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/CDM/v2/flow-measures.json");
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		res = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+	}
+	Json::Reader reader;
+	Json::Value obj;
+	Json::FastWriter fastWriter;
+	reader.parse(readBuffer, obj);
+
+	const Json::Value& measures = obj[];
+	for (int i = 0; i < measures.size(); i++) {
+		string type = "mdi";
+		string time = fastWriter.write(measures[i]["TIME"]);
+		string depa = fastWriter.write(measures[i]["DEPA"]);
+		string dest = fastWriter.write(measures[i]["DEST"]);
+		string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
+		string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
+		Flow flow(type,time, depa, dest, valid_Date, valid_time);
+		flowData.push_back(flow);
+		sendMessage(time);
+	}
 }
 
 
