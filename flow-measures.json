@@ -1,12 +1,12 @@
 {
-    "MDI": {
+    "MDI": [
 	{
             "TIME": 3,
 		"DEPA": "ALL",
 		"DEST": "LEBL",
 		"VALIDDATE": "02/04",
 		"VALIDTIME": "1115-1530"
-        }
+        },
 	  {
              "TIME": 10,
 		"DEPA": "ALL",
@@ -14,5 +14,5 @@
 		"VALIDDATE": "02/04",
 		"VALIDTIME": "1115-1530"
         }
-	}
+	]
 }
