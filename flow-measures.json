@@ -10,11 +10,19 @@
         },
 	  {
             "TIME": 10,
-		"DEPA": "ALL*",
+		"DEPA": "ALL",
 		"DEST": "EGLL",
 		"VALIDDATE": "02/04",
 		"VALIDTIME": "1115-1530",
-		"MESSAGE": "BCN-LHR 10min"
+		"MESSAGE": "LHR 10min"
+        },
+	  {
+            "TIME": 10,
+		"DEPA": "LEPA",
+		"DEST": "LEMD",
+		"VALIDDATE": "02/04",
+		"VALIDTIME": "1115-1530",
+		"MESSAGE": "PMI-MAD 10min"
         }
 	]
 }
