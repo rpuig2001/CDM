@@ -14,4 +14,5 @@ public:
 
 	Flow(string mytype, string mytime, string mydepa, string mydest, string myvalidDate, string myvalidTime) : 
 		type(mytype), time(mytime), depa(mydepa), dest(mydest), validDate(myvalidDate), validTime(myvalidTime) { }
+	Flow() : type() { }
 };

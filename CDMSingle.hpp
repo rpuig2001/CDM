@@ -84,6 +84,8 @@ public:
 
 	string GetTimeNow();
 
+	void multithread(void(CDM::* f)());
+
 	bool checkIsNumber(string str);
 
 	string getCidByCallsign(string callsign);
