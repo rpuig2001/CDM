@@ -1,18 +1,20 @@
 {
     "MDI": [
 	{
-            "TIME": 3,
-		"DEPA": "ALL",
+            "TIME": 7,
+		"DEPA": "LEPA",
 		"DEST": "LEBL",
 		"VALIDDATE": "02/04",
-		"VALIDTIME": "1115-1530"
+		"VALIDTIME": "1115-1530",
+		"MESSAGE": "PMI-BCN 7min"
         },
 	  {
-             "TIME": 10,
+            "TIME": 10,
 		"DEPA": "ALL",
 		"DEST": "EGLL",
 		"VALIDDATE": "02/04",
-		"VALIDTIME": "1115-1530"
+		"VALIDTIME": "1115-1530",
+		"MESSAGE": "BCN-LHR 10min"
         }
 	]
 }

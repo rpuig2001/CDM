@@ -915,7 +915,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				Flow myFlow;
 				for (int z = 0; z < flowData.size(); z++)
 				{
-					if (destination == flowData[z].dest.substr(1, 4)) {
+					if (destination == flowData[z].dest) {
 						hasFlowMeasures = true;
 						myFlow = flowData[z];
 					}
@@ -3058,7 +3058,7 @@ void CDM::getFlowData() {
 		string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
 		string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
 		string message = "";
-		Flow flow(type, time, depa, dest, valid_Date, valid_time, message);
+		Flow flow(type, time, depa.substr(1,4), dest.substr(1, 4), valid_Date, valid_time, message);
 		flowData.push_back(flow);
 	}
 }
