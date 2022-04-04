@@ -358,7 +358,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				min = "0" + min;
 			}
 			if (stoi(hour) < 10) {
-				hour = "0" + hour.substr(1, 1);
+				hour = "0" + hour.substr(0, 1);
 			}
 
 			bool notYetTOBT = false;
@@ -452,7 +452,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					min = "0" + min;
 				}
 				if (stoi(hour) < 10) {
-					hour = "0" + hour.substr(1, 1);
+					hour = "0" + hour.substr(0, 1);
 				}
 
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
@@ -527,7 +527,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					min = "0" + min;
 				}
 				if (stoi(hour) < 10) {
-					hour = "0" + hour.substr(1, 1);
+					hour = "0" + hour.substr(0, 1);
 				}
 
 				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
@@ -547,13 +547,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
-			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, GetActualTime().c_str());
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 		}
 	}
 
 	if (FunctionId == TAG_FUNC_READYTOBTASRT) {
 		if (master && AtcMe) {
-			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, GetActualTime().c_str());
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 			if (eventMode) {
 				//Get Time now
 				time_t rawtime;
@@ -567,7 +567,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					min = "0" + min;
 				}
 				if (stoi(hour) < 10) {
-					hour = "0" + hour.substr(1, 1);
+					hour = "0" + hour.substr(0, 1);
 				}
 
 				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
@@ -811,7 +811,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					min = "0" + min;
 				}
 				if (stoi(hour) < 10) {
-					hour = "0" + hour.substr(1, 1);
+					hour = "0" + hour.substr(0, 1);
 				}
 
 				bool stsDepa = false;
@@ -1108,7 +1108,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (!aircraftFind) {
 							if (hasCTOT) {
 								//TTOT with CTOT
-								TTOTFinal = formatTime(ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4) + "00");
+								TTOTFinal = formatTime(ctotList[ctotPos].substr(ctotList[ctotPos].find(",") + 1, 4))+ "00";
 								TTOT = TTOTFinal.c_str();
 
 								//TSAT with CTOT
@@ -1137,7 +1137,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									TSAT = EOBT;
 									//TSAT
 									string TSATstring = TSAT;
-									TSATfinal = formatTime(TSATstring);
+									TSATfinal = formatTime(TSATstring) + "00";
 									TSAT = TSATfinal.c_str();
 
 									//TTOT
@@ -1150,7 +1150,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								TSAT = EOBT;
 								//TSAT
 								string TSATstring = TSAT;
-								TSATfinal = formatTime(TSATstring);
+								TSATfinal = formatTime(TSATstring) + "00";
 								TSAT = TSATfinal.c_str();
 
 								//TTOT
@@ -1169,7 +1169,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								//TSAT
 								string TSATstring = slotList[pos].tsat;
-								TSATfinal = formatTime(TSATstring);
+								TSATfinal = formatTime(TSATstring) + "00";
 								TSAT = TSATfinal.c_str();
 
 								//TTOT
@@ -1179,7 +1179,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else {
 								//TSAT
 								string TSATstring = slotList[pos].tsat;
-								TSATfinal = formatTime(TSATstring);
+								TSATfinal = formatTime(TSATstring) + "00";
 								TSAT = TSATfinal.c_str();
 
 								//TTOT
@@ -1335,23 +1335,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									if (hasFlowMeasures) {
 										for (int z = 0; z < slotList.size(); z++)
 										{
-											if (FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination() == destination && !slotList[z].hasCtot) {
+											if (FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination() == destination) {
 												sameDestList.push_back(slotList[z]);
 											}
 										}
-
 										for (int z = 0; z < sameDestList.size(); z++)
 										{
 											while (correctFlowTTOT) {
 												CFlightPlan fpList = FlightPlanSelect(slotList[z].callsign.c_str());
 												bool found = false;
-												string listTTOT;
+												string listTTOT = sameDestList[z].ttot;
 												string listCallsign = sameDestList[z].callsign;
 												string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
 												string listAirport = fpList.GetFlightPlanData().GetOrigin();
 												while (!found) {
 													found = true;
-													listTTOT = sameDestList[z].ttot;
 
 													if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 														found = false;
@@ -1549,7 +1547,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 									if (myhasCTOT) {
 										//TSAT and TTOT with CTOT
-										myTTOT = formatTime(ctotList[myCtotPos].substr(ctotList[myCtotPos].find(",") + 1, 4) + "00");
+										myTTOT = formatTime(ctotList[myCtotPos].substr(ctotList[myCtotPos].find(",") + 1, 4)) + "00";
 										myTSAT = calculateLessTime(myTTOT, myTTime);
 									}
 									else {
@@ -2708,7 +2706,7 @@ string CDM::GetActualTime() {
 		min = "0" + min;
 	}
 	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(1, 1);
+		hour = "0" + hour.substr(0, 1);
 	}
 	return hour + min;
 }
@@ -2725,7 +2723,7 @@ string CDM::EobtPlusTime(string EOBT, int addedTime) {
 		min = "0" + min;
 	}
 	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(1, 1);
+		hour = "0" + hour.substr(0, 1);
 	}
 
 	return calculateTime(hour + min + "00", addedTime);
@@ -2810,6 +2808,13 @@ string CDM::formatTime(string timeString) {
 	}
 	else if (timeString.length() <= 3) {
 		timeString = "0" + timeString;
+		return timeString;
+	}
+	else if (timeString.length() == 4) {
+		return timeString;
+	}
+	else if (timeString.length() >= 5) {
+		timeString = timeString.substr(0,4);
 		return timeString;
 	}
 	else {
@@ -3142,7 +3147,7 @@ bool CDM::addCtotToMainList(string lineValue) {
 		min = "0" + min;
 	}
 	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(1, 1);
+		hour = "0" + hour.substr(0, 1);
 	}
 	bool found = false;
 	for (int i = 0; i < slotList.size(); i++)
@@ -3404,7 +3409,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			min = "0" + min;
 		}
 		if (stoi(hour) < 10) {
-			hour = "0" + hour.substr(1, 1);
+			hour = "0" + hour.substr(0, 1);
 		}
 
 		string line = sCommandLine, timeAdded;
