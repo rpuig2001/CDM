@@ -115,6 +115,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-E"
 	RegisterTagItemType("E", TAG_ITEM_E);
 
+	//Register
+	RegisterTagItemType("Flow Message", TAG_ITEM_FLOW_MESSAGE);
+
 	// Register Tag Item "CDM-CTOT"
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
 	RegisterTagItemFunction("Open CTOT Option list", TAG_FUNC_CTOTOPTIONS);
@@ -915,9 +918,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				Flow myFlow;
 				for (int z = 0; z < flowData.size(); z++)
 				{
-					if (destination == flowData[z].dest) {
-						hasFlowMeasures = true;
-						myFlow = flowData[z];
+					if (destination == flowData[z].dest.substr(0, 4)) {
+						if (origin == flowData[z].depa.substr(0, 4)) {
+							hasFlowMeasures = true;
+							myFlow = flowData[z];
+						}
+						else if ("ALL" == flowData[z].depa.substr(0, 3)) {
+							hasFlowMeasures = true;
+							myFlow = flowData[z];
+						}
 					}
 				}
 
@@ -1972,6 +1981,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, "C");
 							}
 						}
+						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
+							if (hasFlowMeasures) {
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, myFlow.customMessage.c_str());
+							}
+						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
 							if (hasCTOT) {
@@ -2352,6 +2367,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else {
 								ItemRGB = TAG_GREEN;
 								strcpy_s(sItemString, 16, "C");
+							}
+						}
+						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
+							if (hasFlowMeasures) {
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, myFlow.customMessage.c_str());
 							}
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
@@ -3033,6 +3054,7 @@ string CDM::getCidByCallsign(string callsign) {
 }
 
 void CDM::getFlowData() {
+	flowData.clear();
 	CURL* curl;
 	CURLcode res;
 	std::string readBuffer;
@@ -3054,11 +3076,16 @@ void CDM::getFlowData() {
 		string type = "MDI";
 		string time = fastWriter.write(measures[i]["TIME"]);
 		string depa = fastWriter.write(measures[i]["DEPA"]);
+		depa.erase(std::remove(depa.begin(), depa.end(), '"'));
 		string dest = fastWriter.write(measures[i]["DEST"]);
+		dest.erase(std::remove(dest.begin(), dest.end(), '"'));
 		string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
+		valid_Date.erase(std::remove(valid_Date.begin(), valid_Date.end(), '"'));
 		string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
-		string message = "";
-		Flow flow(type, time, depa.substr(1,4), dest.substr(1, 4), valid_Date, valid_time, message);
+		valid_time.erase(std::remove(valid_time.begin(), valid_time.end(), '"'));
+		string message = fastWriter.write(measures[i]["MESSAGE"]);
+		message.erase(std::remove(message.begin(), message.end(), '"'));
+		Flow flow(type, time, depa, dest, valid_Date, valid_time, message);
 		flowData.push_back(flow);
 	}
 }
