@@ -10,7 +10,7 @@
         },
 	  {
             "TIME": 10,
-		"DEPA": "ALL",
+		"DEPA": "ALL*",
 		"DEST": "EGLL",
 		"VALIDDATE": "02/04",
 		"VALIDTIME": "1115-1530",
