@@ -11,8 +11,9 @@ public:
 	string dest;
 	string validDate;
 	string validTime;
+	string customMessage;
 
-	Flow(string mytype, string mytime, string mydepa, string mydest, string myvalidDate, string myvalidTime) : 
-		type(mytype), time(mytime), depa(mydepa), dest(mydest), validDate(myvalidDate), validTime(myvalidTime) { }
+	Flow(string mytype, string mytime, string mydepa, string mydest, string myvalidDate, string myvalidTime, string mymessage) :
+		type(mytype), time(mytime), depa(mydepa), dest(mydest), validDate(myvalidDate), validTime(myvalidTime), customMessage(mymessage) { }
 	Flow() : type() { }
 };

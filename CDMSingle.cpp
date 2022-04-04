@@ -3057,7 +3057,8 @@ void CDM::getFlowData() {
 		string dest = fastWriter.write(measures[i]["DEST"]);
 		string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
 		string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
-		Flow flow(type, time, depa, dest, valid_Date, valid_time);
+		string message = "";
+		Flow flow(type, time, depa, dest, valid_Date, valid_time, message);
 		flowData.push_back(flow);
 	}
 }
