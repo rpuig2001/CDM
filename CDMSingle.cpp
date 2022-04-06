@@ -1216,6 +1216,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						bool correctTTOT = true;
 						bool equalTempoTTOT = true;
 						bool alreadySetTOStd = false;
+						string myCtot = "";
 
 						if (!aircraftFind) {
 							//Calculate Rate
@@ -1377,6 +1378,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 										}
+										if (aircraftFind) {
+											if (!hasCtot) {
+												hasCtot = true;
+												slotList[pos].hasCtot = true;
+												slotList[pos].ctot = formatTime(TTOTFinal);
+											}
+										}
+										else {
+											sendMessage(formatTime(TTOTFinal));
+											hasCtot = true;
+											myCtot = formatTime(TTOTFinal);
+										}
 									}
 									if (correctFlowTTOT) {
 										equalTTOT = false;
@@ -1410,11 +1423,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											else {
-												Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
 												if (hasFlowMeasures) {
-													p = Plane(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, true, myFlow);
+													if (myCtot.empty()) {
+														Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, true, myFlow);
+														slotList.push_back(p);
+													}
+													else {
+														Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, true, myFlow);
+														slotList.push_back(p);
+													}
 												}
-												slotList.push_back(p);
+												else {
+													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
+													slotList.push_back(p);
+												}
 
 												if (remarks.find("CTOT") != string::npos) {
 													string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
