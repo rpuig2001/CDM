@@ -557,12 +557,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
-			for (int i = 0; i < slotList.size(); i++)
-			{
-				if (slotList[i].callsign == fp.GetCallsign()) {
-					slotList[i].eobt = formatTime(GetActualTime()) + "00";
-				}
-			}
 		}
 	}
 
@@ -1148,10 +1142,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 							else if (tempEOBT != slotList[pos].eobt && hasCtot) {
-								slotList[pos].ttot = formatTime(to_string(stoi(slotList[pos].ttot) + (stoi(tempEOBT+"00") - stoi(slotList[pos].eobt))))+"00";
-								slotList[pos].eobt = "999999";
+								
 							}
 						}
+
 						
 						/*if (hasCtot) {
 								//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
@@ -1191,7 +1185,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else {
 							if (hasCtot) {
 								if (slotList[pos].eobt == "999999") {
-									string temporalEOBT = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+									string temporalEOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 									slotList[pos].eobt = temporalEOBT + "00";
 									aircraftFind = false;
 								}
