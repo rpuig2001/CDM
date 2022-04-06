@@ -330,7 +330,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_NEWEOBT) {
+	else if (FunctionId == TAG_FUNC_NEWEOBT) {
 		string editedEOBT = ItemString;
 		bool hasNoNumber = true;
 		if (editedEOBT.length() <= 4) {
@@ -346,7 +346,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 		}
 	}
-	if (FunctionId == TAG_FUNC_ADDTSAC) {
+	else if (FunctionId == TAG_FUNC_ADDTSAC) {
 		string annotTSAC = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
 		string completeTOBT = (string)fp.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		if (annotTSAC.empty() && !completeTOBT.empty()) {
@@ -401,11 +401,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_EDITTSAC) {
+	else if (FunctionId == TAG_FUNC_EDITTSAC) {
 		OpenPopupEdit(Area, TAG_FUNC_NEWTSAC, fp.GetControllerAssignedData().GetFlightStripAnnotation(2));
 	}
 
-	if (FunctionId == TAG_FUNC_NEWTSAC) {
+	else if (FunctionId == TAG_FUNC_NEWTSAC) {
 		string editedTSAC = ItemString;
 		if (editedTSAC.length() > 0) {
 			bool hasNoNumber = true;
@@ -422,7 +422,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_TOGGLEA) {
+	else if (FunctionId == TAG_FUNC_TOGGLEA) {
 		bool callsignFound = false;
 		int Apos;
 		for (int i = 0; i < listA.size(); i++)
@@ -440,7 +440,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_TOGGLEASRT) {
+	else if (FunctionId == TAG_FUNC_TOGGLEASRT) {
 		if (master && AtcMe) {
 			string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
 			if (annotAsrt.empty()) {
@@ -467,25 +467,33 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_CTOTOPTIONS) {
+	else if (FunctionId == TAG_FUNC_CTOTOPTIONS) {
 		if (master && AtcMe) {
 			bool hasCTOT = false;
+			bool hasRestriction = false;
 			for (int i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
 					if (slotList[i].hasCtot) {
 						hasCTOT = true;
+						if (slotList[i].hasRestriction) {
+							hasRestriction = true;
+						}
 					}
 				}
 			}
 			if (hasCTOT) {
 				OpenPopupList(Area, "CTOT Options", 1);
-				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
+				if (hasRestriction) {
+					AddPopupListElement("Reload CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
+				}
 			}
 		}
 	}
-
-	if (FunctionId == TAG_FUNC_REMOVECTOT) {
+	else if (FunctionId == TAG_FUNC_REMOVECTOT) {
 		for (int a = 0; a < slotList.size(); a++)
 		{
 			if (slotList[a].callsign == fp.GetCallsign()) {
@@ -519,7 +527,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_REAASRT) {
+	else if (FunctionId == TAG_FUNC_REAASRT) {
 		if (master && AtcMe) {
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
@@ -547,20 +555,20 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_REA) {
+	else if (FunctionId == TAG_FUNC_REA) {
 		if (master && AtcMe) {
 			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
 			fp.GetFlightPlanData().AmendFlightPlan();
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_READYTOBT) {
+	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_READYTOBTASRT) {
+	else if (FunctionId == TAG_FUNC_READYTOBTASRT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 			if (eventMode) {
@@ -587,7 +595,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (FunctionId == TAG_FUNC_EDITTOBT) {
+	else if (FunctionId == TAG_FUNC_EDITTOBT) {
 		bool found = false;
 		for (int i = 0; i < slotList.size(); i++)
 		{
@@ -599,7 +607,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, fp.GetControllerAssignedData().GetFlightStripAnnotation(0));
 		}
 	}
-	if (FunctionId == TAG_FUNC_NEWTOBT) {
+	else if (FunctionId == TAG_FUNC_NEWTOBT) {
 		string editedTOBT = ItemString;
 		bool hasNoNumber = true;
 		if (editedTOBT.length() <= 4) {
@@ -1386,7 +1394,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											}
 										}
 										else {
-											sendMessage(formatTime(TTOTFinal));
 											hasCtot = true;
 											myCtot = formatTime(TTOTFinal);
 										}
