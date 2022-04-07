@@ -82,7 +82,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
 	RegisterTagItemFunction("Ready TOBT", TAG_FUNC_READYTOBT);
-	RegisterTagItemFunction("Ready TOBT + Set ASRT", TAG_FUNC_READYTOBTASRT);
 	RegisterTagItemFunction("Edit TOBT", TAG_FUNC_EDITTOBT);
 
 	// Register Tag Item "CDM-TSAT"
@@ -495,12 +494,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
-		if (master && AtcMe) {
-			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
-		}
-	}
-
-	else if (FunctionId == TAG_FUNC_READYTOBTASRT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 			//Get Time now

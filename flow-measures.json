@@ -1,7 +1,7 @@
 {
     "MDI": [
 	{
-            "TIME": 5,
+            "TIME": 3,
 		"DEPA": "ALL",
 		"DEST": "LPPT",
 		"VALIDDATE": "07/04",
@@ -9,7 +9,7 @@
 		"MESSAGE": "LPPT Thursdays"
         },
 	  {
-            "TIME": 5,
+            "TIME": 3,
 		"DEPA": "ALL",
 		"DEST": "EDDH",
 		"VALIDDATE": "07/04",
