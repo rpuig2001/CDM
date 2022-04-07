@@ -1,28 +1,20 @@
 {
     "MDI": [
 	{
-            "TIME": 7,
-		"DEPA": "LEPA",
-		"DEST": "LEBL",
-		"VALIDDATE": "02/04",
-		"VALIDTIME": "1115-1530",
-		"MESSAGE": "PMI-BCN 7min"
-        },
-	  {
-            "TIME": 10,
+            "TIME": 5,
 		"DEPA": "ALL",
-		"DEST": "EGLL",
-		"VALIDDATE": "02/04",
-		"VALIDTIME": "1115-1530",
-		"MESSAGE": "LHR 10min"
+		"DEST": "LPPT",
+		"VALIDDATE": "07/04",
+		"VALIDTIME": "1700-1900",
+		"MESSAGE": "LPPT Thursdays"
         },
 	  {
-            "TIME": 10,
-		"DEPA": "LEPA",
-		"DEST": "LEMD",
-		"VALIDDATE": "02/04",
-		"VALIDTIME": "1115-1530",
-		"MESSAGE": "PMI-MAD 10min"
+            "TIME": 5,
+		"DEPA": "ALL",
+		"DEST": "EDDH",
+		"VALIDDATE": "07/04",
+		"VALIDTIME": "1700-1900",
+		"MESSAGE": "EDDH Thursday"
         }
 	]
 }
