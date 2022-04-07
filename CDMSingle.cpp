@@ -25,7 +25,6 @@ string rateString;
 string lvoRateString;
 string ctotOption;
 int expiredCTOTTime;
-bool eventMode;
 bool defaultRate;
 int countTime;
 int refreshTime;
@@ -42,7 +41,6 @@ vector<string> asatList;
 vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
 vector<string> OutOfTsat;
-vector<string> listA;
 vector<string> colors;
 vector<string> rate;
 vector<string> planeAiportList;
@@ -80,8 +78,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-EOBT"
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
 	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
-	RegisterTagItemFunction("Send REA Message + Set ASRT", TAG_FUNC_REAASRT);
-	RegisterTagItemFunction("Send REA Message", TAG_FUNC_REA);
 
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
@@ -106,10 +102,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-ASAT"
 	RegisterTagItemType("ASRT", TAG_ITEM_ASRT);
 	RegisterTagItemFunction("Toggle ASRT", TAG_FUNC_TOGGLEASRT);
-
-	// Register Tag Item "CDM-A"
-	RegisterTagItemType("A", TAG_ITEM_A);
-	RegisterTagItemFunction("Toggle A", TAG_FUNC_TOGGLEA);
 
 	// Register Tag Item "CDM-E"
 	RegisterTagItemType("E", TAG_ITEM_E);
@@ -164,13 +156,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
-	string getEventMode = getFromXml("/CDM/eventMode/@mode");
-	if (getEventMode == "1") {
-		eventMode = true;
-	}
-	else {
-		eventMode = false;
-	}
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	debugMode = false;
 	if (stringDebugMode == "true") {
@@ -422,24 +407,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	else if (FunctionId == TAG_FUNC_TOGGLEA) {
-		bool callsignFound = false;
-		int Apos;
-		for (int i = 0; i < listA.size(); i++)
-		{
-			if (listA[i] == (string)fp.GetCallsign()) {
-				callsignFound = true;
-				Apos = i;
-			}
-		}
-		if (!callsignFound) {
-			listA.push_back(fp.GetCallsign());
-		}
-		else {
-			listA.erase(listA.begin() + Apos);
-		}
-	}
-
 	else if (FunctionId == TAG_FUNC_TOGGLEASRT) {
 		if (master && AtcMe) {
 			string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
@@ -527,41 +494,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	else if (FunctionId == TAG_FUNC_REAASRT) {
-		if (master && AtcMe) {
-			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
-			fp.GetFlightPlanData().AmendFlightPlan();
-			if (!eventMode) {
-				//Get Time now
-				time_t rawtime;
-				struct tm* ptm;
-				time(&rawtime);
-				ptm = gmtime(&rawtime);
-				string hour = to_string(ptm->tm_hour % 24);
-				string min = to_string(ptm->tm_min);
-
-				if (stoi(min) < 10) {
-					min = "0" + min;
-				}
-				if (stoi(hour) < 10) {
-					hour = "0" + hour.substr(0, 1);
-				}
-
-				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
-				if (annotAsrt.empty()) {
-					fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
-				}
-			}
-		}
-	}
-
-	else if (FunctionId == TAG_FUNC_REA) {
-		if (master && AtcMe) {
-			fp.GetFlightPlanData().SetEstimatedDepartureTime(EobtPlusTime(fp.GetFlightPlanData().GetEstimatedDepartureTime(), stoi(getFromXml("/CDM/ReaMsg/@minutes"))).substr(0, 4).c_str());
-			fp.GetFlightPlanData().AmendFlightPlan();
-		}
-	}
-
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
@@ -571,26 +503,24 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_READYTOBTASRT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
-			if (eventMode) {
-				//Get Time now
-				time_t rawtime;
-				struct tm* ptm;
-				time(&rawtime);
-				ptm = gmtime(&rawtime);
-				string hour = to_string(ptm->tm_hour % 24);
-				string min = to_string(ptm->tm_min);
+			//Get Time now
+			time_t rawtime;
+			struct tm* ptm;
+			time(&rawtime);
+			ptm = gmtime(&rawtime);
+			string hour = to_string(ptm->tm_hour % 24);
+			string min = to_string(ptm->tm_min);
 
-				if (stoi(min) < 10) {
-					min = "0" + min;
-				}
-				if (stoi(hour) < 10) {
-					hour = "0" + hour.substr(0, 1);
-				}
+			if (stoi(min) < 10) {
+				min = "0" + min;
+			}
+			if (stoi(hour) < 10) {
+				hour = "0" + hour.substr(0, 1);
+			}
 
-				string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
-				if (annotAsrt.empty()) {
-					fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
-				}
+			string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
+			if (annotAsrt.empty()) {
+				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 			}
 		}
 	}
@@ -688,14 +618,6 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 			asatList.erase(asatList.begin() + x);
 		}
 	}
-
-	//Remove from listA
-	for (int i = 0; i < listA.size(); i++)
-	{
-		if (listA[i] == callsign) {
-			listA.erase(listA.begin() + i);
-		}
-	}
 	//Remove from OutOfTsat
 	for (int i = 0; i < OutOfTsat.size(); i++)
 	{
@@ -774,9 +696,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									if (checkIsNumber(ctotCallsign)) {
 										if (stoi(cid) == stoi(ctotCallsign)) {
 											slotList[pos].hasCtot = true;
-											/*ctotList[a] = callsign + ctotList[a].substr(ctotList[a].find(","), ctotList[a].length() - ctotList[a].find(","));
-											hasCTOT = true;
-											ctotPos = a;*/
 										}
 									}
 								}
@@ -786,14 +705,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					CTOTcheck.push_back(callsign);
 				}
 			}
-			bool isValidToCalculateEventMode = true;
-			string tobt = "";
-			if (eventMode) {
-				isValidToCalculateEventMode = false;
-				tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
-				if (tobt.length() > 0) {
-					isValidToCalculateEventMode = true;
-				}
+			bool isValidToCalculateEventMode = false;
+			string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+			if (tobt.length() > 0) {
+				isValidToCalculateEventMode = true;
 			}
 
 			bool hasCtot = false;
@@ -803,7 +718,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			//It'll calculate pilot's times if EventMode is off("0") or (hasCtot or a Rea has been done to calculate's times)
+			//It'll calculate pilot's times after pressing READY TOBT Function
 			if (isValidToCalculateEventMode) {
 				//EOBT
 				EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
@@ -818,15 +733,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				EOBT = EOBTfinal.c_str();
 				bool stillOutOfTsat = false;
 				int stillOutOfTsatPos;
-
-				//If column A set
-				bool hasValueInA = false;
-				for (int i = 0; i < listA.size(); i++)
-				{
-					if (listA[i] == (string)FlightPlan.GetCallsign()) {
-						hasValueInA = true;
-					}
-				}
 
 				//Get Time NOW
 				time_t rawtime;
@@ -1150,11 +1056,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 							else if (tempEOBT != slotList[pos].eobt && hasCtot) {
-								
+
 							}
 						}
 
-						
+
 						/*if (hasCtot) {
 								//IF EOBT+TaxiTime >= CTOT+10 THEN CTOT LOST
 								string myTimeString = hour + min + "00";
@@ -1977,19 +1883,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, " ");
 							}
 						}
-						else if (ItemCode == TAG_ITEM_A)
-						{
-							if (hasValueInA) {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_YELLOW;
-								strcpy_s(sItemString, 16, "A");
-							}
-							else {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, " ");
-							}
-						}
 						else if (ItemCode == TAG_ITEM_E)
 						{
 							if (notYetEOBT) {
@@ -2366,17 +2259,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, " ");
 							}
 						}
-						else if (ItemCode == TAG_ITEM_A)
-						{
-							if (hasValueInA) {
-								ItemRGB = TAG_YELLOW;
-								strcpy_s(sItemString, 16, "A");
-							}
-							else {
-								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, " ");
-							}
-						}
 						else if (ItemCode == TAG_ITEM_E)
 						{
 							if (notYetEOBT) {
@@ -2457,14 +2339,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 				else if (ItemCode == TAG_ITEM_TOBT)
 				{
-					if (eventMode) {
-						ItemRGB = TAG_GREY;
-						strcpy_s(sItemString, 16, "----");
-					}
-					else {
-						ItemRGB = TAG_GREY;
-						strcpy_s(sItemString, 16, EOBTfinal.c_str());
-					}
+					ItemRGB = TAG_GREY;
+					strcpy_s(sItemString, 16, "----");
 				}
 				else if (ItemCode == TAG_ITEM_CTOT)
 				{
@@ -3319,7 +3195,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		taxiTimesList.clear();
 		TxtTimesVector.clear();
 		OutOfTsat.clear();
-		listA.clear();
 		colors.clear();
 		rate.clear();
 		planeAiportList.clear();
@@ -3335,13 +3210,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		rateString = getFromXml("/CDM/rate/@ops");
 		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
-		string getEventMode = getFromXml("/CDM/eventMode/@mode");
-		if (getEventMode == "1") {
-			eventMode = true;
-		}
-		else {
-			eventMode = false;
-		}
 		string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 		debugMode = false;
 		if (stringDebugMode == "true") {
