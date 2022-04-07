@@ -33,6 +33,7 @@ bool lvo;
 bool ctotCid;
 string myTimeToAdd;
 string taxiZonesUrl;
+string flowRestrictionsUrl;
 int defTaxiTime;
 
 vector<Plane> slotList;
@@ -156,6 +157,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
+	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	debugMode = false;
 	if (stringDebugMode == "true") {
 		debugMode = true;
@@ -2962,39 +2964,41 @@ string CDM::getCidByCallsign(string callsign) {
 }
 
 void CDM::getFlowData() {
-	flowData.clear();
-	CURL* curl;
-	CURLcode res;
-	std::string readBuffer;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/CDM/v2/flow-measures.json");
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		res = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-	}
-	Json::Reader reader;
-	Json::Value obj;
-	Json::FastWriter fastWriter;
-	reader.parse(readBuffer, obj);
+	if (!flowRestrictionsUrl.empty()) {
+		flowData.clear();
+		CURL* curl;
+		CURLcode res;
+		std::string readBuffer;
+		curl = curl_easy_init();
+		if (curl) {
+			curl_easy_setopt(curl, CURLOPT_URL, flowRestrictionsUrl);
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			res = curl_easy_perform(curl);
+			curl_easy_cleanup(curl);
+		}
+		Json::Reader reader;
+		Json::Value obj;
+		Json::FastWriter fastWriter;
+		reader.parse(readBuffer, obj);
 
-	const Json::Value& measures = obj["MDI"];
-	for (int i = 0; i < measures.size(); i++) {
-		string type = "MDI";
-		string time = fastWriter.write(measures[i]["TIME"]);
-		string depa = fastWriter.write(measures[i]["DEPA"]);
-		depa.erase(std::remove(depa.begin(), depa.end(), '"'));
-		string dest = fastWriter.write(measures[i]["DEST"]);
-		dest.erase(std::remove(dest.begin(), dest.end(), '"'));
-		string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
-		valid_Date.erase(std::remove(valid_Date.begin(), valid_Date.end(), '"'));
-		string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
-		valid_time.erase(std::remove(valid_time.begin(), valid_time.end(), '"'));
-		string message = fastWriter.write(measures[i]["MESSAGE"]);
-		message.erase(std::remove(message.begin(), message.end(), '"'));
-		Flow flow(type, time, depa, dest, valid_Date, valid_time, message);
-		flowData.push_back(flow);
+		const Json::Value& measures = obj["MDI"];
+		for (int i = 0; i < measures.size(); i++) {
+			string type = "MDI";
+			string time = fastWriter.write(measures[i]["TIME"]);
+			string depa = fastWriter.write(measures[i]["DEPA"]);
+			depa.erase(std::remove(depa.begin(), depa.end(), '"'));
+			string dest = fastWriter.write(measures[i]["DEST"]);
+			dest.erase(std::remove(dest.begin(), dest.end(), '"'));
+			string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
+			valid_Date.erase(std::remove(valid_Date.begin(), valid_Date.end(), '"'));
+			string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
+			valid_time.erase(std::remove(valid_time.begin(), valid_time.end(), '"'));
+			string message = fastWriter.write(measures[i]["MESSAGE"]);
+			message.erase(std::remove(message.begin(), message.end(), '"'));
+			Flow flow(type, time, depa, dest, valid_Date, valid_time, message);
+			flowData.push_back(flow);
+		}
 	}
 }
 
@@ -3189,6 +3193,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		TxtTimesVector.clear();
 		OutOfTsat.clear();
 		colors.clear();
+		flowData.clear();
 		rate.clear();
 		planeAiportList.clear();
 		masterAirports.clear();
@@ -3204,6 +3209,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 		string stringDebugMode = getFromXml("/CDM/Debug/@mode");
+		flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 		debugMode = false;
 		if (stringDebugMode == "true") {
 			debugMode = true;
@@ -3242,7 +3248,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 			getTaxiZonesFromUrl(taxiZonesUrl);
 		}
-
+		getFlowData();
 		fstream fileCtot;
 		string lineValueCtot;
 		fileCtot.open(cfad.c_str(), std::ios::in);
