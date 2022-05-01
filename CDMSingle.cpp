@@ -837,16 +837,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				//Get Restriction
 				bool hasFlowMeasures = false;
 				Flow myFlow;
-				for (int z = 0; z < flowData.size(); z++)
-				{
-					if (destination == flowData[z].dest.substr(0, 4)) {
-						if (origin == flowData[z].depa.substr(0, 4)) {
-							hasFlowMeasures = true;
-							myFlow = flowData[z];
-						}
-						else if ("ALL" == flowData[z].depa.substr(0, 3)) {
-							hasFlowMeasures = true;
-							myFlow = flowData[z];
+				if (!aircraftFind) {
+					for (int z = 0; z < flowData.size(); z++)
+					{
+						if (destination == flowData[z].dest.substr(0, 4)) {
+							//Chech origin
+							if ((origin == flowData[z].depa.substr(0, 4)) || ("ALL" == flowData[z].depa.substr(0, 3))) {
+								//Check day && Month
+								string dayMonth = GetDateMonthNow();
+								if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(flowData[z].validDate.substr(0, flowData[z].validDate.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(flowData[z].validDate.substr(flowData[z].validDate.find("/") + 1))) {
+									//Check valid time
+									int timeNow = stoi(GetActualTime());
+									if (stoi(flowData[z].validTime.substr(0, flowData[z].validTime.find("-"))) <= timeNow && stoi(flowData[z].validTime.substr(flowData[z].validTime.find("-") + 1)) >= timeNow) {
+										hasFlowMeasures = true;
+										myFlow = flowData[z];
+									}
+								}
+							}
 						}
 					}
 				}
@@ -1307,10 +1314,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										if (hasCtot) {
 											if (aircraftFind) {
 												if (TTOTFinal != slotList[pos].ttot) {
-													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
-													if (hasFlowMeasures) {
-														p = Plane(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, true, myFlow);
-													}
+													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
 													slotList[pos] = p;
 
 													if (remarks.find("CTOT") != string::npos) {
@@ -1331,18 +1335,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											else {
-												if (hasFlowMeasures) {
-													if (myCtot.empty()) {
-														Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, true, myFlow);
-														slotList.push_back(p);
-													}
-													else {
-														Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, true, myFlow);
-														slotList.push_back(p);
-													}
+												if (myCtot.empty()) {
+													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
+													slotList.push_back(p);
 												}
 												else {
-													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
+													Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, hasFlowMeasures, myFlow);
 													slotList.push_back(p);
 												}
 
@@ -1367,10 +1365,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											if (aircraftFind) {
 												if (TTOTFinal != slotList[pos].ttot) {
-													Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
-													if (hasFlowMeasures) {
-														p = Plane(callsign, EOBT, TSAT, TTOT, false, "", true, myFlow);
-													}
+													Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow);
 													slotList[pos] = p;
 
 													if (remarks.find("%") != string::npos) {
@@ -1386,10 +1381,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											else {
-												Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
-												if (hasFlowMeasures) {
-													p = Plane(callsign, EOBT, TSAT, TTOT, false, "", true, myFlow);
-												}
+												Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow);
 												slotList.push_back(p);
 
 												if (remarks.find("%") != string::npos) {
@@ -1892,10 +1884,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
-							if (hasFlowMeasures) {
-								ItemRGB = TAG_YELLOW;
-								strcpy_s(sItemString, 16, myFlow.customMessage.c_str());
-							}
+							if (aircraftFind) {
+								if (slotList[pos].hasRestriction) {
+									    string message = slotList[pos].flowRestriction.customMessage;
+										ItemRGB = TAG_YELLOW;
+										//strcpy_s(sItemString, 16, message.c_str());
+									}
+								}
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
@@ -1922,17 +1917,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (TSATString != slotList[pos].tsat && TSATFind) {
 							if (hasCtot) {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, false, myFlow);
-								if (hasFlowMeasures) {
-									p = Plane(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, true, myFlow);
-								}
+								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
 								slotList[pos] = p;
 							}
 							else {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, false, myFlow);
-								if (hasFlowMeasures) {
-									p = Plane(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, true, myFlow);
-								}
+								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
 								string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
 								slotList[pos] = p;
 							}
@@ -1941,17 +1930,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					else {
 						if (TSATFind) {
 							if (hasCtot) {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, false, myFlow);
-								if (hasFlowMeasures) {
-									p = Plane(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, true, myFlow);
-								}
+								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
 								slotList.push_back(p);
 							}
 							else {
-								Plane p(callsign, EOBT, TSATString, TTOTString, false, "", false, myFlow);
-								if (hasFlowMeasures) {
-									p = Plane(callsign, EOBT, TSATString, TTOTString, false, "", true, myFlow);
-								}
+								Plane p(callsign, EOBT, TSATString, TTOTString, false, "", hasFlowMeasures, myFlow);
 								slotList.push_back(p);
 							}
 						}
@@ -2266,10 +2249,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
-							if (hasFlowMeasures) {
+						if (aircraftFind) {
+							if (slotList[pos].hasRestriction) {
+								string message = slotList[pos].flowRestriction.customMessage;
 								ItemRGB = TAG_YELLOW;
-								strcpy_s(sItemString, 16, myFlow.customMessage.c_str());
+								//strcpy_s(sItemString, 16, message.c_str());
 							}
+						}
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
@@ -2672,6 +2658,17 @@ string CDM::GetActualTime() {
 		hour = "0" + hour.substr(0, 1);
 	}
 	return hour + min;
+}
+
+string CDM::GetDateMonthNow() {
+	//Get Time now
+	time_t rawtime;
+	struct tm* ptm;
+	time(&rawtime);
+	ptm = gmtime(&rawtime);
+	string day = to_string(ptm->tm_mday);
+	string month = to_string(ptm->tm_mon + 1);
+	return day + "-" + month;
 }
 
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
