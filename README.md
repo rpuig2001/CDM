@@ -1,4 +1,4 @@
-# CDM plugin V2 (BETA)
+# CDM plugin V2
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 CDM includes the following times:
 - EOBT: Estimated off block time.
@@ -16,45 +16,41 @@ CDM includes the following times:
 - If there is no master controller, you should use the command ``.cdm master {airport}`` of the airport you want to become the master. You can have as many airport as you want, but there can ony be **1 MASTER at the same time** (The MASTER should be DELIVERY or the lowest ATC position to have access to all CDM actions).
 - Add The following items to the departure list with their actions:
 
-- A
-
-![image](https://i.gyazo.com/e7bae0d995a6f77b0e3b7fed115d854e.png)
-
 - EOBT
 
-![image](https://i.gyazo.com/e831b09bc5a75a8971bcae892ef16940.png)
+![image](https://i.gyazo.com/928f2e35f0a4248e17442bba552d72e0.png)
 
 - E
 
-![image](https://i.gyazo.com/3c65d71bc812ccf6966c4694c9fa425d.png)
+![image](https://i.gyazo.com/436e8eb7b20b00d2c39a483319d03425.png)
 
 - TOBT
 
-![image](https://gyazo.com/477c7a3aa1e68cebaffbb01d685abe15.png)
+![image](https://i.gyazo.com/ad6344055e7de91ab8a386f7153d19e1.png)
 
 - TSAT
 
-![image](https://i.gyazo.com/f4de2894de5f5b12733ad94896d9cdbb.png)
+![image](https://i.gyazo.com/37b0ad531fc4a32dfaffbf7db83c5546.png)
 
 - TTOT
 
-![image](https://i.gyazo.com/931cb1578776283261382f3735fea5e7.png)
+![image](https://i.gyazo.com/4533873ef8d8342cb5b35ed381bb0f47.png)
 
 - TSAC
 
-![image](https://i.gyazo.com/6a28ed89ecfe8aab259d533febe45000.png)
+![image](https://i.gyazo.com/8f9d55ec477a8c21ddb63df3b4da15a1.png)
 
 - ASAT
 
-![image](https://i.gyazo.com/ae930f513a05d85a9776631ff89fbf7d.png)
+![image](https://i.gyazo.com/8fb33ba38fb68e48de64b0139322e466.png)
 
 - ASRT
 
-![image](https://i.gyazo.com/f320a807ee5f8f35c63cac38d671f1a2.png)
+![image](https://i.gyazo.com/54c3956f46f63ee3b44e84308bb6fe5d.png)
 
 - CTOT
 
-![image](https://i.gyazo.com/fa2d4b6bc87832d2983bf6800bdb824d.png)
+![image](https://i.gyazo.com/775e1bf69fac29e2e3a776d35e67952a.png)
 
 
 ## MASTER AND SLAVE:
@@ -93,11 +89,11 @@ CDM includes the following times:
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
-  - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if if no URL needed, just leave it blank (ex. Taxizones url="").
+  - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
-  - Eventmode is activated ("1") or desactivated ("0") (ex: eventMode mode="1") - **IMPORTANT** EventMode is a new mode and **VERY RECOMMENDED** during events and daily for a better perfomence and service where TOBT will be functional. With this mode, the CDM, will calculate TSAT and TTOT after setting the actual time to TOBT with "READY TOBT" function or a custom time with "EDIT TOBT" function.
+  - [OPTIONAL] FlowRestrictions URL to the JSON file - Format is defined below (ex. FlowRestrictions url:"https://...."), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
  
 ### ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT`` or ``XXXXXX,CTOT``, ex: ``XXXXXX,1745`` - XXXXXX is vatsim user's CID or ``VLG11P,1745`` (Each line has an aircraft)
@@ -109,6 +105,43 @@ CDM includes the following times:
   - You can set the rate/hour for specific runway and airport, if not declared, **AIRPORT WILL NOT BE CONSIDERED A CDM AIRPORT**. You can declare every runway rate with the following format: ``AIRPORT:RUNWAY=NormalRate_LvoRate``, ex:``LEBL:25L=40_20`` (Each line has a runway with his rate)
 
 *Examples can be found in the givenfiles.*
+
+## Flow Restriction
+### How does it work?
+Flow restrictions create CTOTs to planes afected with the published restrictions (Only MDIs Available for now).
+
+### JSON format
+Each Restriction must have:
+  - ```TIME```: Time interval for MDI (number value, ex. 3).
+  - ```DEPA```: Departure Aerodrome for flights affected or "ALL" for all flights. (ex. "LEBL" or "ALL").
+  - ```DEST```: Destination Aerodrome for flights affected or "ALL" for all flights. (ex. "LEPA" or "ALL").
+  - ```VALIDDATE```: Valid date ```day/month``` (ex. "07/04").
+  - ```VALIDTIME```: Valid date ```start-end``` (ex. "1700/1900").
+  - ```MESSAGE```: Message to show in CDM's flow message field (ex. "message").
+
+Example:
+```
+{
+    "MDI": [
+      {
+        "TIME": 3,
+        "DEPA": "ALL",
+        "DEST": "LPPT",
+        "VALIDDATE": "07/04",
+        "VALIDTIME": "1700-1900",
+        "MESSAGE": "LPPT Thursdays"
+       },
+       {
+        "TIME": 3,
+        "DEPA": "ALL",
+        "DEST": "EDDH",
+        "VALIDDATE": "07/04",
+        "VALIDTIME": "1700-1900",
+        "MESSAGE": "EDDH Thursday"
+       }
+    ]
+}
+```
 
 ## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
@@ -158,5 +191,5 @@ CDM includes the following times:
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
   - Color defined as ``color10``.
 
-- Column CTOT: It shows aircraft's CTOT which can be added, modified or removed.
+- Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
   - Color defined as ``color11``.
