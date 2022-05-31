@@ -377,7 +377,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				{
 					if (slotList[a].callsign == fp.GetCallsign()) {
 						string getTSAT = slotList[a].tsat;
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(2, getTSAT.c_str());
+						if (getTSAT.length() >= 4) {
+							fp.GetControllerAssignedData().SetFlightStripAnnotation(2, getTSAT.substr(0,4).c_str());
+						}
 					}
 				}
 			}
