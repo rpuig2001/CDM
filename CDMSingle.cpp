@@ -21,6 +21,7 @@ string sfad;
 string cfad;
 string vfad;
 string rfad;
+string dfad;
 string rateString;
 string lvoRateString;
 string ctotOption;
@@ -35,6 +36,11 @@ string myTimeToAdd;
 string taxiZonesUrl;
 string flowRestrictionsUrl;
 int defTaxiTime;
+
+//Ftp data
+string ftpHost;
+string ftpUser;
+string ftpPassword;
 
 vector<Plane> slotList;
 vector<Flow> flowData;
@@ -118,6 +124,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	pfad.resize(pfad.size() - strlen("CDM.dll"));
 	pfad += "CDMconfig.xml";
 
+	dfad = DllPathFile;
+	dfad.resize(dfad.size() - strlen("CDM.dll"));
+	dfad += "CDM_data";
+
 	lfad = DllPathFile;
 	lfad.resize(lfad.size() - strlen("CDM.dll"));
 	lfad += "taxizones.txt";
@@ -158,6 +168,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
+	ftpHost = getFromXml("/CDM/ftpHost/@host");
+	ftpUser = getFromXml("/CDM/ftpUser/@user");
+	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
 	debugMode = false;
 	if (stringDebugMode == "true") {
 		debugMode = true;
@@ -1406,6 +1419,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//Refresh times every x sec
 						if (countTime - stoi(GetTimeNow()) < -refreshTime) {
 							multithread(&CDM::getFlowData);
+							multithread(&CDM::saveData);
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 							}
@@ -3001,6 +3015,56 @@ void CDM::getFlowData() {
 	}
 }
 
+void CDM::saveData() {
+	if (!ftpHost.empty()) {
+		if (!slotList.empty()) {
+			for (string airport : masterAirports) {
+				ofstream myfile;
+				string fileName = dfad + "_" + airport + ".txt";
+				myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
+				for (Plane plane : slotList) {
+					if (myfile.is_open())
+					{
+						if (airport == FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin()) {
+							string str;
+							if (plane.hasCtot) {
+								if (plane.hasRestriction) {
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.customMessage;
+								}
+								else {
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + ",flowRestriction";
+								}
+							}
+							else {
+								str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot";
+								if (plane.hasRestriction) {
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + "," + plane.flowRestriction.customMessage;
+								}
+								else {
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + ",flowRestriction";
+								}
+							}
+							myfile << str << endl;
+						}
+					}
+				}
+				myfile.close();
+				upload(fileName, airport);
+			}
+		}
+	}
+}
+
+void CDM::upload(string fileName, string airport)
+{
+	string saveName = "/CDM_data_" + airport + ".txt";
+	HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+	HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
+	FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
+	InternetCloseHandle(hFtpSession);
+	InternetCloseHandle(hInternet);
+}
+
 
 int CDM::GetVersion() {
 	CURL* curl;
@@ -3180,6 +3244,12 @@ bool CDM::addCtotToMainList(string lineValue) {
 }
 
 bool CDM::OnCompileCommand(const char* sCommandLine) {
+	if (startsWith(".cdm refresh", sCommandLine)) {
+		sendMessage("Refreshing Now...");
+		countTime = stoi(GetTimeNow()) - refreshTime;
+		return true;
+	}
+
 	if (startsWith(".cdm reload", sCommandLine))
 	{
 		sendMessage("Reloading CDM....");

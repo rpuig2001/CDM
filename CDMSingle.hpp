@@ -15,6 +15,8 @@
 #include "json/json.h"
 #define CURL_STATICLIB
 #include "curl/curl.h"
+#include <wininet.h>
+#pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
 #define MY_PLUGIN_VERSION   "2.0.6"
@@ -85,6 +87,10 @@ public:
 	string calculateLessTime(string timeString, double minsToAdd);
 
 	string GetTimeNow();
+
+	void saveData();
+
+	void upload(string fileName, string airport);
 
 	void multithread(void(CDM::* f)());
 
