@@ -1497,8 +1497,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 							}
-						}
-						//ToDo Add counter to do it less times
+						}		
+
 						//Sync TTOT
 						if (remarks.find("%") != string::npos) {
 							if (TTOT != remarks.substr(remarks.find("%") + 8, 6)) {
