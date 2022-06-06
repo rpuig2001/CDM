@@ -548,7 +548,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_NEWTOBT) {
 		string editedTOBT = ItemString;
 		bool hasNoNumber = true;
-		if (editedTOBT.length() <= 4) {
+		if (editedTOBT.length() == 4) {
 
 			for (int i = 0; i < editedTOBT.length(); i++) {
 				if (isdigit(editedTOBT[i]) == false) {
@@ -556,22 +556,20 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 			if (hasNoNumber) {
-				if (editedTOBT.empty()) {
-					fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
-					for (int i = 0; i < slotList.size(); i++) {
-						if ((string)fp.GetCallsign() == slotList[i].callsign) {
-							slotList.erase(slotList.begin() + i);
-						}
+				for (int i = 0; i < slotList.size(); i++)
+				{
+					if (slotList[i].callsign == fp.GetCallsign()) {
+						slotList[i].eobt = editedTOBT;
+						fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
 					}
 				}
-				else {
-					for (int i = 0; i < slotList.size(); i++)
-					{
-						if (slotList[i].callsign == fp.GetCallsign()) {
-							slotList[i].eobt = editedTOBT;
-							fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
-						}
-					}
+			}
+		}
+		else if (editedTOBT.empty()) {
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+			for (int i = 0; i < slotList.size(); i++) {
+				if ((string)fp.GetCallsign() == slotList[i].callsign) {
+					slotList.erase(slotList.begin() + i);
 				}
 			}
 		}
