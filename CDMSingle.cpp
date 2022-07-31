@@ -2990,19 +2990,18 @@ void CDM::saveData() {
 							string str;
 							if (plane.hasCtot) {
 								if (plane.hasRestriction) {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.customMessage;
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.customMessage + ",";
 								}
 								else {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + ",flowRestriction";
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + ",flowRestriction" + ",";
 								}
 							}
 							else {
-								str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot";
 								if (plane.hasRestriction) {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + "," + plane.flowRestriction.customMessage;
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + "," + plane.flowRestriction.customMessage + ",";
 								}
 								else {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + ",flowRestriction";
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + ",flowRestriction" + ",";
 								}
 							}
 							myfile << str << endl;
