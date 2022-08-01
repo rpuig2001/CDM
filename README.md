@@ -94,6 +94,9 @@ CDM includes the following times:
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] FlowRestrictions URL to the JSON file - Format is defined below (ex. FlowRestrictions url:"https://...."), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
+  - [FUTURE - V2.0.7] - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com").
+  - [FUTURE - V2.0.7] - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username").
+  - [FUTURE - V2.0.7] - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&").
  
 ### ctot.txt
   - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT`` or ``XXXXXX,CTOT``, ex: ``XXXXXX,1745`` - XXXXXX is vatsim user's CID or ``VLG11P,1745`` (Each line has an aircraft)
@@ -143,8 +146,32 @@ Example:
 }
 ```
 
+## [FUTURE - V2.0.7] - FTP files and format
+### Files
+Every airport will have a different txt file (ex. LEBL airport: CDM_data_LEBL.txt)
+
+### Format
+``CALLSIGN,EOBT,TSAT,TTOT,CTOT,FlowRestrictionMessage``
+```
+BAW224,183600,183600,184400,ctot,flowRestriction
+RYR22GV,183600,183700,184600,ctot,flowRestriction
+MON562,183600,183700,184800,ctot,flowRestriction
+IBE73RT,183600,184000,185000,ctot,flowRestriction
+IBE51D,183600,184200,185200,ctot,flowRestriction
+IBE3540,183600,184400,185400,ctot,flowRestriction
+EXS15G,183600,184900,185600,ctot,flowRestriction
+EXS12,183600,184700,185800,1922,London Event
+MON837,183600,185200,190000,ctot,flowRestriction
+RYR33P,183600,185200,190200,ctot,flowRestriction
+MON235N,183600,185300,190400,ctot,flowRestriction
+EZY12JM,183600,185600,190600,ctot,flowRestriction
+RYR42TQ,183600,185700,190800,ctot,flowRestriction
+BEE154A,183600,190000,191000,1924,London Event
+```
+
 ## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
+- [FUTURE - V2.0.7] - ``.cdm refresh`` - Force the refresh phase to do it now.
 - [DISABLED] ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
 - ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
