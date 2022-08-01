@@ -549,12 +549,17 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 			if (hasNoNumber) {
+				bool found = false;
 				for (int i = 0; i < slotList.size(); i++)
 				{
 					if (slotList[i].callsign == fp.GetCallsign()) {
 						slotList[i].eobt = editedTOBT;
 						fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
+						found = true;
 					}
+				}
+				if (!found) {
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
 				}
 			}
 		}
