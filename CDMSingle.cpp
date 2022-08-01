@@ -750,8 +750,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
 								planeHasTaxiTimeAssigned = false;
 								taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-								slotList.erase(slotList.begin() + pos);
-								aircraftFind = false;
+								if (!hasCtot) {
+									slotList.erase(slotList.begin() + pos);
+									aircraftFind = false;
+								}
 							}
 						}
 					}
@@ -1346,7 +1348,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						//Remove disconnected planes
+						//Remove disconnected planes after 5 min disconnected
 						if (countTfcDisconnection != -1) {
 							if (countTfcDisconnection - stoi(GetTimeNow()) < -300) {
 								countTfcDisconnection = -1;
