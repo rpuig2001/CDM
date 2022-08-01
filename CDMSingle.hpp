@@ -82,6 +82,10 @@ public:
 
 	string formatTime(string timeString);
 
+	void RemoveDataFromTfc(string callsign);
+
+	void disconnectTfcs();
+
 	string calculateTime(string timeString, double minsToAdd);
 
 	string calculateLessTime(string timeString, double minsToAdd);

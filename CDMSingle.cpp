@@ -28,6 +28,7 @@ string ctotOption;
 int expiredCTOTTime;
 bool defaultRate;
 int countTime;
+int countTfcDisconnection;
 int refreshTime;
 bool addTime;
 bool lvo;
@@ -55,6 +56,7 @@ vector<string> masterAirports;
 vector<string> CDMairports;
 vector<string> CTOTcheck;
 vector<string> finalTimesList;
+vector<string> disconnectionList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -153,6 +155,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	countTime = stoi(GetTimeNow());
 	addTime = false;
+
+	countTfcDisconnection = -1;
 
 	GetVersion();
 
@@ -575,60 +579,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 }
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
-	string callsign = FlightPlan.GetCallsign();
-	deleteFlightStrips(callsign);
-	//Delete from vector
-	for (int i = 0; i < slotList.size(); i++) {
-		if ((string)FlightPlan.GetCallsign() == slotList[i].callsign) {
-			slotList.erase(slotList.begin() + i);
-		}
-	}
-	//Remove Plane From airport List
-	for (int j = 0; j < planeAiportList.size(); j++)
-	{
-		if (planeAiportList[j].substr(0, planeAiportList[j].find(",")) == callsign) {
-			planeAiportList.erase(planeAiportList.begin() + j);
-		}
-	}
-
-	//Remove Plane From finalTimesList
-	for (int i = 0; i < finalTimesList.size(); i++) {
-		if (finalTimesList[i] == callsign) {
-			finalTimesList.erase(finalTimesList.begin() + i);
-		}
-	}
-
-	//Remove Taxi Times List
-	for (int j = 0; j < taxiTimesList.size(); j++)
-	{
-		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
-			taxiTimesList.erase(taxiTimesList.begin() + j);
-		}
-	}
-
-	//Remove ctotCheck
-	for (int i = 0; i < CTOTcheck.size(); i++)
-	{
-		if (CTOTcheck[i] == callsign) {
-			CTOTcheck.erase(CTOTcheck.begin() + i);
-		}
-	}
-
-	//Remove ASAT
-	for (int x = 0; x < asatList.size(); x++)
-	{
-		string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
-		if (actualListCallsign == callsign) {
-			asatList.erase(asatList.begin() + x);
-		}
-	}
-	//Remove from OutOfTsat
-	for (int i = 0; i < OutOfTsat.size(); i++)
-	{
-		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-			OutOfTsat.erase(OutOfTsat.begin() + i);
-		}
-	}
+	disconnectionList.push_back(FlightPlan.GetCallsign());
+	countTfcDisconnection = stoi(GetTimeNow());
 }
 
 
@@ -1391,6 +1343,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										}
 									}
 								}
+							}
+						}
+
+						//Remove disconnected planes
+						if (countTfcDisconnection != -1) {
+							if (countTfcDisconnection - stoi(GetTimeNow()) < -300) {
+								countTfcDisconnection = -1;
+								disconnectTfcs();
 							}
 						}
 
@@ -2903,6 +2863,70 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 {
 	((std::string*)userp)->append((char*)contents, size * nmemb);
 	return size * nmemb;
+}
+
+void CDM::disconnectTfcs() {
+	for (string callsign : disconnectionList)
+	{
+		RemoveDataFromTfc(callsign);
+	}
+	disconnectionList.clear();
+}
+
+void CDM::RemoveDataFromTfc(string callsign) {
+	deleteFlightStrips(callsign);
+	//Delete from vector
+	for (int i = 0; i < slotList.size(); i++) {
+		if (callsign == slotList[i].callsign) {
+			slotList.erase(slotList.begin() + i);
+		}
+	}
+	//Remove Plane From airport List
+	for (int j = 0; j < planeAiportList.size(); j++)
+	{
+		if (planeAiportList[j].substr(0, planeAiportList[j].find(",")) == callsign) {
+			planeAiportList.erase(planeAiportList.begin() + j);
+		}
+	}
+
+	//Remove Plane From finalTimesList
+	for (int i = 0; i < finalTimesList.size(); i++) {
+		if (finalTimesList[i] == callsign) {
+			finalTimesList.erase(finalTimesList.begin() + i);
+		}
+	}
+
+	//Remove Taxi Times List
+	for (int j = 0; j < taxiTimesList.size(); j++)
+	{
+		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+			taxiTimesList.erase(taxiTimesList.begin() + j);
+		}
+	}
+
+	//Remove ctotCheck
+	for (int i = 0; i < CTOTcheck.size(); i++)
+	{
+		if (CTOTcheck[i] == callsign) {
+			CTOTcheck.erase(CTOTcheck.begin() + i);
+		}
+	}
+
+	//Remove ASAT
+	for (int x = 0; x < asatList.size(); x++)
+	{
+		string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
+		if (actualListCallsign == callsign) {
+			asatList.erase(asatList.begin() + x);
+		}
+	}
+	//Remove from OutOfTsat
+	for (int i = 0; i < OutOfTsat.size(); i++)
+	{
+		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+			OutOfTsat.erase(OutOfTsat.begin() + i);
+		}
+	}
 }
 
 string CDM::getCidByCallsign(string callsign) {
