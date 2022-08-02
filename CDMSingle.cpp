@@ -583,8 +583,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 }
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
-	disconnectionList.push_back(FlightPlan.GetCallsign());
-	countTfcDisconnection = stoi(GetTimeNow());
+	string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+	if (tobt.length() > 0) {
+		disconnectionList.push_back(FlightPlan.GetCallsign());
+		countTfcDisconnection = stoi(GetTimeNow());
+	}
 }
 
 
@@ -665,10 +668,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					CTOTcheck.push_back(callsign);
 				}
 			}
+
+
 			bool isValidToCalculateEventMode = false;
 			string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 			if (tobt.length() > 0) {
 				isValidToCalculateEventMode = true;
+			}
+
+			if (!isValidToCalculateEventMode) {
+				for (int i = 0; i < disconnectionList.size(); i++) {
+					if (disconnectionList[i] == callsign) {
+						disconnectionList.erase(disconnectionList.begin() + i);
+						if (aircraftFind) {
+							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(slotList[pos].eobt).c_str());
+						}
+						isValidToCalculateEventMode = true;
+					}
+				}
 			}
 
 			bool hasCtot = false;
