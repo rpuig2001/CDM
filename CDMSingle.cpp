@@ -2583,7 +2583,8 @@ void CDM::CheckCtot(string TTOT) {
 }
 */
 
-string CDM::GetActualTime() {
+string CDM::GetActualTime()
+{
 	//Get Time now
 	time_t rawtime;
 	struct tm* ptm;
@@ -2630,7 +2631,8 @@ string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	return calculateTime(hour + min + "00", addedTime);
 }
 
-void CDM::deleteFlightStrips(string callsign) {
+void CDM::deleteFlightStrips(string callsign)
+{
 	CFlightPlan fp = FlightPlanSelect(callsign.c_str());
 	fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
 	fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
@@ -3060,14 +3062,14 @@ int CDM::GetVersion() {
 	std::string readBuffer = "";
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/CDM/v2/version.txt");
+		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/CDM/master/version.txt");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		result = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
 	}
 
-	if (readBuffer != MY_PLUGIN_VERSION) {
+	if (readBuffer.find(MY_PLUGIN_VERSION) == std::string::npos) {
 		string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have version " + MY_PLUGIN_VERSION " installed, download it from puigcloud.me/CDM";
 		DisplayUserMessage(MY_PLUGIN_NAME, "UPDATE", DisplayMsg.c_str(), true, false, false, false, false);
 	}
