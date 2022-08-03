@@ -1314,6 +1314,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											else {
 												if (myCtot.empty()) {
 													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
+													for (int i = 0; i < slotList.size(); i++) {
+														if (slotList[i].callsign == callsign) {
+															slotList.erase(slotList.begin() + i);
+														}
+													}
 													slotList.push_back(p);
 												}
 												else {
@@ -1403,7 +1408,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							for (int i = 0; i < slotList.size(); i++)
 							{
-								if (!slotList[i].hasRestriction) {
+								if (!slotList[i].hasCtot) {
 									string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
 									int myTTime = defTaxiTime;
 
