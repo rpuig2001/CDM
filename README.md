@@ -122,6 +122,14 @@ Each Restriction must have:
   - ```VALIDDATE```: Valid date ```day/month``` (ex. "07/04").
   - ```VALIDTIME```: Valid date ```start-end``` (ex. "1700/1900").
   - ```MESSAGE```: Message to show in CDM's flow message field (ex. "message").
+  
+[FUTURE 2.0.8] Each Restriction must have:
+  - ```TIME```: Time interval for MDI (number value, ex. 3).
+  - ```DEPA```: Departure Aerodrome for flights affected. (ex. "LEBL" or "LE**").
+  - ```DEST```: Destination Aerodrome for flights affected. (ex. "EDDF" or "ED**").
+  - ```VALIDDATE```: Valid date ```day/month``` (ex. "07/04").
+  - ```VALIDTIME```: Valid date ```start-end``` (ex. "1700/1900").
+  - ```MESSAGE```: Message to show in CDM's flow message field (ex. "message").
 
 Example:
 ```
@@ -144,6 +152,30 @@ Example:
         "MESSAGE": "EDDH Thursday"
        }
     ]
+}
+```
+[FUTURE 2.0.8] Example:
+```
+{
+    "MDI": [
+	{
+        "TIME": 3,
+		"DEPA": 
+			[
+				"LE**"
+			],
+		"DEST": 
+			[
+				"ED**",
+				"EB**",
+           	 	"LS**",
+				"EHAM"
+			],
+		"VALIDDATE": "03/08",
+		"VALIDTIME": "1000-2300",
+		"MESSAGE": "Fly Out Spain"
+        }
+	]
 }
 ```
 
