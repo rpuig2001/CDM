@@ -837,9 +837,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (!aircraftFind) {
 					for (int z = 0; z < flowData.size(); z++)
 					{
-						if (destination == flowData[z].dest.substr(0, 4)) {
+						bool destFound = false;
+						for (string s : flowData[z].dest) {
+							if (s.find(destination) != string::npos) {
+								destFound = true;
+							}
+							else if (s.substr(2, 2) == "**") {
+								if (destination.substr(0, 2) == s.substr(0, 2)) {
+									destFound = true;
+								}
+							}
+						}
+						if (destFound) {
 							//Chech origin
-							if ((origin == flowData[z].depa.substr(0, 4)) || ("ALL" == flowData[z].depa.substr(0, 3))) {
+							bool depaFound = false;
+							for (string s : flowData[z].depa) {
+								if (s.find(origin) != string::npos) {
+									depaFound = true;
+								}
+								else if (s.substr(2, 2) == "**") {
+									if (origin.substr(0, 2) == s.substr(0, 2)) {
+										depaFound = true;
+									}
+								}
+							}
+							if (depaFound) {
 								//Check day && Month
 								string dayMonth = GetDateMonthNow();
 								if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(flowData[z].validDate.substr(0, flowData[z].validDate.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(flowData[z].validDate.substr(flowData[z].validDate.find("/") + 1))) {
@@ -1263,7 +1285,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										int seperationFlow = stoi(myFlow.time);
 										for (int z = 0; z < slotList.size(); z++)
 										{
-											if (FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination() == destination) {
+											string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+											bool validToAdd = false;
+											for (string apt : myFlow.dest) {
+												if (apt.find(destFound) != string::npos) {
+													validToAdd = true;
+												}
+												else if (apt.substr(2, 2) == "**") {
+													if (destFound.substr(0, 2) == apt.substr(0, 2)) {
+														validToAdd = true;
+													}
+												}
+											}
+											if (validToAdd) {
 												sameDestList.push_back(slotList[z]);
 											}
 										}
@@ -3028,17 +3062,29 @@ void CDM::getFlowData() {
 		for (int i = 0; i < measures.size(); i++) {
 			string type = "MDI";
 			string time = fastWriter.write(measures[i]["TIME"]);
-			string depa = fastWriter.write(measures[i]["DEPA"]);
-			depa.erase(std::remove(depa.begin(), depa.end(), '"'));
-			string dest = fastWriter.write(measures[i]["DEST"]);
-			dest.erase(std::remove(dest.begin(), dest.end(), '"'));
+			//Get DEPA Airports
+			const Json::Value& departureAirports = measures[i]["DEPA"];
+			vector<string> myDepAirports;
+			for (int a = 0; a < departureAirports.size(); a++) {
+				string airport = fastWriter.write(measures[i]["DEPA"][a]);
+				airport.erase(std::remove(airport.begin(), airport.end(), '"'));
+				myDepAirports.push_back(airport);
+			}
+			//Get DEST Airports
+			const Json::Value& destAirports = measures[i]["DEST"];
+			vector<string> myDestAirports;
+			for (int a = 0; a < destAirports.size(); a++) {
+				string airport = fastWriter.write(measures[i]["DEST"][a]);
+				airport.erase(std::remove(airport.begin(), airport.end(), '"'));
+				myDestAirports.push_back(airport);
+			}
 			string valid_Date = fastWriter.write(measures[i]["VALIDDATE"]);
 			valid_Date.erase(std::remove(valid_Date.begin(), valid_Date.end(), '"'));
 			string valid_time = fastWriter.write(measures[i]["VALIDTIME"]);
 			valid_time.erase(std::remove(valid_time.begin(), valid_time.end(), '"'));
 			string message = fastWriter.write(measures[i]["MESSAGE"]);
 			message.erase(std::remove(message.begin(), message.end(), '"'));
-			Flow flow(type, time, depa, dest, valid_Date, valid_time, message);
+			Flow flow(type, time, myDepAirports, myDestAirports, valid_Date, valid_time, message);
 			flowData.push_back(flow);
 		}
 	}
