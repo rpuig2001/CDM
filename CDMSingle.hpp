@@ -19,7 +19,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.0.7"
+#define MY_PLUGIN_VERSION   "2.0.8"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -107,6 +107,8 @@ public:
 	int GetVersion();
 
 	bool getTaxiZonesFromUrl(string url);
+
+	bool getCtotsFromUrl(string url);
 
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 

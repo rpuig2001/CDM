@@ -35,6 +35,7 @@ bool lvo;
 bool ctotCid;
 string myTimeToAdd;
 string taxiZonesUrl;
+string ctotUrl;
 string flowRestrictionsUrl;
 int defTaxiTime;
 
@@ -171,6 +172,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
+	ctotUrl = getFromXml("/CDM/Ctot/@url");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
@@ -218,12 +220,26 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		getTaxiZonesFromUrl(taxiZonesUrl);
 	}
 
-	fstream fileCtot;
-	string lineValueCtot;
-	fileCtot.open(cfad.c_str(), std::ios::in);
-	while (getline(fileCtot, lineValueCtot))
-	{
-		addCtotToMainList(lineValueCtot);
+
+	//Get Values from ctot web or file
+	if (ctotUrl.length() <= 1) {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
+		}
+		//Get data from .txt file
+		fstream fileCtot;
+		string lineValueCtot;
+		fileCtot.open(cfad.c_str(), std::ios::in);
+		while (getline(fileCtot, lineValueCtot))
+		{
+			addCtotToMainList(lineValueCtot);
+		}
+	}
+	else {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
+		}
+		getCtotsFromUrl(ctotUrl);
 	}
 
 	fstream fileColors;
@@ -3099,6 +3115,32 @@ int CDM::GetVersion() {
 	return -1;
 }
 
+bool CDM::getCtotsFromUrl(string url)
+{
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_cleanup(curl);
+	}
+
+	std::istringstream is(readBuffer);
+
+	//Get data from .txt file
+	string lineValue;
+	while (getline(is, lineValue))
+	{
+		addCtotToMainList(lineValue);
+	}
+
+	return true;
+}
+
 bool CDM::getTaxiZonesFromUrl(string url) {
 	CURL* curl;
 	CURLcode result;
@@ -3235,8 +3277,8 @@ bool CDM::addCtotToMainList(string lineValue) {
 	}
 	if (!found) {
 		bool oldCTOT = true;
-		string CTOTHour = lineValue.substr(lineValue.length() - 4, 2);
-		string CTOTMin = lineValue.substr(lineValue.length() - 2, 2);
+		string CTOTHour = lineValue.substr(lineValue.find(",")+1, 2);
+		string CTOTMin = lineValue.substr(lineValue.find(",")+3, 2);
 		int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
 		if (hour != CTOTHour) {
 			if (difTime >= expiredCTOTTime + 40) {
@@ -3329,13 +3371,27 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 			getTaxiZonesFromUrl(taxiZonesUrl);
 		}
+
 		getFlowData();
-		fstream fileCtot;
-		string lineValueCtot;
-		fileCtot.open(cfad.c_str(), std::ios::in);
-		while (getline(fileCtot, lineValueCtot))
-		{
-			addCtotToMainList(lineValueCtot);
+
+		if (ctotUrl.length() <= 1) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
+			}
+			//Get data from .txt file
+			fstream fileCtot;
+			string lineValueCtot;
+			fileCtot.open(cfad.c_str(), std::ios::in);
+			while (getline(fileCtot, lineValueCtot))
+			{
+				addCtotToMainList(lineValueCtot);
+			}
+		}
+		else {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
+			}
+			getCtotsFromUrl(ctotUrl);
 		}
 
 		fstream fileColors;
