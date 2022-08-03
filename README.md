@@ -168,7 +168,7 @@ Example:
 			[
 				"ED**",
 				"EB**",
-           	 	"LS**",
+           	 		"LS**",
 				"EHAM"
 			],
 		"VALIDDATE": "03/08",
