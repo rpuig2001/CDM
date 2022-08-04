@@ -169,8 +169,7 @@ Example:
 				"ED**",
 				"EB**",
            	 		"LS**",
-				"EHAM",
-				"****"
+				"EHAM"
 			],
 		"VALIDDATE": "03/08",
 		"VALIDTIME": "1000-2300",
