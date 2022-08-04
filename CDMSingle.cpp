@@ -846,6 +846,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (destination.substr(0, 2) == s.substr(0, 2)) {
 									destFound = true;
 								}
+								else if (s.substr(0, 2) == "**") {
+									destFound = true;
+								}
 							}
 						}
 						if (destFound) {
@@ -857,6 +860,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else if (s.substr(2, 2) == "**") {
 									if (origin.substr(0, 2) == s.substr(0, 2)) {
+										depaFound = true;
+									}
+									else if (s.substr(0, 2) == "**") {
 										depaFound = true;
 									}
 								}
@@ -1293,6 +1299,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 												else if (apt.substr(2, 2) == "**") {
 													if (destFound.substr(0, 2) == apt.substr(0, 2)) {
+														validToAdd = true;
+													}
+													else if (apt.substr(0, 2) == "**") {
 														validToAdd = true;
 													}
 												}
