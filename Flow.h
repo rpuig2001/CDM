@@ -6,15 +6,18 @@ using namespace std;
 
 class Flow {
 public:
+	int id;
+	string ident;
+	int event_id;
+	string reason;
+	string valid_time;
+	string valid_date;
 	string type;
-	string time;
-	vector<string> depa;
-	vector<string> dest;
-	string validDate;
-	string validTime;
-	string customMessage;
+	int value;
+	vector<string> ADEP;
+	vector<string> ADES;
 
-	Flow(string mytype, string mytime, vector<string> mydepa, vector<string> mydest, string myvalidDate, string myvalidTime, string mymessage) :
-		type(mytype), time(mytime), depa(mydepa), dest(mydest), validDate(myvalidDate), validTime(myvalidTime), customMessage(mymessage) { }
-	Flow() : type() { }
+	Flow(int myId, string myIdent, int myEventId, string myReason, string myValid_time, string myValid_date, string myType, int myValue, vector<string> myADEP, vector<string> myADES) :
+		id(myId), ident(myIdent), event_id(myEventId), reason(myReason), valid_time(myValid_time), valid_date(myValid_date), type(myType), value(myValue) , ADEP(myADEP), ADES(myADES) { }
+	Flow() {};
 };
