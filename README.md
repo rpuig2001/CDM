@@ -184,7 +184,7 @@ Example:
 Every airport will have a different txt file (ex. LEBL airport: CDM_data_LEBL.txt)
 
 ### Format
-``CALLSIGN,EOBT,TSAT,TTOT,CTOT,FlowRestrictionMessage,``
+``CALLSIGN,TOBT,TSAT,TTOT,CTOT,FlowRestrictionMessage,``
 ```
 BAW224,183600,183600,184400,ctot,flowRestriction,
 RYR22GV,183600,183700,184600,ctot,flowRestriction,
