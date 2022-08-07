@@ -558,7 +558,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITTOBT) {
-		if (master && AtcMe) {
+		bool found = false;
+			for (int i = 0; i < slotList.size(); i++)
+		{
+			if (slotList[i].callsign == fp.GetCallsign()) {
+				found = true;
+			}
+		}
+		if (master && AtcMe && found) {
 			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, fp.GetControllerAssignedData().GetFlightStripAnnotation(0));
 		}
 	}
