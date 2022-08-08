@@ -112,7 +112,7 @@ CDM includes the following times:
 
 ## Flow Restriction
 ### How does it work?
-Flow restrictions create CTOTs to planes afected with the published restrictions (Only MDIs Available for now).
+Flow restrictions create CTOTs to planes afected with published MDIs from ECFMP.
 
 ### JSON format
 Each Restriction must have:
@@ -123,13 +123,7 @@ Each Restriction must have:
   - ```VALIDTIME```: Valid date ```start-end``` (ex. "1700/1900").
   - ```MESSAGE```: Message to show in CDM's flow message field (ex. "message").
   
-[FUTURE 2.0.8] Each Restriction must have:
-  - ```TIME```: Time interval for MDI (number value, ex. 3).
-  - ```DEPA```: Departure Aerodrome for flights affected. (ex. "LEBL", "LE**" or "****" for all airports).
-  - ```DEST```: Destination Aerodrome for flights affected. (ex. "EDDF", "ED**" or "****" for all airports).
-  - ```VALIDDATE```: Valid date ```day/month``` (ex. "07/04").
-  - ```VALIDTIME```: Valid date ```start-end``` (ex. "1700/1900").
-  - ```MESSAGE```: Message to show in CDM's flow message field (ex. "message").
+[FUTURE 2.0.8] No specific JSON.
 
 Example:
 ```
@@ -152,30 +146,6 @@ Example:
         "MESSAGE": "EDDH Thursday"
        }
     ]
-}
-```
-[FUTURE 2.0.8] Example:
-```
-{
-    "MDI": [
-	{
-        "TIME": 3,
-		"DEPA": 
-			[
-				"LE**"
-			],
-		"DEST": 
-			[
-				"ED**",
-				"EB**",
-           	 		"LS**",
-				"EHAM"
-			],
-		"VALIDDATE": "03/08",
-		"VALIDTIME": "1000-2300",
-		"MESSAGE": "Fly Out Spain"
-        }
-	]
 }
 ```
 
