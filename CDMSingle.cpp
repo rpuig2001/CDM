@@ -1388,6 +1388,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														}
 													}
 													slotList.push_back(p);
+													pos = slotList.size() - 1;
 												}
 												else {
 													Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, hasFlowMeasures, myFlow);
@@ -1929,7 +1930,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (slotList[pos].hasRestriction) {
 									    string message = slotList[pos].flowRestriction.ident;
 										ItemRGB = TAG_YELLOW;
-										//strcpy_s(sItemString, 16, message.c_str());
+										strcpy_s(sItemString, 16, message.c_str());
 									}
 								}
 						}
@@ -2294,7 +2295,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (slotList[pos].hasRestriction) {
 								string message = slotList[pos].flowRestriction.ident;
 								ItemRGB = TAG_YELLOW;
-								//strcpy_s(sItemString, 16, message.c_str());
+								strcpy_s(sItemString, 16, message.c_str());
 							}
 						}
 						}
