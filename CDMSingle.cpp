@@ -3085,7 +3085,11 @@ void CDM::getFlowData() {
 			string ident = fastWriter.write(measures[i]["ident"]);
 			ident.erase(std::remove(ident.begin(), ident.end(), '"'));
 			//Get Event Id
-			int event_id = stoi(fastWriter.write(measures[i]["event_id"]));
+			string myEvent_id = fastWriter.write(measures[i]["event_id"]);
+			int event_id = -1;
+			if (myEvent_id.find("null") == std::string::npos) {
+				event_id = stoi(fastWriter.write(measures[i]["event_id"]));
+			}
 			//Get reason
 			string reason = fastWriter.write(measures[i]["reason"]);
 			reason.erase(std::remove(reason.begin(), reason.end(), '"'));
