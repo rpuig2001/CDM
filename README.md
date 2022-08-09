@@ -115,6 +115,9 @@ CDM includes the following times:
 Flow restrictions create CTOTs to planes afected with published MDIs from ECFMP.
 If we want to change the TOBT, we must recalculate the CTOT by pressing with "left click" the CTOT time and selecting "reload CTOT".
 
+### How to use them?
+https://ecfmp.vatsim.net/api/v1/plugin should be set in the Flow Measure field of the CDMconfig.xml.
+
 ## FTP files and format
 ### Files
 Every airport will have a different txt file (ex. LEBL airport: CDM_data_LEBL.txt)
