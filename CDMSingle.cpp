@@ -3200,7 +3200,7 @@ int CDM::GetVersion() {
 	}
 
 	if (readBuffer.find(MY_PLUGIN_VERSION) == std::string::npos) {
-		string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have version " + MY_PLUGIN_VERSION " installed, download it from puigcloud.me/CDM";
+		string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have version " + MY_PLUGIN_VERSION " installed, download it from vats.im/CDM";
 		DisplayUserMessage(MY_PLUGIN_NAME, "UPDATE", DisplayMsg.c_str(), true, false, false, false, false);
 	}
 
