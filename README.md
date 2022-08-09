@@ -90,7 +90,7 @@ CDM includes the following times:
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="").
-  - [FUTURE 2.0.8] [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="").
+  - [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
@@ -113,41 +113,7 @@ CDM includes the following times:
 ## Flow Restriction
 ### How does it work?
 Flow restrictions create CTOTs to planes afected with published MDIs from ECFMP.
-
-### JSON format
-Each Restriction must have:
-  - ```TIME```: Time interval for MDI (number value, ex. 3).
-  - ```DEPA```: Departure Aerodrome for flights affected or "ALL" for all flights. (ex. "LEBL" or "ALL").
-  - ```DEST```: Destination Aerodrome for flights affected or "ALL" for all flights. (ex. "LEPA" or "ALL").
-  - ```VALIDDATE```: Valid date ```day/month``` (ex. "07/04").
-  - ```VALIDTIME```: Valid date ```start-end``` (ex. "1700/1900").
-  - ```MESSAGE```: Message to show in CDM's flow message field (ex. "message").
-  
-[FUTURE 2.0.8] No specific JSON.
-
-Example:
-```
-{
-    "MDI": [
-      {
-        "TIME": 3,
-        "DEPA": "ALL",
-        "DEST": "LPPT",
-        "VALIDDATE": "07/04",
-        "VALIDTIME": "1700-1900",
-        "MESSAGE": "LPPT Thursdays"
-       },
-       {
-        "TIME": 3,
-        "DEPA": "ALL",
-        "DEST": "EDDH",
-        "VALIDDATE": "07/04",
-        "VALIDTIME": "1700-1900",
-        "MESSAGE": "EDDH Thursday"
-       }
-    ]
-}
-```
+If we want to change the TOBT, we must recalculate the CTOT by pressing with "left click" the CTOT time and selecting "reload CTOT".
 
 ## FTP files and format
 ### Files
