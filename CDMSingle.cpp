@@ -558,14 +558,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITTOBT) {
-		bool found = false;
-			for (int i = 0; i < slotList.size(); i++)
-		{
-			if (slotList[i].callsign == fp.GetCallsign()) {
-				found = true;
-			}
-		}
-		if (master && AtcMe && found) {
+		if (master && AtcMe) {
 			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, fp.GetControllerAssignedData().GetFlightStripAnnotation(0));
 		}
 	}
@@ -1393,6 +1386,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												else {
 													Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, hasFlowMeasures, myFlow);
 													slotList.push_back(p);
+													pos = slotList.size() - 1;
 												}
 
 												if (remarks.find("CTOT") != string::npos) {
