@@ -2073,6 +2073,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 							else {
+								slotList[pos].ctot = rmkCtot;
 								slotList[pos].hasCtot = true;
 							}
 						}
