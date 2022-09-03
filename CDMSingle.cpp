@@ -1446,13 +1446,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						//Refresh times every x sec
-						if (countTime - stoi(GetTimeNow()) < -refreshTime) {
+						int myNow = stoi(GetTimeNow());
+						if (myNow - countTime > refreshTime) {
 							multithread(&CDM::getFlowData);
 							multithread(&CDM::saveData);
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 							}
-							countTime = stoi(GetTimeNow());
+							countTime = myNow;
 
 							//Calculate Rate
 							int rate;
