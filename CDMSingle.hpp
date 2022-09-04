@@ -82,6 +82,8 @@ public:
 
 	string formatTime(string timeString);
 
+	void checkCtot();
+
 	void RemoveDataFromTfc(string callsign);
 
 	void disconnectTfcs();

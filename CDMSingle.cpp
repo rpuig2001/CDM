@@ -1256,6 +1256,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												listTTOT = slotList[t].ttot;
 											}
 
+											if (slotList[t].tsat == "999999") {
+												listDepRwy = depRwy;
+												listAirport = origin;
+											}
+
 											if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 												found = false;
 												if (alreadySetTOStd) {
@@ -1454,6 +1459,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 							}
 							countTime = myNow;
+
+							checkCtot();
 
 							//Calculate Rate
 							int rate;
@@ -2525,6 +2532,11 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 						listTTOT = slotList[t].ttot;
 					}
 
+					if (slotList[t].tsat == "999999") {
+						listDepRwy = depRwy;
+						listAirport = origin;
+					}
+
 					if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 						found = false;
 						if (alreadySetTOStd) {
@@ -2809,6 +2821,49 @@ string CDM::formatTime(string timeString) {
 	}
 	else {
 		return timeString;
+	}
+}
+
+void CDM::checkCtot() {
+	int i = 0;
+	for (Plane p : slotList) {
+			if (p.tsat == "999999") {
+				//Get Time now
+				time_t rawtime;
+				struct tm* ptm;
+				time(&rawtime);
+				ptm = gmtime(&rawtime);
+				string hour = to_string(ptm->tm_hour % 24);
+				string min = to_string(ptm->tm_min);
+
+				if (stoi(min) < 10) {
+					min = "0" + min;
+				}
+				if (stoi(hour) < 10) {
+					hour = "0" + hour.substr(0, 1);
+				}
+				string CTOTHour = slotList[i].ttot.substr(slotList[i].ttot.length() - 6, 2);
+				string CTOTMin = slotList[i].ttot.substr(slotList[i].ttot.length() - 4, 2);
+				int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
+				bool oldCTOT = true;
+				if (hour != CTOTHour) {
+					if (difTime >= expiredCTOTTime + 40) {
+						oldCTOT = false;
+					}
+				}
+				else {
+					if (difTime >= expiredCTOTTime) {
+						oldCTOT = false;
+					}
+				}
+				if (oldCTOT) {
+					string myOrg = FlightPlanSelect(p.callsign.c_str()).GetFlightPlanData().GetOrigin();
+					if (myOrg.length() < 3) {
+						slotList.erase(slotList.begin() + i);
+					}
+				}
+			}
+		i++;
 	}
 }
 
@@ -3343,8 +3398,8 @@ bool CDM::addCtotToMainList(string lineValue) {
 	{
 		if (slotList[i].callsign == lineValue.substr(0, lineValue.find(","))) {
 			bool oldCTOT = true;
-			string CTOTHour = slotList[i].ttot.substr(slotList[i].ttot.length() - 8, 2);
-			string CTOTMin = slotList[i].ttot.substr(slotList[i].ttot.length() - 6, 2);
+			string CTOTHour = slotList[i].ttot.substr(slotList[i].ttot.length() - 6, 2);
+			string CTOTMin = slotList[i].ttot.substr(slotList[i].ttot.length() - 4, 2);
 			int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
 			if (hour != CTOTHour) {
 				if (difTime >= expiredCTOTTime + 40) {
@@ -3640,21 +3695,27 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm ctot", sCommandLine))
 	{
 		sendMessage("Loading CTOTs data....");
-		sendMessage("Command disabled...");
-		/*
-		ctotList.clear();
-		CTOTcheck.clear();
-		slotList.clear();
-		//load data from file
-		fstream file;
-		string lineValue;
-		file.open(cfad.c_str(), std::ios::in);
-		while (getline(file, lineValue))
-		{
-			addCtotToMainList(lineValue);
+
+		if (ctotUrl.length() <= 1) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
+			}
+			//Get data from .txt file
+			fstream fileCtot;
+			string lineValueCtot;
+			fileCtot.open(cfad.c_str(), std::ios::in);
+			while (getline(fileCtot, lineValueCtot))
+			{
+				addCtotToMainList(lineValueCtot);
+			}
 		}
-		sendMessage("Done");
-		*/
+		else {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
+			}
+			getCtotsFromUrl(ctotUrl);
+		}
+
 		return true;
 	}
 
@@ -3789,6 +3850,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			sendMessage("NO MASTER AIRPORTS");
 		}
 		sendMessage("DEFAULT RATE: " + rateString);
+
+		for (Plane p : slotList) {
+			sendMessage(p.callsign);
+		}
+
+
 		return true;
 	}
 }
