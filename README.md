@@ -88,6 +88,7 @@ CDM includes the following times:
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
+  - [FUTURE 2.0.9] Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true")
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="").
   - [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="").
@@ -153,6 +154,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 - [Euroscope May crash (Checking it out for further versions)] ``.cdm delay {minutes}`` - Adds delay minutes to all traffics.
 - ``.cdm lvo on`` - Activates lvo using the defined lvo rate in rate.txt file.
 - ``.cdm lvo off`` - Desactivates lvo rate.
+- [FUTURE 2.0.9] ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm help`` - Sends a message with all commands.
 
 ## Functions and colors:
@@ -160,6 +162,7 @@ BEE154A,183600,190000,191000,1924,London Event,
   - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: Always this color.
 
 - Column EOBT: It gets the EOBT set by the pilot in the flightplan.
+  - [FUTURE 2.0.9] If **RealMode** is enabled, when the pilot send a new EOBT, then it will show with ``color4`` (Default ORANGE) when **EOBT is different than TOBT**.
   - Color defined as ``color8``.
 
 - Column TOBT: If EventMode is disabled, We can not simulate it, so it gets the EOBT and the colors is green. Otherwise TOBT will be functional and will calculate TSAT and TTOT from the TOBT time. To delete it simple edit the time and press enter deleting the content.
