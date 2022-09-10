@@ -33,6 +33,7 @@ int refreshTime;
 bool addTime;
 bool lvo;
 bool ctotCid;
+bool realMode;
 string myTimeToAdd;
 string taxiZonesUrl;
 string ctotUrl;
@@ -169,6 +170,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ctotOption = getFromXml("/CDM/ctot/@option");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
+	string realModeStr = getFromXml("/CDM/realMode/@mode");
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
@@ -178,10 +180,16 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
+
 	debugMode = false;
 	if (stringDebugMode == "true") {
 		debugMode = true;
 		sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
+	}
+
+	realMode = false;
+	if (realModeStr == "true") {
+		realMode = true;
 	}
 
 	lvo = false;
@@ -685,9 +693,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-
 			bool isValidToCalculateEventMode = false;
 			string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+
+			//If realMode is activated, then it will set TOBT from the EOBT auromatically
+			if (realMode) {
+				isValidToCalculateEventMode = true;
+			}
+
+			//If relaMode is NOT activated, then it'll wait to press the READY TOBT Function to activate the variable "isValidToCalculateEventMode"
 			if (tobt.length() > 0) {
 				isValidToCalculateEventMode = true;
 			}
@@ -903,6 +917,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 
 				if (master) {
+
+					if (realMode) {
+						if (tobt.length() > 0 == false) {
+							string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, mySetEobt.c_str());
+						}
+					}
 
 					bool gndStatusSet = false;
 					if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
@@ -1781,6 +1802,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							//*pColorCode = TAG_COLOR_RGB_DEFINED;
 							ItemRGB = TAG_EOBT;
+							if (tobt.length() > 0) {
+								string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+								if (mySetEobt != tobt) {
+									ItemRGB = TAG_ORANGE;
+								}
+							}
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
 						}
 						else if (ItemCode == TAG_ITEM_TOBT)
@@ -3614,6 +3641,19 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm help", sCommandLine))
 	{
 		sendMessage("CDM Commands: .cdm reload - .cdm ctot - .cdm save - .cdm load - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm delay {minutes} - .cdm lvo on - .cdm lvo off");
+		return true;
+	}
+
+	if (startsWith(".cdm realmode", sCommandLine))
+	{
+		if (realMode) {
+			realMode = false;
+			sendMessage("Real Mode set to OFF");
+		}
+		else {
+			realMode = true;
+			sendMessage("Real Mode set to ON");
+		}
 		return true;
 	}
 
