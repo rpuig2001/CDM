@@ -727,6 +727,61 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			//It'll calculate pilot's times after pressing READY TOBT Function
 			if (isValidToCalculateEventMode) {
+
+				//Get Restriction
+				bool hasFlowMeasures = false;
+				Flow myFlow;
+				if (!aircraftFind) {
+					for (int z = 0; z < flowData.size(); z++)
+					{
+						bool destFound = false;
+						for (string s : flowData[z].ADES) {
+
+							if (s.find(destination) != string::npos) {
+								destFound = true;
+							}
+							else if (s.substr(2, 2) == "**") {
+								if (destination.substr(0, 2) == s.substr(0, 2)) {
+									destFound = true;
+								}
+								else if (s.substr(0, 2) == "**") {
+									destFound = true;
+								}
+							}
+						}
+						if (destFound) {
+							//Chech origin
+							bool depaFound = false;
+							for (string s : flowData[z].ADEP) {
+								if (s.find(origin) != string::npos) {
+									depaFound = true;
+								}
+								else if (s.substr(2, 2) == "**") {
+									if (origin.substr(0, 2) == s.substr(0, 2)) {
+										depaFound = true;
+									}
+									else if (s.substr(0, 2) == "**") {
+										depaFound = true;
+									}
+								}
+							}
+
+							if (depaFound) {
+								//Check day && Month
+								string dayMonth = GetDateMonthNow();
+								if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(flowData[z].valid_date.substr(0, flowData[z].valid_date.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(flowData[z].valid_date.substr(flowData[z].valid_date.find("/") + 1))) {
+									//Check valid time
+									int timeNow = stoi(GetActualTime());
+									if (stoi(flowData[z].valid_time.substr(0, flowData[z].valid_time.find("-"))) <= timeNow && stoi(flowData[z].valid_time.substr(flowData[z].valid_time.find("-") + 1)) >= timeNow) {
+										hasFlowMeasures = true;
+										myFlow = flowData[z];
+									}
+								}
+							}
+						}
+					}
+				}
+
 				//EOBT
 				EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 				string EOBTstring = EOBT;
@@ -841,60 +896,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						aptFind = true;
 						if (planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4) != origin) {
 							planeAiportList[i] = callsign + "," + origin;
-						}
-					}
-				}
-
-				//Get Restriction
-				bool hasFlowMeasures = false;
-				Flow myFlow;
-				if (!aircraftFind) {
-					for (int z = 0; z < flowData.size(); z++)
-					{
-						bool destFound = false;
-						for (string s : flowData[z].ADES) {
-							
-							if (s.find(destination) != string::npos) {
-								destFound = true;
-							}
-							else if (s.substr(2, 2) == "**") {
-								if (destination.substr(0, 2) == s.substr(0, 2)) {
-									destFound = true;
-								}
-								else if (s.substr(0, 2) == "**") {
-									destFound = true;
-								}
-							}
-						}
-						if (destFound) {
-							//Chech origin
-							bool depaFound = false;
-							for (string s : flowData[z].ADEP) {
-								if (s.find(origin) != string::npos) {
-									depaFound = true;
-								}
-								else if (s.substr(2, 2) == "**") {
-									if (origin.substr(0, 2) == s.substr(0, 2)) {
-										depaFound = true;
-									}
-									else if (s.substr(0, 2) == "**") {
-										depaFound = true;
-									}
-								}
-							}
-							
-							if (depaFound) {
-								//Check day && Month
-								string dayMonth = GetDateMonthNow();
-								if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(flowData[z].valid_date.substr(0, flowData[z].valid_date.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(flowData[z].valid_date.substr(flowData[z].valid_date.find("/") + 1))) {
-									//Check valid time
-									int timeNow = stoi(GetActualTime());
-									if (stoi(flowData[z].valid_time.substr(0, flowData[z].valid_time.find("-"))) <= timeNow && stoi(flowData[z].valid_time.substr(flowData[z].valid_time.find("-") + 1)) >= timeNow) {
-										hasFlowMeasures = true;
-										myFlow = flowData[z];
-									}
-								}
-							}
 						}
 					}
 				}
@@ -2344,31 +2345,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							ItemRGB = TAG_EOBT;
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
-						}
-						else if (ItemCode == TAG_ITEM_TSAC)
-						{
-							ItemRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, "____");
-						}
-						else if (ItemCode == TAG_ITEM_TOBT)
-						{
-							ItemRGB = TAG_RED;
-							strcpy_s(sItemString, 16, "MAST");
-						}
-						else if (ItemCode == TAG_ITEM_TSAT)
-						{
-							ItemRGB = TAG_RED;
-							strcpy_s(sItemString, 16, "MAST");
-						}
-						else if (ItemCode == TAG_ITEM_TTOT)
-						{
-							ItemRGB = TAG_RED;
-							strcpy_s(sItemString, 16, "MAST");
-						}
-						else if (ItemCode == TAG_ITEM_E)
-						{
-							ItemRGB = TAG_GREEN;
-							strcpy_s(sItemString, 16, "I");
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
@@ -3855,7 +3831,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 			if (found) {
 				masterAirports.erase(masterAirports.begin() + pos);
-				sendMessage("REMOVED " + addedAirport + " TO MASTER AIPORTS LIST");
+				sendMessage("REMOVED " + addedAirport + " FROM MASTER AIPORTS LIST");
 			}
 			else {
 				sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
