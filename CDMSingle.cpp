@@ -1680,7 +1680,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							correctState = true;
 						}
 
-						if (oldTSAT && !correctState && !hasCtot) {
+						if (oldTSAT && !correctState) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
 							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 							if (remarks.find("CTOT") != string::npos) {
@@ -2059,7 +2059,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							correctState = true;
 						}
 
-						if (oldTSAT && !correctState && !hasCtot) {
+						if (oldTSAT && !correctState ) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
 						}
 
@@ -3866,11 +3866,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			sendMessage("NO MASTER AIRPORTS");
 		}
 		sendMessage("DEFAULT RATE: " + rateString);
-
-		for (Plane p : slotList) {
-			sendMessage(p.callsign);
-		}
-
 
 		return true;
 	}
