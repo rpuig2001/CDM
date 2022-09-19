@@ -2504,7 +2504,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 		okToLook = true;
 	}
 
-	if (!okToLook) {
+	if (okToLook) {
 
 		//Get Restriction
 		Flow myFlow;
@@ -2623,34 +2623,17 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 								}
 							}
 						}
-						/*
+
 						if (correctTTOT) {
-							bool notYetTSAT = false;
-							string str_TSAT = calculateLessTime(TTOTFinal, taxiTime);
-							string TSAThour = str_TSAT.substr(str_TSAT.length() - 6, 2);
-							string TSATmin = str_TSAT.substr(str_TSAT.length() - 4, 2);
-							string hour = timeNow.substr(timeNow.length() - 6, 2);
-							string min = timeNow.substr(timeNow.length() - 4, 2);
-
-							if (hour != "00") {
-								if (TSAThour == "00") {
-									TSAThour = "24";
+								string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
+								if (calculatedTSATNow.substr(0, 2) == "00") {
+									calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
 								}
-							}
-
-							if (hour != TSAThour) {
-								if (GetdifferenceTime(hour, min, TSAThour, TSATmin) < -75) {
-									notYetTSAT = true;
+								if (stoi(calculatedTSATNow) < stoi(timeNow)) {
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctTTOT = false;
 								}
-							}
-								if (!notYetTSAT) {
-									int calculatedTSATNow = stoi(calculateLessTime(TTOTFinal, taxiTime));
-									if (calculatedTSATNow < stoi(timeNow)) {
-										TTOTFinal = calculateTime(listTTOT, 0.5);
-										correctTTOT = false;
-									}
-								}
-						}*/
+						}
 					}
 				}
 			}
