@@ -1636,9 +1636,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//If oldTOBT
 						bool oldTOBT = false;
 						string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
-						if (ASRTtext.length() < 1) {
-							string TOBThour = EOBTfinal.substr(EOBTfinal.length() - 6, 2);
-							string TOBTmin = EOBTfinal.substr(EOBTfinal.length() - 4, 2);
+						if (ASRTtext.empty()) {
+							string TOBThour = EOBTfinal.substr(0, 2);
+							string TOBTmin = EOBTfinal.substr(2, 4);
 
 							if (hour != "00") {
 								if (TOBThour == "00") {
