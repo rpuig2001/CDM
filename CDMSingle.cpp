@@ -2418,6 +2418,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_EOBT;
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
 						}
+						else if (ItemCode == TAG_ITEM_TOBT)
+						{
+							ItemRGB = TAG_GREY;
+							strcpy_s(sItemString, 16, "----");
+						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
 							if (hasCtot) {
