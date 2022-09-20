@@ -11,6 +11,7 @@ const int TAG_ITEM_ASRT = 7;
 const int TAG_ITEM_E = 9;
 const int TAG_ITEM_CTOT = 10;
 const int TAG_ITEM_FLOW_MESSAGE = 11;
+const int TAG_ITEM_READYSTARTUP = 12;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
@@ -18,6 +19,7 @@ const int TAG_FUNC_ON_OFF = 102;
 const int TAG_FUNC_ADDTSAC = 103;
 const int TAG_FUNC_EDITTSAC = 104;
 const int TAG_FUNC_NEWTSAC = 105;
+const int TAG_FUNC_READYSTARTUP = 106;
 const int TAG_FUNC_TOGGLEASRT = 107;
 const int TAG_FUNC_CTOTOPTIONS = 108;
 const int TAG_FUNC_REMOVECTOT = 109;

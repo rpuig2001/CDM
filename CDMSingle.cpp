@@ -114,6 +114,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemType("ASRT", TAG_ITEM_ASRT);
 	RegisterTagItemFunction("Toggle ASRT", TAG_FUNC_TOGGLEASRT);
 
+	// Register Tag Item "CDM-ASAT"
+	RegisterTagItemType("Ready Start-up", TAG_ITEM_READYSTARTUP);
+	RegisterTagItemFunction("Toggle Ready Start-up", TAG_FUNC_READYSTARTUP);
+
 	// Register Tag Item "CDM-E"
 	RegisterTagItemType("E", TAG_ITEM_E);
 
@@ -456,7 +460,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	else if (FunctionId == TAG_FUNC_TOGGLEASRT) {
+	else if (FunctionId == TAG_FUNC_TOGGLEASRT || FunctionId == TAG_FUNC_READYSTARTUP) {
 		if (master && AtcMe) {
 			string annotAsrt = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
 			if (annotAsrt.empty()) {
@@ -598,6 +602,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 		else if (editedTOBT.empty()) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 			for (int i = 0; i < slotList.size(); i++) {
 				if ((string)fp.GetCallsign() == slotList[i].callsign) {
 					slotList.erase(slotList.begin() + i);
@@ -1638,7 +1643,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
 						if (ASRTtext.empty()) {
 							string TOBThour = EOBTfinal.substr(0, 2);
-							string TOBTmin = EOBTfinal.substr(2, 4);
+							string TOBTmin = EOBTfinal.substr(2, 2);
 
 							if (hour != "00") {
 								if (TOBThour == "00") {
@@ -1983,6 +1988,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_ASRT;
 								strcpy_s(sItemString, 16, " ");
+							}
+						}
+						else if (ItemCode == TAG_ITEM_READYSTARTUP)
+						{
+							string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+							if (!ASRTtext.empty()) {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, "RSTUP");
+							}
+							else {
+								ItemRGB = TAG_RED;
+								strcpy_s(sItemString, 16, "RSTUP");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_E)
@@ -2351,6 +2368,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_ASRT;
 								strcpy_s(sItemString, 16, " ");
+							}
+						}
+						else if (ItemCode == TAG_ITEM_READYSTARTUP)
+						{
+							string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+							if (!ASRTtext.empty()) {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, "RSTUP");
+							}
+							else {
+								ItemRGB = TAG_RED;
+								strcpy_s(sItemString, 16, "RSTUP");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_E)
