@@ -3400,22 +3400,30 @@ bool CDM::getCtotsFromUrl(string url)
 	CURL* curl;
 	CURLcode result;
 	string readBuffer;
+	long responseCode;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	std::istringstream is(readBuffer);
+	if (responseCode == 404) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD CTOTs URL...");
+	}
+	else {
+		std::istringstream is(readBuffer);
 
-	//Get data from .txt file
-	string lineValue;
-	while (getline(is, lineValue))
-	{
-		addCtotToMainList(lineValue);
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			addCtotToMainList(lineValue);
+		}
 	}
 
 	return true;
