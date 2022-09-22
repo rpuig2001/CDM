@@ -42,11 +42,15 @@ CDM includes the following times:
 
 - ASAT
 
-![image](https://i.gyazo.com/8fb33ba38fb68e48de64b0139322e466.png)
+![image](https://i.gyazo.com/cf08823153ce9e99e1936659c07ad67d.png)
 
 - ASRT
 
 ![image](https://i.gyazo.com/54c3956f46f63ee3b44e84308bb6fe5d.png)
+
+- Ready Start-up
+
+![image](https://i.gyazo.com/842144f7bddf11f3c9165c42ef0f940e.png)
 
 - CTOT
 
@@ -166,6 +170,7 @@ BEE154A,183600,190000,191000,1924,London Event,
   - Color defined as ``color8``.
 
 - Column TOBT: If realMode is disabled, TOBT will calculate TSAT and TTOT from the TOBT time. To delete it simple edit the time and press enter deleting the content.
+  - [FUTURE 2.0.9] If there is no ASRT or "Ready Start-up GREEN", at TOBT+5, TSAT and other times will be invalidated.
   - To add a TOBT while realMode is DISABLED, use the Ready TOBT Function to set the actual time as a TOBT or the Edit TOBT to set a 4 digits time.
   - If realMode is enable it will ONLY set the EOBT as TOBT when the first flightplan is recived, if the EOBT is changed the TOBT will not change automatically and you can use other functions such as the EOBT to TOBT Function to move it through. (EOBT will have a different color to say you that there's a new time sent by the pilot).
   - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to EOBT-5.
@@ -194,6 +199,11 @@ BEE154A,183600,190000,191000,1924,London Event,
 
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
   - Color defined as ``color10``.
+  
+- [FUTURE 2.0.9] Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real ready start-up function from IRL because Euroscope doesn't have this function)
+  - ``Toggle Ready Start-up function`` sets RSTUP with ASRT or removes it if already set.
+  - Color defined as ``GREEN`` when RSTUP is set.
+  - Color defined as ``RED`` when RSUP is NOT set.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
   - Color defined as ``color11``.
