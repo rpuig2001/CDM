@@ -1104,30 +1104,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								myHour = "24";
 							}
 							string myMin = myTimeToAdd.substr(2, 2);
-							if (GetdifferenceTime(hour, min, myHour, myMin) <= 0) {
-								if (stoi(myTimeToAdd) > stoi(EOBT) && !gndStatusSet) {
-									EOBTfinal = myTimeToAdd;
-									EOBT = EOBTfinal.c_str();
-									FlightPlan.GetFlightPlanData().SetEstimatedDepartureTime(myTimeToAdd.c_str());
-									FlightPlan.GetFlightPlanData().AmendFlightPlan();
-									if (aircraftFind) {
-										string tempTTOT, tempTSAT;
-
-										if (hasCtot) {
-											tempTTOT = calculateTime(slotList[pos].ttot, taxiTime);
-											tempTSAT = calculateTime(slotList[pos].tsat, taxiTime);
-										}
-										else {
-											tempTTOT = calculateTime(slotList[pos].ttot, taxiTime);
-											tempTSAT = calculateTime(slotList[pos].tsat, taxiTime);
-										}
-										slotList[pos].ttot = tempTTOT;
-										slotList[pos].ttot = tempTSAT;
-									}
-								}
-							}
-							else {
+							if (GetdifferenceTime(hour, min, myHour, myMin) >= 0) {
 								addTime = false;
+								sendMessage("set to FALSE");
 							}
 						}
 
@@ -1180,10 +1159,46 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								//TSAT
 								string TSATstring = TSAT;
 								TSATfinal = formatTime(TSATstring) + "00";
-								TSAT = TSATfinal.c_str();
 
 								//TTOT
 								TTOTFinal = calculateTime(TSATstring, taxiTime);
+								
+								if (addTime) {
+									string timeToAddHour = myTimeToAdd.substr(0, 2);
+									string timeToAddMin = myTimeToAdd.substr(2, 2);
+									if (hour != "00") {
+										if (timeToAddHour == "00") {
+											timeToAddHour = "24";
+										}
+									}
+
+									string myTSATHour = TSATfinal.substr(0, 2);
+									string myTSATMin = TSATfinal.substr(2, 2);
+									if (hour != "00") {
+										if (myTSATHour == "00") {
+											myTSATHour = "24";
+										}
+									}
+
+									int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
+									bool fixTime = true;
+									if (hour != timeToAddHour) {
+										if (difTime > 40) {
+											fixTime = false;
+										}
+									}
+									else {
+										if (difTime > 0) {
+											fixTime = false;
+										}
+									}
+
+									if (!fixTime) {
+										TSATfinal = myTimeToAdd;
+										TTOTFinal = calculateTime(myTimeToAdd, taxiTime);
+									}
+								}
+								TSAT = TSATfinal.c_str();
 								TTOT = TTOTFinal.c_str();
 							}
 						}
@@ -1617,6 +1632,41 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											myTSAT = myEOBT;
 											myTTOT = calculateTime(myEOBT, myTTime);
+											if (addTime) {
+												string timeToAddHour = myTimeToAdd.substr(0, 2);
+												string timeToAddMin = myTimeToAdd.substr(2, 2);
+												if (hour != "00") {
+													if (timeToAddHour == "00") {
+														timeToAddHour = "24";
+													}
+												}
+
+												string myTSATHour = myTSAT.substr(0, 2);
+												string myTSATMin = myTSAT.substr(2, 2);
+												if (hour != "00") {
+													if (myTSATHour == "00") {
+														myTSATHour = "24";
+													}
+												}
+
+												int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
+												bool fixTime = true;
+												if (hour != timeToAddHour) {
+													if (difTime > 40) {
+														fixTime = false;
+													}
+												}
+												else {
+													if (difTime > 0) {
+														fixTime = false;
+													}
+												}
+
+												if (!fixTime) {
+													myTSAT = myTimeToAdd;
+													myTTOT = calculateTime(myTimeToAdd, myTTime);
+												}
+											}
 										}
 
 										refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, rateHour, myhasCTOT, myCtotPos, i, true);
@@ -3855,7 +3905,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			timeAdded = line.substr(line.length() - 2);
 			myTimeToAdd = calculateTime(hour + min + "00", stoi(line.substr(line.length() - 2)));
 		}
-		sendMessage("Delay added: " + timeAdded + " minutes");
+		sendMessage("Delay added: " + timeAdded + " minutes. PLEASE WAIT UNTIL CDM REFRESH TO SEE THE CHANGES!");
 		addTime = true;
 		return true;
 	}
