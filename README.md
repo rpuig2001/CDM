@@ -150,8 +150,8 @@ BEE154A,183600,190000,191000,1924,London Event,
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
 - ``.cdm refresh`` - Force the refresh phase to do it now.
 - [DISABLED] ``.cdm ctot`` - Loads ctot.txt data.
-- ``.cdm save`` - Saves data to savedData.txt to sync times with other controllers.
-- ``.cdm load`` - Loads savedData.txt to sync times with other controllers.
+- ``.cdm save`` - Saves data to savedData.txt.
+- ``.cdm load`` - Loads savedData.txt.
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
