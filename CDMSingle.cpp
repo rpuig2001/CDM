@@ -34,6 +34,7 @@ bool addTime;
 bool lvo;
 bool ctotCid;
 bool realMode;
+bool remarksOption;
 string myTimeToAdd;
 string taxiZonesUrl;
 string ctotUrl;
@@ -209,6 +210,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Flow Data
 	getFlowData();
+
+	//Init reamrksOption
+	remarksOption = false;
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -1538,6 +1542,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							for (int i = 0; i < slotList.size(); i++)
 							{
+								//Update TSAT in scratchpad if enabled remarksOption
+								if (remarksOption) {
+									string testTsat = slotList[i].tsat;
+									if (testTsat.length() >= 4) {
+										FlightPlanSelect(slotList[i].callsign.c_str()).GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
+									}
+								}
+
 								if (!slotList[i].hasCtot) {
 									string myTTOT, myTSAT, myEOBT, myCallsign, myAirport, myDepRwy = "", myRemarks;
 									int myTTime = defTaxiTime;
@@ -3771,6 +3783,19 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			realMode = true;
 			sendMessage("Real Mode set to ON");
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm remarks", sCommandLine))
+	{
+		if (remarksOption) {
+			remarksOption = false;
+			sendMessage("Set TSAT to Scratchpad to OFF");
+		}
+		else {
+			remarksOption = true;
+			sendMessage("Set TSAT to Scratchpad to ON");
 		}
 		return true;
 	}
