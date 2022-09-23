@@ -3918,26 +3918,15 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		return true;
 	}
 
-	if (startsWith(".cdm lvo on", sCommandLine))
-	{
-		if (!lvo) {
-			sendMessage("Low Visibility Operations activated");
-			lvo = true;
-		}
-		else {
-			sendMessage("Low Visibility Operations already activated");
-		}
-		return true;
-	}
-
-	if (startsWith(".cdm lvo off", sCommandLine))
+	if (startsWith(".cdm lvo", sCommandLine))
 	{
 		if (lvo) {
 			sendMessage("Low Visibility Operations desactivated");
 			lvo = false;
 		}
 		else {
-			sendMessage("Low Visibility Operations not activated");
+			sendMessage("Low Visibility Operations activated");
+			lvo = true;
 		}
 		return true;
 	}
