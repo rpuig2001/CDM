@@ -155,7 +155,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
-- [Euroscope May crash (Checking it out for further versions)] ``.cdm delay {minutes}`` - Adds delay minutes to all traffics.
+- [FUTURE 2.0.9] ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
 - [REMOVED FUTURE 2.0.9]``.cdm lvo on`` - Activates lvo using the defined lvo rate in rate.txt file.
 - [REMOVED FUTURE 2.0.9]``.cdm lvo off`` - Desactivates lvo rate.
 - [FUTURE 2.0.9] ``.cdm lvo`` - Toggle lvo ON or OFF.
