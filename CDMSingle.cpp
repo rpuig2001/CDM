@@ -1106,7 +1106,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string myMin = myTimeToAdd.substr(2, 2);
 							if (GetdifferenceTime(hour, min, myHour, myMin) >= 0) {
 								addTime = false;
-								sendMessage("set to FALSE");
 							}
 						}
 
