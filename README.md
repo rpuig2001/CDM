@@ -160,6 +160,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 - ``.cdm lvo off`` - Desactivates lvo rate.
 - [FUTURE 2.0.9] ``.cdm realmode`` - Toggle realmode ON or OFF.
 - [FUTURE 2.0.9] ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
+- [FUTURE 2.0.9] ``.cdm rates`` - Updates rates values from rate.txt.
 - ``.cdm help`` - Sends a message with all commands.
 
 ## Functions and colors:
