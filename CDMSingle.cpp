@@ -3787,6 +3787,14 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		return true;
 	}
 
+	if (startsWith(".cdm rate", sCommandLine))
+	{
+		sendMessage("Reloading rates....");
+		rate.clear();
+		getRate();
+		return true;
+	}
+
 	if (startsWith(".cdm remarks", sCommandLine))
 	{
 		if (remarksOption) {
