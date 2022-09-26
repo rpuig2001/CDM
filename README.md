@@ -48,7 +48,7 @@ CDM includes the following times:
 
 ![image](https://i.gyazo.com/54c3956f46f63ee3b44e84308bb6fe5d.png)
 
-- [FUTURE 2.0.9] Ready Start-up
+- Ready Start-up
 
 ![image](https://i.gyazo.com/842144f7bddf11f3c9165c42ef0f940e.png)
 
@@ -92,7 +92,7 @@ CDM includes the following times:
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
-  - [FUTURE 2.0.9] Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true")
+  - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true")
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="").
   - [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="").
@@ -155,13 +155,11 @@ BEE154A,183600,190000,191000,1924,London Event,
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
-- [FUTURE 2.0.9] ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
-- [REMOVED FUTURE 2.0.9]``.cdm lvo on`` - Activates lvo using the defined lvo rate in rate.txt file.
-- [REMOVED FUTURE 2.0.9]``.cdm lvo off`` - Desactivates lvo rate.
-- [FUTURE 2.0.9] ``.cdm lvo`` - Toggle lvo ON or OFF.
-- [FUTURE 2.0.9] ``.cdm realmode`` - Toggle realmode ON or OFF.
-- [FUTURE 2.0.9] ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
-- [FUTURE 2.0.9] ``.cdm rates`` - Updates rates values from rate.txt.
+- ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
+- ``.cdm lvo`` - Toggle lvo ON or OFF.
+- ``.cdm realmode`` - Toggle realmode ON or OFF.
+- ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
+- ``.cdm rates`` - Updates rates values from rate.txt.
 - ``.cdm help`` - Sends a message with all commands.
 
 ## Functions and colors:
@@ -169,11 +167,11 @@ BEE154A,183600,190000,191000,1924,London Event,
   - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: Always this color.
 
 - Column EOBT: It gets the EOBT set by the pilot in the flightplan.
-  - [FUTURE 2.0.9] If **RealMode** is enabled, when the pilot send a new EOBT, then it will show with ``color4`` (Default ORANGE) when **EOBT is different than TOBT**.
+  - If **RealMode** is enabled, when the pilot send a new EOBT, then it will show with ``color4`` (Default ORANGE) when **EOBT is different than TOBT**.
   - Color defined as ``color8``.
 
 - Column TOBT: If realMode is disabled, TOBT will calculate TSAT and TTOT from the TOBT time. To delete it simple edit the time and press enter deleting the content.
-  - [FUTURE 2.0.9] If there is no ASRT or "Ready Start-up GREEN", at TOBT+5, TSAT and other times will be invalidated.
+  - If there is no ASRT or "Ready Start-up GREEN", at TOBT+5, TSAT and other times will be invalidated.
   - To add a TOBT while realMode is DISABLED, use the Ready TOBT Function to set the actual time as a TOBT or the Edit TOBT to set a 4 digits time.
   - If realMode is enable it will ONLY set the EOBT as TOBT when the first flightplan is recived, if the EOBT is changed the TOBT will not change automatically and you can use other functions such as the EOBT to TOBT Function to move it through. (EOBT will have a different color to say you that there's a new time sent by the pilot).
   - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to EOBT-5.
@@ -203,7 +201,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
   - Color defined as ``color10``.
   
-- [FUTURE 2.0.9] Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real ready start-up function from IRL because Euroscope doesn't have this function)
+- Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real ready start-up function from IRL because Euroscope doesn't have this function)
   - ``Toggle Ready Start-up function`` sets RSTUP with ASRT or removes it if already set.
   - Color defined as ``GREEN`` when RSTUP is set.
   - Color defined as ``RED`` when RSUP is NOT set.
