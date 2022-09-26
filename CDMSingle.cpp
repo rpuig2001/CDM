@@ -28,6 +28,7 @@ string ctotOption;
 int expiredCTOTTime;
 bool defaultRate;
 int countTime;
+int countFlowTime;
 int countTfcDisconnection;
 int refreshTime;
 bool addTime;
@@ -162,6 +163,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	initialSidLoad = false;
 
 	countTime = stoi(GetTimeNow());
+	countFlowTime = stoi(GetTimeNow());
 	//countTime = stoi(GetTimeNow()) - refreshTime;
 	addTime = false;
 
@@ -1527,10 +1529,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						//Refresh times every x sec
+						//Refresh FlowData every minute
 						int myNow = stoi(GetTimeNow());
-						if (myNow - countTime > refreshTime) {
+						if (myNow - countFlowTime > 60) {
 							multithread(&CDM::getFlowData);
+							if (debugMode) {
+								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
+							}
+							countFlowTime = myNow;
+						}
+
+						//Refresh times every x sec
+						if (myNow - countTime > refreshTime) {
 							multithread(&CDM::saveData);
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
@@ -3650,6 +3660,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm refresh", sCommandLine)) {
 		sendMessage("Refreshing Now...");
 		countTime = stoi(GetTimeNow()) - refreshTime;
+		countFlowTime = stoi(GetTimeNow()) - 60;
 		return true;
 	}
 
