@@ -3504,23 +3504,38 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 	CURL* curl;
 	CURLcode result;
 	string readBuffer;
+	long responseCode;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	std::istringstream is(readBuffer);
+	if (responseCode == 404) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD TaxiZones URL...");
+	}
+	else {
+		std::istringstream is(readBuffer);
 
-	//Get data from .txt file
-	string lineValue;
-	while (getline(is, lineValue))
-	{
-		if (lineValue.substr(0, 1) != "#") {
-			TxtTimesVector.push_back(lineValue);
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			if (lineValue.substr(0, 1) != "#") {
+				if (lineValue.length() > 1) {
+					if (isdigit(lineValue[lineValue.length() - 1])) {
+						TxtTimesVector.push_back(lineValue);
+					}
+					else {
+						TxtTimesVector.push_back(lineValue.substr(0, lineValue.length() - 1));
+					}
+				}
+			}
 		}
 	}
 
