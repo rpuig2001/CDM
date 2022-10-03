@@ -487,32 +487,46 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 				
-				//Reload CTOT
-				for (int a = 0; a < slotList.size(); a++)
-				{
-					if (slotList[a].callsign == fp.GetCallsign()) {
-						if (slotList[a].hasCtot) {
-							slotList.erase(slotList.begin() + a);
-						}
-					}
-				}
-
+				//Check if has restriction to reload CTOT
+				bool hasRestriction = false;
 				for (int i = 0; i < slotList.size(); i++)
 				{
 					if (slotList[i].callsign == fp.GetCallsign()) {
-						slotList[i].hasCtot = false;
-						slotList[i].ctot = "";
-						string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
-						if (remarks.find("CTOT") != string::npos) {
-							if (remarks.find("%") != string::npos) {
-								string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-								fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-								remarks = stringToAdd;
+						if (slotList[i].hasCtot) {
+							if (slotList[i].hasRestriction) {
+								hasRestriction = true;
 							}
-							else {
-								string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-								fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-								remarks = stringToAdd;
+						}
+					}
+				}
+				if (hasRestriction) {
+					//Reload CTOT
+					for (int a = 0; a < slotList.size(); a++)
+					{
+						if (slotList[a].callsign == fp.GetCallsign()) {
+							if (slotList[a].hasCtot) {
+								slotList.erase(slotList.begin() + a);
+							}
+						}
+					}
+
+					for (int i = 0; i < slotList.size(); i++)
+					{
+						if (slotList[i].callsign == fp.GetCallsign()) {
+							slotList[i].hasCtot = false;
+							slotList[i].ctot = "";
+							string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
+							if (remarks.find("CTOT") != string::npos) {
+								if (remarks.find("%") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+									fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
+									remarks = stringToAdd;
+								}
+								else {
+									string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+									fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
+									remarks = stringToAdd;
+								}
 							}
 						}
 					}
