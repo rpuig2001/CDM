@@ -1754,9 +1754,33 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+
+						//Set ASRT if SU_ISSET
+						if (SU_ISSET) {
+							string myASRTText = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+							if (myASRTText.empty()) {
+								//Get Time now
+								time_t rawtime;
+								struct tm* ptm;
+								time(&rawtime);
+								ptm = gmtime(&rawtime);
+								string hour = to_string(ptm->tm_hour % 24);
+								string min = to_string(ptm->tm_min);
+
+								if (stoi(min) < 10) {
+									min = "0" + min;
+								}
+								if (stoi(hour) < 10) {
+									hour = "0" + hour.substr(0, 1);
+								}
+
+								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
+							}
+						}
+
 						//If oldTOBT
 						bool oldTOBT = false;
-						string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
 						if (ASRTtext.empty()) {
 							string TOBThour = EOBTfinal.substr(0, 2);
 							string TOBTmin = EOBTfinal.substr(2, 2);
