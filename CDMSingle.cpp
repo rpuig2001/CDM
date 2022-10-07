@@ -61,6 +61,7 @@ vector<string> CDMairports;
 vector<string> CTOTcheck;
 vector<string> finalTimesList;
 vector<string> disconnectionList;
+vector<string> difeobttobtList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -387,6 +388,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_EOBTTOTOBT) {
 		fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(fp.GetFlightPlanData().GetEstimatedDepartureTime()).c_str());
+		//Remove if added to not modify TOBT if EOBT changes List
+		for (int i = 0; i < difeobttobtList.size(); i++) {
+			if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+				difeobttobtList.erase(difeobttobtList.begin() + i);
+			}
+		}
 	}
 	else if (FunctionId == TAG_FUNC_ADDTSAC) {
 		string annotTSAC = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
@@ -618,6 +625,17 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (annotAsrt.empty()) {
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 			}
+
+			//Add to not modify TOBT if EOBT changes List
+			bool foundInEobtTobtList = false;
+			for (int i = 0; i < difeobttobtList.size(); i++) {
+				if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+					foundInEobtTobtList = true;
+				}
+			}
+			if (!foundInEobtTobtList) {
+				difeobttobtList.push_back(fp.GetCallsign());
+			}
 		}
 	}
 
@@ -649,6 +667,17 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				if (!found) {
 					fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
 				}
+
+				//Add to not modify TOBT if EOBT changes List
+				bool foundInEobtTobtList = false;
+				for (int i = 0; i < difeobttobtList.size(); i++) {
+					if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+						foundInEobtTobtList = true;
+					}
+				}
+				if (!foundInEobtTobtList) {
+					difeobttobtList.push_back(fp.GetCallsign());
+				}
 			}
 		}
 		else if (editedTOBT.empty()) {
@@ -659,6 +688,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					slotList.erase(slotList.begin() + i);
 				}
 			}
+
+			//Remove if added to not modify TOBT if EOBT changes List
+			for (int i = 0; i < difeobttobtList.size(); i++) {
+				if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+					difeobttobtList.erase(difeobttobtList.begin() + i);
+				}
+			}
+
 		}
 	}
 }
@@ -1985,6 +2022,25 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						//Sync TOBT if different than EOBT
+						if (!SU_ISSET) {
+							if (tobt.length() > 0) {
+								string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+								if (mySetEobt != tobt) {
+									bool foundInEobtTobtList = false;
+									for (int i = 0; i < difeobttobtList.size(); i++) {
+										if (callsign == difeobttobtList[i]) {
+											foundInEobtTobtList = true;
+										}
+									}
+
+									if (!foundInEobtTobtList) {
+										FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()).c_str());
+									}
+								}
+							}
+						}
+
 
 						if (ItemCode == TAG_ITEM_EOBT)
 						{
@@ -3275,6 +3331,12 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	for (int i = 0; i < slotList.size(); i++) {
 		if (callsign == slotList[i].callsign) {
 			slotList.erase(slotList.begin() + i);
+		}
+	}
+	//Remove if added to not modify TOBT if EOBT changes List
+	for (int i = 0; i < difeobttobtList.size(); i++) {
+		if (callsign == difeobttobtList[i]) {
+			difeobttobtList.erase(difeobttobtList.begin() + i);
 		}
 	}
 	//Remove Plane From airport List
