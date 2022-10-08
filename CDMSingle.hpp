@@ -108,6 +108,8 @@ public:
 
 	int GetVersion();
 
+	bool isNumber(string s);
+
 	bool getTaxiZonesFromUrl(string url);
 
 	bool getCtotsFromUrl(string url);

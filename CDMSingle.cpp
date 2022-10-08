@@ -3463,7 +3463,12 @@ void CDM::getFlowData() {
 			string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
 			typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
 			//Get Value
-			int valueMeasure = stoi(fastWriter.write(measures[i]["measure"]["value"])) / 60;
+			string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
+			int valueMeasure = 0;
+			sendMessage("1 - " + valueMeasureString);
+			if (isNumber(valueMeasureString)) {
+				valueMeasure = stoi(valueMeasureString) / 60;
+			}
 			//Get Filters
 			vector<string> ADEP;
 			vector<string> ADES;
@@ -3532,6 +3537,11 @@ void CDM::saveData() {
 			}
 		}
 	}
+}
+
+bool CDM::isNumber(string s)
+{
+	return std::any_of(s.begin(), s.end(), ::isdigit);
 }
 
 void CDM::upload(string fileName, string airport)
