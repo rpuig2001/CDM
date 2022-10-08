@@ -3465,7 +3465,6 @@ void CDM::getFlowData() {
 			//Get Value
 			string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
 			int valueMeasure = 0;
-			sendMessage("1 - " + valueMeasureString);
 			if (isNumber(valueMeasureString)) {
 				valueMeasure = stoi(valueMeasureString) / 60;
 			}
