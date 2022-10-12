@@ -62,6 +62,7 @@ vector<string> CTOTcheck;
 vector<string> finalTimesList;
 vector<string> disconnectionList;
 vector<string> difeobttobtList;
+vector<string> reaSent;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -394,6 +395,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				difeobttobtList.erase(difeobttobtList.begin() + i);
 			}
 		}
+
+		//ReloadCTOT
+		int pos;
+		bool aircraftFind = false;
+		for (int i = 0; i < slotList.size(); i++) {
+			if (fp.GetCallsign() == slotList[i].callsign) {
+				aircraftFind = true;
+				pos = i;
+			}
+		}
+		if (aircraftFind) {
+			if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
+				reloadCTOT(fp);
+			}
+		}
 	}
 	else if (FunctionId == TAG_FUNC_ADDTSAC) {
 		string annotTSAC = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
@@ -636,6 +652,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (!foundInEobtTobtList) {
 				difeobttobtList.push_back(fp.GetCallsign());
 			}
+
+			//ReloadCTOT
+			int pos;
+			bool aircraftFind = false;
+			for (int i = 0; i < slotList.size(); i++) {
+				if (fp.GetCallsign() == slotList[i].callsign) {
+					aircraftFind = true;
+					pos = i;
+				}
+			}
+			if (aircraftFind) {
+				if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
+					reloadCTOT(fp);
+				}
+			}
 		}
 	}
 
@@ -677,6 +708,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 				if (!foundInEobtTobtList) {
 					difeobttobtList.push_back(fp.GetCallsign());
+				}
+
+				//ReloadCTOT
+				int pos;
+				bool aircraftFind = false;
+				for (int i = 0; i < slotList.size(); i++) {
+					if (fp.GetCallsign() == slotList[i].callsign) {
+						aircraftFind = true;
+						pos = i;
+					}
+				}
+				if (aircraftFind) {
+					if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
+						reloadCTOT(fp);
+					}
 				}
 			}
 		}
@@ -1792,6 +1838,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
+
+						//If SACTA sts SU_WAIT is set recaluclate CTOT if there is CTOT
+						if (aircraftFind) {
+							if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
+								string sts = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(4);
+								bool csFound = false;
+								for (int x = 0; x < reaSent.size(); x++) {
+									if (reaSent[x] == callsign) {
+										csFound = true;
+										if (sts != "SU_WAIT") {
+											reaSent.erase(reaSent.begin() + x);
+										}
+									}
+								}
+								if (!csFound) {
+									if (sts == "SU_WAIT") {
+										reaSent.push_back(callsign);
+										reloadCTOT(FlightPlan);
+									}
+								}
+							}
+						}
 
 						//Set ASRT if SU_ISSET
 						if (SU_ISSET) {
@@ -3233,6 +3301,39 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 	return timeFinal;
 }
 
+void CDM::reloadCTOT(CFlightPlan fp) {
+	//Reload CTOT
+	for (int a = 0; a < slotList.size(); a++)
+	{
+		if (slotList[a].callsign == fp.GetCallsign()) {
+			if (slotList[a].hasCtot) {
+				slotList.erase(slotList.begin() + a);
+			}
+		}
+	}
+
+	for (int i = 0; i < slotList.size(); i++)
+	{
+		if (slotList[i].callsign == fp.GetCallsign()) {
+			slotList[i].hasCtot = false;
+			slotList[i].ctot = "";
+			string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
+			if (remarks.find("CTOT") != string::npos) {
+				if (remarks.find("%") != string::npos) {
+					string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
+					remarks = stringToAdd;
+				}
+				else {
+					string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+					fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
+					remarks = stringToAdd;
+				}
+			}
+		}
+	}
+}
+
 string CDM::calculateLessTime(string timeString, double minsToAdd) {
 	if (timeString.length() <= 0) {
 		timeString = "0000" + timeString;
@@ -3331,6 +3432,12 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	for (int i = 0; i < slotList.size(); i++) {
 		if (callsign == slotList[i].callsign) {
 			slotList.erase(slotList.begin() + i);
+		}
+	}
+	//Delete from reaSent list
+	for (int i = 0; i < reaSent.size(); i++) {
+		if (callsign == reaSent[i]) {
+			reaSent.erase(reaSent.begin() + i);
 		}
 	}
 	//Remove if added to not modify TOBT if EOBT changes List

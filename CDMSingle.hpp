@@ -106,6 +106,8 @@ public:
 
 	void getFlowData();
 
+	void reloadCTOT(CFlightPlan fp);
+
 	int GetVersion();
 
 	bool isNumber(string s);
