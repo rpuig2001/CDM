@@ -2325,14 +2325,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else {
 						if (TSATFind) {
-							if (hasCtot) {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
-								slotList.push_back(p);
-							}
-							else {
-								Plane p(callsign, EOBT, TSATString, TTOTString, false, "", hasFlowMeasures, myFlow);
-								slotList.push_back(p);
-							}
+							Plane p(callsign, EOBT, TSATString, TTOTString, false, "", hasFlowMeasures, myFlow);
+							slotList.push_back(p);
 						}
 					}
 
@@ -2425,19 +2419,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string rmkCtot = remarks.substr(remarks.find("CTOT") + 4, 4);
 							if (hasCtot) {
 								if (slotList[pos].ctot != rmkCtot) {
-									slotList[pos].ctot = rmkCtot;
-									if (!hasCtot) {
+									if (aircraftFind) {
+										slotList[pos].ctot = rmkCtot;
 										slotList[pos].hasCtot = true;
 									}
 								}
 							}
 							else {
-								slotList[pos].ctot = rmkCtot;
-								slotList[pos].hasCtot = true;
+								if (aircraftFind) {
+									slotList[pos].ctot = rmkCtot;
+									slotList[pos].hasCtot = true;
+								}
 							}
 						}
 						else if (hasCtot) {
-							slotList[pos].hasCtot = false;
+							if (aircraftFind) {
+								slotList[pos].hasCtot = false;
+							}
 						}
 
 						//TSAC
