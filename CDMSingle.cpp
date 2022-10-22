@@ -3568,10 +3568,12 @@ void CDM::getFlowData() {
 			string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
 			typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
 			//Get Value
-			string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
 			int valueMeasure = 0;
-			if (isNumber(valueMeasureString)) {
-				valueMeasure = stoi(valueMeasureString) / 60;
+			if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
+				string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
+				if (isNumber(valueMeasureString)) {
+					valueMeasure = stoi(valueMeasureString) / 60;
+				}
 			}
 			//Get Filters
 			vector<string> ADEP;
