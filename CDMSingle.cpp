@@ -1581,7 +1581,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 												for (int z = 0; z < sameDestList.size(); z++)
 												{
-													sendMessage("2");
 													CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
 													bool found = false;
 													string listTTOT = sameDestList[z].ttot;
@@ -3891,6 +3890,7 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 }
 
 bool CDM::getCADvalues(string url) {
+	CADvalues.clear();
 	if (debugMode) {
 		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
 	}
@@ -4070,6 +4070,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Refreshing Now...");
 		countTime = stoi(GetTimeNow()) - refreshTime;
 		countFlowTime = stoi(GetTimeNow()) - 60;
+		return true;
+	}
+
+	if (startsWith(".cdm cad", sCommandLine)) {
+		sendMessage("Refreshing CAD...");
+		getCADvalues("https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt");
 		return true;
 	}
 
