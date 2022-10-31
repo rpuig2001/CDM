@@ -1564,7 +1564,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											myCtot = formatTime(TTOTFinal);
 										}
 									}
-									else if(!hasCtot) {
+									else if(!hasCtot && !hasFlowMeasures) {
 										vector<Plane> sameDestList;
 										sameDestList.clear();
 
