@@ -1564,7 +1564,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											myCtot = formatTime(TTOTFinal);
 										}
 									}
-									else {
+									else if(!hasCtot) {
 										vector<Plane> sameDestList;
 										sameDestList.clear();
 
@@ -3028,36 +3028,38 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				bool correctCAD = true;
 				vector<Plane> sameDestList;
 				sameDestList.clear();
-				if (CADapplies) {
-					if (myCad.airport != "xxxx") {
-						int seperationCAD = 60 / myCad.rate;
-						for (int z = 0; z < slotList.size(); z++)
-						{
-							string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-							if (myCad.airport == destFound) {
-								sameDestList.push_back(slotList[z]);
-							}
-						}
-
-						for (int z = 0; z < sameDestList.size(); z++)
-						{
-							CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
-							bool found = false;
-							string listTTOT = sameDestList[z].ttot;
-							string listCallsign = sameDestList[z].callsign;
-							string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-							string listAirport = fpList.GetFlightPlanData().GetOrigin();
-							while (!found) {
-								found = true;
-								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
-									found = false;
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctCAD = false;
+				if (!hasCTOT) {
+					if (CADapplies) {
+						if (myCad.airport != "xxxx") {
+							int seperationCAD = 60 / myCad.rate;
+							for (int z = 0; z < slotList.size(); z++)
+							{
+								string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+								if (myCad.airport == destFound) {
+									sameDestList.push_back(slotList[z]);
 								}
-								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
-									found = false;
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctCAD = false;
+							}
+
+							for (int z = 0; z < sameDestList.size(); z++)
+							{
+								CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
+								bool found = false;
+								string listTTOT = sameDestList[z].ttot;
+								string listCallsign = sameDestList[z].callsign;
+								string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
+								string listAirport = fpList.GetFlightPlanData().GetOrigin();
+								while (!found) {
+									found = true;
+									if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+										found = false;
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctCAD = false;
+									}
+									else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+										found = false;
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctCAD = false;
+									}
 								}
 							}
 						}
