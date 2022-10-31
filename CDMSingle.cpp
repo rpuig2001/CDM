@@ -831,13 +831,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 
 				if (!ctotValidated) {
-					string cid = getCidByCallsign(callsign);
 					string savedCid;
 					string ctotCallsign;
 					for (int i = 0; i < slotList.size(); i++)
 					{
 						savedCid = slotList[i].callsign;
 						if (checkIsNumber(savedCid)) {
+							string cid = getCidByCallsign(callsign);
 							if (stoi(cid) == stoi(savedCid)) {
 								slotList[i].callsign = callsign;
 								pos = i;
