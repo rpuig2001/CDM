@@ -227,7 +227,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 
 	//Get CAD values
-	getCADvalues("");
+	getCADvalues("https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt");
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -3894,19 +3894,40 @@ bool CDM::getCADvalues(string url) {
 	if (debugMode) {
 		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
 	}
-	//Get data from .txt file
-	fstream file;
-	string lineValue;
-	file.open(xfad.c_str(), std::ios::in);
-	while (getline(file, lineValue))
-	{
-		if (lineValue.substr(0, 1) != "#") {
-			if (lineValue.find(",") != string::npos) {
-				string airport = lineValue.substr(0, lineValue.find(","));
-				string rate = lineValue.substr(lineValue.find(",")+1);
-				if (checkIsNumber(rate)) {
-					CAD cad = CAD(airport, stoi(rate));
-					CADvalues.push_back(cad);
+
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	long responseCode;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD CAD URL...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			if (lineValue.substr(0, 1) != "#") {
+				if (lineValue.find(",") != string::npos) {
+					string airport = lineValue.substr(0, lineValue.find(","));
+					string rate = lineValue.substr(lineValue.find(",") + 1);
+					if (checkIsNumber(rate)) {
+						CAD cad = CAD(airport, stoi(rate));
+						CADvalues.push_back(cad);
+					}
 				}
 			}
 		}
