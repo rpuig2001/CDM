@@ -19,6 +19,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CAD.h" />
     <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="Flow.h" />

@@ -193,6 +193,8 @@ public:
 
 	bool OnCompileCommand(const char* sCommandLine);
 
+	bool getCADvalues(string url);
+
 	virtual void OnTimer(int Count);
 
 protected:

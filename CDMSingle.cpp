@@ -5,6 +5,7 @@
 #include "Plane.h"
 #include "Flow.h"
 #include <thread>
+#include "CAD.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -22,6 +23,7 @@ string cfad;
 string vfad;
 string rfad;
 string dfad;
+string xfad;
 string rateString;
 string lvoRateString;
 string ctotOption;
@@ -63,6 +65,7 @@ vector<string> finalTimesList;
 vector<string> disconnectionList;
 vector<string> difeobttobtList;
 vector<string> reaSent;
+vector<CAD> CADvalues;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -161,6 +164,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rfad.resize(rfad.size() - strlen("CDM.dll"));
 	rfad += "rate.txt";
 
+	xfad = DllPathFile;
+	xfad.resize(xfad.size() - strlen("CDM.dll"));
+	xfad += "CAD.txt";
+
 	debugMode = false;
 	initialSidLoad = false;
 
@@ -217,6 +224,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Init reamrksOption
 	remarksOption = false;
+
+
+	//Get CAD values
+	getCADvalues("");
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -1367,6 +1378,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							double rateHour = (double)60 / rate;
 
+							//Check if CAD applies
+							bool CADapplies = false;
+							CAD myCad = CAD("xxxx",0);
+							for (CAD cad : CADvalues) {
+								if (cad.airport == destination) {
+									CADapplies = true;
+									myCad = cad;
+								}
+							}
+
 							while (equalTTOT) {
 								correctTTOT = true;
 								for (int t = 0; t < slotList.size(); t++)
@@ -1481,6 +1502,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 								if (correctTTOT) {
 									bool correctFlowTTOT = true;
+									bool correctCAD = true;
 									vector<Plane> sameDestList;
 									sameDestList.clear();
 
@@ -1510,7 +1532,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 										for (int z = 0; z < sameDestList.size(); z++)
 										{
-											CFlightPlan fpList = FlightPlanSelect(slotList[z].callsign.c_str());
+											CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
 											bool found = false;
 											string listTTOT = sameDestList[z].ttot;
 											string listCallsign = sameDestList[z].callsign;
@@ -1521,12 +1543,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 													found = false;
 													TTOTFinal = calculateTime(TTOTFinal, 1);
-													correctFlowTTOT = false;
+													correctCAD = false;
 												}
 												else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 													found = false;
 													TTOTFinal = calculateTime(TTOTFinal, 1);
-													correctFlowTTOT = false;
+													correctCAD = false;
 												}
 											}
 										}
@@ -1542,7 +1564,48 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											myCtot = formatTime(TTOTFinal);
 										}
 									}
-									if (correctFlowTTOT) {
+									else {
+										vector<Plane> sameDestList;
+										sameDestList.clear();
+
+										if (CADapplies) {
+											if (myCad.airport != "xxxx") {
+												int seperationCAD = 60/myCad.rate;
+												for (int z = 0; z < slotList.size(); z++)
+												{
+													string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+													if (myCad.airport == destFound) {
+														sameDestList.push_back(slotList[z]);
+													}
+												}
+
+												for (int z = 0; z < sameDestList.size(); z++)
+												{
+													sendMessage("2");
+													CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
+													bool found = false;
+													string listTTOT = sameDestList[z].ttot;
+													string listCallsign = sameDestList[z].callsign;
+													string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
+													string listAirport = fpList.GetFlightPlanData().GetOrigin();
+													while (!found) {
+														found = true;
+														if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+															found = false;
+															TTOTFinal = calculateTime(TTOTFinal, 0.5);
+															correctCAD = false;
+														}
+														else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+															found = false;
+															TTOTFinal = calculateTime(TTOTFinal, 0.5);
+															correctCAD = false;
+														}
+													}
+												}
+											}
+										}
+									}
+									if (correctFlowTTOT && correctCAD) {
 										equalTTOT = false;
 										TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
 										TSAT = TSATfinal.c_str();
@@ -2824,6 +2887,16 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 		//Get Restriction
 		Flow myFlow;
 
+		//Check if CAD applies
+		bool CADapplies = false;
+		CAD myCad = CAD("xxxx", 0);
+		for (CAD cad : CADvalues) {
+			if (cad.airport == FlightPlan.GetFlightPlanData().GetDestination()) {
+				CADapplies = true;
+				myCad = cad;
+			}
+		}
+
 		while (equalTTOT) {
 			correctTTOT = true;
 			for (int t = 0; t < slotList.size(); t++)
@@ -2953,15 +3026,73 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 			}
 
 			if (correctTTOT) {
-				equalTTOT = false;
-				TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-				string TSAT = TSATfinal.c_str();
-				string TTOT = TTOTFinal.c_str();
-				if (hasCTOT) {
-					if (aircraftFind) {
-						if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
+				bool correctCAD = true;
+				vector<Plane> sameDestList;
+				sameDestList.clear();
+				if (CADapplies) {
+					if (myCad.airport != "xxxx") {
+						int seperationCAD = 60 / myCad.rate;
+						for (int z = 0; z < slotList.size(); z++)
+						{
+							string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+							if (myCad.airport == destFound) {
+								sameDestList.push_back(slotList[z]);
+							}
+						}
+
+						for (int z = 0; z < sameDestList.size(); z++)
+						{
+							CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
+							bool found = false;
+							string listTTOT = sameDestList[z].ttot;
+							string listCallsign = sameDestList[z].callsign;
+							string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
+							string listAirport = fpList.GetFlightPlanData().GetOrigin();
+							while (!found) {
+								found = true;
+								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+									found = false;
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctCAD = false;
+								}
+								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+									found = false;
+									TTOTFinal = calculateTime(TTOTFinal, 0.5);
+									correctCAD = false;
+								}
+							}
+						}
+					}
+				}
+
+				if (correctCAD) {
+					equalTTOT = false;
+					TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+					string TSAT = TSATfinal.c_str();
+					string TTOT = TTOTFinal.c_str();
+					if (hasCTOT) {
+						if (aircraftFind) {
+							if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
+								Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
+								slotList[pos] = p;
+
+								if (remarks.find("CTOT") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
+									remarks = stringToAdd;
+								}
+								else if (remarks.find("%") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+									remarks = stringToAdd;
+								}
+
+								string stringToAdd = remarks + " CTOT" + slotList[pos].ctot + " %" + TSAT + "|" + TTOT;
+								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
+								remarks = stringToAdd;
+							}
+						}
+						else {
 							Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
-							slotList[pos] = p;
+							slotList.push_back(p);
 
 							if (remarks.find("CTOT") != string::npos) {
 								string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
@@ -2978,28 +3109,24 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 						}
 					}
 					else {
-						Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, false, myFlow);
-						slotList.push_back(p);
+						if (aircraftFind) {
+							if (TTOTFinal != slotList[pos].ttot) {
+								Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
+								slotList[pos] = p;
 
-						if (remarks.find("CTOT") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-							remarks = stringToAdd;
-						}
-						else if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-							remarks = stringToAdd;
-						}
+								if (remarks.find("%") != string::npos) {
+									string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+									remarks = stringToAdd;
+								}
 
-						string stringToAdd = remarks + " CTOT" + slotList[pos].ctot + " %" + TSAT + "|" + TTOT;
-						FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						remarks = stringToAdd;
-					}
-				}
-				else {
-					if (aircraftFind) {
-						if (TTOTFinal != slotList[pos].ttot) {
+								string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
+								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
+								remarks = stringToAdd;
+							}
+						}
+						else {
 							Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
-							slotList[pos] = p;
+							slotList.push_back(p);
 
 							if (remarks.find("%") != string::npos) {
 								string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
@@ -3010,19 +3137,6 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 							remarks = stringToAdd;
 						}
-					}
-					else {
-						Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
-						slotList.push_back(p);
-
-						if (remarks.find("%") != string::npos) {
-							string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
-							remarks = stringToAdd;
-						}
-
-						string stringToAdd = remarks + " %" + TSAT + "|" + TTOT;
-						FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-						remarks = stringToAdd;
 					}
 				}
 			}
@@ -3768,6 +3882,31 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 					else {
 						TxtTimesVector.push_back(lineValue.substr(0, lineValue.length() - 1));
 					}
+				}
+			}
+		}
+	}
+
+	return true;
+}
+
+bool CDM::getCADvalues(string url) {
+	if (debugMode) {
+		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
+	}
+	//Get data from .txt file
+	fstream file;
+	string lineValue;
+	file.open(xfad.c_str(), std::ios::in);
+	while (getline(file, lineValue))
+	{
+		if (lineValue.substr(0, 1) != "#") {
+			if (lineValue.find(",") != string::npos) {
+				string airport = lineValue.substr(0, lineValue.find(","));
+				string rate = lineValue.substr(lineValue.find(",")+1);
+				if (checkIsNumber(rate)) {
+					CAD cad = CAD(airport, stoi(rate));
+					CADvalues.push_back(cad);
 				}
 			}
 		}
