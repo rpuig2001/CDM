@@ -692,78 +692,79 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_NEWTOBT) {
 		string editedTOBT = ItemString;
-		bool hasNoNumber = true;
-		if (editedTOBT.length() == 4) {
-
-			for (int i = 0; i < editedTOBT.length(); i++) {
-				if (isdigit(editedTOBT[i]) == false) {
-					hasNoNumber = false;
+		if (fp.GetControllerAssignedData().GetFlightStripAnnotation(0) != editedTOBT) {
+			bool hasNoNumber = true;
+			if (editedTOBT.length() == 4) {
+				for (int i = 0; i < editedTOBT.length(); i++) {
+					if (isdigit(editedTOBT[i]) == false) {
+						hasNoNumber = false;
+					}
 				}
-			}
-			if (hasNoNumber) {
-				bool found = false;
-				for (int i = 0; i < slotList.size(); i++)
-				{
-					if (slotList[i].callsign == fp.GetCallsign()) {
-						slotList[i].eobt = editedTOBT;
+				if (hasNoNumber) {
+					bool found = false;
+					for (int i = 0; i < slotList.size(); i++)
+					{
+						if (slotList[i].callsign == fp.GetCallsign()) {
+							found = true;
+							slotList.erase(slotList.begin() + i);
+							fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
+							//Update times to slaves
+							countTime = stoi(GetTimeNow()) - refreshTime;
+						}
+					}
+					if (!found) {
 						fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
-						found = true;
 						//Update times to slaves
 						countTime = stoi(GetTimeNow()) - refreshTime;
 					}
+
+					//Add to not modify TOBT if EOBT changes List
+					bool foundInEobtTobtList = false;
+					for (int i = 0; i < difeobttobtList.size(); i++) {
+						if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+							foundInEobtTobtList = true;
+						}
+					}
+					if (!foundInEobtTobtList) {
+						difeobttobtList.push_back(fp.GetCallsign());
+					}
+
+					//ReloadCTOT
+					int pos;
+					bool aircraftFind = false;
+					for (int i = 0; i < slotList.size(); i++) {
+						if (fp.GetCallsign() == slotList[i].callsign) {
+							aircraftFind = true;
+							pos = i;
+						}
+					}
+					if (aircraftFind) {
+						if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
+							reloadCTOT(fp);
+						}
+					}
 				}
-				if (!found) {
-					fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
-					//Update times to slaves
-					countTime = stoi(GetTimeNow()) - refreshTime;
+			}
+			else if (editedTOBT.empty()) {
+				fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
+				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
+				for (int i = 0; i < slotList.size(); i++) {
+					if ((string)fp.GetCallsign() == slotList[i].callsign) {
+						slotList.erase(slotList.begin() + i);
+						//Update times to slaves
+						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, "");
+						PushToOtherControllers(fp);
+					}
 				}
 
-				//Add to not modify TOBT if EOBT changes List
-				bool foundInEobtTobtList = false;
+				//Remove if added to not modify TOBT if EOBT changes List
 				for (int i = 0; i < difeobttobtList.size(); i++) {
 					if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-						foundInEobtTobtList = true;
+						difeobttobtList.erase(difeobttobtList.begin() + i);
 					}
 				}
-				if (!foundInEobtTobtList) {
-					difeobttobtList.push_back(fp.GetCallsign());
-				}
 
-				//ReloadCTOT
-				int pos;
-				bool aircraftFind = false;
-				for (int i = 0; i < slotList.size(); i++) {
-					if (fp.GetCallsign() == slotList[i].callsign) {
-						aircraftFind = true;
-						pos = i;
-					}
-				}
-				if (aircraftFind) {
-					if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
-						reloadCTOT(fp);
-					}
-				}
 			}
-		}
-		else if (editedTOBT.empty()) {
-			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, "");
-			fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
-			for (int i = 0; i < slotList.size(); i++) {
-				if ((string)fp.GetCallsign() == slotList[i].callsign) {
-					slotList.erase(slotList.begin() + i);
-					//Update times to slaves
-					fp.GetControllerAssignedData().SetFlightStripAnnotation(3, "");
-					PushToOtherControllers(fp);
-				}
-			}
-
-			//Remove if added to not modify TOBT if EOBT changes List
-			for (int i = 0; i < difeobttobtList.size(); i++) {
-				if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-					difeobttobtList.erase(difeobttobtList.begin() + i);
-				}
-			}
-
 		}
 	}
 }
