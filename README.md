@@ -201,7 +201,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
   - Color defined as ``color10``.
   
-- Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real ready start-up function from IRL because Euroscope doesn't have this function)
+- Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real "ready start-up" state from IRL because Euroscope doesn't have this state)
   - ``Toggle Ready Start-up function`` sets RSTUP with ASRT or removes it if already set.
   - Color defined as ``GREEN`` when RSTUP is set.
   - Color defined as ``RED`` when RSUP is NOT set.
