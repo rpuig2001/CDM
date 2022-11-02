@@ -1508,7 +1508,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									sameDestList.clear();
 
 									if (hasFlowMeasures) {
-										int seperationFlow = myFlow.value;
+										double seperationFlow = myFlow.value;
 										for (int z = 0; z < slotList.size(); z++)
 										{
 											string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
@@ -1571,7 +1571,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 										if (CADapplies) {
 											if (myCad.airport != "xxxx") {
-												int seperationCAD = 60/myCad.rate;
+												double seperationCAD = 60/myCad.rate;
 												for (int z = 0; z < slotList.size(); z++)
 												{
 													string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
@@ -3032,7 +3032,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				if (!hasCTOT) {
 					if (CADapplies) {
 						if (myCad.airport != "xxxx") {
-							int seperationCAD = 60 / myCad.rate;
+							double seperationCAD = 60 / myCad.rate;
 							for (int z = 0; z < slotList.size(); z++)
 							{
 								string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
@@ -3702,7 +3702,7 @@ void CDM::getFlowData() {
 			string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
 			typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
 			//Get Value
-			int valueMeasure = 0;
+			double valueMeasure = 0;
 			if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
 				string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
 				if (isNumber(valueMeasureString)) {

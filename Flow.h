@@ -13,11 +13,11 @@ public:
 	string valid_time;
 	string valid_date;
 	string type;
-	int value;
+	double value;
 	vector<string> ADEP;
 	vector<string> ADES;
 
-	Flow(int myId, string myIdent, int myEventId, string myReason, string myValid_time, string myValid_date, string myType, int myValue, vector<string> myADEP, vector<string> myADES) :
+	Flow(int myId, string myIdent, int myEventId, string myReason, string myValid_time, string myValid_date, string myType, double myValue, vector<string> myADEP, vector<string> myADES) :
 		id(myId), ident(myIdent), event_id(myEventId), reason(myReason), valid_time(myValid_time), valid_date(myValid_date), type(myType), value(myValue) , ADEP(myADEP), ADES(myADES) { }
 	Flow() {};
 };
