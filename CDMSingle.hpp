@@ -112,6 +112,8 @@ public:
 
 	bool isNumber(string s);
 
+	vector<string> explode(std::string const& s, char delim);
+
 	bool getTaxiZonesFromUrl(string url);
 
 	bool getCtotsFromUrl(string url);
@@ -192,6 +194,8 @@ public:
 	bool addCtotToMainList(string lineValue);
 
 	bool OnCompileCommand(const char* sCommandLine);
+
+	void getsidIntervalValues();
 
 	bool getCADvalues(string url);
 

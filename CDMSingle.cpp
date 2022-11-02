@@ -6,6 +6,7 @@
 #include "Flow.h"
 #include <thread>
 #include "CAD.h"
+#include "sidInterval.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -66,6 +67,7 @@ vector<string> disconnectionList;
 vector<string> difeobttobtList;
 vector<string> reaSent;
 vector<CAD> CADvalues;
+vector<sidInterval> sidIntervalList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -166,7 +168,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	xfad = DllPathFile;
 	xfad.resize(xfad.size() - strlen("CDM.dll"));
-	xfad += "CAD.txt";
+	xfad += "sid_Interval.txt";
 
 	debugMode = false;
 	initialSidLoad = false;
@@ -228,6 +230,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Get CAD values
 	getCADvalues("https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt");
+
+	//Get Sid Interval Values
+	getsidIntervalValues();
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -1388,7 +1393,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									myCad = cad;
 								}
 							}
-
+							string mySid = FlightPlan.GetFlightPlanData().GetSidName();
 							while (equalTTOT) {
 								correctTTOT = true;
 								for (int t = 0; t < slotList.size(); t++)
@@ -1396,6 +1401,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									string listTTOT;
 									string listCallsign = slotList[t].callsign;
 									string listDepRwy = "";
+									string listSid = FlightPlanSelect(listCallsign.c_str()).GetFlightPlanData().GetSidName();
 									bool depRwyFound = false;
 									for (int i = 0; i < taxiTimesList.size(); i++)
 									{
@@ -1495,6 +1501,29 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 													TTOTFinal = calculateTime(listTTOT, 0.5);
 													correctTTOT = false;
 													alreadySetTOStd = true;
+												}
+											}
+										}
+										//Check if sid interval is correct
+										if (correctTTOT) {
+											if (!mySid.empty() && !listSid.empty()) {
+												for (sidInterval si : sidIntervalList) {
+													if (((si.sid1 == mySid && si.sid2 == listSid) || (si.sid2 == mySid && si.sid1 == listSid)) && depRwy == si.rwy) {
+														if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+															if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, si.value))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, si.value)))) {
+																found = false;
+																if (alreadySetTOStd) {
+																	TTOTFinal = calculateTime(TTOTFinal, 0.5);
+																	correctTTOT = false;
+																}
+																else {
+																	TTOTFinal = calculateTime(listTTOT, 0.5);
+																	correctTTOT = false;
+																	alreadySetTOStd = true;
+																}
+															}
+														}
+													}
 												}
 											}
 										}
@@ -2896,15 +2925,15 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				myCad = cad;
 			}
 		}
-
+		string mySid = FlightPlan.GetFlightPlanData().GetSidName();
 		while (equalTTOT) {
 			correctTTOT = true;
 			for (int t = 0; t < slotList.size(); t++)
 			{
-
 				string listTTOT;
 				string listCallsign = slotList[t].callsign;
 				string listDepRwy = "";
+				string listSid = FlightPlanSelect(listCallsign.c_str()).GetFlightPlanData().GetSidName();
 				bool depRwyFound = false;
 				for (int i = 0; i < taxiTimesList.size(); i++)
 				{
@@ -3012,14 +3041,37 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 						}
 
 						if (correctTTOT) {
-								string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-								if (calculatedTSATNow.substr(0, 2) == "00") {
-									calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
+							string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
+							if (calculatedTSATNow.substr(0, 2) == "00") {
+								calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
+							}
+							if (stoi(calculatedTSATNow) < stoi(timeNow)) {
+								TTOTFinal = calculateTime(TTOTFinal, 0.5);
+								correctTTOT = false;
+							}
+						}
+					}
+					//Check if sid interval is correct
+					if (correctTTOT) {
+						if (!mySid.empty() && !listSid.empty()) {
+							for (sidInterval si : sidIntervalList) {
+								if (((si.sid1 == mySid && si.sid2 == listSid) || (si.sid2 == mySid && si.sid1 == listSid)) && depRwy == si.rwy) {
+									if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+										if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, si.value))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, si.value)))) {
+											found = false;
+											if (alreadySetTOStd) {
+												TTOTFinal = calculateTime(TTOTFinal, 0.5);
+												correctTTOT = false;
+											}
+											else {
+												TTOTFinal = calculateTime(listTTOT, 0.5);
+												correctTTOT = false;
+												alreadySetTOStd = true;
+											}
+										}
+									}
 								}
-								if (stoi(calculatedTSATNow) < stoi(timeNow)) {
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctTTOT = false;
-								}
+							}
 						}
 					}
 				}
@@ -3892,6 +3944,24 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 	return true;
 }
 
+void CDM::getsidIntervalValues() {
+	if (debugMode) {
+		sendMessage("[DEBUG MESSAGE] - GETTING SID INTERVAL VALUES FROM TXT FILE");
+	}
+	//Get data from .txt file
+	fstream fileCtot;
+	string lineValueCtot;
+	fileCtot.open(xfad.c_str(), std::ios::in);
+	while (getline(fileCtot, lineValueCtot))
+	{
+		vector<string> tempList = explode(lineValueCtot, ',');
+		if (tempList.size() == 5) {
+			sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
+			sidIntervalList.push_back(si);
+		}
+	}
+}
+
 bool CDM::getCADvalues(string url) {
 	CADvalues.clear();
 	if (debugMode) {
@@ -4066,6 +4136,19 @@ bool CDM::addCtotToMainList(string lineValue) {
 			slotList.push_back(p);
 		}
 	}
+}
+
+vector<string> CDM::explode(std::string const& s, char delim)
+{
+	std::vector<std::string> result;
+	std::istringstream iss(s);
+
+	for (std::string token; std::getline(iss, token, delim); )
+	{
+		result.push_back(std::move(token));
+	}
+
+	return result;
 }
 
 bool CDM::OnCompileCommand(const char* sCommandLine) {
