@@ -244,8 +244,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		file.open(lfad.c_str(), std::ios::in);
 		while (getline(file, lineValue))
 		{
-			if (lineValue.substr(0, 1) != "#") {
-				TxtTimesVector.push_back(lineValue);
+			if (!lineValue.empty()) {
+				if (lineValue.substr(0, 1) != "#") {
+					TxtTimesVector.push_back(lineValue);
+				}
 			}
 		}
 	}
@@ -3945,10 +3947,14 @@ void CDM::getsidIntervalValuesUrl(string url)
 		string lineValue;
 		while (getline(is, lineValue))
 		{
-			vector<string> tempList = explode(lineValue, ',');
-			if (tempList.size() == 5) {
-				sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
-				sidIntervalList.push_back(si);
+			if (!lineValue.empty()) {
+				if (lineValue.substr(0, 1) != "#") {
+					vector<string> tempList = explode(lineValue, ',');
+					if (tempList.size() == 5) {
+						sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
+						sidIntervalList.push_back(si);
+					}
+				}
 			}
 		}
 	}
@@ -3980,13 +3986,15 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 		string lineValue;
 		while (getline(is, lineValue))
 		{
-			if (lineValue.substr(0, 1) != "#") {
-				if (lineValue.length() > 1) {
-					if (isdigit(lineValue[lineValue.length() - 1])) {
-						TxtTimesVector.push_back(lineValue);
-					}
-					else {
-						TxtTimesVector.push_back(lineValue.substr(0, lineValue.length() - 1));
+			if (!lineValue.empty()) {
+				if (lineValue.substr(0, 1) != "#") {
+					if (lineValue.length() > 1) {
+						if (isdigit(lineValue[lineValue.length() - 1])) {
+							TxtTimesVector.push_back(lineValue);
+						}
+						else {
+							TxtTimesVector.push_back(lineValue.substr(0, lineValue.length() - 1));
+						}
 					}
 				}
 			}
@@ -4006,10 +4014,14 @@ void CDM::getsidIntervalValues() {
 	fileCtot.open(xfad.c_str(), std::ios::in);
 	while (getline(fileCtot, lineValue))
 	{
-		vector<string> tempList = explode(lineValue, ',');
-		if (tempList.size() == 5) {
-			sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
-			sidIntervalList.push_back(si);
+		if (!lineValue.empty()) {
+			if (lineValue.substr(0, 1) != "#") {
+				vector<string> tempList = explode(lineValue, ',');
+				if (tempList.size() == 5) {
+					sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
+					sidIntervalList.push_back(si);
+				}
+			}
 		}
 	}
 }
@@ -4045,13 +4057,15 @@ bool CDM::getCADvalues(string url) {
 		string lineValue;
 		while (getline(is, lineValue))
 		{
-			if (lineValue.substr(0, 1) != "#") {
-				if (lineValue.find(",") != string::npos) {
-					string airport = lineValue.substr(0, lineValue.find(","));
-					string rate = lineValue.substr(lineValue.find(",") + 1);
-					if (checkIsNumber(rate)) {
-						CAD cad = CAD(airport, stoi(rate));
-						CADvalues.push_back(cad);
+			if (!lineValue.empty()) {
+				if (lineValue.substr(0, 1) != "#") {
+					if (lineValue.find(",") != string::npos) {
+						string airport = lineValue.substr(0, lineValue.find(","));
+						string rate = lineValue.substr(lineValue.find(",") + 1);
+						if (checkIsNumber(rate)) {
+							CAD cad = CAD(airport, stoi(rate));
+							CADvalues.push_back(cad);
+						}
 					}
 				}
 			}
@@ -4273,8 +4287,10 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			file.open(lfad.c_str(), std::ios::in);
 			while (getline(file, lineValue))
 			{
-				if (lineValue.substr(0, 1) != "#") {
-					TxtTimesVector.push_back(lineValue);
+				if (!lineValue.empty()) {
+					if (lineValue.substr(0, 1) != "#") {
+						TxtTimesVector.push_back(lineValue);
+					}
 				}
 			}
 		}
