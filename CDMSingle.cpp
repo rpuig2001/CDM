@@ -1516,14 +1516,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 										}
-										//Check if sid interval is correct
-										if (correctTTOT) {
-											if (mySid.length() > 3 && !listSid.length() > 3) {
-												string sid1 = mySid.substr(0, mySid.length() - 2);
-												string sid2 = listSid.substr(0, listSid.length() - 2);
-												for (sidInterval si : sidIntervalList) {
-													if (((si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2)) && depRwy == si.rwy) {
-														if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+									}
+									//Check if sid interval is correct
+									if (correctTTOT) {
+										if (mySid.length() > 3 && !listSid.length() > 3) {
+											string sid1 = mySid.substr(0, mySid.length() - 2);
+											string sid2 = listSid.substr(0, listSid.length() - 2);
+											for (sidInterval si : sidIntervalList) {
+												if (((si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2)) && depRwy == si.rwy) {
+													if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+														bool found = false;
+														while (!found) {
+															found = true;
 															if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, si.value))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, si.value)))) {
 																found = false;
 																if (alreadySetTOStd) {
@@ -3065,12 +3069,18 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 							}
 						}
 					}
-					//Check if sid interval is correct
-					if (correctTTOT) {
-						if (!mySid.empty() && !listSid.empty()) {
-							for (sidInterval si : sidIntervalList) {
-								if (((si.sid1 == mySid && si.sid2 == listSid) || (si.sid2 == mySid && si.sid1 == listSid)) && depRwy == si.rwy) {
-									if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+				}
+				//Check if sid interval is correct
+				if (correctTTOT) {
+					if (mySid.length() > 3 && !listSid.length() > 3) {
+						string sid1 = mySid.substr(0, mySid.length() - 2);
+						string sid2 = listSid.substr(0, listSid.length() - 2);
+						for (sidInterval si : sidIntervalList) {
+							if (((si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2)) && depRwy == si.rwy) {
+								if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+									bool found = false;
+									while (!found) {
+										found = true;
 										if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, si.value))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, si.value)))) {
 											found = false;
 											if (alreadySetTOStd) {
