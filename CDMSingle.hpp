@@ -118,6 +118,8 @@ public:
 
 	bool getCtotsFromUrl(string url);
 
+	void getsidIntervalValuesUrl(string url);
+
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
 	template <typename Out>

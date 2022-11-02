@@ -42,6 +42,7 @@ bool remarksOption;
 string myTimeToAdd;
 string taxiZonesUrl;
 string ctotUrl;
+string sidIntervalUrl;
 string flowRestrictionsUrl;
 int defTaxiTime;
 
@@ -194,6 +195,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	ctotUrl = getFromXml("/CDM/Ctot/@url");
+	sidIntervalUrl = getFromXml("/CDM/sidInterval/@url");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
@@ -230,9 +232,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Get CAD values
 	getCADvalues("https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt");
-
-	//Get Sid Interval Values
-	getsidIntervalValues();
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -277,6 +276,21 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
 		}
 		getCtotsFromUrl(ctotUrl);
+	}
+
+	//Get Values from sidInterval web or file
+	if (sidIntervalUrl.length() <= 1) {
+		getsidIntervalValues();
+	}
+	else {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING sidInterval FROM URL");
+		}
+		getsidIntervalValuesUrl(sidIntervalUrl);
+	}
+
+	for (sidInterval si : sidIntervalList) {
+		sendMessage(si.airport + " - " + si.rwy + " - " + si.sid1 + " - " + si.sid2 + " - " + to_string(si.value));
 	}
 
 	fstream fileColors;
@@ -1506,9 +1520,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										}
 										//Check if sid interval is correct
 										if (correctTTOT) {
-											if (!mySid.empty() && !listSid.empty()) {
+											if (mySid.length() > 3 && !listSid.length() > 3) {
+												string sid1 = mySid.substr(0, mySid.length() - 2);
+												string sid2 = listSid.substr(0, listSid.length() - 2);
 												for (sidInterval si : sidIntervalList) {
-													if (((si.sid1 == mySid && si.sid2 == listSid) || (si.sid2 == mySid && si.sid1 == listSid)) && depRwy == si.rwy) {
+													if (((si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2)) && depRwy == si.rwy) {
 														if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 															if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, si.value))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, si.value)))) {
 																found = false;
@@ -3902,6 +3918,42 @@ bool CDM::getCtotsFromUrl(string url)
 	return true;
 }
 
+void CDM::getsidIntervalValuesUrl(string url)
+{
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	long responseCode;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD CTOTs URL...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			vector<string> tempList = explode(lineValue, ',');
+			if (tempList.size() == 5) {
+				sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
+				sidIntervalList.push_back(si);
+			}
+		}
+	}
+}
+
 bool CDM::getTaxiZonesFromUrl(string url) {
 	CURL* curl;
 	CURLcode result;
@@ -3950,11 +4002,11 @@ void CDM::getsidIntervalValues() {
 	}
 	//Get data from .txt file
 	fstream fileCtot;
-	string lineValueCtot;
+	string lineValue;
 	fileCtot.open(xfad.c_str(), std::ios::in);
-	while (getline(fileCtot, lineValueCtot))
+	while (getline(fileCtot, lineValue))
 	{
-		vector<string> tempList = explode(lineValueCtot, ',');
+		vector<string> tempList = explode(lineValue, ',');
 		if (tempList.size() == 5) {
 			sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
 			sidIntervalList.push_back(si);
