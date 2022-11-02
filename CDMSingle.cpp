@@ -1210,7 +1210,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_E)
 						{
-							ItemRGB = TAG_GREEN;
+							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, "I");
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
