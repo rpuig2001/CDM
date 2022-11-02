@@ -291,10 +291,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		getsidIntervalValuesUrl(sidIntervalUrl);
 	}
 
-	for (sidInterval si : sidIntervalList) {
-		sendMessage(si.airport + " - " + si.rwy + " - " + si.sid1 + " - " + si.sid2 + " - " + to_string(si.value));
-	}
-
 	fstream fileColors;
 	string lineValueColors;
 	vector<int> sep;
