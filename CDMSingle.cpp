@@ -1569,7 +1569,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 										if (CADapplies) {
 											if (myCad.airport != "xxxx") {
-												double seperationCAD = 60/(myCad.rate*0.8);
+												double seperationCAD = 60/myCad.rate;
 												for (int z = 0; z < slotList.size(); z++)
 												{
 													string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
