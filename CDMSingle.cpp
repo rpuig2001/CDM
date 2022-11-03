@@ -2410,6 +2410,29 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
+					bool foundIndifeobttobtList = false;
+					for (string s : difeobttobtList) {
+						if (s == callsign) {
+							foundIndifeobttobtList = true;
+						}
+					}
+					string checkEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+					string checkTOBT = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+					if (!foundIndifeobttobtList) {
+						if (checkEOBT != checkTOBT) {
+							difeobttobtList.push_back(FlightPlan.GetCallsign());
+						}
+					}
+					else {
+						if (checkEOBT == checkTOBT) {
+							for (int d = 0; d < difeobttobtList.size(); d++) {
+								if (difeobttobtList[d] == callsign) {
+									difeobttobtList.erase(difeobttobtList.begin() + d);
+								}
+							}
+						}
+					}
+
 					//If oldTSAT
 					if (TSATFind) {
 						string TSAThour = TSATString.substr(TSATString.length() - 6, 2);
