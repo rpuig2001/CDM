@@ -5,7 +5,6 @@
 #include "Plane.h"
 #include "Flow.h"
 #include <thread>
-#include "CAD.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -43,6 +42,7 @@ string taxiZonesUrl;
 string ctotUrl;
 string flowRestrictionsUrl;
 int defTaxiTime;
+string cadUrl;
 
 //Ftp data
 string ftpHost;
@@ -223,7 +223,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 
 	//Get CAD values
-	getCADvalues("https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt");
+	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
+	getCADvalues(cadUrl);
+	for (CAD c : CADvalues) {
+		sendMessage(c.airport + " - " + to_string(c.rate));
+	}
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -2217,10 +2221,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						//Refresh FlowData every minute
+						//Refresh FlowData every 5 minutes
 						int myNow = stoi(GetTimeNow());
-						if (myNow - countFlowTime > 60) {
-							multithread(&CDM::getFlowData);
+						if (myNow - countFlowTime > 300) {
+							//multithread(&CDM::getFlowData);
+							getFlowData();
+							getCADvalues(cadUrl);
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 							}
@@ -3948,9 +3954,19 @@ bool CDM::getCADvalues(string url) {
 			if (!lineValue.empty()) {
 				if (lineValue.substr(0, 1) != "#") {
 					if (lineValue.find(",") != string::npos) {
+						//Avoid Blank value
+						if (!isdigit(lineValue[lineValue.length() - 1])) {
+							lineValue = lineValue.substr(0, lineValue.length() - 1);
+						}
 						string airport = lineValue.substr(0, lineValue.find(","));
 						string rate = lineValue.substr(lineValue.find(",") + 1);
-						if (checkIsNumber(rate)) {
+						if (airport == "URL") {
+							vector<CAD> myCadValues = returnCADvalues(rate);
+							for (CAD c : myCadValues) {
+								CADvalues.push_back(c);
+							}
+						}
+						if (checkIsNumber(rate) && !rate.empty()) {
 							CAD cad = CAD(airport, stoi(rate));
 							CADvalues.push_back(cad);
 						}
@@ -3961,6 +3977,60 @@ bool CDM::getCADvalues(string url) {
 	}
 
 	return true;
+}
+
+vector<CAD> CDM::returnCADvalues(string url)
+{
+	vector<CAD> myCADvalues;
+	if (debugMode) {
+		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
+	}
+
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	long responseCode;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD CAD URL...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			if (!lineValue.empty()) {
+				if (lineValue.substr(0, 1) != "#") {
+					if (lineValue.find(",") != string::npos) {
+						//Avoid Blank value
+						if (!isdigit(lineValue[lineValue.length() - 1])) {
+							lineValue = lineValue.substr(0, lineValue.length() - 1);
+						}
+						string airport = lineValue.substr(0, lineValue.find(","));
+						string rate = lineValue.substr(lineValue.find(",") + 1);
+						if (checkIsNumber(rate) && !rate.empty()) {
+							CAD cad = CAD(airport, stoi(rate));
+							myCADvalues.push_back(cad);
+						}
+					}
+				}
+			}
+		}
+	}
+
+	return myCADvalues;
 }
 
 int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2) {
@@ -4115,7 +4185,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm cad", sCommandLine)) {
 		sendMessage("Refreshing CAD...");
-		getCADvalues("https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt");
+		getCADvalues(cadUrl);
 		return true;
 	}
 
@@ -4190,6 +4260,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 
 		getFlowData();
+
+		getCADvalues(cadUrl);
 
 		if (ctotUrl.length() <= 1) {
 			if (debugMode) {

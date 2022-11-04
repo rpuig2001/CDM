@@ -13,6 +13,7 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "json/json.h"
+#include "CAD.h"
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
@@ -118,8 +119,6 @@ public:
 
 	bool getCtotsFromUrl(string url);
 
-	void getsidIntervalValuesUrl(string url);
-
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
 	template <typename Out>
@@ -197,7 +196,7 @@ public:
 
 	bool OnCompileCommand(const char* sCommandLine);
 
-	void getsidIntervalValues();
+	vector<CAD> returnCADvalues(string url);
 
 	bool getCADvalues(string url);
 
