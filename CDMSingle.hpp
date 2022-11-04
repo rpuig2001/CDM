@@ -107,7 +107,7 @@ public:
 
 	void getFlowData();
 
-	void reloadCTOT(CFlightPlan fp);
+	void toggleReaMsg(CFlightPlan fp);
 
 	int GetVersion();
 
