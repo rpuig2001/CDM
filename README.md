@@ -119,6 +119,7 @@ CDM includes the following times:
 ### How does it work?
 Flow restrictions create CTOTs to planes afected with published MDIs from ECFMP.
 If we want to change the TOBT, we must recalculate the CTOT by pressing with "left click" the CTOT time and selecting "reload CTOT".
+The data from the API will be refreshed every 5 minutes.
 
 ### How to use them?
 https://ecfmp.vatsim.net/api/v1/plugin should be set in the Flow Measure field of the CDMconfig.xml.
@@ -145,6 +146,13 @@ EZY12JM,183600,185600,190600,ctot,flowRestriction,
 RYR42TQ,183600,185700,190800,ctot,flowRestriction,
 BEE154A,183600,190000,191000,1924,London Event,
 ```
+## [FUTURE] CAD - Capacity Availability Document
+On this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) there are the capacities for the arrival airports.
+The CDM will separate aircrafts with the same destination by the rate specified in the CAD (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
+The data from the CAD will be refreshed every 5 minutes (Same as the Flow Measures).
+
+For more information, check the CAD GitHub Repository.
+https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
 ## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
