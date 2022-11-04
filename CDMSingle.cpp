@@ -225,7 +225,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Get CAD values
 	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
-	getCADvalues(cadUrl);
+	//getCADvalues();
+	multithread(&CDM::getCADvalues);
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -353,7 +354,7 @@ void CDM::sendMessage(string type, string message) {
 }
 
 void CDM::sendMessage(string message) {
-	DisplayUserMessage("Message", "CDM", message.c_str(), true, true, true, false, false);
+	DisplayUserMessage(MY_PLUGIN_NAME, "", message.c_str(), true, true, true, false, false);
 }
 
 //
@@ -2215,9 +2216,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//Refresh FlowData every 5 minutes
 						int myNow = stoi(GetTimeNow());
 						if (myNow - countFlowTime > 300) {
-							//multithread(&CDM::getFlowData);
-							getFlowData();
-							getCADvalues(cadUrl);
+							multithread(&CDM::getFlowData);
+							multithread(&CDM::getCADvalues);
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 							}
@@ -4005,8 +4005,8 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 	return true;
 }
 
-bool CDM::getCADvalues(string url) {
-	CADvalues.clear();
+void CDM::getCADvalues() {
+	vector<CAD> CADValuesTemp;
 	if (debugMode) {
 		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
 	}
@@ -4017,7 +4017,7 @@ bool CDM::getCADvalues(string url) {
 	long responseCode;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_URL, cadUrl);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		result = curl_easy_perform(curl);
@@ -4044,20 +4044,19 @@ bool CDM::getCADvalues(string url) {
 						if (airport == "URL") {
 							vector<CAD> myCadValues = returnCADvalues(rate);
 							for (CAD c : myCadValues) {
-								CADvalues.push_back(c);
+								CADValuesTemp.push_back(c);
 							}
 						}
 						if (checkIsNumber(rate) && !rate.empty()) {
 							CAD cad = CAD(airport, stoi(rate));
-							CADvalues.push_back(cad);
+							CADValuesTemp.push_back(cad);
 						}
 					}
 				}
 			}
 		}
 	}
-
-	return true;
+	CADvalues = CADValuesTemp;
 }
 
 vector<CAD> CDM::returnCADvalues(string url)
@@ -4266,7 +4265,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm cad", sCommandLine)) {
 		sendMessage("Refreshing CAD...");
-		getCADvalues(cadUrl);
+		getCADvalues();
 		return true;
 	}
 
@@ -4342,7 +4341,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		getFlowData();
 
-		getCADvalues(cadUrl);
+		getCADvalues();
 
 		if (ctotUrl.length() <= 1) {
 			if (debugMode) {

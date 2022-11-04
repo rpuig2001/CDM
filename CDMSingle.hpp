@@ -198,7 +198,7 @@ public:
 
 	vector<CAD> returnCADvalues(string url);
 
-	bool getCADvalues(string url);
+	void getCADvalues();
 
 	virtual void OnTimer(int Count);
 
