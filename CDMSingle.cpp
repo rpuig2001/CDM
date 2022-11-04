@@ -225,9 +225,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Get CAD values
 	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
 	getCADvalues(cadUrl);
-	for (CAD c : CADvalues) {
-		sendMessage(c.airport + " - " + to_string(c.rate));
-	}
 
 
 	if (taxiZonesUrl.length() <= 1) {
