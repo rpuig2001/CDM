@@ -1096,6 +1096,25 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
+					//Sync TOBT if different than EOBT
+					if (!SU_ISSET) {
+						if (tobt.length() > 0) {
+							string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
+							if (mySetEobt != tobt) {
+								bool foundInEobtTobtList = false;
+								for (int i = 0; i < difeobttobtList.size(); i++) {
+									if (callsign == difeobttobtList[i]) {
+										foundInEobtTobtList = true;
+									}
+								}
+
+								if (!foundInEobtTobtList) {
+									FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()).c_str());
+								}
+							}
+						}
+					}
+
 					if (stillOutOfTsat && !gndStatusSet) {
 						//Remove ACFT Find
 						if (aircraftFind) {
@@ -1995,25 +2014,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						//Sync TOBT if different than EOBT
-						if (!SU_ISSET) {
-							if (tobt.length() > 0) {
-								string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-								if (mySetEobt != tobt) {
-									bool foundInEobtTobtList = false;
-									for (int i = 0; i < difeobttobtList.size(); i++) {
-										if (callsign == difeobttobtList[i]) {
-											foundInEobtTobtList = true;
-										}
-									}
-
-									if (!foundInEobtTobtList) {
-										FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()).c_str());
-									}
-								}
-							}
-						}
-
 
 						if (ItemCode == TAG_ITEM_EOBT)
 						{
@@ -2423,7 +2423,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					string checkTOBT = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 					if (!foundIndifeobttobtList) {
 						if (checkEOBT != checkTOBT) {
-							difeobttobtList.push_back(FlightPlan.GetCallsign());
+							if (!checkTOBT.empty()) {
+								difeobttobtList.push_back(FlightPlan.GetCallsign());
+							}
 						}
 					}
 					else {
