@@ -3685,6 +3685,12 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			reaSent.erase(reaSent.begin() + i);
 		}
 	}
+	//Delete from reaCTOTSent list
+	for (int i = 0; i < reaCTOTSent.size(); i++) {
+		if (callsign == reaCTOTSent[i]) {
+			reaCTOTSent.erase(reaCTOTSent.begin() + i);
+		}
+	}
 	//Remove if added to not modify TOBT if EOBT changes List
 	for (int i = 0; i < difeobttobtList.size(); i++) {
 		if (callsign == difeobttobtList[i]) {
