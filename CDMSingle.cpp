@@ -4618,37 +4618,36 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm master", sCommandLine))
 	{
 		string line = sCommandLine; boost::to_upper(line);
-		if (line.substr(line.length() - 7, 1) == " ") {
-			sendMessage("NO AIRPORT SET");
-		}
-		else {
-			string addedAirport = line.substr(line.length() - 4, 4);
-			bool found = false;
-			for (string apt : masterAirports)
-			{
-				if (apt == addedAirport) {
-					found = true;
-				}
-			}
-			if (!found) {
-				masterAirports.push_back(addedAirport);
-				sendMessage("ADDED " + addedAirport + " TO MASTER AIRPORTS");
-			}
-			else {
-				sendMessage("AIRPORT " + addedAirport + " ALREADY ADDED");
-			}
+		vector<string> lineAirports = explode(line, ' ');
 
-			string apts = "";
-			if (masterAirports.size() > 0) {
+		if (lineAirports.size() > 2) {
+			for (int i = 2; i < lineAirports.size(); i++) {
+				string addedAirport = lineAirports[i];
+				bool found = false;
 				for (string apt : masterAirports)
 				{
-					apts += apt + " ";
+					if (apt == addedAirport) {
+						found = true;
+					}
 				}
-				sendMessage("MASTER AIRPORTS: " + apts);
+				if (!found) {
+					masterAirports.push_back(addedAirport);
+				}
 			}
-			else {
-				sendMessage("NO MASTER AIRPORTS");
+		}
+		else {
+			sendMessage("NO AIRPORT SET");
+		}
+		string apts = "";
+		if (masterAirports.size() > 0) {
+			for (string apt : masterAirports)
+			{
+				apts += apt + " ";
 			}
+			sendMessage("MASTER AIRPORTS: " + apts);
+		}
+		else {
+			sendMessage("NO MASTER AIRPORTS");
 		}
 		return true;
 	}
@@ -4656,40 +4655,41 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm slave", sCommandLine))
 	{
 		string line = sCommandLine; boost::to_upper(line);
-		if (line.substr(line.length() - 6, 1) == " ") {
-			sendMessage("NO AIRPORT SET");
-		}
-		else {
-			string addedAirport = line.substr(line.length() - 4, 4);
-			int pos = 0;
-			bool found = false;
-			for (int i = 0; i < masterAirports.size(); i++)
-			{
-				if (masterAirports[i].substr(masterAirports[i].find(",") + 1, 4) == addedAirport) {
-					pos = i;
-					found = true;
-				}
-			}
-			if (found) {
-				masterAirports.erase(masterAirports.begin() + pos);
-				sendMessage("REMOVED " + addedAirport + " FROM MASTER AIPORTS LIST");
-			}
-			else {
-				sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
-			}
+		vector<string> lineAirports = explode(line, ' ');
 
-			string apts = "";
-			if (masterAirports.size() > 0) {
+		if (lineAirports.size() > 2) {
+			for (int i = 2; i < lineAirports.size(); i++) {
+				string addedAirport = lineAirports[i];
+				bool found = false;
+				int a = 0;
 				for (string apt : masterAirports)
 				{
-					apts += apt + " ";
+					if (apt == addedAirport) {
+						masterAirports.erase(masterAirports.begin() + a);
+						found = true;
+					}
+					a++;
 				}
-				sendMessage("MASTER AIRPORTS: " + apts);
-			}
-			else {
-				sendMessage("NO MASTER AIRPORTS");
+				if (!found) {
+					sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
+				}
 			}
 		}
+		else {
+			sendMessage("NO AIRPORT SET");
+		}
+		string apts = "";
+		if (masterAirports.size() > 0) {
+			for (string apt : masterAirports)
+			{
+				apts += apt + " ";
+			}
+			sendMessage("MASTER AIRPORTS: " + apts);
+		}
+		else {
+			sendMessage("NO MASTER AIRPORTS");
+		}
+
 		return true;
 	}
 
