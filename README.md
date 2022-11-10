@@ -215,4 +215,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Color defined as ``RED`` when RSUP is NOT set.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
+  - ``Send REA Msg`` It will be contarntly looking for a better CTOT every when this is checked.
+  - ``Remove from REA Msg`` It will not look for a better CTOT anymore.
   - Color defined as ``color11``.
+  -  Color defined as ``YELLOW`` when REA Msg is sent.
