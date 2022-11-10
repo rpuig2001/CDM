@@ -741,10 +741,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 }
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
-	string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
-	if (tobt.length() > 0) {
+	string tsat = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(3);
+	if (!tsat.find("%")) {
 		disconnectionList.push_back(FlightPlan.GetCallsign());
 		countTfcDisconnection = stoi(GetTimeNow());
+	}
+	else {
+		RemoveDataFromTfc(FlightPlan.GetCallsign());
 	}
 }
 
@@ -3777,7 +3780,7 @@ string CDM::getCidByCallsign(string callsign) {
 
 void CDM::getFlowData() {
 	if (!flowRestrictionsUrl.empty()) {
-		flowData.clear();
+		vector<Flow> flowDataTemp;
 		CURL* curl;
 		CURLcode res;
 		std::string readBuffer;
@@ -3853,9 +3856,10 @@ void CDM::getFlowData() {
 
 			Flow flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
 			if (flow.type.find("minimum_departure_interval") != std::string::npos) {
-				flowData.push_back(flow);
+				flowDataTemp.push_back(flow);
 			}
 		}
+		flowData = flowDataTemp;
 	}
 }
 
@@ -4688,6 +4692,23 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 		else {
 			sendMessage("NO MASTER AIRPORTS");
+		}
+
+		return true;
+	}
+
+	if (startsWith(".cdm data", sCommandLine))
+	{
+		string planes = "";
+		if (slotList.size() > 0) {
+			for (Plane p : slotList)
+			{
+				planes += p.callsign + " ";
+			}
+			sendMessage("PLANES: " + planes);
+		}
+		else {
+			sendMessage("NO PLANES IN THE LIST");
 		}
 
 		return true;
