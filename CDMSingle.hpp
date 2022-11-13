@@ -19,13 +19,13 @@
 #include <wininet.h>
 #pragma comment(lib, "Wininet")
 
-#define MY_PLUGIN_NAME      "vCDM Plugin"
+#define MY_PLUGIN_NAME      "CDM Plugin"
 #define MY_PLUGIN_VERSION   "2.0.13"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
-#define MY_PLUGIN_VIEW_AVISO  "Euroscope vCDM"
+#define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
 
-#define PLUGIN_WELCOME_MESSAGE	"Thanks for using the vCDM Plugin for Euroscope!"
+#define PLUGIN_WELCOME_MESSAGE	"Thanks for using the CDM Plugin for Euroscope!"
 
 using namespace std;
 using namespace boost;
