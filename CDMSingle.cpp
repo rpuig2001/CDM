@@ -5,6 +5,7 @@
 #include "Plane.h"
 #include "Flow.h"
 #include <thread>
+#include "rate.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -56,7 +57,7 @@ vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
 vector<string> OutOfTsat;
 vector<string> colors;
-vector<string> rate;
+vector<Rate> rate;
 vector<string> planeAiportList;
 vector<string> masterAirports;
 vector<string> CDMairports;
@@ -2888,21 +2889,48 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 bool CDM::getRate() {
 	//Get data from rate.txt file
 	fstream rateFile;
-	string lineValue, myAirport;
+	string lineValue;
 	rateFile.open(rfad.c_str(), std::ios::in);
 	bool found;
 	while (getline(rateFile, lineValue))
 	{
-		rate.push_back(lineValue);
-		myAirport = lineValue.substr(0, lineValue.find(":"));
-		found = false;
-		for (string airport : CDMairports) {
-			if (airport == myAirport) {
-				found = true;
+		vector<string> data = explode(lineValue, ':');
+		if (data.size() == 8) {
+			string myRateDataAirport = data[0];
+			vector<string> ArrRwyList = explode(data[2], ',');
+			if (ArrRwyList.size() == 0) {
+				ArrRwyList.push_back(data[2]);
 			}
-		}
-		if (!found) {
-			CDMairports.push_back(myAirport);
+			vector<string> NotArrRwyList = explode(data[3], ',');
+			if (NotArrRwyList.size() == 0) {
+				NotArrRwyList.push_back(data[3]);
+			}
+			vector<string> DepRwyList = explode(data[5], ',');
+			if (DepRwyList.size() == 0) {
+				DepRwyList.push_back(data[5]);
+			}
+			vector<string> NotDepRwyList = explode(data[6], ',');
+			if (NotDepRwyList.size() == 0) {
+				NotDepRwyList.push_back(data[6]);
+			}
+			vector<string> ratesFromData = explode(data[7], '_');
+			int rateFromData = stoi(ratesFromData[0]);
+			int rateLvoFromData = stoi(ratesFromData[1]);
+
+			Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, rateFromData, rateLvoFromData);
+
+			rate.push_back(myRate);
+
+			found = false;
+			for (string airport : CDMairports) {
+				if (airport == myRateDataAirport) {
+					found = true;
+				}
+			}
+			if (!found) {
+				CDMairports.push_back(myRateDataAirport);
+			}
+
 		}
 	}
 	return true;
@@ -2910,17 +2938,143 @@ bool CDM::getRate() {
 
 int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
 	string lineAirport, lineDepRwy;
-	for (string line : rate) {
-		if (line.length() > 1) {
-			lineAirport = line.substr(0, line.find(":"));
-			if (lineAirport == airport) {
-				lineDepRwy = line.substr(line.find(":") + 1, line.find("=") - line.find(":") - 1);
-				if (lineDepRwy == depRwy) {
-					if (!lvoActive) {
-						return stoi(line.substr(line.find("=") + 1, line.length() - line.find("=")));
+
+	vector<string> myActiveRwysDep;
+	vector<string> myActiveRwysArr;
+	string myairport;
+	for (CSectorElement runway = this->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY);
+		runway.IsValid();
+		runway = this->SectorFileElementSelectNext(runway, SECTOR_ELEMENT_RUNWAY)) {
+		if (runway.IsElementActive(false, 1)) {
+			myairport = runway.GetAirportName();
+			if (myairport.substr(0, 4) == airport) {
+				myActiveRwysArr.push_back(runway.GetRunwayName(1));
+			}
+		}
+		else if (runway.IsElementActive(false, 0)) {
+			myairport = runway.GetAirportName();
+			if (myairport.substr(0, 4) == airport) {
+				myActiveRwysArr.push_back(runway.GetRunwayName(0));
+			}
+		}
+		else if (runway.IsElementActive(true, 1)) {
+			myairport = runway.GetAirportName();
+			if (myairport.substr(0, 4) == airport) {
+				myActiveRwysDep.push_back(runway.GetRunwayName(1));
+			}
+		}
+		else if (runway.IsElementActive(true, 0)) {
+			myairport = runway.GetAirportName();
+			if (myairport.substr(0, 4) == airport) {
+				myActiveRwysDep.push_back(runway.GetRunwayName(0));
+			}
+		}
+	}
+
+	for (Rate r : rate) {
+		if (r.airport == airport) {
+			bool found = false;
+			for (string dr : r.depRwyYes) {
+				if (depRwy == dr) {
+					found = true;
+				}
+				else if (dr == "*") {
+					found = true;
+				}
+			}
+
+			if (found) {
+				bool foundArrRwyYes = true;
+				for (string ar : r.arrRwyYes) {
+					if (ar == "*") {
+						foundArrRwyYes = true;
 					}
 					else {
-						return stoi(line.substr(line.find("_") + 1, line.length() - line.find("_")));
+						bool foundIt = false;
+						for (string arrRwy : myActiveRwysArr) {
+							if (arrRwy == ar) {
+								foundIt = true;
+							}
+						}
+						if (!foundIt) {
+							foundArrRwyYes = false;
+						}
+						else if (myActiveRwysArr.size() != r.arrRwyYes.size()) {
+							foundArrRwyYes = false;
+						}
+					}
+				}
+
+				bool foundArrRwyNo = true;
+				for (string arn : r.arrRwyNo) {
+					if (arn == "*") {
+						foundArrRwyNo = true;
+					}
+					else {
+						bool foundIt = false;
+						for (string arrRwy : myActiveRwysArr) {
+							if (arrRwy != arn) {
+								foundIt = true;
+							}
+						}
+						if (!foundIt) {
+							foundArrRwyNo = false;
+						}
+						else if (myActiveRwysArr.size() != r.arrRwyNo.size()) {
+							foundArrRwyNo = false;
+						}
+					}
+				}
+
+				bool foundDepRwyYes = true;
+				for (string dr : r.depRwyYes) {
+					if (dr == "*") {
+						foundDepRwyYes = true;
+					}
+					else {
+						bool foundIt = false;
+						for (string myRwy : myActiveRwysDep) {
+							if (myRwy == dr) {
+								foundIt = true;
+							}
+						}
+						if (!foundIt) {
+							foundDepRwyYes = false;
+						}
+						else if (myActiveRwysDep.size() != r.depRwyYes.size()) {
+							foundDepRwyYes = false;
+						}
+					}
+				}
+
+				bool foundDepRwyNo = true;
+				for (string drn : r.depRwyNo) {
+					if (drn == "*") {
+						foundDepRwyYes = true;
+					}
+					else {
+						bool foundIt = false;
+						for (string myRwy : myActiveRwysDep) {
+							if (myRwy != drn) {
+								foundIt = true;
+							}
+						}
+						if (!foundIt) {
+							foundDepRwyYes = false;
+						}
+						else if (myActiveRwysDep.size() != r.depRwyNo.size()) {
+							foundDepRwyYes = false;
+						}
+					}
+				}
+
+				//Check if ok to be valid rate
+				if (foundArrRwyYes && foundArrRwyNo && foundDepRwyYes && foundDepRwyNo) {
+					if (!lvoActive) {
+						return r.rate;
+					}
+					else {
+						return r.rateLvo;
 					}
 				}
 			}
