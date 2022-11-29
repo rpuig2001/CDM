@@ -509,18 +509,18 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, (hour + min).c_str());
 				
 				//Check if has restriction to reload CTOT
-				bool hasRestriction = false;
+				bool hasRestriction = 0;
 				for (int i = 0; i < slotList.size(); i++)
 				{
 					if (slotList[i].callsign == fp.GetCallsign()) {
 						if (slotList[i].hasCtot) {
-							if (slotList[i].hasRestriction) {
-								hasRestriction = true;
+							if (slotList[i].hasRestriction != 0) {
+								hasRestriction = 0;
 							}
 						}
 					}
 				}
-				if (hasRestriction) {
+				if (hasRestriction != 0) {
 					//Reload CTOT
 					for (int a = 0; a < slotList.size(); a++)
 					{
@@ -562,14 +562,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_CTOTOPTIONS) {
 		if (master && AtcMe) {
 			bool hasCTOT = false;
-			bool hasRestriction = false;
+			bool hasRestriction = 0;
 			for (int i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
 					if (slotList[i].hasCtot) {
 						hasCTOT = true;
-						if (slotList[i].hasRestriction) {
-							hasRestriction = true;
+						if (slotList[i].hasRestriction != 0) {
+							hasRestriction = 1;
 						}
 					}
 				}
@@ -583,7 +583,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 			if (hasCTOT) {
 				OpenPopupList(Area, "CTOT Options", 1);
-				if (hasRestriction) {
+				if (hasRestriction != 0) {
 					if (!inreaList) {
 						AddPopupListElement("Send REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
 					}
@@ -868,8 +868,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			//It'll calculate pilot's times after pressing READY TOBT Function
 			if (isValidToCalculateEventMode) {
 
-				//Get Restriction
-				bool hasFlowMeasures = false;
+				//Get Restriction: 0 -> false | 1 -> Flow | 2 -> CAD
+				int hasFlowMeasures = 0;
 				Flow myFlow;
 				if (!aircraftFind) {
 					for (int z = 0; z < flowData.size(); z++)
@@ -913,7 +913,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									//Check valid time
 									int timeNow = stoi(GetActualTime());
 									if (stoi(flowData[z].valid_time.substr(0, flowData[z].valid_time.find("-"))) <= timeNow && stoi(flowData[z].valid_time.substr(flowData[z].valid_time.find("-") + 1)) >= timeNow) {
-										hasFlowMeasures = true;
+										hasFlowMeasures = 1;
 										myFlow = flowData[z];
 									}
 								}
@@ -1395,6 +1395,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 
+							bool CADRestrictionApplies = false;
+
 							while (equalTTOT) {
 								correctTTOT = true;
 								for (int t = 0; t < slotList.size(); t++)
@@ -1539,11 +1541,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														found = false;
 														TTOTFinal = calculateTime(TTOTFinal, 0.5);
 														correctCAD = false;
+														CADRestrictionApplies = true;
 													}
 													else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 														found = false;
 														TTOTFinal = calculateTime(TTOTFinal, 0.5);
 														correctCAD = false;
+														CADRestrictionApplies = true;
 													}
 												}
 											}
@@ -1551,7 +1555,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 
 									//Check flow measures if exists once separated per rate and CAD
-									if (hasFlowMeasures && correctCAD) {
+									if (hasFlowMeasures == 1 && correctCAD) {
 										sameDestList.clear();
 										int seperationFlow = myFlow.value;
 										for (int z = 0; z < slotList.size(); z++)
@@ -1608,6 +1612,39 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											hasCtot = true;
 											myCtot = formatTime(TTOTFinal);
+										}
+									}
+									//Create a CTOT if is not the first to apply CAD
+									else if (CADRestrictionApplies && hasFlowMeasures == 0 && correctCAD) {
+										vector<string> tempVect;
+										myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
+										if (aircraftFind) {
+											if (!hasCtot) {
+												hasCtot = true;
+												slotList[pos].hasRestriction = 2;
+												slotList[pos].hasCtot = true;
+												slotList[pos].ctot = formatTime(TTOTFinal);
+												slotList[pos].flowRestriction = myFlow;
+											}
+										}
+										else {
+											hasFlowMeasures = 2;
+											myCtot = formatTime(TTOTFinal);
+											hasCtot = true;
+										}
+									}
+									else if (!CADRestrictionApplies && hasFlowMeasures == 2 && correctCAD) {
+										if (aircraftFind) {
+											if (hasCtot) {
+												hasCtot = false;
+												slotList[pos].hasRestriction = 0;
+												slotList[pos].hasCtot = false;
+												slotList[pos].ctot = "";
+											}
+										}
+										else {
+											hasFlowMeasures = 0;
+											hasCtot = false;
 										}
 									}
 
@@ -1769,7 +1806,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//If SACTA sts SU_WAIT is set recaluclate CTOT if there is CTOT
 						if (aircraftFind) {
-							if (slotList[pos].hasCtot && slotList[pos].hasRestriction) {
+							if (slotList[pos].hasCtot && slotList[pos].hasRestriction != 0) {
 								string sts = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(4);
 								bool csFound = false;
 								for (int x = 0; x < reaSent.size(); x++) {
@@ -2190,7 +2227,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
 							if (aircraftFind) {
-								if (slotList[pos].hasRestriction) {
+								if (slotList[pos].hasRestriction != 0) {
 									    string message = slotList[pos].flowRestriction.ident;
 										ItemRGB = TAG_YELLOW;
 										strcpy_s(sItemString, 16, message.c_str());
@@ -2329,7 +2366,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												if (slotList[s].hasCtot) {
 													myhasCTOT = true;
 													myCtotPos = s;
-													if (slotList[s].hasRestriction) {
+													if (slotList[s].hasRestriction == 1) {
 														myhasCTOTFlowRestriction = true;
 													}
 												}
@@ -2769,7 +2806,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
 						if (aircraftFind) {
-							if (slotList[pos].hasRestriction) {
+							if (slotList[pos].hasRestriction != 0) {
 								string message = slotList[pos].flowRestriction.ident;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, message.c_str());
@@ -3091,13 +3128,16 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 	bool okToLook = false;
 	string timeNow = GetActualTime() + "00";
 	Flow myFlow;
-	bool hasRestriction = false;
+	int hasRestriction = 0;
 
 	for (int s = 0; s < slotList.size(); s++)
 	{
 		if (callsign == slotList[s].callsign) {
-			if (slotList[s].hasRestriction) {
-				hasRestriction = true;
+			if (slotList[s].hasRestriction == 1) {
+				hasRestriction = 1;
+				myFlow = slotList[s].flowRestriction;
+			}else if (slotList[s].hasRestriction == 2) {
+				hasRestriction = 2;
 				myFlow = slotList[s].flowRestriction;
 			}
 		}
@@ -3124,6 +3164,8 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				myCad = cad;
 			}
 		}
+
+		bool CADRestrictionApplies = false;
 
 		while (equalTTOT) {
 			correctTTOT = true;
@@ -3284,11 +3326,13 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 									found = false;
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctCAD = false;
+									CADRestrictionApplies = true;
 								}
 								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
 									found = false;
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctCAD = false;
+									CADRestrictionApplies = true;
 								}
 							}
 						}
@@ -3296,7 +3340,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				}
 
 				//Check flow measures if exists once separated per rate and CAD
-				if (hasRestriction && correctCAD) {
+				if (hasRestriction == 1 && correctCAD) {
 					sameDestList.clear();
 					int seperationFlow = myFlow.value;
 					for (int z = 0; z < slotList.size(); z++)
@@ -3347,6 +3391,38 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 						if (!hasCTOT) {
 							hasCTOT = true;
 						}
+					}
+				}
+				//Create a CTOT if is not the first to apply CAD
+				else if (CADRestrictionApplies && hasRestriction == 0 && correctCAD) {
+					vector<string> tempVect;
+					myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
+					if (aircraftFind) {
+						if (!hasCTOT) {
+							hasCTOT = true;
+							slotList[pos].hasRestriction = 2;
+							slotList[pos].hasCtot = true;
+							slotList[pos].ctot = formatTime(TTOTFinal);
+							slotList[pos].flowRestriction = myFlow;
+						}
+					}
+					else {
+						hasRestriction = 2;
+						hasCTOT = true;
+					}
+				}
+				else if (!CADRestrictionApplies && hasRestriction == 2 && correctCAD) {
+					if (aircraftFind) {
+						if (hasCTOT) {
+							hasCTOT = false;
+							slotList[pos].hasRestriction = 0;
+							slotList[pos].hasCtot = false;
+							slotList[pos].ctot = "";
+						}
+					}
+					else {
+						hasRestriction = 0;
+						hasCTOT = false;
 					}
 				}
 
@@ -4030,7 +4106,7 @@ void CDM::saveData() {
 						if (airport == FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin()) {
 							string str;
 							if (plane.hasCtot) {
-								if (plane.hasRestriction) {
+								if (plane.hasRestriction != 0) {
 									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.ident + ",";
 								}
 								else {
@@ -4038,7 +4114,7 @@ void CDM::saveData() {
 								}
 							}
 							else {
-								if (plane.hasRestriction) {
+								if (plane.hasRestriction != 0) {
 									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + "," + plane.flowRestriction.ident + ",";
 								}
 								else {
