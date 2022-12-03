@@ -148,7 +148,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 ```
 ## [FUTURE] CAD - Capacity Availability Document
 On this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) there are the capacities for the arrival airports.
-The CDM will separate aircrafts with the same destination by the rate specified in the CAD (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
+The CDM will separate aircrafts with the same destination by the rate specified in the CAD creating a CTOT with the FM "ARR CAP" (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
 The data from the CAD will be refreshed every 5 minutes (Same as the Flow Measures).
 
 For more information, check the CAD GitHub Repository.
@@ -215,7 +215,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Color defined as ``RED`` when RSUP is NOT set.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
-  - ``Send REA Msg`` It will be contarntly looking for a better CTOT every when this is checked.
-  - ``Remove from REA Msg`` It will not look for a better CTOT anymore.
+  - ``Send REA Msg`` It will be contarntly looking for a better CTOT every refreshtime when this is checked.
+  - ``Remove from REA Msg`` It will keep ctot and will not look for a better CTOT anymore.
   - Color defined as ``color11``.
   -  Color defined as ``YELLOW`` when REA Msg is sent.
