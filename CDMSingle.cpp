@@ -5,7 +5,6 @@
 #include "Plane.h"
 #include "Flow.h"
 #include <thread>
-#include "rate.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -1373,13 +1372,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							int rate;
 							bool flowChecked = false;
 
-							rate = rateForRunway(origin, depRwy, lvo);
-							if (rate == -1) {
+							Rate dataRate = rateForRunway(origin, depRwy);
+							if (dataRate.airport == "-1") {
 								if (!lvo) {
 									rate = stoi(rateString);
 								}
 								else {
 									rate = stoi(lvoRateString);
+								}
+							}
+							else {
+								int a = 0;
+								int dataRatePos = 0;
+								if (dataRate.rates.size() > 1) {
+									for (string dr : dataRate.depRwyYes) {
+										if (dr == depRwy) {
+											dataRatePos = a;
+										}
+										a++;
+									}
+								}
+								if (!lvo) {
+									rate = stoi(dataRate.rates[dataRatePos]);
+								}
+								else {
+									rate = stoi(dataRate.ratesLvo[dataRatePos]);
 								}
 							}
 
@@ -1396,6 +1413,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							bool CADRestrictionApplies = false;
+							bool sameOrDependantRwys = false;
 
 							while (equalTTOT) {
 								correctTTOT = true;
@@ -1430,6 +1448,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										listDepRwy = depRwy;
 									}
 
+									sameOrDependantRwys = false;
+
+									if (depRwy == listDepRwy) {
+										sameOrDependantRwys = true;
+									}
+
+									if (dataRate.airport != "-1" && !sameOrDependantRwys) {
+										for (string testRwy : dataRate.dependentRwy) {
+											if (testRwy == listDepRwy) {
+												sameOrDependantRwys = true;
+											}
+										}
+									}
+
 									if (hasCtot) {
 										bool found = false;
 										while (!found) {
@@ -1438,7 +1470,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 												listTTOT = slotList[t].ttot;
 
-												if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+												if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 													found = false;
 													if (alreadySetTOStd) {
 														TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -1450,7 +1482,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														alreadySetTOStd = true;
 													}
 												}
-												else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+												else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 													found = false;
 													if (alreadySetTOStd) {
 														TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -1481,7 +1513,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												listAirport = origin;
 											}
 
-											if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+											if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 												found = false;
 												if (alreadySetTOStd) {
 													TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -1493,7 +1525,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 													alreadySetTOStd = true;
 												}
 											}
-											else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+											else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 												found = false;
 												if (alreadySetTOStd) {
 													TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -1537,13 +1569,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												string listAirport = fpList.GetFlightPlanData().GetOrigin();
 												while (!found) {
 													found = true;
-													if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+													if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 														found = false;
 														TTOTFinal = calculateTime(TTOTFinal, 0.5);
 														correctCAD = false;
 														CADRestrictionApplies = true;
 													}
-													else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+													else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 														found = false;
 														TTOTFinal = calculateTime(TTOTFinal, 0.5);
 														correctCAD = false;
@@ -1590,12 +1622,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											string listAirport = fpList.GetFlightPlanData().GetOrigin();
 											while (!found) {
 												found = true;
-												if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+												if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 													found = false;
 													TTOTFinal = calculateTime(TTOTFinal, 1);
 													correctFlowTTOT = false;
 												}
-												else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+												else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 													found = false;
 													TTOTFinal = calculateTime(TTOTFinal, 1);
 													correctFlowTTOT = false;
@@ -2279,20 +2311,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							checkCtot();
 
-							//Calculate Rate
-							int rate;
-
-							rate = rateForRunway(origin, depRwy, lvo);
-							if (rate == -1) {
-								if (!lvo) {
-									rate = stoi(rateString);
-								}
-								else {
-									rate = stoi(lvoRateString);
-								}
-							}
-
-							double rateHour = (double)60 / rate;
+							Rate dataRate = rateForRunway(origin, depRwy);
 
 							for (int i = 0; i < slotList.size(); i++)
 							{
@@ -2414,7 +2433,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 
-										refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, rateHour, myhasCTOT, myCtotPos, i, true);
+										refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
 									}
 								}
 							}
@@ -2932,7 +2951,7 @@ bool CDM::getRate() {
 	while (getline(rateFile, lineValue))
 	{
 		vector<string> data = explode(lineValue, ':');
-		if (data.size() == 8) {
+		if (data.size() == 9) {
 			string myRateDataAirport = data[0];
 			vector<string> ArrRwyList = explode(data[2], ',');
 			if (ArrRwyList.size() == 0) {
@@ -2950,11 +2969,26 @@ bool CDM::getRate() {
 			if (NotDepRwyList.size() == 0) {
 				NotDepRwyList.push_back(data[6]);
 			}
-			vector<string> ratesFromData = explode(data[7], '_');
-			int rateFromData = stoi(ratesFromData[0]);
-			int rateLvoFromData = stoi(ratesFromData[1]);
+			vector<string> DependentRwyList = explode(data[7], ',');
+			if (DependentRwyList.size() == 0) {
+				DependentRwyList.push_back(data[7]);
+			}
+			vector<string> ratesFromData = explode(data[8], ',');
+			vector<string> ratesFromDataRate;
+			vector<string> ratesFromDataRateLvo;
+			if (ratesFromData.size() == 0) {
+				ratesFromData.push_back(data[8]);
+			}
+			else {
+				for (string completeRate : ratesFromData) {
+					vector<string> tempCompleteRate = explode(completeRate, '_');
+					ratesFromDataRate.push_back(tempCompleteRate[0]);
+					ratesFromDataRateLvo.push_back(tempCompleteRate[1]);
 
-			Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, rateFromData, rateLvoFromData);
+				}
+			}
+
+			Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList, ratesFromDataRate, ratesFromDataRateLvo);
 
 			rate.push_back(myRate);
 
@@ -2973,7 +3007,7 @@ bool CDM::getRate() {
 	return true;
 }
 
-int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
+Rate CDM::rateForRunway(string airport, string depRwy) {
 	string lineAirport, lineDepRwy;
 
 	vector<string> myActiveRwysDep;
@@ -3021,23 +3055,16 @@ int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
 			}
 
 			if (found) {
-				bool foundArrRwyYes = true;
+				bool foundArrRwyYes = false;
 				for (string ar : r.arrRwyYes) {
 					if (ar == "*") {
 						foundArrRwyYes = true;
 					}
 					else {
-						bool foundIt = false;
 						for (string arrRwy : myActiveRwysArr) {
 							if (arrRwy == ar) {
-								foundIt = true;
+								foundArrRwyYes = true;
 							}
-						}
-						if (!foundIt) {
-							foundArrRwyYes = false;
-						}
-						else if (myActiveRwysArr.size() != r.arrRwyYes.size()) {
-							foundArrRwyYes = false;
 						}
 					}
 				}
@@ -3069,17 +3096,10 @@ int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
 						foundDepRwyYes = true;
 					}
 					else {
-						bool foundIt = false;
 						for (string myRwy : myActiveRwysDep) {
 							if (myRwy == dr) {
-								foundIt = true;
+								foundDepRwyYes = true;
 							}
-						}
-						if (!foundIt) {
-							foundDepRwyYes = false;
-						}
-						else if (myActiveRwysDep.size() != r.depRwyYes.size()) {
-							foundDepRwyYes = false;
 						}
 					}
 				}
@@ -3107,20 +3127,15 @@ int CDM::rateForRunway(string airport, string depRwy, bool lvoActive) {
 
 				//Check if ok to be valid rate
 				if (foundArrRwyYes && foundArrRwyNo && foundDepRwyYes && foundDepRwyNo) {
-					if (!lvoActive) {
-						return r.rate;
-					}
-					else {
-						return r.rateLvo;
-					}
+					return r;
 				}
 			}
 		}
 	}
-	return -1;
+	return Rate("-1");
 }
 
-bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, double rateHour, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
+bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
 	bool equalTTOT = true;
 	bool correctTTOT = true;
 	bool equalTempoTTOT = true;
@@ -3142,6 +3157,37 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 			}
 		}
 	}
+
+	//Calculate Rate
+	int rate;
+	if (dataRate.airport == "-1") {
+		if (!lvo) {
+			rate = stoi(rateString);
+		}
+		else {
+			rate = stoi(lvoRateString);
+		}
+	}
+	else {
+		int a = 0;
+		int dataRatePos = 0;
+		if (dataRate.rates.size() > 1) {
+			for (string dr : dataRate.depRwyYes) {
+				if (dr == depRwy) {
+					dataRatePos = a;
+				}
+				a++;
+			}
+		}
+		if (!lvo) {
+			rate = stoi(dataRate.rates[dataRatePos]);
+		}
+		else {
+			rate = stoi(dataRate.ratesLvo[dataRatePos]);
+		}
+	}
+
+	double rateHour = (double)60 / rate;
 
 	string checkedTSAT = "000000";
 	for (Plane p : slotList) {
@@ -3166,6 +3212,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 		}
 
 		bool CADRestrictionApplies = false;
+		bool sameOrDependantRwys = false;
 
 		while (equalTTOT) {
 			correctTTOT = true;
@@ -3200,6 +3247,20 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					listDepRwy = depRwy;
 				}
 
+				sameOrDependantRwys = false;
+
+				if (depRwy == listDepRwy) {
+					sameOrDependantRwys = true;
+				}
+
+				if (dataRate.airport != "-1" && !sameOrDependantRwys) {
+					for (string testRwy : dataRate.dependentRwy) {
+						if (testRwy == listDepRwy) {
+							sameOrDependantRwys = true;
+						}
+					}
+				}
+
 				if (hasCTOT) {
 					bool found = false;
 					while (!found) {
@@ -3208,7 +3269,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 
 							listTTOT = slotList[t].ttot;
 
-							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+							if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 								found = false;
 								if (alreadySetTOStd) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -3220,7 +3281,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 									alreadySetTOStd = true;
 								}
 							}
-							else if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+							else if (callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 								if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
 									found = false;
 									if (alreadySetTOStd) {
@@ -3253,7 +3314,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 							listAirport = origin;
 						}
 
-						if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+						if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 							found = false;
 							if (alreadySetTOStd) {
 								TTOTFinal = calculateTime(TTOTFinal, 0.5);
@@ -3265,7 +3326,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 								alreadySetTOStd = true;
 							}
 						}
-						else if (callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+						else if (callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 							if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
 								found = false;
 								if (alreadySetTOStd) {
@@ -3322,13 +3383,13 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 							string listAirport = fpList.GetFlightPlanData().GetOrigin();
 							while (!found) {
 								found = true;
-								if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+								if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 									found = false;
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctCAD = false;
 									CADRestrictionApplies = true;
 								}
-								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 									found = false;
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctCAD = false;
@@ -3375,12 +3436,12 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 						string listAirport = fpList.GetFlightPlanData().GetOrigin();
 						while (!found) {
 							found = true;
-							if (TTOTFinal == listTTOT && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+							if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 								found = false;
 								TTOTFinal = calculateTime(TTOTFinal, 1);
 								correctFlowTTOT = false;
 							}
-							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && depRwy == listDepRwy && listAirport == origin) {
+							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 								found = false;
 								TTOTFinal = calculateTime(TTOTFinal, 1);
 								correctFlowTTOT = false;

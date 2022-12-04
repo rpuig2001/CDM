@@ -11,9 +11,11 @@ public:
 	vector<string> arrRwyNo;
 	vector<string> depRwyYes;
 	vector<string> depRwyNo;
-	int rate;
-	int rateLvo;
+	vector<string> dependentRwy;
+	vector<string> rates;
+	vector<string> ratesLvo;
 
-	Rate(string myairport, vector<string> myarrRwyYes, vector<string> myarrRwyNo, vector<string> mydepRwyYes, vector<string> mydepRwyNo, int myrate, int myrateLvo) :
-		airport(myairport), arrRwyYes(myarrRwyYes), arrRwyNo(myarrRwyNo), depRwyYes(mydepRwyYes), depRwyNo(mydepRwyNo), rate(myrate), rateLvo(myrateLvo) { }
+	Rate(string myairport, vector<string> myarrRwyYes, vector<string> myarrRwyNo, vector<string> mydepRwyYes, vector<string> mydepRwyNo, vector<string> mydependentRwy, vector<string> myrates, vector<string> myratesLvo) :
+		airport(myairport), arrRwyYes(myarrRwyYes), arrRwyNo(myarrRwyNo), depRwyYes(mydepRwyYes), depRwyNo(mydepRwyNo), dependentRwy(mydependentRwy), rates(myrates), ratesLvo(myratesLvo) { }
+	Rate(string myairport) : airport(myairport) {}
 };

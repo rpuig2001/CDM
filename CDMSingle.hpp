@@ -14,6 +14,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "json/json.h"
 #include "CAD.h"
+#include "Rate.h"
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
@@ -51,9 +52,9 @@ public:
 
 	bool getRate();
 
-	int rateForRunway(string airport, string depRwy, bool lvoActive);
+	Rate rateForRunway(string airport, string depRwy);
 
-	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, double rateHour, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
+	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
 
 	void PushToOtherControllers(CFlightPlan fp);
 
