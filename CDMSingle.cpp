@@ -135,7 +135,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-CTOT"
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
-	RegisterTagItemFunction("Open CTOT Option list", TAG_FUNC_CTOTOPTIONS);
+	RegisterTagItemFunction("CTOT Options", TAG_FUNC_CTOTOPTIONS);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
