@@ -94,15 +94,17 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	loadingMessage += " loaded.";
 	sendMessage(loadingMessage);
 
+	// Register Tag Item "CDM-OPTIONS"
+	RegisterTagItemType("Options", TAG_ITEM_OPTIONS);
+	RegisterTagItemFunction("Options", TAG_FUNC_OPT);
+
 	// Register Tag Item "CDM-EOBT"
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
-	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
+	RegisterTagItemFunction("EOBT Options", TAG_FUNC_OPT_EOBT);
 
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
-	RegisterTagItemFunction("Ready TOBT", TAG_FUNC_READYTOBT);
-	RegisterTagItemFunction("Edit TOBT", TAG_FUNC_EDITTOBT);
-	RegisterTagItemFunction("EOBT to TOBT", TAG_FUNC_EOBTTOTOBT);
+	RegisterTagItemFunction("TOBT Options", TAG_FUNC_OPT_TOBT);
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
@@ -112,8 +114,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
-	RegisterTagItemFunction("Add TSAT to TSAC", TAG_FUNC_ADDTSAC);
-	RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
+	RegisterTagItemFunction("TSAC Options", TAG_FUNC_OPT_TSAC);
 
 	// Register Tag Item "CDM-ASAT"
 	RegisterTagItemType("ASAT", TAG_ITEM_ASAT);
@@ -633,6 +634,99 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		countTime = stoi(GetTimeNow()) - (refreshTime+5);
 	}
 
+	else if (FunctionId == TAG_FUNC_OPT) {
+		OpenPopupList(Area, "CDM - Options", 1);
+		//EOBT OPTIONS
+		AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+		AddPopupListElement("----------------", "", -1, false, 2, false);
+
+		//TOBT OPTIONS
+		AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+		AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+		AddPopupListElement("----------------", "", -1, false, 2, false);
+
+		//TSAC OPTIONS
+		string tsacvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
+		if (tsacvalue.empty()) {
+			AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+		}
+		else {
+			AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+		}
+		AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
+		AddPopupListElement("----------------", "", -1, false, 2, false);
+
+		//ASRT OPTIONS
+		string asrtvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
+		if (asrtvalue.empty()) {
+			AddPopupListElement("Set RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
+		}
+		else {
+			AddPopupListElement("Remove RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
+		}
+
+		//CTOT OPTIONS
+		bool hasCTOT = false;
+		bool hasRestriction = 0;
+		for (int i = 0; i < slotList.size(); i++)
+		{
+			if (slotList[i].callsign == fp.GetCallsign()) {
+				if (slotList[i].hasCtot) {
+					hasCTOT = true;
+					if (slotList[i].hasRestriction != 0) {
+						hasRestriction = 1;
+					}
+				}
+			}
+		}
+		bool inreaList = false;
+		for (string s : reaCTOTSent) {
+			if (s == fp.GetCallsign()) {
+				inreaList = true;
+			}
+		}
+
+		if (hasCTOT) {
+			AddPopupListElement("----------------", "", -1, false, 2, false);
+			if (hasRestriction != 0) {
+				if (!inreaList) {
+					AddPopupListElement("Send REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Remove from REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
+				}
+			}
+			else {
+				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
+			}
+		}
+
+
+	}
+
+	else if (FunctionId == TAG_FUNC_OPT_TOBT) {
+		OpenPopupList(Area, "TOBT Options", 1);
+		AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+		AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+	}
+
+	else if (FunctionId == TAG_FUNC_OPT_EOBT) {
+		OpenPopupList(Area, "EOBT Options", 1);
+		AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+	}
+
+	else if (FunctionId == TAG_FUNC_OPT_TSAC) {
+		OpenPopupList(Area, "TSAC Options", 1);
+		string tsacvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
+		if (tsacvalue.empty()) {
+			AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+		}
+		else {
+			AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+		}
+		AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
+	}
+
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
@@ -767,6 +861,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	bool isVfr = false;
 	if (strcmp(FlightPlan.GetFlightPlanData().GetPlanType(), "V") > -1) {
 		isVfr = true;
+	}
+
+	if (ItemCode == TAG_ITEM_OPTIONS) {
+		ItemRGB = TAG_GREY;
+		strcpy_s(sItemString, 16, "->");
 	}
 
 

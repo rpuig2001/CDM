@@ -12,6 +12,7 @@ const int TAG_ITEM_E = 9;
 const int TAG_ITEM_CTOT = 10;
 const int TAG_ITEM_FLOW_MESSAGE = 11;
 const int TAG_ITEM_READYSTARTUP = 12;
+const int TAG_ITEM_OPTIONS = 13;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
@@ -30,6 +31,10 @@ const int TAG_FUNC_EDITTOBT = 115;
 const int TAG_FUNC_NEWTOBT = 116;
 const int TAG_FUNC_EOBTTOTOBT = 117;
 const int TAG_FUNC_TOGGLEREAMSG = 118;
+const int TAG_FUNC_OPT_EOBT = 120;
+const int TAG_FUNC_OPT_TOBT = 121;
+const int TAG_FUNC_OPT_TSAC = 122;
+const int TAG_FUNC_OPT = 123;
 
 inline static bool startsWith(const char* pre, const char* str)
 {
