@@ -664,6 +664,28 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		else {
 			AddPopupListElement("Remove RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
 		}
+		AddPopupListElement("----------------", "", -1, false, 2, false);
+
+		//CDT OPTIONS
+		bool planeFound = false;
+		Plane plane;
+		for (int i = 0; i < slotList.size(); i++)
+		{
+			if (slotList[i].callsign == fp.GetCallsign()) {
+				planeFound = true;
+				plane = slotList[i];
+			}
+		}
+
+		if (planeFound) {
+			if (!plane.hasCdt) {
+				AddPopupListElement("Set CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+			}
+			else {
+				AddPopupListElement("Remove CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+			}
+		}
+		AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
 
 		//CTOT OPTIONS
 		bool hasCTOT = false;
@@ -763,6 +785,73 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 		//Update times to slaves
 		countTime = stoi(GetTimeNow()) - refreshTime;
+	}
+
+	else if (FunctionId == TAG_FUNC_EDITCDT) {
+		if (master && AtcMe) {
+			string myttot;
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (!slotList[i].hasCtot) {
+						myttot = slotList[i].ttot.substr(0, 4);
+					}
+					else {
+						sendMessage("Unable to assign CDT due to CTOT");
+					}
+				}
+			}
+			if (!myttot.empty()) {
+				OpenPopupEdit(Area, TAG_FUNC_SETCUSTOMCDT, myttot.c_str());
+			}
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_SETCUSTOMCDT) {
+		if (master && AtcMe) {
+			string editedCDT = ItemString;
+			bool hasNoNumber = true;
+			if (editedCDT.length() == 4) {
+				for (int i = 0; i < editedCDT.length(); i++) {
+					if (isdigit(editedCDT[i]) == false) {
+						hasNoNumber = false;
+					}
+				}
+				if (hasNoNumber) {
+					string callsign = fp.GetCallsign();
+					string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
+					if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+						double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+						double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+						string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+						string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
+						fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0,4).c_str());
+						for (int i = 0; i < slotList.size(); i++)
+						{
+							if (slotList[i].callsign == fp.GetCallsign()) {
+								slotList[i].hasCdt = true;
+							}
+						}
+					}
+				}
+			}
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_TOGGLECDT) {
+		if (master && AtcMe) {
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (slotList[i].hasCdt) {
+						slotList[i].hasCdt = false;
+					}
+					else {
+						slotList[i].hasCdt = true;
+					}
+				}
+			}
+		}
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITTOBT) {
@@ -956,10 +1045,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			bool hasCtot = false;
+			bool hasCtot = false, hasCdt = false;
 			if (aircraftFind) {
 				if (slotList[pos].hasCtot) {
 					hasCtot = true;
+				}
+				if (slotList[pos].hasCdt) {
+					hasCdt = true;
 				}
 			}
 
@@ -1516,58 +1608,102 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							while (equalTTOT) {
 								correctTTOT = true;
-								for (int t = 0; t < slotList.size(); t++)
-								{
-									string listTTOT;
-									string listCallsign = slotList[t].callsign;
-									string listDepRwy = "";
-									bool depRwyFound = false;
-									for (int i = 0; i < taxiTimesList.size(); i++)
+								if(!hasCdt){
+									for (int t = 0; t < slotList.size(); t++)
 									{
-										if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
-											if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
-												listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
-												depRwyFound = true;
-											}
-											else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
-												listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
-												depRwyFound = true;
-											}
-										}
-									}
-									string listAirport;
-									for (int i = 0; i < planeAiportList.size(); i++)
-									{
-										if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
-											listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
-										}
-									}
-
-									if (!depRwyFound) {
-										listDepRwy = depRwy;
-									}
-
-									sameOrDependantRwys = false;
-
-									if (depRwy == listDepRwy) {
-										sameOrDependantRwys = true;
-									}
-
-									if (dataRate.airport != "-1" && !sameOrDependantRwys) {
-										for (string testRwy : dataRate.dependentRwy) {
-											if (testRwy == listDepRwy) {
-												sameOrDependantRwys = true;
+										string listTTOT;
+										string listCallsign = slotList[t].callsign;
+										string listDepRwy = "";
+										bool depRwyFound = false;
+										for (int i = 0; i < taxiTimesList.size(); i++)
+										{
+											if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
+												if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
+													listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
+													depRwyFound = true;
+												}
+												else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
+													listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
+													depRwyFound = true;
+												}
 											}
 										}
-									}
+										string listAirport;
+										for (int i = 0; i < planeAiportList.size(); i++)
+										{
+											if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
+												listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
+											}
+										}
 
-									if (hasCtot) {
-										bool found = false;
-										while (!found) {
-											found = true;
-											if (hasCtot) {
+										if (!depRwyFound) {
+											listDepRwy = depRwy;
+										}
 
-												listTTOT = slotList[t].ttot;
+										sameOrDependantRwys = false;
+
+										if (depRwy == listDepRwy) {
+											sameOrDependantRwys = true;
+										}
+
+										if (dataRate.airport != "-1" && !sameOrDependantRwys) {
+											for (string testRwy : dataRate.dependentRwy) {
+												if (testRwy == listDepRwy) {
+													sameOrDependantRwys = true;
+												}
+											}
+										}
+
+										if (hasCtot) {
+											bool found = false;
+											while (!found) {
+												found = true;
+												if (hasCtot) {
+
+													listTTOT = slotList[t].ttot;
+
+													if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
+														found = false;
+														if (alreadySetTOStd) {
+															TTOTFinal = calculateTime(TTOTFinal, 0.5);
+															correctTTOT = false;
+														}
+														else {
+															TTOTFinal = calculateTime(listTTOT, 0.5);
+															correctTTOT = false;
+															alreadySetTOStd = true;
+														}
+													}
+													else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
+														found = false;
+														if (alreadySetTOStd) {
+															TTOTFinal = calculateTime(TTOTFinal, 0.5);
+															correctTTOT = false;
+														}
+														else {
+															TTOTFinal = calculateTime(listTTOT, 0.5);
+															correctTTOT = false;
+															alreadySetTOStd = true;
+														}
+													}
+												}
+											}
+										}
+										else {
+											bool found = false;
+											while (!found) {
+												found = true;
+												if (hasCtot) {
+													listTTOT = slotList[t].ttot;
+												}
+												else {
+													listTTOT = slotList[t].ttot;
+												}
+
+												if (slotList[t].tsat == "999999") {
+													listDepRwy = depRwy;
+													listAirport = origin;
+												}
 
 												if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
 													found = false;
@@ -1592,48 +1728,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														correctTTOT = false;
 														alreadySetTOStd = true;
 													}
-												}
-											}
-										}
-									}
-									else {
-										bool found = false;
-										while (!found) {
-											found = true;
-											if (hasCtot) {
-												listTTOT = slotList[t].ttot;
-											}
-											else {
-												listTTOT = slotList[t].ttot;
-											}
-
-											if (slotList[t].tsat == "999999") {
-												listDepRwy = depRwy;
-												listAirport = origin;
-											}
-
-											if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-												found = false;
-												if (alreadySetTOStd) {
-													TTOTFinal = calculateTime(TTOTFinal, 0.5);
-													correctTTOT = false;
-												}
-												else {
-													TTOTFinal = calculateTime(listTTOT, 0.5);
-													correctTTOT = false;
-													alreadySetTOStd = true;
-												}
-											}
-											else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-												found = false;
-												if (alreadySetTOStd) {
-													TTOTFinal = calculateTime(TTOTFinal, 0.5);
-													correctTTOT = false;
-												}
-												else {
-													TTOTFinal = calculateTime(listTTOT, 0.5);
-													correctTTOT = false;
-													alreadySetTOStd = true;
 												}
 											}
 										}
@@ -1787,7 +1881,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										if (hasCtot) {
 											if (aircraftFind) {
 												if (TTOTFinal != slotList[pos].ttot) {
-													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
+													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasCdt);
 													slotList[pos] = p;
 
 													if (remarks.find("CTOT") != string::npos) {
@@ -1806,7 +1900,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											}
 											else {
 												if (myCtot.empty()) {
-													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
+													Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasCdt);
 													for (int i = 0; i < slotList.size(); i++) {
 														if (slotList[i].callsign == callsign) {
 															slotList.erase(slotList.begin() + i);
@@ -1816,7 +1910,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 													pos = slotList.size() - 1;
 												}
 												else {
-													Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, hasFlowMeasures, myFlow);
+													Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, hasFlowMeasures, myFlow, hasCdt);
 													slotList.push_back(p);
 													pos = slotList.size() - 1;
 												}
@@ -1838,7 +1932,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											if (aircraftFind) {
 												if (TTOTFinal != slotList[pos].ttot) {
-													Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow);
+													Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow, hasCdt);
 													slotList[pos] = p;
 
 													if (remarks.find("%") != string::npos) {
@@ -1851,7 +1945,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											else {
-												Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow);
+												Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow, hasCdt);
 												slotList.push_back(p);
 
 												if (remarks.find("%") != string::npos) {
@@ -2279,17 +2373,32 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ShowTTOT = (string)TTOT;
 							if (notYetEOBT) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_TTOT;
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_YELLOW;
+								}
+								else {
+									ItemRGB = TAG_TTOT;
+								}
 								strcpy_s(sItemString, 16, " ");
 							}
 							else if (moreLessFive || lastMinute) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_TTOT;
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_YELLOW;
+								}
+								else {
+									ItemRGB = TAG_TTOT;
+								}
 								strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 							}
 							else {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_TTOT;
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_YELLOW;
+								}
+								else {
+									ItemRGB = TAG_TTOT;
+								}
 								strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 							}
 						}
@@ -2477,6 +2586,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										myRemarks = myFlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(3);
 										bool myhasCTOT = false;
 										bool myhasCTOTFlowRestriction = false;
+										bool refreshingHasCdt = false;
 										int myCtotPos = 0;
 										for (int s = 0; s < slotList.size(); s++)
 										{
@@ -2487,6 +2597,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 													if (slotList[s].hasRestriction == 1) {
 														myhasCTOTFlowRestriction = true;
 													}
+												}
+												if (slotList[s].hasCdt) {
+													refreshingHasCdt = true;
 												}
 											}
 										}
@@ -2532,7 +2645,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 
-										refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
+										if (!refreshingHasCdt) {
+											refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
+										}
 									}
 								}
 							}
@@ -2555,11 +2670,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (TSATString != slotList[pos].tsat && TSATFind) {
 							if (hasCtot) {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
+								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasCdt);
 								slotList[pos] = p;
 							}
 							else {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow);
+								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasCdt);
 								string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
 								slotList[pos] = p;
 							}
@@ -2567,7 +2682,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else {
 						if (TSATFind) {
-							Plane p(callsign, EOBT, TSATString, TTOTString, false, "", hasFlowMeasures, myFlow);
+							Plane p(callsign, EOBT, TSATString, TTOTString, false, "", hasFlowMeasures, myFlow, hasCdt);
 							slotList.push_back(p);
 						}
 					}
@@ -2849,15 +2964,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (TTOTString.length() > 0) {
 								if (notYetEOBT) {
-									ItemRGB = TAG_TTOT;
+									if (slotList[pos].hasCdt) {
+										ItemRGB = TAG_YELLOW;
+									}
+									else {
+										ItemRGB = TAG_TTOT;
+									}
 									strcpy_s(sItemString, 16, " ");
 								}
 								else if (moreLessFive || lastMinute) {
-									ItemRGB = TAG_TTOT;
+									if (slotList[pos].hasCdt) {
+										ItemRGB = TAG_YELLOW;
+									}
+									else {
+										ItemRGB = TAG_TTOT;
+									}
 									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
 								}
 								else {
-									ItemRGB = TAG_TTOT;
+									if (slotList[pos].hasCdt) {
+										ItemRGB = TAG_YELLOW;
+									}
+									else {
+										ItemRGB = TAG_TTOT;
+									}
 									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
 								}
 							}
@@ -3235,6 +3365,7 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
 }
 
 bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
+	bool hasCdt = false;
 	bool equalTTOT = true;
 	bool correctTTOT = true;
 	bool equalTempoTTOT = true;
@@ -3595,7 +3726,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					if (hasCTOT) {
 						if (aircraftFind) {
 							if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
-								Plane p(callsign, EOBT, TSAT, TTOT, true, myCTOT, hasRestriction, myFlow);
+								Plane p(callsign, EOBT, TSAT, TTOT, true, myCTOT, hasRestriction, myFlow, hasCdt);
 								slotList[pos] = p;
 
 								if (remarks.find("CTOT") != string::npos) {
@@ -3613,7 +3744,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 							}
 						}
 						else {
-							Plane p(callsign, EOBT, TSAT, TTOT, true, myCTOT, hasRestriction, myFlow);
+							Plane p(callsign, EOBT, TSAT, TTOT, true, myCTOT, hasRestriction, myFlow, hasCdt);
 							slotList.push_back(p);
 
 							if (remarks.find("CTOT") != string::npos) {
@@ -3633,7 +3764,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					else {
 						if (aircraftFind) {
 							if (TTOTFinal != slotList[pos].ttot) {
-								Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
+								Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow, hasCdt);
 								slotList[pos] = p;
 
 								if (remarks.find("%") != string::npos) {
@@ -3647,7 +3778,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 							}
 						}
 						else {
-							Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow);
+							Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow, hasCdt);
 							slotList.push_back(p);
 
 							if (remarks.find("%") != string::npos) {
@@ -4616,7 +4747,7 @@ bool CDM::addCtotToMainList(string lineValue) {
 				}
 			}
 			if (!oldCTOT) {
-				Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), false, myFlow);
+				Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), false, myFlow, false);
 				slotList[i] = p;
 				found = true;
 			}
@@ -4638,7 +4769,7 @@ bool CDM::addCtotToMainList(string lineValue) {
 			}
 		}
 		if (!oldCTOT) {
-			Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), false, myFlow);
+			Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), false, myFlow, false);
 			slotList.push_back(p);
 		}
 	}
