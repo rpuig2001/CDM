@@ -15,6 +15,8 @@
 #include "json/json.h"
 #include "CAD.h"
 #include "Rate.h"
+#include "Plane.h"
+#include "Flow.h"
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
@@ -109,6 +111,8 @@ public:
 	void getFlowData();
 
 	void toggleReaMsg(CFlightPlan fp);
+
+	vector<Plane> recalculateSlotList(vector<Plane> mySlotList);
 
 	int GetVersion();
 

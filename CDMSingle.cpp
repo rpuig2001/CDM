@@ -2,8 +2,6 @@
 #include "CDMSingle.hpp"
 #include "pugixml.hpp"
 #include "pugixml.cpp"
-#include "Plane.h"
-#include "Flow.h"
 #include <thread>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -2507,6 +2505,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//Refresh times every x sec
 						if (myNow - countTime > refreshTime) {
+
+							//Order list according TTOT
+							slotList = recalculateSlotList(slotList);
+
 							for (int t = 0; t < slotList.size(); t++) {
 								PushToOtherControllers(FlightPlanSelect(slotList[t].callsign.c_str()));
 							}
@@ -4101,6 +4103,28 @@ void CDM::toggleReaMsg(CFlightPlan fp)
 
 	//Update times to slaves
 	countTime = stoi(GetTimeNow()) - (refreshTime);
+}
+
+vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
+	int slotListLength = mySlotList.size();
+	bool ordered = false;
+	string value1 = "", value2 = "";
+	while (!ordered){
+		ordered = true;
+		for (int i = 0; i < slotListLength; i++) {
+			if (i < slotListLength - 1) {
+				value1 = mySlotList[i].ttot;
+				value2 = mySlotList[i + 1].ttot;
+				if (stoi(value1) > stoi(value2)) {
+					ordered = false;
+					mySlotList[i].ttot = value2;
+					mySlotList[i + 1].ttot = value1;
+				}
+			}
+		}
+	}
+
+	return mySlotList;
 }
 
 string CDM::calculateLessTime(string timeString, double minsToAdd) {
