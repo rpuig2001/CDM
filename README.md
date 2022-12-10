@@ -148,7 +148,7 @@ BEE154A,183600,190000,191000,1924,London Event,
 ```
 ## [FUTURE] CAD - Capacity Availability Document
 On this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) there are the capacities for the arrival airports.
-The CDM will separate aircrafts with the same destination by the rate specified in the CAD creating a CTOT with the FM "ARR CAP" (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
+The CDM will separate aircrafts with the same destination by the rate specified in the CAD creating a CTOT with the Flow Message (FM) of "ARR CAP" (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
 The data from the CAD will be refreshed every 5 minutes (Same as the Flow Measures).
 
 For more information, check the CAD GitHub Repository.
@@ -157,7 +157,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 ## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
 - ``.cdm refresh`` - Force the refresh phase to do it now.
-- [DISABLED] ``.cdm ctot`` - Loads ctot.txt data.
+- ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt.
 - ``.cdm load`` - Loads savedData.txt.
 - ``.cdm master {airport}`` - Become the master of the selected airport.
@@ -168,54 +168,86 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
 - ``.cdm rates`` - Updates rates values from rate.txt.
-- ``.cdm help`` - Sends a message with all commands.
+- ``.cdm help`` - Sends a message with the available commands.
 
 ## Functions and colors:
-- Column A: It toggles an A to remember the controller that the plane is waiting for something.
-  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: Always this color.
 
 - Column EOBT: It gets the EOBT set by the pilot in the flightplan.
-  - If **RealMode** is enabled, when the pilot send a new EOBT, then it will show with ``color4`` (Default ORANGE) when **EOBT is different than TOBT**.
-  - Color defined as ``color8``.
+  - NOTES:
+    - If **RealMode** is enabled, when the pilot send a new EOBT, then it will show with ``color4`` (Default ORANGE) when **EOBT is different than TOBT**.
+  - Functions
+    - ``Edit EOBT`` -> Sets EOBT to the specified time (4 digits).
+  - Colors:
+    - ``color8`` -> Default.
 
 - Column TOBT: If realMode is disabled, TOBT will calculate TSAT and TTOT from the TOBT time. To delete it simple edit the time and press enter deleting the content.
-  - If there is no ASRT or "Ready Start-up GREEN", at TOBT+5, TSAT and other times will be invalidated.
-  - To add a TOBT while realMode is DISABLED, use the Ready TOBT Function to set the actual time as a TOBT or the Edit TOBT to set a 4 digits time.
-  - If realMode is enable it will ONLY set the EOBT as TOBT when the first flightplan is recived, if the EOBT is changed the TOBT will not change automatically and you can use other functions such as the EOBT to TOBT Function to move it through. (EOBT will have a different color to say you that there's a new time sent by the pilot).
-  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to EOBT-5.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: After EOBT-5.
+  - NOTES:
+    - If there is no ASRT or "Ready Start-up GREEN", at TOBT+5, TSAT and other times will be invalidated.
+    - To add a TOBT while realMode is DISABLED, use the Ready TOBT Function to set the actual time as a TOBT or the Edit TOBT to set a 4 digits time.
+    - If realMode is enable it will ONLY set the EOBT as TOBT when the first flightplan is recived, if the EOBT is changed the TOBT will not change automatically and you can use other functions such as the EOBT to TOBT Function to move it through. (EOBT will have a different color to say you that there's a new time sent by the pilot).
+  - Functions:
+    - ``Ready TOBT`` -> Sets TOBT to the actual time.
+    - ``Edit TOBT`` -> Sets TOBT to the specified time (4 digits).
+  - Colors:
+    - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> 
+    - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> After EOBT-5.
 
 - Column E: It shows a letter depending on the plane timmings:
-  - P: EOBT is farther than the Actual Time - 35min.
-  - C: EOBT is less than 35min and TOBT hasn't expired (TOBT+6) or TSAT hasn't expired (TSAT+6).
-  - I: TSAT has expired.
+  - Functions:
+    - NO FUNCTIONS.
+  - Colors:
+    - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> Default.
+  - TEXT SHOWING:
+    - P: EOBT is farther than the Actual Time - 35min.
+    - C: EOBT is less than 35min and TOBT hasn't expired (TOBT+6) or TSAT hasn't expired (TSAT+6).
+    - I: TSAT has expired.
 
 - Column TSAT: It is the TTOT - the taxi time defined in the taxizones.txt, otherwise it sets 15min.
-  - ![#8fd894](https://via.placeholder.com/15/8fd894/000000?text=+) `LIGHT GREEN` or defined ``color2``: From EOBT-35 to TSAT-5 and after TSAT+6 if not expired.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: From TSAT-5 to TSAT+5.
-  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: From TSAT+5 to TSAT+6.
+  - Functions:
+    - NO FUNCTIONS.
+  - Colors:
+    - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> From EOBT-35 to TSAT-5 and after TSAT+6 if not expired.
+    - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN`  -> From TSAT-5 to TSAT+5.
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> From TSAT+5 to TSAT+6.
 
 - Column TTOT: The plugin calculates a TSAT based on this column, the TTOT, you can't have planes with same TTOT, the time between departures is calculated from the rate/hour. So if you need 40 departures/hour, the plugin will calculate it for you with no equal TTOTs.
-  - Color defined as ``color9``.
+  - Functions:
+    - NO FUNCTIONS.
+  - Colors:
+    - ``color9`` -> Default.
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> CDT applies.
 
 - Column TSAC: With the left click you can directly set the tsat and with the right click you can remove it or set the time you want. If this field is +/- 5min that the TSAT, the color change to orange to indicate that his TSAT has changed more than 5min.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN` or defined ``color1``: If between +/- 5min of TSAT.
-  - ![#ed852e](https://via.placeholder.com/15/ed852e/000000?text=+) `ORANGE` or defined ``color4``: If +/- 5min of TSAT.
+  - Functions:
+    - NO FUNCTIONS.
+  - Colors:
+    - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> If between +/- 5min of TSAT.
+    - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> If +/- 5min of TSAT.
 
 - Column ASAT: It sets the time when ST-UP, TAXI or DEPA state is set on the first time.
-  - ![#00c000](https://via.placeholder.com/15/00c000/000000?text=+) `DARK GREEN`  or defined ``color1``: If actual time < ASAT - 5min.
-  - ![#f5ef0d](https://via.placeholder.com/15/f5ef0d/000000?text=+) `YELLOW` or defined ``color5``: From ASAT+5 to always.
+  - Functions:
+    - NO FUNCTIONS.
+  - Colors:
+    - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> If actual time < ASAT - 5min.
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> From ASAT+5 to always.
 
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
-  - Color defined as ``color10``.
+  - Functions:
+    - ``Toggle ASRT`` -> Sets RSTUP/ASRT or removes it if already set.
+  - Colors:
+    - ``color10`` -> Default.
   
-- Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real "ready start-up" state from IRL because Euroscope doesn't have this state)
-  - ``Toggle Ready Start-up function`` sets RSTUP with ASRT or removes it if already set.
-  - Color defined as ``GREEN`` when RSTUP is set.
-  - Color defined as ``RED`` when RSUP is NOT set.
+- Column Ready Start-up: It shows if the plane is Ready for Start-up or not together with the ASRT. (ASRT and Ready Start-up do the same, but this column is a way to represent the real "ready start-up" state from IRL because Euroscope doesn't have this state).
+  - Functions:
+    - ``Toggle Ready Start-up function`` -> Sets RSTUP/ASRT or removes it if already set.
+  - Colors:
+    - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> RSTUP is set.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``RED`` -> RSUP is NOT set.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
-  - ``Send REA Msg`` It will be contarntly looking for a better CTOT every refreshtime when this is checked.
-  - ``Remove from REA Msg`` It will keep ctot and will not look for a better CTOT anymore.
-  - Color defined as ``color11``.
-  -  Color defined as ``YELLOW`` when REA Msg is sent.
+  - Functions:
+    - ``Send REA Msg`` -> It will be contarntly looking for a better CTOT every refreshtime when this is checked.
+    - ``Remove from REA Msg`` -> It will keep ctot and will not look for a better CTOT anymore.
+  - Colors:
+    - ``color11`` -> Default.
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REA Msg is sent.
