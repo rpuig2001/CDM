@@ -19,6 +19,8 @@ CDM includes the following times:
 - EOBT
 
 ![image](https://i.gyazo.com/928f2e35f0a4248e17442bba552d72e0.png)
+[FUTURE]
+![image](https://user-images.githubusercontent.com/68125167/210136450-3b4b7fea-8f80-441a-ba3f-b95e3d8ca5d1.png)
 
 - E
 
@@ -27,6 +29,8 @@ CDM includes the following times:
 - TOBT
 
 ![image](https://i.gyazo.com/ad6344055e7de91ab8a386f7153d19e1.png)
+[FUTURE]
+![image](https://user-images.githubusercontent.com/68125167/210136458-86422bb9-d3cc-4ac1-a8a1-0c25d5ac9f7b.png)
 
 - TSAT
 
@@ -39,6 +43,8 @@ CDM includes the following times:
 - TSAC
 
 ![image](https://i.gyazo.com/8f9d55ec477a8c21ddb63df3b4da15a1.png)
+[FUTURE]
+![image](https://user-images.githubusercontent.com/68125167/210136465-21a3d004-38a0-4261-8055-c22ca424d7b1.png)
 
 - ASAT
 
@@ -47,14 +53,23 @@ CDM includes the following times:
 - ASRT
 
 ![image](https://i.gyazo.com/54c3956f46f63ee3b44e84308bb6fe5d.png)
+[FUTURE]
+![image](https://user-images.githubusercontent.com/68125167/210136468-33b8384a-aa92-47dc-9512-ae7dbe8eaed0.png)
+
+- CTOT
+
+![image](https://i.gyazo.com/775e1bf69fac29e2e3a776d35e67952a.png)
+[FUTURE]
+![image](https://user-images.githubusercontent.com/68125167/210136480-babb9ec2-6989-4302-91ac-a82de59ecadf.png)
 
 - Ready Start-up
 
 ![image](https://i.gyazo.com/842144f7bddf11f3c9165c42ef0f940e.png)
 
-- CTOT
+- [FUTURE] Extra (All CDM Option in one Menu)
 
-![image](https://i.gyazo.com/775e1bf69fac29e2e3a776d35e67952a.png)
+![image](https://user-images.githubusercontent.com/68125167/210136505-9b46b673-537d-4e2c-86aa-be36add431dd.png)
+
 
 
 ## MASTER AND SLAVE:
