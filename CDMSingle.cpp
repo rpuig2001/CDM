@@ -3766,7 +3766,6 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 									string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 									remarks = stringToAdd;
 								}
-								sendMessage(TTOTFinal);
 								string stringToAdd = remarks + " CTOT" + myCTOT + " %" + TSAT + "|" + TTOT;
 								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 								remarks = stringToAdd;
@@ -4151,7 +4150,20 @@ vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
 		}
 	}
 
-	return mySlotList;
+	return cleanUpSlotListVector(mySlotList);
+}
+
+vector<Plane> CDM::cleanUpSlotListVector(vector<Plane> mySlotList) {
+	vector<Plane> finalSlotList;
+	string lastCallsign = "";
+	for (Plane p : mySlotList) {
+		if (lastCallsign != p.callsign) {
+			finalSlotList.push_back(p);
+			lastCallsign = p.callsign;
+		}
+	}
+
+	return finalSlotList;
 }
 
 string CDM::calculateLessTime(string timeString, double minsToAdd) {

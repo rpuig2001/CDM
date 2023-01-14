@@ -114,6 +114,8 @@ public:
 
 	vector<Plane> recalculateSlotList(vector<Plane> mySlotList);
 
+	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
+
 	int GetVersion();
 
 	bool isNumber(string s);
