@@ -4144,8 +4144,8 @@ vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
 				value2 = mySlotList[i + 1].ttot;
 				if (stoi(value1) > stoi(value2)) {
 					ordered = false;
-					mySlotList[i].ttot = value2;
-					mySlotList[i + 1].ttot = value1;
+					mySlotList[i] = mySlotList[i + 1];
+					mySlotList[i + 1] = mySlotList[i];
 				}
 			}
 		}
