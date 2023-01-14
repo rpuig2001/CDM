@@ -1600,6 +1600,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									myCad = cad;
 								}
 							}
+							//Check Wildcard for CAD (ex. LE**)
+							if (!CADapplies) {
+								for (CAD cad : CADvalues) {
+									if (cad.airport.size() == 4) {
+										if (cad.airport.substr(2, 2) == "**") {
+											if (cad.airport.substr(0, 2) == destination.substr(0, 2)) {
+												CADapplies = true;
+												myCad = cad;
+											}
+										}
+									}
+								}
+							}
 
 							bool CADRestrictionApplies = false;
 							bool sameOrDependantRwys = false;
@@ -3440,6 +3453,20 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 			if (cad.airport == FlightPlan.GetFlightPlanData().GetDestination()) {
 				CADapplies = true;
 				myCad = cad;
+			}
+		}
+		//Check Wildcard for CAD (ex. LE**)
+		if (!CADapplies) {
+			for (CAD cad : CADvalues) {
+				if (cad.airport.size() == 4) {
+					string destination = FlightPlan.GetFlightPlanData().GetDestination();
+					if (cad.airport.substr(2, 2) == "**") {
+						if (cad.airport.substr(0, 2) == destination.substr(0, 2)) {
+							CADapplies = true;
+							myCad = cad;
+						}
+					}
+				}
 			}
 		}
 
