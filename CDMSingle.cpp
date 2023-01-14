@@ -1607,7 +1607,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										if (cad.airport.substr(2, 2) == "**") {
 											if (cad.airport.substr(0, 2) == destination.substr(0, 2)) {
 												CADapplies = true;
-												myCad = cad;
+												myCad = CAD(destination, cad.rate);
 											}
 										}
 									}
@@ -3459,11 +3459,11 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 		if (!CADapplies) {
 			for (CAD cad : CADvalues) {
 				if (cad.airport.size() == 4) {
-					string destination = FlightPlan.GetFlightPlanData().GetDestination();
+					string fpMydestination = FlightPlan.GetFlightPlanData().GetDestination();
 					if (cad.airport.substr(2, 2) == "**") {
-						if (cad.airport.substr(0, 2) == destination.substr(0, 2)) {
+						if (cad.airport.substr(0, 2) == fpMydestination.substr(0, 2)) {
 							CADapplies = true;
-							myCad = cad;
+							myCad = CAD(fpMydestination, cad.rate);
 						}
 					}
 				}
