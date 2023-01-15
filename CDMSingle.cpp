@@ -5157,9 +5157,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Reloading rates....");
 		rate.clear();
 		getRate();
-		for (string c : CDMairports) {
-			sendMessage(c);
-		}
 		return true;
 	}
 
