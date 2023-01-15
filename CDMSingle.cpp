@@ -18,10 +18,10 @@ string lfad;
 string sfad;
 string cfad;
 string vfad;
+string rfad;
 string dfad;
 string xfad;
 string rateString;
-string rateRGDdataId;
 string lvoRateString;
 string ctotOption;
 int expiredCTOTTime;
@@ -41,7 +41,6 @@ string ctotUrl;
 string flowRestrictionsUrl;
 int defTaxiTime;
 string cadUrl;
-string rgdUrl;
 
 //Ftp data
 string ftpHost;
@@ -161,6 +160,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	vfad.resize(vfad.size() - strlen("CDM.dll"));
 	vfad += "colors.txt";
 
+	rfad = DllPathFile;
+	rfad.resize(rfad.size() - strlen("CDM.dll"));
+	rfad += "rate.txt";
+
 	debugMode = false;
 	initialSidLoad = false;
 
@@ -181,7 +184,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
-	rateRGDdataId = getFromXml("/CDM/rateRGD/@id");
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
@@ -203,6 +205,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		realMode = true;
 	}
 
+	lvo = false;
+	getRate();
+
 	if (ctotOption == "cid") {
 		ctotCid = true;
 	}
@@ -221,13 +226,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
 	//getCADvalues();
 	multithread(&CDM::getCADvalues);
-
-	//Get CAD values
-	rgdUrl = "https://raw.githubusercontent.com/rpuig2001/Rates-General-Document-CDM/main/RGD.txt";
-	//getCADvalues();
-	multithread(&CDM::getRGDvalues);
-
-	lvo = false;
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -3188,138 +3186,69 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
-{
-	((std::string*)userp)->append((char*)contents, size * nmemb);
-	return size * nmemb;
-}
+bool CDM::getRate() {
+	//Get data from rate.txt file
+	fstream rateFile;
+	string lineValue;
+	rateFile.open(rfad.c_str(), std::ios::in);
+	bool found;
+	while (getline(rateFile, lineValue))
+	{
+		vector<string> data = explode(lineValue, ':');
+		if (data.size() == 9) {
+			string myRateDataAirport = data[0];
+			vector<string> ArrRwyList = explode(data[2], ',');
+			if (ArrRwyList.size() == 0) {
+				ArrRwyList.push_back(data[2]);
+			}
+			vector<string> NotArrRwyList = explode(data[3], ',');
+			if (NotArrRwyList.size() == 0) {
+				NotArrRwyList.push_back(data[3]);
+			}
+			vector<string> DepRwyList = explode(data[5], ',');
+			if (DepRwyList.size() == 0) {
+				DepRwyList.push_back(data[5]);
+			}
+			vector<string> NotDepRwyList = explode(data[6], ',');
+			if (NotDepRwyList.size() == 0) {
+				NotDepRwyList.push_back(data[6]);
+			}
+			vector<string> DependentRwyList = explode(data[7], ',');
+			if (DependentRwyList.size() == 0) {
+				DependentRwyList.push_back(data[7]);
+			}
+			vector<string> ratesFromData = explode(data[8], ',');
+			vector<string> ratesFromDataRate;
+			vector<string> ratesFromDataRateLvo;
+			if (ratesFromData.size() == 0) {
+				ratesFromData.push_back(data[8]);
+			}
+			else {
+				for (string completeRate : ratesFromData) {
+					vector<string> tempCompleteRate = explode(completeRate, '_');
+					ratesFromDataRate.push_back(tempCompleteRate[0]);
+					ratesFromDataRateLvo.push_back(tempCompleteRate[1]);
 
-void CDM::getRGDvalues() {
-	if (debugMode) {
-		sendMessage("[DEBUG MESSAGE] - GETTING RGD VALUES");
-	}
-
-	CURL* curl;
-	CURLcode result;
-	string readBuffer;
-	long responseCode;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, rgdUrl);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
-
-	if (responseCode == 404) {
-		// handle error 404
-		sendMessage("UNABLE TO LOAD RGD URL...");
-	}
-	else {
-		std::istringstream is(readBuffer);
-
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (!lineValue.empty()) {
-				if (lineValue.substr(0, 1) != "#") {
-					if (lineValue.find(",") != string::npos) {
-						string RGD_id = lineValue.substr(0, lineValue.find(","));
-						if (RGD_id == rateRGDdataId) {
-							string url = lineValue.substr(lineValue.find(",") + 1);
-							getRate(url);
-						}
-					}
 				}
 			}
-		}
-	}
-}
 
-void CDM::getRate(string url) {
-	CURL* curl;
-	CURLcode result;
-	string readBuffer;
-	long responseCode;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+			Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList, ratesFromDataRate, ratesFromDataRateLvo);
 
-	if (responseCode == 404) {
-		// handle error 404
-		sendMessage("UNABLE TO LOAD " + url);
-	}
-	else {
-		std::istringstream is(readBuffer);
-		//Get data from .txt file
-		bool found;
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			vector<string> data = explode(lineValue, ':');
-			if (data.size() == 9) {
-				string myRateDataAirport = data[0];
-				vector<string> ArrRwyList = explode(data[2], ',');
-				if (ArrRwyList.size() == 0) {
-					ArrRwyList.push_back(data[2]);
-				}
-				vector<string> NotArrRwyList = explode(data[3], ',');
-				if (NotArrRwyList.size() == 0) {
-					NotArrRwyList.push_back(data[3]);
-				}
-				vector<string> DepRwyList = explode(data[5], ',');
-				if (DepRwyList.size() == 0) {
-					DepRwyList.push_back(data[5]);
-				}
-				vector<string> NotDepRwyList = explode(data[6], ',');
-				if (NotDepRwyList.size() == 0) {
-					NotDepRwyList.push_back(data[6]);
-				}
-				vector<string> DependentRwyList = explode(data[7], ',');
-				if (DependentRwyList.size() == 0) {
-					DependentRwyList.push_back(data[7]);
-				}
-				vector<string> ratesFromData = explode(data[8], ',');
-				vector<string> ratesFromDataRate;
-				vector<string> ratesFromDataRateLvo;
-				if (ratesFromData.size() == 0) {
-					ratesFromData.push_back(data[8]);
-				}
-				else {
-					for (string completeRate : ratesFromData) {
-						vector<string> tempCompleteRate = explode(completeRate, '_');
-						ratesFromDataRate.push_back(tempCompleteRate[0]);
-						ratesFromDataRateLvo.push_back(tempCompleteRate[1]);
+			rate.push_back(myRate);
 
-					}
+			found = false;
+			for (string airport : CDMairports) {
+				if (airport == myRateDataAirport) {
+					found = true;
 				}
-
-				Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList, ratesFromDataRate, ratesFromDataRateLvo);
-
-				rate.push_back(myRate);
-
-				found = false;
-				for (string airport : CDMairports) {
-					if (airport == myRateDataAirport) {
-						found = true;
-					}
-				}
-				if (!found) {
-					CDMairports.push_back(myRateDataAirport);
-				}
-
 			}
+			if (!found) {
+				CDMairports.push_back(myRateDataAirport);
+			}
+
 		}
 	}
+	return true;
 }
 
 Rate CDM::rateForRunway(string airport, string depRwy) {
@@ -4315,6 +4244,12 @@ bool CDM::checkIsNumber(string str) {
 	}
 }
 
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+	((std::string*)userp)->append((char*)contents, size * nmemb);
+	return size * nmemb;
+}
+
 void CDM::disconnectTfcs() {
 	for (string callsign : disconnectionList)
 	{
@@ -4954,7 +4889,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		ctotOption = getFromXml("/CDM/ctot/@option");
 		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
-		rateRGDdataId = getFromXml("/CDM/rateRGD/@id");
 		rateString = getFromXml("/CDM/rate/@ops");
 		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
@@ -4967,7 +4901,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 
 		lvo = false;
-		multithread(&CDM::getRGDvalues);
+		getRate();
 
 		if (ctotOption == "cid") {
 			ctotCid = true;
@@ -5122,7 +5056,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		sendMessage("Reloading rates....");
 		rate.clear();
-		multithread(&CDM::getRGDvalues);
+		getRate();
 		return true;
 	}
 
