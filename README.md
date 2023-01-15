@@ -138,41 +138,7 @@ CDM includes the following times:
 ### rate.txt
   - You can set the rate/hour for specific runway and airport, if not declared, **AIRPORT WILL NOT BE CONSIDERED A CDM AIRPORT**. You can declare every runway rate with the following format: ``AIRPORT:RUNWAY=NormalRate_LvoRate``, ex:``LEBL:25L=40_20`` (Each line has a runway with his rate)
 
-[FUTURE]
-
-`AIRPORT:A:ArrRwyList:NotArrRwyList:D:DepRwyList:NotDepRwyList:DependentRwyList:Rate_RateLvo`
-
-- ArrRwyList -> Comma-separated list of runways (If more than 1, it will use if one, other or all selected). Enter * to disregard.
-
-- NotArrRwyList -> Comma-separated list of runways. Enter * to disregard.
-
-- DepRwyList -> Comma-separated list of runways (If more than 1, it will use if one, other or all selected). Enter * to disregard.
-
-- NotDepRwyList -> Comma-separated list of runways. Enter * to disregard.
-
-- DependentRwyList -> Comma-separated list of runways (it will use the same sequence order for runways selected here). Enter * to disregard.
-
-- Rate_RateLvo -> Normal Rate and LVO Rate. If more than one departure runways, you can define more than one rate separated by comma.
-
-
-Examples:
-
-- `LEPA:A:24L:*:D:24R,24L:*:24L,24R:30_12` (1 arr runway, 1 dep runway, 24R/L as dependant. 1 rate defined for all departures).
-
-- `LEPA:A:24L:24R:D:24R,24L:*:*:30_12,20_7` (1 arr runway, 1 non-arrival runway, 2 dep runway, dep runways as independant, different rates defined for both dep runways).
-
-- `LEPA:A:*:*:D:*:*:*:30_12` (All departures would have the same rate, doesn't matter the selected runways).
-
-
-Internal runway checks are used for:
-
-- Runways assigned to the plane.
-
-- Runways selected in Euroscope's Runway selector dialog.
-
-
-**AIRPORTS NOT DEFINED, WILL NOT BE CONSIDERED A CDM AIRPORT. Order of the configurations/rates is important (first line more important than last)**
-
+[FUTURE] -> rate.txt removed.
 
 *Examples can be found in the givenfiles.*
 
@@ -216,6 +182,13 @@ The data from the CAD will be refreshed every 5 minutes (Same as the Flow Measur
 
 For more information, check the CAD GitHub Repository.
 https://github.com/rpuig2001/Capacity-Availability-Document-CDM
+
+## [FUTURE] RGD - Rates General Document
+On this Document (https://raw.githubusercontent.com/rpuig2001/Rates-General-Document-CDM/main/RGD.txt) there are all the rates sources for all the airports in the CDM Network.
+All files with rates must be declared here in order to have the cdm working with the correct rates.
+
+For more information, check the RGD GitHub Repository.
+https://github.com/rpuig2001/Rates-General-Document-CDM
 
 ## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
