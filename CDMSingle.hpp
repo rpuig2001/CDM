@@ -52,6 +52,8 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
+	bool getRateFromUrl(string url);
+
 	bool getRate();
 
 	Rate rateForRunway(string airport, string depRwy);

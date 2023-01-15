@@ -36,6 +36,7 @@ bool ctotCid;
 bool realMode;
 bool remarksOption;
 string myTimeToAdd;
+string rateUrl;
 string taxiZonesUrl;
 string ctotUrl;
 string flowRestrictionsUrl;
@@ -186,6 +187,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
+	rateUrl = getFromXml("/CDM/Rates/@url");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	ctotUrl = getFromXml("/CDM/Ctot/@url");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
@@ -226,6 +228,19 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
 	//getCADvalues();
 	multithread(&CDM::getCADvalues);
+
+	if (rateUrl.length() <= 1) {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
+		}
+		getRate();
+	}
+	else {
+		if (debugMode) {
+			sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
+		}
+		getRateFromUrl(rateUrl);
+	}
 
 
 	if (taxiZonesUrl.length() <= 1) {
@@ -3186,6 +3201,97 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 	}
 }
 
+static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
+{
+	((std::string*)userp)->append((char*)contents, size * nmemb);
+	return size * nmemb;
+}
+
+bool CDM::getRateFromUrl(string url) {
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	long responseCode;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD TaxiZones URL...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+
+		//Get data from .txt file
+		bool found;
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			vector<string> data = explode(lineValue, ':');
+			if (data.size() == 9) {
+				string myRateDataAirport = data[0];
+				vector<string> ArrRwyList = explode(data[2], ',');
+				if (ArrRwyList.size() == 0) {
+					ArrRwyList.push_back(data[2]);
+				}
+				vector<string> NotArrRwyList = explode(data[3], ',');
+				if (NotArrRwyList.size() == 0) {
+					NotArrRwyList.push_back(data[3]);
+				}
+				vector<string> DepRwyList = explode(data[5], ',');
+				if (DepRwyList.size() == 0) {
+					DepRwyList.push_back(data[5]);
+				}
+				vector<string> NotDepRwyList = explode(data[6], ',');
+				if (NotDepRwyList.size() == 0) {
+					NotDepRwyList.push_back(data[6]);
+				}
+				vector<string> DependentRwyList = explode(data[7], ',');
+				if (DependentRwyList.size() == 0) {
+					DependentRwyList.push_back(data[7]);
+				}
+				vector<string> ratesFromData = explode(data[8], ',');
+				vector<string> ratesFromDataRate;
+				vector<string> ratesFromDataRateLvo;
+				if (ratesFromData.size() == 0) {
+					ratesFromData.push_back(data[8]);
+				}
+				else {
+					for (string completeRate : ratesFromData) {
+						vector<string> tempCompleteRate = explode(completeRate, '_');
+						ratesFromDataRate.push_back(tempCompleteRate[0]);
+						ratesFromDataRateLvo.push_back(tempCompleteRate[1]);
+
+					}
+				}
+
+				Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList, ratesFromDataRate, ratesFromDataRateLvo);
+
+				rate.push_back(myRate);
+
+				found = false;
+				for (string airport : CDMairports) {
+					if (airport == myRateDataAirport) {
+						found = true;
+					}
+				}
+				if (!found) {
+					CDMairports.push_back(myRateDataAirport);
+				}
+
+			}
+		}
+	}
+	return true;
+}
+
 bool CDM::getRate() {
 	//Get data from rate.txt file
 	fstream rateFile;
@@ -4244,12 +4350,6 @@ bool CDM::checkIsNumber(string str) {
 	}
 }
 
-static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
-{
-	((std::string*)userp)->append((char*)contents, size * nmemb);
-	return size * nmemb;
-}
-
 void CDM::disconnectTfcs() {
 	for (string callsign : disconnectionList)
 	{
@@ -5057,6 +5157,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Reloading rates....");
 		rate.clear();
 		getRate();
+		for (string c : CDMairports) {
+			sendMessage(c);
+		}
 		return true;
 	}
 
