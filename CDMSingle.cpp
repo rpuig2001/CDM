@@ -207,9 +207,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		realMode = true;
 	}
 
-	lvo = false;
-	getRate();
-
 	if (ctotOption == "cid") {
 		ctotCid = true;
 	}
@@ -229,6 +226,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//getCADvalues();
 	multithread(&CDM::getCADvalues);
 
+	lvo = false;
 	if (rateUrl.length() <= 1) {
 		if (debugMode) {
 			sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
@@ -5001,7 +4999,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 
 		lvo = false;
-		getRate();
+		if (rateUrl.length() <= 1) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
+			}
+			getRate();
+		}
+		else {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
+			}
+			getRateFromUrl(rateUrl);
+		}
 
 		if (ctotOption == "cid") {
 			ctotCid = true;
@@ -5156,7 +5165,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		sendMessage("Reloading rates....");
 		rate.clear();
-		getRate();
+		if (rateUrl.length() <= 1) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
+			}
+			getRate();
+		}
+		else {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
+			}
+			getRateFromUrl(rateUrl);
+		}
 		return true;
 	}
 
