@@ -1,4 +1,4 @@
-# CDM plugin V2
+# CDM plugin V2.1
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 CDM includes the following times:
 - EOBT: Estimated off block time.
@@ -18,10 +18,6 @@ CDM includes the following times:
 
 - EOBT
 
-![image](https://i.gyazo.com/928f2e35f0a4248e17442bba552d72e0.png)
-
-[FUTURE]
-
 ![image](https://user-images.githubusercontent.com/68125167/210136450-3b4b7fea-8f80-441a-ba3f-b95e3d8ca5d1.png)
 
 - E
@@ -29,10 +25,6 @@ CDM includes the following times:
 ![image](https://i.gyazo.com/436e8eb7b20b00d2c39a483319d03425.png)
 
 - TOBT
-
-![image](https://i.gyazo.com/ad6344055e7de91ab8a386f7153d19e1.png)
-
-[FUTURE]
 
 ![image](https://user-images.githubusercontent.com/68125167/210136458-86422bb9-d3cc-4ac1-a8a1-0c25d5ac9f7b.png)
 
@@ -46,10 +38,6 @@ CDM includes the following times:
 
 - TSAC
 
-![image](https://i.gyazo.com/8f9d55ec477a8c21ddb63df3b4da15a1.png)
-
-[FUTURE]
-
 ![image](https://user-images.githubusercontent.com/68125167/210136465-21a3d004-38a0-4261-8055-c22ca424d7b1.png)
 
 - ASAT
@@ -58,17 +46,9 @@ CDM includes the following times:
 
 - ASRT
 
-![image](https://i.gyazo.com/54c3956f46f63ee3b44e84308bb6fe5d.png)
-
-[FUTURE]
-
 ![image](https://user-images.githubusercontent.com/68125167/210136468-33b8384a-aa92-47dc-9512-ae7dbe8eaed0.png)
 
 - CTOT
-
-![image](https://i.gyazo.com/775e1bf69fac29e2e3a776d35e67952a.png)
-
-[FUTURE]
 
 ![image](https://user-images.githubusercontent.com/68125167/210136480-babb9ec2-6989-4302-91ac-a82de59ecadf.png)
 
@@ -76,7 +56,7 @@ CDM includes the following times:
 
 ![image](https://i.gyazo.com/842144f7bddf11f3c9165c42ef0f940e.png)
 
-- [FUTURE] Extra (All CDM Option in one Menu)
+- Extra (All CDM Option in one Menu)
 
 ![image](https://user-images.githubusercontent.com/68125167/210136505-9b46b673-537d-4e2c-86aa-be36add431dd.png)
 
@@ -119,8 +99,9 @@ CDM includes the following times:
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true")
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
-  - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="").
-  - [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="").
+  - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
+  - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
+  - [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="") and the file will be used.
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
@@ -136,9 +117,6 @@ CDM includes the following times:
   - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``, ex:``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``, if no taxizone defined, the default taxi time is set to 15 min.
 
 ### rate.txt
-  - You can set the rate/hour for specific runway and airport, if not declared, **AIRPORT WILL NOT BE CONSIDERED A CDM AIRPORT**. You can declare every runway rate with the following format: ``AIRPORT:RUNWAY=NormalRate_LvoRate``, ex:``LEBL:25L=40_20`` (Each line has a runway with his rate)
-
-[FUTURE]
 
   Format:
   `AIRPORT:A:ArrRwyList:NotArrRwyList:D:DepRwyList:NotDepRwyList:DependentRwyList:Rate_RateLvo`
@@ -217,7 +195,7 @@ EZY12JM,183600,185600,190600,ctot,flowRestriction,
 RYR42TQ,183600,185700,190800,ctot,flowRestriction,
 BEE154A,183600,190000,191000,1924,London Event,
 ```
-## [FUTURE] CAD - Capacity Availability Document
+## CAD - Capacity Availability Document
 On this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) there are the capacities for the arrival airports.
 The CDM will separate aircrafts with the same destination by the rate specified in the CAD creating a CTOT with the Flow Message (FM) of "ARR CAP" (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
 The data from the CAD will be refreshed every 5 minutes (Same as the Flow Measures).
