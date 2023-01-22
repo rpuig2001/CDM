@@ -99,10 +99,14 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-EOBT"
 	RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
+	RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
 	RegisterTagItemFunction("EOBT Options", TAG_FUNC_OPT_EOBT);
 
 	//Register Tag Item "CDM-TOBT"
 	RegisterTagItemType("TOBT", TAG_ITEM_TOBT);
+	RegisterTagItemFunction("Ready TOBT", TAG_FUNC_READYTOBT);
+	RegisterTagItemFunction("Edit TOBT", TAG_FUNC_EDITTOBT);
+	RegisterTagItemFunction("EOBT to TOBT", TAG_FUNC_EOBTTOTOBT);
 	RegisterTagItemFunction("TOBT Options", TAG_FUNC_OPT_TOBT);
 
 	// Register Tag Item "CDM-TSAT"
@@ -113,6 +117,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
+	RegisterTagItemFunction("Add TSAT to TSAC", TAG_FUNC_ADDTSAC);
+	RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
 	RegisterTagItemFunction("TSAC Options", TAG_FUNC_OPT_TSAC);
 
 	// Register Tag Item "CDM-ASAT"
