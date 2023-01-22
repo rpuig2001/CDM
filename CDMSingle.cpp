@@ -4530,6 +4530,7 @@ void CDM::getFlowData() {
 					for (int z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
 						string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
 						myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
+						boost::to_upper(myApt);
 						ADEP.push_back(myApt);
 					}
 				}
@@ -4537,6 +4538,7 @@ void CDM::getFlowData() {
 					for (int z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
 						string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
 						myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
+						boost::to_upper(myApt);
 						ADES.push_back(myApt);
 					}
 				}
