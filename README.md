@@ -20,7 +20,7 @@ CDM includes the following times:
 
   - ![image](https://user-images.githubusercontent.com/68125167/210136450-3b4b7fea-8f80-441a-ba3f-b95e3d8ca5d1.png)
 
-  or
+    or
 
   - ![image](https://i.gyazo.com/928f2e35f0a4248e17442bba552d72e0.png)
 
@@ -32,7 +32,7 @@ CDM includes the following times:
 
   - ![image](https://user-images.githubusercontent.com/68125167/210136458-86422bb9-d3cc-4ac1-a8a1-0c25d5ac9f7b.png)
 
-  or
+    or
 
   - ![image](https://i.gyazo.com/ad6344055e7de91ab8a386f7153d19e1.png)
 
@@ -48,7 +48,7 @@ CDM includes the following times:
 
   - ![image](https://user-images.githubusercontent.com/68125167/210136465-21a3d004-38a0-4261-8055-c22ca424d7b1.png)
 
-  or
+    or
 
   - ![image](https://i.gyazo.com/8f9d55ec477a8c21ddb63df3b4da15a1.png)
 
