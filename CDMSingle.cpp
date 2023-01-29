@@ -4241,6 +4241,37 @@ void CDM::toggleReaMsg(CFlightPlan fp)
 	countTime = stoi(GetTimeNow()) - (refreshTime);
 }
 
+void CDM::addTimeToList(int timeToAdd, string minTSAT) {
+	vector<Plane> mySlotList = slotList;
+
+	for (int i = 0; i < mySlotList.size(); i++) {
+		CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+		if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
+			int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
+			bool ok = false;
+			if (minTSAT.substr(0, 2) == mySlotList[i].tsat.substr(0, 2)) {
+				if (difTime >= 0) {
+					ok = true;
+				}
+			}
+			else {
+				if (difTime >= 40) {
+					ok = true;
+				}
+			}
+			if (ok) {
+				mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
+				mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
+				if (mySlotList[i].hasCtot) {
+					mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
+				}
+			}
+		}
+	}
+
+	slotList = mySlotList;
+}
+
 vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
 	int slotListLength = mySlotList.size();
 	bool ordered = false;
@@ -5242,16 +5273,27 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 
 		string line = sCommandLine, timeAdded;
+
 		if (line.substr(line.length() - 2, 1) == " ") {
 			timeAdded = line.substr(line.length() - 1);
-			myTimeToAdd = calculateTime(hour + min + "00", stoi(line.substr(line.length() - 1)));
+
+			if (isNumber(timeAdded)) {
+				myTimeToAdd = calculateTime(hour + min + "00", stoi(timeAdded));
+				sendMessage("Delay added: " + timeAdded + " minutes. PLEASE WAIT UNTIL CDM REFRESH TO SEE THE CHANGES!");
+				addTime = true;
+				addTimeToList(stoi(timeAdded), hour + min + "00");
+			}
 		}
-		else {
+		else if(line.substr(line.length() - 3, 1) == " ") {
 			timeAdded = line.substr(line.length() - 2);
-			myTimeToAdd = calculateTime(hour + min + "00", stoi(line.substr(line.length() - 2)));
+
+			if (isNumber(timeAdded)) {
+				myTimeToAdd = calculateTime(hour + min + "00", stoi(timeAdded));
+				sendMessage("Delay added: " + timeAdded + " minutes. PLEASE WAIT UNTIL CDM REFRESH TO SEE THE CHANGES!");
+				addTime = true;
+				addTimeToList(stoi(timeAdded), hour + min + "00");
+			}
 		}
-		sendMessage("Delay added: " + timeAdded + " minutes. PLEASE WAIT UNTIL CDM REFRESH TO SEE THE CHANGES!");
-		addTime = true;
 		return true;
 	}
 

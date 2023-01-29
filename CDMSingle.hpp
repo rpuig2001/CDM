@@ -114,6 +114,8 @@ public:
 
 	void toggleReaMsg(CFlightPlan fp);
 
+	void addTimeToList(int timeToAdd, string minTSAT);
+
 	vector<Plane> recalculateSlotList(vector<Plane> mySlotList);
 
 	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
