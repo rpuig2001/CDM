@@ -3944,7 +3944,7 @@ void CDM::PushToOtherControllers(CFlightPlan fp) {
 		if (c.IsController()) {
 			callsign = c.GetCallsign();
 			if (callsign.size() > 3) {
-				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos) {
+				if (callsign.find("OBS") != string::npos || callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos) {
 					fp.PushFlightStrip(c.GetCallsign());
 				}
 			}
