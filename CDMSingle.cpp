@@ -2456,7 +2456,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
 							if (!ASRTtext.empty()) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_ASRT;
+								if (SU_ISSET) {
+									ItemRGB = SU_SET_COLOR;
+								}
+								else {
+									ItemRGB = TAG_ASRT;
+								}
 								strcpy_s(sItemString, 16, ASRTtext.c_str());
 							}
 							else {
@@ -3044,7 +3049,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ASRTtext = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(1);
 							if (!ASRTtext.empty()) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_ASRT;
+								if (SU_ISSET) {
+									ItemRGB = SU_SET_COLOR;
+								}
+								else {
+									ItemRGB = TAG_ASRT;
+								}
 								strcpy_s(sItemString, 16, ASRTtext.c_str());
 							}
 							else {
