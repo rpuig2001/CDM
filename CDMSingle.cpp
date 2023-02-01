@@ -2374,8 +2374,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (notYetEOBT) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_RED;
-								strcpy_s(sItemString, 16, " ");
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "~");
 							}
 							else if (lastMinute) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
@@ -2403,13 +2403,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ShowTTOT = (string)TTOT;
 							if (notYetEOBT) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								if (slotList[pos].hasCdt) {
-									ItemRGB = TAG_YELLOW;
-								}
-								else {
-									ItemRGB = TAG_TTOT;
-								}
-								strcpy_s(sItemString, 16, " ");
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "~");
 							}
 							else if (moreLessFive || lastMinute) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
@@ -2938,8 +2933,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
 							else if (notYetEOBT) {
-								ItemRGB = TAG_GREENNOTACTIVE;
-								strcpy_s(sItemString, 16, " ");
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "~");
 							}
 							else if (!actualTOBT) {
 								ItemRGB = TAG_GREENNOTACTIVE;
@@ -2973,8 +2968,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
 								}
 								else if (notYetEOBT) {
-									ItemRGB = TAG_RED;
-									strcpy_s(sItemString, 16, " ");
+									ItemRGB = TAG_GREY;
+									strcpy_s(sItemString, 16, "~");
 								}
 								else if (lastMinute) {
 									ItemRGB = TAG_YELLOW;
@@ -2998,13 +2993,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (TTOTString.length() > 0) {
 								if (notYetEOBT) {
-									if (slotList[pos].hasCdt) {
-										ItemRGB = TAG_YELLOW;
-									}
-									else {
-										ItemRGB = TAG_TTOT;
-									}
-									strcpy_s(sItemString, 16, " ");
+									ItemRGB = TAG_GREY;
+									strcpy_s(sItemString, 16, "~");
 								}
 								else if (moreLessFive || lastMinute) {
 									if (slotList[pos].hasCdt) {
