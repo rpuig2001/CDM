@@ -13,6 +13,7 @@ const int TAG_ITEM_CTOT = 10;
 const int TAG_ITEM_FLOW_MESSAGE = 11;
 const int TAG_ITEM_READYSTARTUP = 12;
 const int TAG_ITEM_OPTIONS = 13;
+const int TAG_ITEM_TSAC_SIMPLE = 14;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;

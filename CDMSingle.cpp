@@ -117,6 +117,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
+	RegisterTagItemType("TSAC-Simple", TAG_ITEM_TSAC_SIMPLE);
 	RegisterTagItemFunction("Add TSAT to TSAC", TAG_FUNC_ADDTSAC);
 	RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
 	RegisterTagItemFunction("TSAC Options", TAG_FUNC_OPT_TSAC);
@@ -1401,6 +1402,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_GREEN;
 							strcpy_s(sItemString, 16, "____");
 						}
+						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
+						{
+							string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
+							if (!annotTSAC.empty()) {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, "¤");
+							}
+							else {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, "¬");
+							}
+						}
 						else if (ItemCode == TAG_ITEM_ASAT)
 						{
 							ItemRGB = TAG_GREEN;
@@ -2365,6 +2378,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, "____");
 							}
 						}
+						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
+						{
+							string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
+							if (!annotTSAC.empty()) {
+								if (TSACNotTSAT) {
+									ItemRGB = TAG_ORANGE;
+								}
+								else {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+								}
+								strcpy_s(sItemString, 16, "¤");
+							}
+							else {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, "¬");
+							}
+						}
 						else if (ItemCode == TAG_ITEM_TSAT)
 						{
 							string ShowTSAT = (string)TSAT;
@@ -2963,6 +2994,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else {
 								ItemRGB = TAG_GREEN;
 								strcpy_s(sItemString, 16, "____");
+							}
+						}
+						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
+						{
+							string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
+							if (!annotTSAC.empty()) {
+								if (TSACNotTSAT) {
+									ItemRGB = TAG_ORANGE;
+								}
+								else {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+								}
+								strcpy_s(sItemString, 16, "¤");
+							}
+							else {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, "¬");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_TSAT)
