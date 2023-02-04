@@ -23,7 +23,6 @@ string dfad;
 string xfad;
 string rateString;
 string lvoRateString;
-string ctotOption;
 int expiredCTOTTime;
 bool defaultRate;
 int countTime;
@@ -38,7 +37,7 @@ bool remarksOption;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
-string ctotUrl;
+string ctotCode;
 string flowRestrictionsUrl;
 int defTaxiTime;
 string cadUrl;
@@ -188,7 +187,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//airport = getFromXml("/CDM/apt/@icao");
 	//airport = getFromXml("/CDM/apt/@icao");
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
-	ctotOption = getFromXml("/CDM/ctot/@option");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
@@ -196,7 +194,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	rateUrl = getFromXml("/CDM/Rates/@url");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
-	ctotUrl = getFromXml("/CDM/Ctot/@url");
+	ctotCode = getFromXml("/CDM/Ctot/@code");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
@@ -212,13 +210,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	realMode = false;
 	if (realModeStr == "true") {
 		realMode = true;
-	}
-
-	if (ctotOption == "cid") {
-		ctotCid = true;
-	}
-	else {
-		ctotCid = false;
 	}
 
 	//Flow Data
@@ -274,7 +265,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 
 	//Get Values from ctot web or file
-	if (ctotUrl.length() <= 1) {
+	if (ctotCode.length() <= 1) {
+		ctotCid = false;
 		if (debugMode) {
 			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
 		}
@@ -288,10 +280,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		}
 	}
 	else {
+		ctotCid = true;
 		if (debugMode) {
-			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
+			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM VATCAN CODE");
 		}
-		getCtotsFromUrl(ctotUrl);
+		getCtotsFromUrl(ctotCode);
 	}
 
 	fstream fileColors;
@@ -893,7 +886,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					{
 						if (slotList[i].callsign == fp.GetCallsign()) {
 							found = true;
-							slotList.erase(slotList.begin() + i);
+							if (!slotList[i].hasCtot || (slotList[i].hasCtot && (slotList[i].hasRestriction == 1 || slotList[i].hasRestriction == 2))) {
+								slotList.erase(slotList.begin() + i);
+							}
 							fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
 							//Update times to slaves
 							countTime = stoi(GetTimeNow()) - refreshTime;
@@ -922,7 +917,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 				for (int i = 0; i < slotList.size(); i++) {
 					if ((string)fp.GetCallsign() == slotList[i].callsign) {
-						slotList.erase(slotList.begin() + i);
+						if (!slotList[i].hasCtot || (slotList[i].hasCtot && (slotList[i].hasRestriction == 1 || slotList[i].hasRestriction == 2))) {
+							slotList.erase(slotList.begin() + i);
+						}
 						//Update times to slaves
 						fp.GetControllerAssignedData().SetFlightStripAnnotation(3, "");
 						PushToOtherControllers(fp);
@@ -1002,7 +999,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
-			//If opion is "cid"
+			//If using vatcan Code
 			if (ctotCid) {
 				bool ctotValidated = false;
 				for (int i = 0; i < CTOTcheck.size(); i++) {
@@ -1021,16 +1018,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string cid = getCidByCallsign(callsign);
 							if (stoi(cid) == stoi(savedCid)) {
 								slotList[i].callsign = callsign;
+								slotList[i].hasCtot = true;
 								pos = i;
-								for (int a = 0; a < slotList.size(); a++)
-								{
-									ctotCallsign = slotList[a].callsign;
-									if (checkIsNumber(ctotCallsign)) {
-										if (stoi(cid) == stoi(ctotCallsign)) {
-											slotList[pos].hasCtot = true;
-										}
-									}
-								}
+								aircraftFind = true;
 							}
 						}
 					}
@@ -1330,8 +1320,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (stillOutOfTsat && !gndStatusSet) {
 						//Remove ACFT Find
 						if (aircraftFind) {
-							if (aircraftFind) {
-								PushToOtherControllers(FlightPlan);
+							PushToOtherControllers(FlightPlan);
+							if (aircraftFind && (!slotList[pos].hasCtot || (slotList[pos].hasCtot && (slotList[pos].hasRestriction == 1 || slotList[pos].hasRestriction == 2)))) {
 								slotList.erase(slotList.begin() + pos);
 							}
 						}
@@ -2730,7 +2720,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					if (aircraftFind) {
-						if (!TSATFind) {
+						if (!TSATFind && (!slotList[pos].hasCtot || (slotList[pos].hasCtot && (slotList[pos].hasRestriction == 1 || slotList[pos].hasRestriction == 2)))) {
 							slotList.erase(slotList.begin() + pos);
 						}
 						else if (TSATString != slotList[pos].tsat && TSATFind) {
@@ -4711,34 +4701,42 @@ int CDM::GetVersion() {
 	return -1;
 }
 
-bool CDM::getCtotsFromUrl(string url)
+bool CDM::getCtotsFromUrl(string code)
 {
+	string vatcanUrl = "https://bookings.vatcan.ca/api/event/" + code;
 	CURL* curl;
-	CURLcode result;
-	string readBuffer;
+	CURLcode res;
+	std::string readBuffer;
 	long responseCode;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		result = curl_easy_perform(curl);
+		res = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
 	if (responseCode == 404) {
 		// handle error 404
-		sendMessage("UNABLE TO LOAD CTOTs URL...");
+		sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 	}
 	else {
-		std::istringstream is(readBuffer);
+		Json::Reader reader;
+		Json::Value obj;
+		Json::FastWriter fastWriter;
+		reader.parse(readBuffer, obj);
 
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			addCtotToMainList(lineValue);
+		const Json::Value& data = obj;
+		for (int i = 0; i < data.size(); i++) {
+			//Get Id
+			int cid = stoi(fastWriter.write(data[i]["cid"]));
+			//Get Ident
+			string slot = fastWriter.write(data[i]["slot"]);
+			slot.erase(std::remove(slot.begin(), slot.end(), '"'));
+			slot = slot.substr(0, 4);
+			addVatcanCtotToMainList(to_string(cid), slot);
 		}
 	}
 
@@ -4998,7 +4996,7 @@ bool CDM::addCtotToMainList(string lineValue) {
 				}
 			}
 			if (!oldCTOT) {
-				Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), false, myFlow, false);
+				Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), 0, myFlow, false);
 				slotList[i] = p;
 				found = true;
 			}
@@ -5020,9 +5018,46 @@ bool CDM::addCtotToMainList(string lineValue) {
 			}
 		}
 		if (!oldCTOT) {
-			Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), false, myFlow, false);
+			Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), 0, myFlow, false);
 			slotList.push_back(p);
 		}
+	}
+}
+
+void CDM::addVatcanCtotToMainList(string callsign, string slot) {
+	Flow myFlow;
+	//Get Time now
+	time_t rawtime;
+	struct tm* ptm;
+	time(&rawtime);
+	ptm = gmtime(&rawtime);
+	string hour = to_string(ptm->tm_hour % 24);
+	string min = to_string(ptm->tm_min);
+
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
+	if (stoi(hour) < 10) {
+		hour = "0" + hour.substr(0, 1);
+	}
+
+	bool oldCTOT = true;
+	string CTOTHour = slot.substr(0, 2);
+	string CTOTMin = slot.substr(2, 2);
+	int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
+	if (hour != CTOTHour) {
+		if (difTime >= expiredCTOTTime + 40) {
+			oldCTOT = false;
+		}
+	}
+	else {
+		if (difTime >= expiredCTOTTime) {
+			oldCTOT = false;
+		}
+	}
+	if (!oldCTOT) {
+		Plane p(callsign, "999999", "999999", slot + "00", true, slot, 0, myFlow, false);
+		slotList.push_back(p);
 	}
 }
 
@@ -5074,7 +5109,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		finalTimesList.clear();
 		//Get data from xml config file
 		defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
-		ctotOption = getFromXml("/CDM/ctot/@option");
 		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 		rateString = getFromXml("/CDM/rate/@ops");
@@ -5100,13 +5134,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
 			}
 			getRateFromUrl(rateUrl);
-		}
-
-		if (ctotOption == "cid") {
-			ctotCid = true;
-		}
-		else {
-			ctotCid = false;
 		}
 
 
@@ -5138,7 +5165,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		getCADvalues();
 
-		if (ctotUrl.length() <= 1) {
+		if (ctotCode.length() <= 1) {
+			ctotCid = false;
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
 			}
@@ -5152,10 +5180,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 		}
 		else {
+			ctotCid = true;
 			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
+				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM VATCAN CODE");
 			}
-			getCtotsFromUrl(ctotUrl);
+			getCtotsFromUrl(ctotCode);
 		}
 
 		fstream fileColors;
@@ -5373,7 +5402,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		sendMessage("Loading CTOTs data....");
 
-		if (ctotUrl.length() <= 1) {
+		if (ctotCode.length() <= 1) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
 			}
@@ -5390,7 +5419,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
 			}
-			getCtotsFromUrl(ctotUrl);
+			getCtotsFromUrl(ctotCode);
 		}
 
 		return true;

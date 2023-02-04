@@ -205,6 +205,8 @@ public:
 
 	bool addCtotToMainList(string lineValue);
 
+	void addVatcanCtotToMainList(string callsign, string slot);
+
 	bool OnCompileCommand(const char* sCommandLine);
 
 	vector<CAD> returnCADvalues(string url);
