@@ -609,7 +609,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	else if (FunctionId == TAG_FUNC_TOGGLEREAMSG) {
-		toggleReaMsg(fp);
+		toggleReaMsg(fp, true);
 	}
 	else if (FunctionId == TAG_FUNC_REMOVECTOT) {
 		for (int a = 0; a < slotList.size(); a++)
@@ -763,6 +763,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
+
+			//Send REA MSG if CTOT
+			for (Plane p : slotList) {
+				if (p.callsign == fp.GetCallsign() && p.hasCtot && p.hasRestriction != 0) {
+					toggleReaMsg(fp, false);
+				}
+			}
+
 			//Get Time now
 			time_t rawtime;
 			struct tm* ptm;
@@ -794,6 +802,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				difeobttobtList.push_back(fp.GetCallsign());
 			}
 		}
+
 		//Update times to slaves
 		countTime = stoi(GetTimeNow()) - refreshTime;
 	}
@@ -3758,6 +3767,23 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 								TTOTFinal = calculateTime(TTOTFinal, 0.5);
 								correctTTOT = false;
 							}
+
+							//Check if TTOT > previus TTOT and if this happens move other tfcs to keep list ordered
+							/*if (stoi(slotList[pos].ttot) < stoi(TTOTFinal)) {
+								if (slotList.size() - 1 != pos) {
+									slotList[pos].tsat = slotList[pos + 1].tsat;
+									slotList[pos].ttot = slotList[pos + 1].ttot;
+									if (slotList[pos].hasCtot) {
+										slotList[pos].ctot = slotList[pos + 1].ctot;
+									}
+
+									slotList[pos + 1].tsat = calculateTime(slotList[pos + 1].tsat, rateHour);
+									slotList[pos + 1].ttot = calculateTime(slotList[pos + 1].ttot, rateHour);
+									if (slotList[pos + 1].hasCtot) {
+										slotList[pos + 1].ctot = calculateTime(slotList[pos + 1].ctot, rateHour);
+									}
+								}
+							}*/
 						}
 					}
 				}
@@ -4261,14 +4287,16 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 	return timeFinal;
 }
 
-void CDM::toggleReaMsg(CFlightPlan fp)
+void CDM::toggleReaMsg(CFlightPlan fp, bool deleteIfExist)
 {
 	bool inreaList = false;
 	int i = 0;
 	for (string s : reaCTOTSent) {
 		if (s == fp.GetCallsign()) {
 			inreaList = true;
-			reaCTOTSent.erase(reaCTOTSent.begin() + i);
+			if (deleteIfExist) {
+				reaCTOTSent.erase(reaCTOTSent.begin() + i);
+			}
 		}
 		i++;
 	}

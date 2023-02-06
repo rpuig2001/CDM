@@ -112,7 +112,7 @@ public:
 
 	void getFlowData();
 
-	void toggleReaMsg(CFlightPlan fp);
+	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
 	void addTimeToList(int timeToAdd, string minTSAT);
 
