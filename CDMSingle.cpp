@@ -2087,7 +2087,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (!csFound) {
 									if (sts == "SU_WAIT") {
 										reaSent.push_back(callsign);
-										toggleReaMsg(FlightPlan);
+										toggleReaMsg(FlightPlan, true);
 									}
 								}
 							}
