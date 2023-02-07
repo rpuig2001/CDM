@@ -3355,43 +3355,30 @@ bool CDM::getRateFromUrl(string url) {
 			}
 		}
 	}
-
 	for (Rate r : ratesChanged) {
 		for (int z = 0; z < slotList.size(); z++) {
 			CFlightPlan fp = FlightPlanSelect(slotList[z].callsign.c_str());
-
-			Rate dataRate = rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
-			if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo && r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy
-				&& r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes && r.rates.size() == dataRate.rates.size() && r.ratesLvo.size() == dataRate.ratesLvo.size()) {
-				for (string dr : dataRate.depRwyYes) {
-					if (dataRate.rates.size() == 1) {
-						if (dataRate.rates[0] != r.rates[0]) {
-							//Increase time according the rate change
-							if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-								slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[0])));
-								slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[0])));
-								if (slotList[z].hasCtot) {
-									slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[0])));
+			if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+				Rate dataRate = rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+				if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo && r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy
+					&& r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes && r.rates.size() == dataRate.rates.size() && r.ratesLvo.size() == dataRate.ratesLvo.size()) {
+					for (string dr : dataRate.depRwyYes) {
+						int myPos = 0;
+						if (dataRate.rates.size() > 1) {
+							for (int i = 0; i < dataRate.rates.size(); i++) {
+								if (dataRate.rates[i] != r.rates[i]) {
+									myPos = i;
 								}
 							}
 						}
-					}
-					else {
-						for (int i = 0; i < dataRate.rates.size(); i++) {
-							if (dataRate.rates[i] != r.rates[i]) {
-								//Increase time according the rate change
-								if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-									slotList[z].tsat = calculateTime(slotList[z].tsat, (60/stoi(r.rates[i])));
-									slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[i])));
-										if (slotList[z].hasCtot) {
-											slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[i])));
-										}
-								}
-							}
+						//Increase time according the rate change
+						slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[myPos])));
+						slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[myPos])));
+						if (slotList[z].hasCtot) {
+							slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[myPos])));
 						}
 					}
 				}
-				
 			}
 		}
 	}
@@ -3477,43 +3464,30 @@ bool CDM::getRate() {
 			}
 		}
 	}
-
 	for (Rate r : ratesChanged) {
 		for (int z = 0; z < slotList.size(); z++) {
 			CFlightPlan fp = FlightPlanSelect(slotList[z].callsign.c_str());
-
-			Rate dataRate = rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
-			if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo && r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy
-				&& r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes && r.rates.size() == dataRate.rates.size() && r.ratesLvo.size() == dataRate.ratesLvo.size()) {
-				for (string dr : dataRate.depRwyYes) {
-					if (dataRate.rates.size() == 1) {
-						if (dataRate.rates[0] != r.rates[0]) {
-							//Increase time according the rate change
-							if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-								slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[0])));
-								slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[0])));
-								if (slotList[z].hasCtot) {
-									slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[0])));
+			if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+				Rate dataRate = rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+				if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo && r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy
+					&& r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes && r.rates.size() == dataRate.rates.size() && r.ratesLvo.size() == dataRate.ratesLvo.size()) {
+					for (string dr : dataRate.depRwyYes) {
+						int myPos = 0;
+						if (dataRate.rates.size() > 1) {
+							for (int i = 0; i < dataRate.rates.size(); i++) {
+								if (dataRate.rates[i] != r.rates[i]) {
+									myPos = i;
 								}
 							}
 						}
-					}
-					else {
-						for (int i = 0; i < dataRate.rates.size(); i++) {
-							if (dataRate.rates[i] != r.rates[i]) {
-								//Increase time according the rate change
-								if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-									slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[i])));
-									slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[i])));
-									if (slotList[z].hasCtot) {
-										slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[i])));
-									}
-								}
-							}
+						//Increase time according the rate change
+						slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[myPos])));
+						slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[myPos])));
+						if (slotList[z].hasCtot) {
+							slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[myPos])));
 						}
 					}
 				}
-
 			}
 		}
 	}
