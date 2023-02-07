@@ -3260,6 +3260,7 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 }
 
 bool CDM::getRateFromUrl(string url) {
+	vector<Rate> myRates;
 	CURL* curl;
 	CURLcode result;
 	string readBuffer;
@@ -3326,7 +3327,7 @@ bool CDM::getRateFromUrl(string url) {
 
 				Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList, ratesFromDataRate, ratesFromDataRateLvo);
 
-				rate.push_back(myRate);
+				myRates.push_back(myRate);
 
 				found = false;
 				for (string airport : CDMairports) {
@@ -3341,10 +3342,67 @@ bool CDM::getRateFromUrl(string url) {
 			}
 		}
 	}
+	vector<Rate> ratesChanged;
+	for (Rate r1 : rate) {
+		for (Rate r2 : myRates) {
+			if (r1.airport == r2.airport && r1.arrRwyNo == r2.arrRwyNo && r1.arrRwyYes == r2.arrRwyYes && r1.dependentRwy == r2.dependentRwy
+				&& r1.depRwyNo == r2.depRwyNo && r1.depRwyYes == r2.depRwyYes && r1.rates.size() == r2.rates.size() && r1.ratesLvo.size() == r2.ratesLvo.size()) {
+				for (int i = 0; i < r1.rates.size(); i++) {
+					if (r1.rates[i] != r2.rates[i]) {
+						ratesChanged.push_back(r2);
+					}
+				}
+			}
+		}
+	}
+
+	for (Rate r : ratesChanged) {
+		for (int z = 0; z < slotList.size(); z++) {
+			CFlightPlan fp = FlightPlanSelect(slotList[z].callsign.c_str());
+
+			Rate dataRate = rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+			if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo && r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy
+				&& r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes && r.rates.size() == dataRate.rates.size() && r.ratesLvo.size() == dataRate.ratesLvo.size()) {
+				for (string dr : dataRate.depRwyYes) {
+					if (dataRate.rates.size() == 1) {
+						if (dataRate.rates[0] != r.rates[0]) {
+							//Increase time according the rate change
+							if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+								slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[0])));
+								slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[0])));
+								if (slotList[z].hasCtot) {
+									slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[0])));
+								}
+							}
+						}
+					}
+					else {
+						for (int i = 0; i < dataRate.rates.size(); i++) {
+							if (dataRate.rates[i] != r.rates[i]) {
+								//Increase time according the rate change
+								if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+									slotList[z].tsat = calculateTime(slotList[z].tsat, (60/stoi(r.rates[i])));
+									slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[i])));
+										if (slotList[z].hasCtot) {
+											slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[i])));
+										}
+								}
+							}
+						}
+					}
+				}
+				
+			}
+		}
+	}
+
+	rate = myRates;
+
 	return true;
 }
 
 bool CDM::getRate() {
+	vector<Rate> myRates;
 	//Get data from rate.txt file
 	fstream rateFile;
 	string lineValue;
@@ -3392,7 +3450,7 @@ bool CDM::getRate() {
 
 			Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList, ratesFromDataRate, ratesFromDataRateLvo);
 
-			rate.push_back(myRate);
+			myRates.push_back(myRate);
 
 			found = false;
 			for (string airport : CDMairports) {
@@ -3406,6 +3464,62 @@ bool CDM::getRate() {
 
 		}
 	}
+	vector<Rate> ratesChanged;
+	for (Rate r1 : rate) {
+		for (Rate r2 : myRates) {
+			if (r1.airport == r2.airport && r1.arrRwyNo == r2.arrRwyNo && r1.arrRwyYes == r2.arrRwyYes && r1.dependentRwy == r2.dependentRwy
+				&& r1.depRwyNo == r2.depRwyNo && r1.depRwyYes == r2.depRwyYes && r1.rates.size() == r2.rates.size() && r1.ratesLvo.size() == r2.ratesLvo.size()) {
+				for (int i = 0; i < r1.rates.size(); i++) {
+					if (r1.rates[i] != r2.rates[i]) {
+						ratesChanged.push_back(r2);
+					}
+				}
+			}
+		}
+	}
+
+	for (Rate r : ratesChanged) {
+		for (int z = 0; z < slotList.size(); z++) {
+			CFlightPlan fp = FlightPlanSelect(slotList[z].callsign.c_str());
+
+			Rate dataRate = rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+			if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo && r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy
+				&& r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes && r.rates.size() == dataRate.rates.size() && r.ratesLvo.size() == dataRate.ratesLvo.size()) {
+				for (string dr : dataRate.depRwyYes) {
+					if (dataRate.rates.size() == 1) {
+						if (dataRate.rates[0] != r.rates[0]) {
+							//Increase time according the rate change
+							if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+								slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[0])));
+								slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[0])));
+								if (slotList[z].hasCtot) {
+									slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[0])));
+								}
+							}
+						}
+					}
+					else {
+						for (int i = 0; i < dataRate.rates.size(); i++) {
+							if (dataRate.rates[i] != r.rates[i]) {
+								//Increase time according the rate change
+								if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+									slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[i])));
+									slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[i])));
+									if (slotList[z].hasCtot) {
+										slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[i])));
+									}
+								}
+							}
+						}
+					}
+				}
+
+			}
+		}
+	}
+
+	rate = myRates;
+
 	return true;
 }
 
@@ -4649,6 +4763,7 @@ void CDM::getFlowData() {
 				flowDataTemp.push_back(flow);
 			}
 		}
+
 		flowData = flowDataTemp;
 	}
 }
@@ -5311,7 +5426,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm rate", sCommandLine))
 	{
 		sendMessage("Reloading rates....");
-		rate.clear();
 		if (rateUrl.length() <= 1) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
