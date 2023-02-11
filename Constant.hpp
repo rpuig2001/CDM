@@ -39,6 +39,7 @@ const int TAG_FUNC_OPT = 123;
 const int TAG_FUNC_TOGGLECDT = 124;
 const int TAG_FUNC_SETCUSTOMCDT = 125;
 const int TAG_FUNC_EDITCDT = 126;
+const int TAG_FUNC_FMASTEXT = 127;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

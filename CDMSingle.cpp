@@ -141,6 +141,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-CTOT"
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
 	RegisterTagItemFunction("CTOT Options", TAG_FUNC_CTOTOPTIONS);
+	RegisterTagItemFunction("Get FM as text", TAG_FUNC_FMASTEXT);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -566,6 +567,19 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 			else {
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
+			}
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_FMASTEXT) {
+		if (master) {
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
+						sendMessage(slotList[i].callsign + " FM -> " + slotList[i].flowRestriction.ident);
+					}
+				}
 			}
 		}
 	}
