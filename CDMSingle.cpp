@@ -2262,8 +2262,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
 
 							int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
-							if (TSACDif > 5 || TSACDif < -5) {
-								TSACNotTSAT = true;
+							if (TSAThour == TSAChour) {
+								if (TSACDif > 5 || TSACDif < -5) {
+									TSACNotTSAT = true;
+								}
+							}
+							else {
+								if (TSACDif > 45 || TSACDif < -45) {
+									TSACNotTSAT = true;
+								}
 							}
 						}
 
@@ -2893,8 +2900,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
 
 							int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
-							if (TSACDif > 5 || TSACDif < -5) {
-								TSACNotTSAT = true;
+							if (TSAThour == TSAChour) {
+								if (TSACDif > 5 || TSACDif < -5) {
+									TSACNotTSAT = true;
+								}
+							}
+							else {
+								if (TSACDif > 45 || TSACDif < -45) {
+									TSACNotTSAT = true;
+								}
 							}
 						}
 
