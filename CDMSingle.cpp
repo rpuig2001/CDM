@@ -2599,6 +2599,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							multithread(&CDM::saveData);
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
+								sendMessage("[DEBUG MESSAGE] - " + to_string(slotList.size()) + " Planes in the list");
 							}
 							countTime = myNow;
 
@@ -4583,24 +4584,36 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	//Delete from vector
 	for (int i = 0; i < slotList.size(); i++) {
 		if (callsign == slotList[i].callsign) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 1");
+			}
 			slotList.erase(slotList.begin() + i);
 		}
 	}
 	//Delete from reaSent list
 	for (int i = 0; i < reaSent.size(); i++) {
 		if (callsign == reaSent[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 2");
+			}
 			reaSent.erase(reaSent.begin() + i);
 		}
 	}
 	//Delete from reaCTOTSent list
 	for (int i = 0; i < reaCTOTSent.size(); i++) {
 		if (callsign == reaCTOTSent[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 3");
+			}
 			reaCTOTSent.erase(reaCTOTSent.begin() + i);
 		}
 	}
 	//Remove if added to not modify TOBT if EOBT changes List
 	for (int i = 0; i < difeobttobtList.size(); i++) {
 		if (callsign == difeobttobtList[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 4");
+			}
 			difeobttobtList.erase(difeobttobtList.begin() + i);
 		}
 	}
@@ -4608,6 +4621,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	for (int j = 0; j < planeAiportList.size(); j++)
 	{
 		if (planeAiportList[j].substr(0, planeAiportList[j].find(",")) == callsign) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 5");
+			}
 			planeAiportList.erase(planeAiportList.begin() + j);
 		}
 	}
@@ -4615,6 +4631,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	//Remove Plane From finalTimesList
 	for (int i = 0; i < finalTimesList.size(); i++) {
 		if (finalTimesList[i] == callsign) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 6");
+			}
 			finalTimesList.erase(finalTimesList.begin() + i);
 		}
 	}
@@ -4623,6 +4642,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	for (int j = 0; j < taxiTimesList.size(); j++)
 	{
 		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 7");
+			}
 			taxiTimesList.erase(taxiTimesList.begin() + j);
 		}
 	}
@@ -4631,6 +4653,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	for (int i = 0; i < CTOTcheck.size(); i++)
 	{
 		if (CTOTcheck[i] == callsign) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 8");
+			}
 			CTOTcheck.erase(CTOTcheck.begin() + i);
 		}
 	}
@@ -4640,6 +4665,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	{
 		string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
 		if (actualListCallsign == callsign) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 9");
+			}
 			asatList.erase(asatList.begin() + x);
 		}
 	}
@@ -4647,6 +4675,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	for (int i = 0; i < OutOfTsat.size(); i++)
 	{
 		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 10");
+			}
 			OutOfTsat.erase(OutOfTsat.begin() + i);
 		}
 	}
@@ -5421,6 +5452,19 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			realMode = true;
 			sendMessage("Real Mode set to ON");
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm debug", sCommandLine))
+	{
+		if (debugMode) {
+			debugMode = false;
+			sendMessage("Debug Mode set to OFF");
+		}
+		else {
+			debugMode = true;
+			sendMessage("Debug Mode set to ON");
 		}
 		return true;
 	}
