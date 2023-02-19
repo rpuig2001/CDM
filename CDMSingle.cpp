@@ -2459,22 +2459,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (moreLessFive || lastMinute) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								if (slotList[pos].hasCdt) {
-									ItemRGB = TAG_YELLOW;
-								}
-								else {
-									ItemRGB = TAG_TTOT;
-								}
+								ItemRGB = TAG_TTOT;
 								strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 							}
 							else {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								if (slotList[pos].hasCdt) {
-									ItemRGB = TAG_YELLOW;
-								}
-								else {
-									ItemRGB = TAG_TTOT;
-								}
+								ItemRGB = TAG_TTOT;
 								strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
 							}
 						}
@@ -3079,21 +3069,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									strcpy_s(sItemString, 16, "~");
 								}
 								else if (moreLessFive || lastMinute) {
-									if (slotList[pos].hasCdt) {
-										ItemRGB = TAG_YELLOW;
-									}
-									else {
-										ItemRGB = TAG_TTOT;
-									}
+									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
 								}
 								else {
-									if (slotList[pos].hasCdt) {
-										ItemRGB = TAG_YELLOW;
-									}
-									else {
-										ItemRGB = TAG_TTOT;
-									}
+									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
 								}
 							}
