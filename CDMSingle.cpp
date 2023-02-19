@@ -823,6 +823,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_EDITCDT) {
 		if (master && AtcMe) {
+			//-------------------------------------------
+			//only before start-up/push back
+
+			//If has CTOT -> introducted CDT within the CTOT window (-5 to +10)
+
+			// at the earlierst at present time + EXOT
+
+			//-------------------------------------------
 			string myttot;
 			for (int i = 0; i < slotList.size(); i++)
 			{
