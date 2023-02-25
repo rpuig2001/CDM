@@ -113,6 +113,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TTOT"
 	RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
+	RegisterTagItemFunction("Set actual TTOT as CDT", TAG_FUNC_TOGGLECDT);
+	RegisterTagItemFunction("Edit/Set custom CDT", TAG_FUNC_EDITCDT);
+	RegisterTagItemFunction("TTOT Options", TAG_FUNC_OPT_TTOT);
 
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
@@ -659,119 +662,149 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		countTime = stoi(GetTimeNow()) - (refreshTime+5);
 	}
 
-	else if (FunctionId == TAG_FUNC_OPT) {
-		OpenPopupList(Area, "CDM - Options", 1);
-		//EOBT OPTIONS
-		AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
-		AddPopupListElement("----------------", "", -1, false, 2, false);
-
-		//TOBT OPTIONS
-		AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
-		AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
-		AddPopupListElement("----------------", "", -1, false, 2, false);
-
-		//TSAC OPTIONS
-		string tsacvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
-		if (tsacvalue.empty()) {
-			AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
-		}
-		else {
-			AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
-		}
-		AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
-		AddPopupListElement("----------------", "", -1, false, 2, false);
-
-		//ASRT OPTIONS
-		string asrtvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
-		if (asrtvalue.empty()) {
-			AddPopupListElement("Set RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
-		}
-		else {
-			AddPopupListElement("Remove RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
-		}
-		AddPopupListElement("----------------", "", -1, false, 2, false);
-
-		//CDT OPTIONS
-		bool planeFound = false;
-		Plane plane;
-		for (int i = 0; i < slotList.size(); i++)
-		{
-			if (slotList[i].callsign == fp.GetCallsign()) {
-				planeFound = true;
-				plane = slotList[i];
+	else if (FunctionId == TAG_FUNC_OPT_TTOT) {
+		if (master && AtcMe) {
+			bool planeFound = false;
+			Plane plane;
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					planeFound = true;
+					plane = slotList[i];
+				}
 			}
+			if (planeFound) {
+				OpenPopupList(Area, "TTOT - Options", 1);
+				if (!plane.hasCdt) {
+					AddPopupListElement("Set CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Remove CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+				}
+			}
+			AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
 		}
+	}
 
-		if (planeFound) {
-			if (!plane.hasCdt) {
-				AddPopupListElement("Set CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+	else if (FunctionId == TAG_FUNC_OPT) {
+		if (master && AtcMe) {
+			OpenPopupList(Area, "CDM - Options", 1);
+			//EOBT OPTIONS
+			AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+			AddPopupListElement("----------------", "", -1, false, 2, false);
+
+			//TOBT OPTIONS
+			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+			AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+			AddPopupListElement("----------------", "", -1, false, 2, false);
+
+			//TSAC OPTIONS
+			string tsacvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
+			if (tsacvalue.empty()) {
+				AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
 			}
 			else {
-				AddPopupListElement("Remove CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+				AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
 			}
-		}
-		AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+			AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
+			AddPopupListElement("----------------", "", -1, false, 2, false);
 
-		//CTOT OPTIONS
-		bool hasCTOT = false;
-		bool hasRestriction = 0;
-		for (int i = 0; i < slotList.size(); i++)
-		{
-			if (slotList[i].callsign == fp.GetCallsign()) {
-				if (slotList[i].hasCtot) {
-					hasCTOT = true;
-					if (slotList[i].hasRestriction != 0) {
-						hasRestriction = 1;
+			//ASRT OPTIONS
+			string asrtvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(1);
+			if (asrtvalue.empty()) {
+				AddPopupListElement("Set RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
+			}
+			else {
+				AddPopupListElement("Remove RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
+			}
+			AddPopupListElement("----------------", "", -1, false, 2, false);
+
+			//CDT OPTIONS
+			bool planeFound = false;
+			Plane plane;
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					planeFound = true;
+					plane = slotList[i];
+				}
+			}
+
+			if (planeFound) {
+				if (!plane.hasCdt) {
+					AddPopupListElement("Set CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Remove CDT", "", TAG_FUNC_TOGGLECDT, false, 2, false);
+				}
+			}
+			AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+
+			//CTOT OPTIONS
+			bool hasCTOT = false;
+			bool hasRestriction = 0;
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (slotList[i].hasCtot) {
+						hasCTOT = true;
+						if (slotList[i].hasRestriction != 0) {
+							hasRestriction = 1;
+						}
 					}
 				}
 			}
-		}
-		bool inreaList = false;
-		for (string s : reaCTOTSent) {
-			if (s == fp.GetCallsign()) {
-				inreaList = true;
+			bool inreaList = false;
+			for (string s : reaCTOTSent) {
+				if (s == fp.GetCallsign()) {
+					inreaList = true;
+				}
 			}
-		}
 
-		if (hasCTOT) {
-			AddPopupListElement("----------------", "", -1, false, 2, false);
-			if (hasRestriction != 0) {
-				if (!inreaList) {
-					AddPopupListElement("Send REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
+			if (hasCTOT) {
+				AddPopupListElement("----------------", "", -1, false, 2, false);
+				if (hasRestriction != 0) {
+					if (!inreaList) {
+						AddPopupListElement("Send REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
+					}
+					else {
+						AddPopupListElement("Remove from REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
+					}
 				}
 				else {
-					AddPopupListElement("Remove from REA MSG", "", TAG_FUNC_TOGGLEREAMSG, false, 2, false);
+					AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
 				}
 			}
-			else {
-				AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
-			}
 		}
-
-
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_TOBT) {
-		OpenPopupList(Area, "TOBT Options", 1);
-		AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
-		AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+		if (master && AtcMe) {
+			OpenPopupList(Area, "TOBT Options", 1);
+			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+			AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+		}
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_EOBT) {
-		OpenPopupList(Area, "EOBT Options", 1);
-		AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+		if (master && AtcMe) {
+			OpenPopupList(Area, "EOBT Options", 1);
+			AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+		}
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_TSAC) {
-		OpenPopupList(Area, "TSAC Options", 1);
-		string tsacvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
-		if (tsacvalue.empty()) {
-			AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+		if (master && AtcMe) {
+			OpenPopupList(Area, "TSAC Options", 1);
+			string tsacvalue = fp.GetControllerAssignedData().GetFlightStripAnnotation(2);
+			if (tsacvalue.empty()) {
+				AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+			}
+			else {
+				AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+			}
+			AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
 		}
-		else {
-			AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
-		}
-		AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
 	}
 
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
@@ -827,12 +860,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			for (int i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
-					if (!slotList[i].hasCtot) {
-						myttot = slotList[i].ttot.substr(0, 4);
-					}
-					else {
-						sendMessage("Unable to assign CDT due to CTOT");
-					}
+					myttot = slotList[i].ttot.substr(0, 4);
 				}
 			}
 			if (!myttot.empty()) {
@@ -844,7 +872,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_SETCUSTOMCDT) {
 		if (master && AtcMe) {
 			//only before start-up/push back
-			if ((string)fp.GetGroundState() == "STUP" || (string)fp.GetGroundState() == "ST-UP" || (string)fp.GetGroundState() == "PUSH" || (string)fp.GetGroundState() == "TAXI" || (string)fp.GetGroundState() == "DEPA") {
+			if ((string)fp.GetGroundState() != "STUP" || (string)fp.GetGroundState() != "ST-UP" || (string)fp.GetGroundState() != "PUSH" || (string)fp.GetGroundState() != "TAXI" || (string)fp.GetGroundState() != "DEPA") {
 				string editedCDT = ItemString;
 				bool hasNoNumber = true;
 				if (editedCDT.length() == 4) {
