@@ -823,14 +823,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_EDITCDT) {
 		if (master && AtcMe) {
-			//-------------------------------------------
-			//only before start-up/push back
-
-			//If has CTOT -> introducted CDT within the CTOT window (-5 to +10)
-
-			// at the earlierst at present time + EXOT
-
-			//-------------------------------------------
 			string myttot;
 			for (int i = 0; i < slotList.size(); i++)
 			{
@@ -851,27 +843,44 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_SETCUSTOMCDT) {
 		if (master && AtcMe) {
-			string editedCDT = ItemString;
-			bool hasNoNumber = true;
-			if (editedCDT.length() == 4) {
-				for (int i = 0; i < editedCDT.length(); i++) {
-					if (isdigit(editedCDT[i]) == false) {
-						hasNoNumber = false;
+			//only before start-up/push back
+			if ((string)fp.GetGroundState() == "STUP" || (string)fp.GetGroundState() == "ST-UP" || (string)fp.GetGroundState() == "PUSH" || (string)fp.GetGroundState() == "TAXI" || (string)fp.GetGroundState() == "DEPA") {
+				string editedCDT = ItemString;
+				bool hasNoNumber = true;
+				if (editedCDT.length() == 4) {
+					for (int i = 0; i < editedCDT.length(); i++) {
+						if (isdigit(editedCDT[i]) == false) {
+							hasNoNumber = false;
+						}
 					}
-				}
-				if (hasNoNumber) {
-					string callsign = fp.GetCallsign();
-					string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
-					if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
-						double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
-						double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-						string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
-						string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
-						fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0,4).c_str());
-						for (int i = 0; i < slotList.size(); i++)
-						{
-							if (slotList[i].callsign == fp.GetCallsign()) {
-								slotList[i].hasCdt = true;
+					if (hasNoNumber) {
+						string callsign = fp.GetCallsign();
+						//If has CTOT -> introducted CDT within the CTOT window (-5 to +10)
+						bool checked = true;
+						for (Plane p : slotList) {
+							if (p.callsign == callsign && p.hasCtot) {
+								if (!checkCtotInRange(p)) {
+									checked = false;
+								}
+							}
+						}
+						if (checked) {
+							string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
+							if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+								double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+								double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+								string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+								string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
+								// at the earlierst at present time + EXOT
+								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+									fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
+									for (int i = 0; i < slotList.size(); i++)
+									{
+										if (slotList[i].callsign == fp.GetCallsign()) {
+											slotList[i].hasCdt = true;
+										}
+									}
+								}
 							}
 						}
 					}
@@ -4390,6 +4399,30 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 	string timeFinal = hourFinal + minsFinal + secFinal;
 
 	return timeFinal;
+}
+
+bool CDM::checkCtotInRange(Plane plane) {
+	if (plane.hasCtot) {
+		if (plane.ctot.size() == 4 && plane.ttot.size() > 4) {
+			string CTOThour = plane.ctot.substr(0, 2);
+			string CTOTmin = plane.ctot.substr(2, 2);
+			string TTOThour = plane.ttot.substr(0, 2);
+			string TTOTmin = plane.ttot.substr(2, 2);
+			int difTime = GetdifferenceTime(CTOThour, CTOTmin, TTOThour, TTOTmin);
+			if (TTOThour != CTOThour) {
+				if (difTime <= 45 && difTime >= -55) {
+					return true;
+				}
+			}
+			else {
+				if (difTime <= 5 && difTime >= -15) {
+					return true;
+				}
+			}
+		}
+	}
+
+	return false;
 }
 
 void CDM::toggleReaMsg(CFlightPlan fp, bool deleteIfExist)

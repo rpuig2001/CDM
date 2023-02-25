@@ -96,6 +96,8 @@ public:
 
 	string calculateTime(string timeString, double minsToAdd);
 
+	bool checkCtotInRange(Plane plane);
+
 	string calculateLessTime(string timeString, double minsToAdd);
 
 	string GetTimeNow();
