@@ -107,9 +107,7 @@ CDM includes the following times:
   - color12 = CHANGES TOBT, TSAT and ASAT to the defined color WHEN S/U STATUS IS SET
  
 ### CDMconfig.xml
-  - Select CTOT option (``ctot option="callsign or cid"``):
-    - "callsign": It gets CTOT if the callsign is the same as the defined in ctot.txt (ex. defaultRate option="VLG11A,2213").
-    - "cid": It gets CTOT if the cid is the same as the defined in ctot.txt (ex. defaultRate option="XXXXXX,2213").
+  - Select CTOT option (``Ctot code="<VATCAN_CODE>"``), if not using CTOTs, please leave it empty (``Ctot code=""``).
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
@@ -125,9 +123,6 @@ CDM includes the following times:
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank if not in use "".
- 
-### ctot.txt
-  - Add CTOTs which will be imported on Euroscope start-up or with the command ".cdm ctot". Add CTOTs with the following format: ``CALLSIGN,CTOT`` or ``XXXXXX,CTOT``, ex: ``XXXXXX,1745`` - XXXXXX is vatsim user's CID or ``VLG11P,1745`` (Each line has an aircraft)
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``, ex:``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``, if no taxizone defined, the default taxi time is set to 15 min.
