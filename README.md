@@ -263,7 +263,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Colors:
     - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> Default.
   - TEXT SHOWING:
-    - P: EOBT is farther than the Actual Time - 35min.
+    - P: EOBT is farther than the Actual Time - 35min. TSAT, TTOT and TOBT will be showing the following character "~~" (To order them to the end of the list).
     - C: EOBT is less than 35min and TOBT hasn't expired (TOBT+6) or TSAT hasn't expired (TSAT+6).
     - I: TSAT has expired.
 
@@ -277,10 +277,10 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
 - Column TTOT: The plugin calculates a TSAT based on this column, the TTOT, you can't have planes with same TTOT, the time between departures is calculated from the rate/hour. So if you need 40 departures/hour, the plugin will calculate it for you with no equal TTOTs.
   - Functions:
-    - NO FUNCTIONS.
+    - ``Set actual TTOT as CDT`` -> Sets TTOT as CDT.
+    - ``Edit/Set custom CDT`` -> Sets CDT as desired.
   - Colors:
     - ``color9`` -> Default.
-    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> CDT applies.
 
 - Column TSAC: With the left click you can directly set the tsat and with the right click you can remove it or set the time you want. If this field is +/- 5min that the TSAT, the color change to orange to indicate that his TSAT has changed more than 5min.
   - Functions:
