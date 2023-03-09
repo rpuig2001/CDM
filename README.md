@@ -1,4 +1,4 @@
-# CDM plugin V2.1
+# CDM plugin V2.2
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 CDM includes the following times:
 - EOBT: Estimated off block time.
