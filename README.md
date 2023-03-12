@@ -217,7 +217,6 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 ## Commands
 - ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
 - ``.cdm refresh`` - Force the refresh phase to do it now.
-- ``.cdm ctot`` - Loads ctot.txt data.
 - ``.cdm save`` - Saves data to savedData.txt.
 - ``.cdm load`` - Loads savedData.txt.
 - ``.cdm master {airport}`` - Become the master of the selected airport.
