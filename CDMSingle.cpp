@@ -812,8 +812,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 
 			//Send REA MSG if CTOT
-			for (Plane p : slotList) {
-				if (p.callsign == fp.GetCallsign() && p.hasCtot && p.hasRestriction != 0) {
+			for (int i = 0; i < slotList.size(); i++) {
+				if ((string)fp.GetCallsign() == slotList[i].callsign && slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
+					slotList[i].hasCtot = false;
+					slotList[i].ctot = "";
+					slotList[i].hasRestriction = 0;
+
 					toggleReaMsg(fp, false);
 				}
 			}
@@ -3820,7 +3824,7 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					}
 				}
 
-				if (hasCTOT) {
+				if (hasCTOT && hasRestriction == 0) {
 					bool found = false;
 					while (!found) {
 						found = true;
