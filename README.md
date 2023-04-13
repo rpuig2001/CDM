@@ -115,7 +115,6 @@ CDM includes the following times:
   - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
-  - [OPTIONAL] Ctots URL (ex. Ctot url="https://........"), if no URL needed, just leave it blank (ex. Ctot url="") and the file will be used.
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
