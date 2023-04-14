@@ -37,7 +37,7 @@ bool remarksOption;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
-string ctotCode;
+string ctotURL;
 string flowRestrictionsUrl;
 int defTaxiTime;
 string cadUrl;
@@ -204,7 +204,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	rateUrl = getFromXml("/CDM/Rates/@url");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
-	ctotCode = getFromXml("/CDM/Ctot/@code");
+	ctotURL = getFromXml("/CDM/Ctot/@url");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
@@ -275,7 +275,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 
 	//Get Values from ctot web or file
-	if (ctotCode.length() <= 1) {
+	if (ctotURL.length() <= 1) {
 		ctotCid = false;
 		if (debugMode) {
 			sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
@@ -294,7 +294,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		if (debugMode) {
 			sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
 		}
-		getCtotsFromUrl(ctotCode);
+		getCtotsFromUrl(ctotURL);
 	}
 
 	fstream fileColors;
@@ -898,6 +898,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						editedCDT = evCtots[i][1];
 					}
 				}
+
 				if (hasEvCTOT) {
 					bool hasNoNumber = true;
 					if (editedCDT.length() == 4) {
@@ -906,34 +907,36 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								hasNoNumber = false;
 							}
 						}
+
 						if (hasNoNumber) {
 							string callsign = fp.GetCallsign();
-							//If has CTOT -> introducted CDT within the CTOT window (-5 to +10)
-							bool checked = true;
-							for (Plane p : slotList) {
-								if (p.callsign == callsign && p.hasCtot) {
-									if (!checkCtotInRange(p)) {
-										checked = false;
-									}
-								}
-							}
-							if (checked) {
-								string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
-								if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
-									double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
-									double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-									string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
-									string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
-									// at the earlierst at present time + EXOT
-									if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
-										fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
-										for (int i = 0; i < slotList.size(); i++)
-										{
-											if (slotList[i].callsign == fp.GetCallsign()) {
-												slotList[i].hasCdt = true;
-											}
+							string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
+							if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+								double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+								double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+								string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+								string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
+								// at the earlierst at present time + EXOT
+								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+									fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
+									for (int i = 0; i < slotList.size(); i++)
+									{
+										if (slotList[i].callsign == fp.GetCallsign()) {
+											slotList[i].hasCdt = true;
 										}
 									}
+									//Add to not modify TOBT if EOBT changes List
+									bool foundInEobtTobtList = false;
+									for (int i = 0; i < difeobttobtList.size(); i++) {
+										if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+											foundInEobtTobtList = true;
+										}
+									}
+									if (!foundInEobtTobtList) {
+										difeobttobtList.push_back(fp.GetCallsign());
+									}
+									//Update times to slaves
+									countTime = stoi(GetTimeNow()) - refreshTime;
 								}
 							}
 						}
@@ -5119,7 +5122,7 @@ int CDM::GetVersion() {
 bool CDM::getCtotsFromUrl(string code)
 {
 	evCtots.clear();
-	string vatcanUrl = "https://bookings.vatcan.ca/api/event/" + code;
+	string vatcanUrl = code;
 	CURL* curl;
 	CURLcode res;
 	std::string readBuffer;
@@ -5139,22 +5142,13 @@ bool CDM::getCtotsFromUrl(string code)
 		sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 	}
 	else {
-		Json::Reader reader;
-		Json::Value obj;
-		Json::FastWriter fastWriter;
-		reader.parse(readBuffer, obj);
+		std::istringstream is(readBuffer);
 
-		const Json::Value& data = obj;
-		for (int i = 0; i < data.size(); i++) {
-			//Get Id
-			string cid = fastWriter.write(data[i]["cid"]);
-			cid = cid.substr(0, cid.find("\"", 1));
-			cid.erase(std::remove(cid.begin(), cid.end(), '"'));
-			//Get Ident
-			string slot = fastWriter.write(data[i]["slot"]);
-			slot.erase(std::remove(slot.begin(), slot.end(), '"'));
-			slot = slot.substr(0, 4);
-			addVatcanCtotToEvCTOT(cid, slot);
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			addVatcanCtotToEvCTOT(lineValue);
 		}
 	}
 
@@ -5442,8 +5436,8 @@ bool CDM::addCtotToMainList(string lineValue) {
 	}
 }
 
-void CDM::addVatcanCtotToEvCTOT(string callsign, string slot) {
-	evCtots.push_back({ callsign, slot });
+void CDM::addVatcanCtotToEvCTOT(string line) {
+	evCtots.push_back({ line.substr(0,line.find(",")), line.substr(line.find(",")+1, 4)});
 }
 
 /*
@@ -5590,7 +5584,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		getCADvalues();
 
-		if (ctotCode.length() <= 1) {
+		if (ctotURL.length() <= 1) {
 			ctotCid = false;
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
@@ -5609,7 +5603,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
 			}
-			getCtotsFromUrl(ctotCode);
+			getCtotsFromUrl(ctotURL);
 		}
 
 		fstream fileColors;
@@ -5839,7 +5833,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		sendMessage("Loading CTOTs data....");
 
-		if (ctotCode.length() <= 1) {
+		if (ctotURL.length() <= 1) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
 			}
@@ -5856,7 +5850,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
 			}
-			getCtotsFromUrl(ctotCode);
+			getCtotsFromUrl(ctotURL);
 		}
 
 		return true;

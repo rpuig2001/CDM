@@ -207,7 +207,7 @@ public:
 
 	bool addCtotToMainList(string lineValue);
 
-	void addVatcanCtotToEvCTOT(string callsign, string slot);
+	void addVatcanCtotToEvCTOT(string line);
 
 	void addVatcanCtotToMainList(string callsign, string slot);
 
