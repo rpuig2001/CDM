@@ -65,6 +65,7 @@ vector<string> difeobttobtList;
 vector<string> reaSent;
 vector<string> reaCTOTSent;
 vector<CAD> CADvalues;
+vector<vector<string>> evCtots;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -145,6 +146,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
 	RegisterTagItemFunction("CTOT Options", TAG_FUNC_CTOTOPTIONS);
 	RegisterTagItemFunction("Get FM as text", TAG_FUNC_FMASTEXT);
+
+	// Register Tag Item "CDM-EVENT-CTOT"
+	RegisterTagItemType("EV-CTOT", TAG_ITEM_EV_CTOT);
+	RegisterTagItemFunction("EvCTOT Options", TAG_FUNC_OPT_EvCTOT);
+	RegisterTagItemFunction("EvCTOT to CDT", TAG_FUNC_EvCTOTtoCDT);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -272,21 +278,21 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	if (ctotCode.length() <= 1) {
 		ctotCid = false;
 		if (debugMode) {
-			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
+			sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
 		}
 		//Get data from .txt file
-		fstream fileCtot;
+		/*fstream fileCtot;
 		string lineValueCtot;
 		fileCtot.open(cfad.c_str(), std::ios::in);
 		while (getline(fileCtot, lineValueCtot))
 		{
 			addCtotToMainList(lineValueCtot);
-		}
+		}*/
 	}
 	else {
 		ctotCid = true;
 		if (debugMode) {
-			sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM VATCAN CODE");
+			sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
 		}
 		getCtotsFromUrl(ctotCode);
 	}
@@ -807,6 +813,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
+	else if (FunctionId == TAG_FUNC_OPT_EvCTOT) {
+	if (master && AtcMe) {
+		OpenPopupList(Area, "Event CTOT Options", 1);
+		AddPopupListElement("Add Event CTOT as CDT", "", TAG_FUNC_EvCTOTtoCDT, false, 2, false);
+	}
+	}
+
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
@@ -869,6 +882,63 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 			if (!myttot.empty()) {
 				OpenPopupEdit(Area, TAG_FUNC_SETCUSTOMCDT, myttot.c_str());
+			}
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_EvCTOTtoCDT) {
+		if (master && AtcMe) {
+			//only before start-up/push back
+			if ((string)fp.GetGroundState() != "STUP" || (string)fp.GetGroundState() != "ST-UP" || (string)fp.GetGroundState() != "PUSH" || (string)fp.GetGroundState() != "TAXI" || (string)fp.GetGroundState() != "DEPA") {
+				bool hasEvCTOT = false;
+				string editedCDT = "";
+				for (int i = 0; i < evCtots.size(); i++) {
+					if (evCtots[i][0] == fp.GetCallsign()) {
+						hasEvCTOT = true;
+						editedCDT = evCtots[i][1];
+					}
+				}
+				if (hasEvCTOT) {
+					bool hasNoNumber = true;
+					if (editedCDT.length() == 4) {
+						for (int i = 0; i < editedCDT.length(); i++) {
+							if (isdigit(editedCDT[i]) == false) {
+								hasNoNumber = false;
+							}
+						}
+						if (hasNoNumber) {
+							string callsign = fp.GetCallsign();
+							//If has CTOT -> introducted CDT within the CTOT window (-5 to +10)
+							bool checked = true;
+							for (Plane p : slotList) {
+								if (p.callsign == callsign && p.hasCtot) {
+									if (!checkCtotInRange(p)) {
+										checked = false;
+									}
+								}
+							}
+							if (checked) {
+								string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
+								if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+									double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+									double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+									string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+									string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
+									// at the earlierst at present time + EXOT
+									if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+										fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
+										for (int i = 0; i < slotList.size(); i++)
+										{
+											if (slotList[i].callsign == fp.GetCallsign()) {
+												slotList[i].hasCdt = true;
+											}
+										}
+									}
+								}
+							}
+						}
+					}
+				}
 			}
 		}
 	}
@@ -1072,6 +1142,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			//If using vatcan Code
+			/*
 			if (ctotCid) {
 				bool ctotValidated = false;
 				for (int i = 0; i < CTOTcheck.size(); i++) {
@@ -1098,7 +1169,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					CTOTcheck.push_back(callsign);
 				}
-			}
+			}*/
 
 			bool isValidToCalculateEventMode = false;
 			string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
@@ -1499,13 +1570,36 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (hasCtot) {
-								if (!inreaList) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_RED;
+								}
+								else if (!inreaList) {
 									ItemRGB = TAG_CTOT;
 								}
 								else {
 									ItemRGB = TAG_YELLOW;
 								}
 								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
+							}
+							else if(aircraftFind) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_ORANGE;
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0,4).c_str());
+								}
+							}
+						}
+						else if (ItemCode == TAG_ITEM_EV_CTOT) {
+							bool inEvCtotsList = false;
+							string slot = "";
+							for (int i = 0; i < evCtots.size(); i++) {
+								if (evCtots[i][0] == callsign) {
+									inEvCtotsList = true;
+									slot = evCtots[i][1];
+								}
+							}
+							if (inEvCtotsList) {
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
 					}
@@ -2604,13 +2698,36 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (hasCtot) {
-								if (!inreaList) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_RED;
+								}
+								else if (!inreaList) {
 									ItemRGB = TAG_CTOT;
 								}
 								else {
 									ItemRGB = TAG_YELLOW;
 								}
 								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
+							}
+							else if (aircraftFind) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_ORANGE;
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+							}
+						}
+						else if (ItemCode == TAG_ITEM_EV_CTOT) {
+							bool inEvCtotsList = false;
+							string slot = "";
+							for (int i = 0; i < evCtots.size(); i++) {
+								if (evCtots[i][0] == callsign) {
+									inEvCtotsList = true;
+									slot = evCtots[i][1];
+								}
+							}
+							if (inEvCtotsList) {
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
 
@@ -3211,13 +3328,36 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (hasCtot) {
-								if (!inreaList) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_RED;
+								}
+								else if (!inreaList) {
 									ItemRGB = TAG_CTOT;
 								}
 								else {
 									ItemRGB = TAG_YELLOW;
 								}
 								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
+							}
+							else if (aircraftFind) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_ORANGE;
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+							}
+						}
+						else if (ItemCode == TAG_ITEM_EV_CTOT) {
+							bool inEvCtotsList = false;
+							string slot = "";
+							for (int i = 0; i < evCtots.size(); i++) {
+								if (evCtots[i][0] == callsign) {
+									inEvCtotsList = true;
+									slot = evCtots[i][1];
+								}
+							}
+							if (inEvCtotsList) {
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
 					}
@@ -3244,13 +3384,36 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (hasCtot) {
-								if (!inreaList) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_RED;
+								}
+								else if (!inreaList) {
 									ItemRGB = TAG_CTOT;
 								}
 								else {
 									ItemRGB = TAG_YELLOW;
 								}
 								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
+							}
+							else if (aircraftFind) {
+								if (slotList[pos].hasCdt) {
+									ItemRGB = TAG_ORANGE;
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+							}
+						}
+						else if (ItemCode == TAG_ITEM_EV_CTOT) {
+							bool inEvCtotsList = false;
+							string slot = "";
+							for (int i = 0; i < evCtots.size(); i++) {
+								if (evCtots[i][0] == callsign) {
+									inEvCtotsList = true;
+									slot = evCtots[i][1];
+								}
+							}
+							if (inEvCtotsList) {
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
 					}
@@ -3281,13 +3444,36 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					if (hasCtot) {
-						if (!inreaList) {
+						if (slotList[pos].hasCdt) {
+							ItemRGB = TAG_RED;
+						}
+						else if (!inreaList) {
 							ItemRGB = TAG_CTOT;
 						}
 						else {
 							ItemRGB = TAG_YELLOW;
 						}
 						strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
+					}
+					else if (aircraftFind) {
+						if (slotList[pos].hasCdt) {
+							ItemRGB = TAG_ORANGE;
+							strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+						}
+					}
+				}
+				else if (ItemCode == TAG_ITEM_EV_CTOT) {
+					bool inEvCtotsList = false;
+					string slot = "";
+					for (int i = 0; i < evCtots.size(); i++) {
+						if (evCtots[i][0] == callsign) {
+							inEvCtotsList = true;
+							slot = evCtots[i][1];
+						}
+					}
+					if (inEvCtotsList) {
+						ItemRGB = TAG_GREY;
+						strcpy_s(sItemString, 16, slot.c_str());
 					}
 				}
 			}
@@ -4932,6 +5118,7 @@ int CDM::GetVersion() {
 
 bool CDM::getCtotsFromUrl(string code)
 {
+	evCtots.clear();
 	string vatcanUrl = "https://bookings.vatcan.ca/api/event/" + code;
 	CURL* curl;
 	CURLcode res;
@@ -4960,12 +5147,14 @@ bool CDM::getCtotsFromUrl(string code)
 		const Json::Value& data = obj;
 		for (int i = 0; i < data.size(); i++) {
 			//Get Id
-			int cid = stoi(fastWriter.write(data[i]["cid"]));
+			string cid = fastWriter.write(data[i]["cid"]);
+			cid = cid.substr(0, cid.find("\"", 1));
+			cid.erase(std::remove(cid.begin(), cid.end(), '"'));
 			//Get Ident
 			string slot = fastWriter.write(data[i]["slot"]);
 			slot.erase(std::remove(slot.begin(), slot.end(), '"'));
 			slot = slot.substr(0, 4);
-			addVatcanCtotToMainList(to_string(cid), slot);
+			addVatcanCtotToEvCTOT(cid, slot);
 		}
 	}
 
@@ -5253,6 +5442,13 @@ bool CDM::addCtotToMainList(string lineValue) {
 	}
 }
 
+void CDM::addVatcanCtotToEvCTOT(string callsign, string slot) {
+	evCtots.push_back({ callsign, slot });
+}
+
+/*
+* NOT IN USE ANYMORE
+* */
 void CDM::addVatcanCtotToMainList(string callsign, string slot) {
 	Flow myFlow;
 	//Get Time now
@@ -5397,21 +5593,21 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		if (ctotCode.length() <= 1) {
 			ctotCid = false;
 			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
+				sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
 			}
 			//Get data from .txt file
-			fstream fileCtot;
+			/*fstream fileCtot;
 			string lineValueCtot;
 			fileCtot.open(cfad.c_str(), std::ios::in);
 			while (getline(fileCtot, lineValueCtot))
 			{
 				addCtotToMainList(lineValueCtot);
-			}
+			}*/
 		}
 		else {
 			ctotCid = true;
 			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM VATCAN CODE");
+				sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
 			}
 			getCtotsFromUrl(ctotCode);
 		}
@@ -5645,20 +5841,20 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		if (ctotCode.length() <= 1) {
 			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM LOCAL TXT FILE");
+				sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
 			}
 			//Get data from .txt file
-			fstream fileCtot;
+			/*fstream fileCtot;
 			string lineValueCtot;
 			fileCtot.open(cfad.c_str(), std::ios::in);
 			while (getline(fileCtot, lineValueCtot))
 			{
 				addCtotToMainList(lineValueCtot);
-			}
+			}*/
 		}
 		else {
 			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING CTOTs FROM URL");
+				sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
 			}
 			getCtotsFromUrl(ctotCode);
 		}

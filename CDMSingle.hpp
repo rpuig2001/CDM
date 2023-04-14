@@ -207,6 +207,8 @@ public:
 
 	bool addCtotToMainList(string lineValue);
 
+	void addVatcanCtotToEvCTOT(string callsign, string slot);
+
 	void addVatcanCtotToMainList(string callsign, string slot);
 
 	bool OnCompileCommand(const char* sCommandLine);
