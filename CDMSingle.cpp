@@ -2365,6 +2365,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							correctState = true;
 						}
 
+						if (oldTSAT && aircraftFind) {
+							if (slotList[pos].hasCdt || slotList[pos].hasCtot) {
+								oldTSAT = false;
+							}
+						}
+
 						if (oldTSAT && !correctState && !oldTOBT) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
 							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
@@ -3002,6 +3008,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						bool correctState = false;
 						if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
 							correctState = true;
+						}
+
+						if (oldTSAT && aircraftFind) {
+							if (slotList[pos].hasCdt || slotList[pos].hasCtot) {
+								oldTSAT = false;
+							}
 						}
 
 						if (oldTSAT && !correctState ) {
