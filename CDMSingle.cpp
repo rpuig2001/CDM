@@ -379,6 +379,14 @@ void CDM::sendMessage(string message) {
 	DisplayUserMessage(MY_PLUGIN_NAME, "", message.c_str(), true, true, true, false, false);
 }
 
+/*
+void CDM::OnRefresh(HDC hDC, int Phase) {
+	if (!masterAirports.empty() && !ControllerMyself().IsController()) {
+		sendMessage("Disconnected, removing master airports...");
+		masterAirports.clear();
+	}
+}*/
+
 //
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
 	CFlightPlan fp = FlightPlanSelectASEL();

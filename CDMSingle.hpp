@@ -201,6 +201,8 @@ public:
 
 	virtual void sendMessage(string message);
 
+	void OnRefresh(HDC hDC, int Phase);
+
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
