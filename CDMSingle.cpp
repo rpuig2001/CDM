@@ -2786,7 +2786,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (remarksOption) {
 									string testTsat = slotList[i].tsat;
 									if (testTsat.length() >= 4) {
-										FlightPlanSelect(slotList[i].callsign.c_str()).GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
+										if (
+											(string)FlightPlanSelect(slotList[i].callsign.c_str()).GetGroundState() != "STUP" &&
+											(string)FlightPlanSelect(slotList[i].callsign.c_str()).GetGroundState() != "ST-UP" &&
+											(string)FlightPlanSelect(slotList[i].callsign.c_str()).GetGroundState() != "PUSH" &&
+											(string)FlightPlanSelect(slotList[i].callsign.c_str()).GetGroundState() != "TAXI" &&
+											(string)FlightPlanSelect(slotList[i].callsign.c_str()).GetGroundState() != "DEPA")
+										{
+											FlightPlanSelect(slotList[i].callsign.c_str()).GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
+										}
 									}
 								}
 
