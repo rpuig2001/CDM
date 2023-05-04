@@ -41,6 +41,7 @@ string ctotURL;
 string flowRestrictionsUrl;
 int defTaxiTime;
 string cadUrl;
+string myCallsign;
 
 //Ftp data
 string ftpHost;
@@ -228,6 +229,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Init reamrksOption
 	remarksOption = false;
 
+	//Initialize with empty callsign
+	myCallsign = "";
+
 
 	//Get CAD values
 	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
@@ -378,14 +382,6 @@ void CDM::sendMessage(string type, string message) {
 void CDM::sendMessage(string message) {
 	DisplayUserMessage(MY_PLUGIN_NAME, "", message.c_str(), true, true, true, false, false);
 }
-
-/*
-void CDM::OnRefresh(HDC hDC, int Phase) {
-	if (!masterAirports.empty() && !ControllerMyself().IsController()) {
-		sendMessage("Disconnected, removing master airports...");
-		masterAirports.clear();
-	}
-}*/
 
 //
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
@@ -1105,6 +1101,16 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
 {
+	//Check master status
+	if (myCallsign != ControllerMyself().GetCallsign()) {
+		if (myCallsign == "") {
+			myCallsign = ControllerMyself().GetCallsign();
+		}
+		else {
+			RemoveMasterAirports();
+		}
+	}
+
 	COLORREF ItemRGB = 0xFFFFFFFF;
 	string callsign = FlightPlan.GetCallsign();
 
@@ -3898,6 +3904,14 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
 		}
 	}
 	return Rate("-1");
+}
+
+void CDM::RemoveMasterAirports() {
+	if (!masterAirports.empty()) {
+		sendMessage("Reconected with a new callsign, removing master airports...");
+		masterAirports.clear();
+		myCallsign = ControllerMyself().GetCallsign();
+	}
 }
 
 bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
