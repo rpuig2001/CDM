@@ -1092,7 +1092,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	string tsat = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(3);
-	if (!tsat.find("%")) {
+	if (tsat.find("%")) {
 		disconnectionList.push_back(FlightPlan.GetCallsign());
 		countTfcDisconnection = stoi(GetTimeNow());
 	}
