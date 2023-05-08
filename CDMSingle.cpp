@@ -826,6 +826,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
+			//SET SU_ISSET
+			fp.GetControllerAssignedData().SetFlightStripAnnotation(4, "SU_WAIT");
+
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 
 			//Send REA MSG if CTOT
