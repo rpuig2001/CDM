@@ -5596,7 +5596,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		getCADvalues();
 		return true;
 	}
-
+	/**
+	* COMMAND DISABLED
+	/
 	if (startsWith(".cdm reload", sCommandLine))
 	{
 		sendMessage("Reloading CDM....");
@@ -5623,12 +5625,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		rateString = getFromXml("/CDM/rate/@ops");
 		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
+		string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
 		string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 		flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 		debugMode = false;
 		if (stringDebugMode == "true") {
 			debugMode = true;
 			sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
+		}
+
+		invalidateTSAT_Option = true;
+		if (invalidateTSAT_OptionStr == "false") {
+			invalidateTSAT_Option = false;
 		}
 
 		lvo = false;
@@ -5753,6 +5761,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Done");
 		return true;
 	}
+	*/
 
 	if (startsWith(".cdm refreshtime", sCommandLine)) {
 		string line = sCommandLine;
