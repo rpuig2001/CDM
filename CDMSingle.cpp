@@ -34,6 +34,7 @@ bool lvo;
 bool ctotCid;
 bool realMode;
 bool remarksOption;
+bool invalidateTSAT_Option;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
@@ -206,6 +207,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rateUrl = getFromXml("/CDM/Rates/@url");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	ctotURL = getFromXml("/CDM/Ctot/@url");
+	string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
@@ -221,6 +223,12 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	realMode = false;
 	if (realModeStr == "true") {
 		realMode = true;
+	}
+
+	//Invalidate FP at TSAT+6
+	invalidateTSAT_Option = true;
+	if (invalidateTSAT_OptionStr == "false") {
+		invalidateTSAT_Option = false;
 	}
 
 	//Flow Data
@@ -2395,7 +2403,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						if (oldTSAT && !correctState && !oldTOBT) {
+						if (oldTSAT && !correctState && !oldTOBT && invalidateTSAT_Option) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
 							FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 							if (remarks.find("CTOT") != string::npos) {
