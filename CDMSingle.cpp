@@ -3934,19 +3934,19 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
 				myActiveRwysArr.push_back(runway.GetRunwayName(1));
 			}
 		}
-		else if (runway.IsElementActive(false, 0)) {
+		if (runway.IsElementActive(false, 0)) {
 			myairport = runway.GetAirportName();
 			if (myairport.substr(0, 4) == airport) {
 				myActiveRwysArr.push_back(runway.GetRunwayName(0));
 			}
 		}
-		else if (runway.IsElementActive(true, 1)) {
+		if (runway.IsElementActive(true, 1)) {
 			myairport = runway.GetAirportName();
 			if (myairport.substr(0, 4) == airport) {
 				myActiveRwysDep.push_back(runway.GetRunwayName(1));
 			}
 		}
-		else if (runway.IsElementActive(true, 0)) {
+		if (runway.IsElementActive(true, 0)) {
 			myairport = runway.GetAirportName();
 			if (myairport.substr(0, 4) == airport) {
 				myActiveRwysDep.push_back(runway.GetRunwayName(0));
