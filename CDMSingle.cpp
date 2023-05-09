@@ -5577,6 +5577,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		return true;
 	}
 
+	if (startsWith(".cdm flow", sCommandLine)) {
+		sendMessage("Reloading Flow data...");
+		multithread(&CDM::getFlowData);
+		return true;
+	}
+
 	if (startsWith(".cdm cad", sCommandLine)) {
 		sendMessage("Refreshing CAD...");
 		getCADvalues();
