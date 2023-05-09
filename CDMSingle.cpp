@@ -5596,6 +5596,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		getCADvalues();
 		return true;
 	}
+
 	/**
 	* COMMAND DISABLED
 	/
@@ -5687,14 +5688,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
 			}
-			//Get data from .txt file
-			/*fstream fileCtot;
-			string lineValueCtot;
-			fileCtot.open(cfad.c_str(), std::ios::in);
-			while (getline(fileCtot, lineValueCtot))
-			{
-				addCtotToMainList(lineValueCtot);
-			}*/
 		}
 		else {
 			ctotCid = true;
