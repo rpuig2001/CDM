@@ -1642,7 +1642,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string TSATfinal = "";
 							string TTOTFinal = "";
 
-							if (aircraftFind && ItemCode == TAG_ITEM_TSAT) {
+							if (aircraftFind) {
 								string tempEOBT = EOBT;
 								if (tempEOBT != slotList[pos].eobt && !hasCtot) {
 									//aircraftFind false to recalculate Times due to fp change
@@ -1962,47 +1962,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										vector<Plane> sameDestList;
 										sameDestList.clear();
 
-										//CAD check
-										if (CADapplies) {
-											if (myCad.airport != "xxxx") {
-												double seperationCAD = 60 / myCad.rate;
-												for (int z = 0; z < slotList.size(); z++)
-												{
-													string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-													if (myCad.airport == destFound) {
-														sameDestList.push_back(slotList[z]);
-													}
-												}
-
-												for (int z = 0; z < sameDestList.size(); z++)
-												{
-													CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
-													bool found = false;
-													string listTTOT = sameDestList[z].ttot;
-													string listCallsign = sameDestList[z].callsign;
-													string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-													string listAirport = fpList.GetFlightPlanData().GetOrigin();
-													while (!found) {
-														found = true;
-														if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-															found = false;
-															TTOTFinal = calculateTime(TTOTFinal, 0.5);
-															correctCAD = false;
-															CADRestrictionApplies = true;
-														}
-														else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-															found = false;
-															TTOTFinal = calculateTime(TTOTFinal, 0.5);
-															correctCAD = false;
-															CADRestrictionApplies = true;
-														}
-													}
-												}
-											}
-										}
-
-										//Check flow measures if exists once separated per rate and CAD
-										if (hasFlowMeasures == 1 && correctCAD) {
+										//Check flow measures if exists
+										if (hasFlowMeasures == 1) {
 											sameDestList.clear();
 											int seperationFlow = myFlow.value;
 											for (int z = 0; z < slotList.size(); z++)
@@ -2061,37 +2022,78 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												myCtot = formatTime(TTOTFinal);
 											}
 										}
-										//Create a CTOT if is not the first to apply CAD
-										else if (CADRestrictionApplies && hasFlowMeasures == 0 && correctCAD) {
-											vector<string> tempVect;
-											myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
-											if (aircraftFind) {
-												if (!hasCtot) {
+										else {
+											//CAD check
+											if (CADapplies) {
+												if (myCad.airport != "xxxx") {
+													double seperationCAD = 60 / myCad.rate;
+													for (int z = 0; z < slotList.size(); z++)
+													{
+														string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+														if (myCad.airport == destFound) {
+															sameDestList.push_back(slotList[z]);
+														}
+													}
+
+													for (int z = 0; z < sameDestList.size(); z++)
+													{
+														CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
+														bool found = false;
+														string listTTOT = sameDestList[z].ttot;
+														string listCallsign = sameDestList[z].callsign;
+														string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
+														string listAirport = fpList.GetFlightPlanData().GetOrigin();
+														while (!found) {
+															found = true;
+															if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
+																found = false;
+																TTOTFinal = calculateTime(TTOTFinal, 0.5);
+																correctCAD = false;
+																CADRestrictionApplies = true;
+															}
+															else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
+																found = false;
+																TTOTFinal = calculateTime(TTOTFinal, 0.5);
+																correctCAD = false;
+																CADRestrictionApplies = true;
+															}
+														}
+													}
+												}
+											}
+
+											//Create a CTOT if is not the first to apply CAD
+											if (CADRestrictionApplies && hasFlowMeasures == 0 && correctCAD) {
+												vector<string> tempVect;
+												myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
+												if (aircraftFind) {
+													if (!hasCtot) {
+														hasCtot = true;
+														slotList[pos].hasRestriction = 2;
+														slotList[pos].hasCtot = true;
+														slotList[pos].ctot = formatTime(TTOTFinal);
+														slotList[pos].flowRestriction = myFlow;
+													}
+												}
+												else {
+													hasFlowMeasures = 2;
+													myCtot = formatTime(TTOTFinal);
 													hasCtot = true;
-													slotList[pos].hasRestriction = 2;
-													slotList[pos].hasCtot = true;
-													slotList[pos].ctot = formatTime(TTOTFinal);
-													slotList[pos].flowRestriction = myFlow;
 												}
 											}
-											else {
-												hasFlowMeasures = 2;
-												myCtot = formatTime(TTOTFinal);
-												hasCtot = true;
-											}
-										}
-										else if (!CADRestrictionApplies && hasFlowMeasures == 2 && correctCAD) {
-											if (aircraftFind) {
-												if (hasCtot) {
+											else if (!CADRestrictionApplies && hasFlowMeasures == 2 && correctCAD) {
+												if (aircraftFind) {
+													if (hasCtot) {
+														hasCtot = false;
+														slotList[pos].hasRestriction = 0;
+														slotList[pos].hasCtot = false;
+														slotList[pos].ctot = "";
+													}
+												}
+												else {
+													hasFlowMeasures = 0;
 													hasCtot = false;
-													slotList[pos].hasRestriction = 0;
-													slotList[pos].hasCtot = false;
-													slotList[pos].ctot = "";
 												}
-											}
-											else {
-												hasFlowMeasures = 0;
-												hasCtot = false;
 											}
 										}
 
@@ -4202,47 +4204,8 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				vector<Plane> sameDestList;
 				sameDestList.clear();
 
-				//CAD check
-				if (CADapplies) {
-					if (myCad.airport != "xxxx") {
-						double seperationCAD = 60 / myCad.rate;
-						for (int z = 0; z < slotList.size(); z++)
-						{
-							string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-							if (myCad.airport == destFound) {
-								sameDestList.push_back(slotList[z]);
-							}
-						}
-
-						for (int z = 0; z < sameDestList.size(); z++)
-						{
-							CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
-							bool found = false;
-							string listTTOT = sameDestList[z].ttot;
-							string listCallsign = sameDestList[z].callsign;
-							string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-							string listAirport = fpList.GetFlightPlanData().GetOrigin();
-							while (!found) {
-								found = true;
-								if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-									found = false;
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctCAD = false;
-									CADRestrictionApplies = true;
-								}
-								else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-									found = false;
-									TTOTFinal = calculateTime(TTOTFinal, 0.5);
-									correctCAD = false;
-									CADRestrictionApplies = true;
-								}
-							}
-						}
-					}
-				}
-
-				//Check flow measures if exists once separated per rate and CAD
-				if (hasRestriction == 1 && correctCAD) {
+				//Check flow measures if exists
+				if (hasRestriction == 1) {
 					sameDestList.clear();
 					int seperationFlow = myFlow.value;
 					for (int z = 0; z < slotList.size(); z++)
@@ -4295,36 +4258,77 @@ bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 						}
 					}
 				}
-				//Create a CTOT if is not the first to apply CAD
-				else if (CADRestrictionApplies && hasRestriction == 0 && correctCAD) {
-					vector<string> tempVect;
-					myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
-					if (aircraftFind) {
-						if (!hasCTOT) {
+				else {
+					//CAD check
+					if (CADapplies) {
+						if (myCad.airport != "xxxx") {
+							double seperationCAD = 60 / myCad.rate;
+							for (int z = 0; z < slotList.size(); z++)
+							{
+								string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+								if (myCad.airport == destFound) {
+									sameDestList.push_back(slotList[z]);
+								}
+							}
+
+							for (int z = 0; z < sameDestList.size(); z++)
+							{
+								CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
+								bool found = false;
+								string listTTOT = sameDestList[z].ttot;
+								string listCallsign = sameDestList[z].callsign;
+								string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
+								string listAirport = fpList.GetFlightPlanData().GetOrigin();
+								while (!found) {
+									found = true;
+									if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
+										found = false;
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctCAD = false;
+										CADRestrictionApplies = true;
+									}
+									else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
+										found = false;
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctCAD = false;
+										CADRestrictionApplies = true;
+									}
+								}
+							}
+						}
+					}
+
+					//Create a CTOT if is not the first to apply CAD
+					if (CADRestrictionApplies && hasRestriction == 0 && correctCAD) {
+						vector<string> tempVect;
+						myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
+						if (aircraftFind) {
+							if (!hasCTOT) {
+								hasCTOT = true;
+								slotList[pos].hasRestriction = 2;
+								slotList[pos].hasCtot = true;
+								slotList[pos].ctot = formatTime(TTOTFinal);
+								slotList[pos].flowRestriction = myFlow;
+							}
+						}
+						else {
+							hasRestriction = 2;
 							hasCTOT = true;
-							slotList[pos].hasRestriction = 2;
-							slotList[pos].hasCtot = true;
-							slotList[pos].ctot = formatTime(TTOTFinal);
-							slotList[pos].flowRestriction = myFlow;
 						}
 					}
-					else {
-						hasRestriction = 2;
-						hasCTOT = true;
-					}
-				}
-				else if (!CADRestrictionApplies && hasRestriction == 2 && correctCAD) {
-					if (aircraftFind) {
-						if (hasCTOT) {
+					else if (!CADRestrictionApplies && hasRestriction == 2 && correctCAD) {
+						if (aircraftFind) {
+							if (hasCTOT) {
+								hasCTOT = false;
+								slotList[pos].hasRestriction = 0;
+								slotList[pos].hasCtot = false;
+								slotList[pos].ctot = "";
+							}
+						}
+						else {
+							hasRestriction = 0;
 							hasCTOT = false;
-							slotList[pos].hasRestriction = 0;
-							slotList[pos].hasCtot = false;
-							slotList[pos].ctot = "";
 						}
-					}
-					else {
-						hasRestriction = 0;
-						hasCTOT = false;
 					}
 				}
 
