@@ -22,6 +22,7 @@
     <ClInclude Include="CAD.h" />
     <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Constant.hpp" />
+    <ClInclude Include="Delay.h" />
     <ClInclude Include="Flow.h" />
     <ClInclude Include="json_tool.h" />
     <ClInclude Include="Libs\EuroScopePlugIn.h" />

@@ -119,6 +119,8 @@ public:
 
 	void addTimeToList(int timeToAdd, string minTSAT);
 
+	void addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway);
+
 	vector<Plane> recalculateSlotList(vector<Plane> mySlotList);
 
 	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);

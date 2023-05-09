@@ -3,6 +3,7 @@
 #include "pugixml.hpp"
 #include "pugixml.cpp"
 #include <thread>
+#include "Delay.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -68,6 +69,7 @@ vector<string> reaSent;
 vector<string> reaCTOTSent;
 vector<CAD> CADvalues;
 vector<vector<string>> evCtots;
+vector<Delay> delayList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -1700,39 +1702,86 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									//TTOT
 									TTOTFinal = calculateTime(TSATstring, taxiTime);
 
-									if (addTime) {
-										string timeToAddHour = myTimeToAdd.substr(0, 2);
-										string timeToAddMin = myTimeToAdd.substr(2, 2);
-										if (hour != "00") {
-											if (timeToAddHour == "00") {
-												timeToAddHour = "24";
-											}
+									bool tempAddTime_DELAY = false;
+									string myTimeToAddTemp_DELAY = "";
+									for (Delay d : delayList) {
+										if (d.airport == origin && d.rwy == depRwy) {
+											tempAddTime_DELAY = true;
+											myTimeToAddTemp_DELAY = d.time + "00";
 										}
+									}
 
-										string myTSATHour = TSATfinal.substr(0, 2);
-										string myTSATMin = TSATfinal.substr(2, 2);
-										if (hour != "00") {
-											if (myTSATHour == "00") {
-												myTSATHour = "24";
+									if (addTime || tempAddTime_DELAY) {
+										//USE DELAY GIVEN TIMES OTHERWISE USE THE DEFAULT DELAY FUNC
+										if (tempAddTime_DELAY) {
+											string timeToAddHour = myTimeToAddTemp_DELAY.substr(0, 2);
+											string timeToAddMin = myTimeToAddTemp_DELAY.substr(2, 2);
+											if (hour != "00") {
+												if (timeToAddHour == "00") {
+													timeToAddHour = "24";
+												}
 											}
-										}
 
-										int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
-										bool fixTime = true;
-										if (hour != timeToAddHour) {
-											if (difTime > 40) {
-												fixTime = false;
+											string myTSATHour = TSATfinal.substr(0, 2);
+											string myTSATMin = TSATfinal.substr(2, 2);
+											if (hour != "00") {
+												if (myTSATHour == "00") {
+													myTSATHour = "24";
+												}
+											}
+
+											int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
+											bool fixTime = true;
+											if (hour != timeToAddHour) {
+												if (difTime > 40) {
+													fixTime = false;
+												}
+											}
+											else {
+												if (difTime > 0) {
+													fixTime = false;
+												}
+											}
+
+											if (!fixTime) {
+												TSATfinal = myTimeToAddTemp_DELAY;
+												TTOTFinal = calculateTime(myTimeToAddTemp_DELAY, taxiTime);
 											}
 										}
 										else {
-											if (difTime > 0) {
-												fixTime = false;
+											string timeToAddHour = myTimeToAdd.substr(0, 2);
+											string timeToAddMin = myTimeToAdd.substr(2, 2);
+											if (hour != "00") {
+												if (timeToAddHour == "00") {
+													timeToAddHour = "24";
+												}
 											}
-										}
 
-										if (!fixTime) {
-											TSATfinal = myTimeToAdd;
-											TTOTFinal = calculateTime(myTimeToAdd, taxiTime);
+											string myTSATHour = TSATfinal.substr(0, 2);
+											string myTSATMin = TSATfinal.substr(2, 2);
+											if (hour != "00") {
+												if (myTSATHour == "00") {
+													myTSATHour = "24";
+												}
+											}
+
+											int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
+											bool fixTime = true;
+											if (hour != timeToAddHour) {
+												if (difTime > 40) {
+													fixTime = false;
+												}
+											}
+											else {
+												if (difTime > 0) {
+													fixTime = false;
+												}
+											}
+
+											if (!fixTime) {
+												TSATfinal = myTimeToAdd;
+												TTOTFinal = calculateTime(myTimeToAdd, taxiTime);
+											}
 										}
 									}
 									TSAT = TSATfinal.c_str();
@@ -2824,10 +2873,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							checkCtot();
 
-							Rate dataRate = rateForRunway(origin, depRwy);
-
 							for (int i = 0; i < slotList.size(); i++)
 							{
+
 								//Update TSAT in scratchpad if enabled remarksOption
 								if (remarksOption) {
 									string testTsat = slotList[i].tsat;
@@ -2919,42 +2967,89 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 										myEOBT = slotList[i].eobt;
 
+											Rate dataRate = rateForRunway(myFlightPlan.GetFlightPlanData().GetOrigin(), myFlightPlan.GetFlightPlanData().GetDepartureRwy());
+
+											bool tempAddTime_DELAY = false;
+											string myTimeToAddTemp_DELAY = "";
+											for (Delay d : delayList) {
+												if (d.airport == myFlightPlan.GetFlightPlanData().GetOrigin() && d.rwy == myFlightPlan.GetFlightPlanData().GetDepartureRwy()) {
+													tempAddTime_DELAY = true;
+													myTimeToAddTemp_DELAY = d.time + "00";
+												}
+											}
 										
 											myTSAT = myEOBT;
 											myTTOT = calculateTime(myEOBT, myTTime);
-											if (addTime) {
-												string timeToAddHour = myTimeToAdd.substr(0, 2);
-												string timeToAddMin = myTimeToAdd.substr(2, 2);
-												if (hour != "00") {
-													if (timeToAddHour == "00") {
-														timeToAddHour = "24";
+											if (addTime || tempAddTime_DELAY) {
+												if (tempAddTime_DELAY) {
+													string timeToAddHour = myTimeToAddTemp_DELAY.substr(0, 2);
+													string timeToAddMin = myTimeToAddTemp_DELAY.substr(2, 2);
+													if (hour != "00") {
+														if (timeToAddHour == "00") {
+															timeToAddHour = "24";
+														}
 													}
-												}
 
-												string myTSATHour = myTSAT.substr(0, 2);
-												string myTSATMin = myTSAT.substr(2, 2);
-												if (hour != "00") {
-													if (myTSATHour == "00") {
-														myTSATHour = "24";
+													string myTSATHour = myTSAT.substr(0, 2);
+													string myTSATMin = myTSAT.substr(2, 2);
+													if (hour != "00") {
+														if (myTSATHour == "00") {
+															myTSATHour = "24";
+														}
 													}
-												}
 
-												int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
-												bool fixTime = true;
-												if (hour != timeToAddHour) {
-													if (difTime > 40) {
-														fixTime = false;
+													int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
+													bool fixTime = true;
+													if (hour != timeToAddHour) {
+														if (difTime > 40) {
+															fixTime = false;
+														}
+													}
+													else {
+														if (difTime > 0) {
+															fixTime = false;
+														}
+													}
+
+													if (!fixTime) {
+														myTSAT = myTimeToAddTemp_DELAY;
+														myTTOT = calculateTime(myTimeToAddTemp_DELAY, myTTime);
 													}
 												}
 												else {
-													if (difTime > 0) {
-														fixTime = false;
+													string timeToAddHour = myTimeToAdd.substr(0, 2);
+													string timeToAddMin = myTimeToAdd.substr(2, 2);
+													if (hour != "00") {
+														if (timeToAddHour == "00") {
+															timeToAddHour = "24";
+														}
 													}
-												}
 
-												if (!fixTime) {
-													myTSAT = myTimeToAdd;
-													myTTOT = calculateTime(myTimeToAdd, myTTime);
+													string myTSATHour = myTSAT.substr(0, 2);
+													string myTSATMin = myTSAT.substr(2, 2);
+													if (hour != "00") {
+														if (myTSATHour == "00") {
+															myTSATHour = "24";
+														}
+													}
+
+													int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
+													bool fixTime = true;
+													if (hour != timeToAddHour) {
+														if (difTime > 40) {
+															fixTime = false;
+														}
+													}
+													else {
+														if (difTime > 0) {
+															fixTime = false;
+														}
+													}
+
+													if (!fixTime) {
+														myTSAT = myTimeToAdd;
+														myTTOT = calculateTime(myTimeToAdd, myTTime);
+													}
 												}
 											}
 
@@ -4782,6 +4877,39 @@ void CDM::addTimeToList(int timeToAdd, string minTSAT) {
 	slotList = mySlotList;
 }
 
+void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway) {
+	vector<Plane> mySlotList = slotList;
+
+	for (int i = 0; i < mySlotList.size(); i++) {
+		CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+		if (myFp.GetFlightPlanData().GetDepartureRwy() == runway && myFp.GetFlightPlanData().GetOrigin() == airport) {
+			if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
+				int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
+				bool ok = false;
+				if (minTSAT.substr(0, 2) == mySlotList[i].tsat.substr(0, 2)) {
+					if (difTime >= 0) {
+						ok = true;
+					}
+				}
+				else {
+					if (difTime >= 40) {
+						ok = true;
+					}
+				}
+				if (ok) {
+					mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
+					mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
+					if (mySlotList[i].hasCtot) {
+						mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
+					}
+				}
+			}
+		}
+	}
+
+	slotList = mySlotList;
+}
+
 vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
 	int slotListLength = mySlotList.size();
 	bool ordered = false;
@@ -5832,6 +5960,46 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			remarksOption = true;
 			sendMessage("Set TSAT to Scratchpad to ON");
 		}
+		return true;
+	}
+
+	if (startsWith(".cdm customdelay", sCommandLine))
+	{
+		string line = sCommandLine;
+		string apt = line.substr(line.find("/") - 4, 4);
+		string rwy = "";
+		if (line.substr(line.find("/") + 3, 1) == " ") {
+			rwy = line.substr(line.find("/") + 1, 2);
+		}
+		else if (line.substr(line.find("/") + 4, 1) == " ") {
+			rwy = line.substr(line.find("/") + 1, 3);
+		}
+		string time = line.substr(line.length() - 4, 4);
+
+		//use time 9999 to remove delay for APT/RWY config
+		if (time == "9999") {
+			for (int i = 0; i < delayList.size(); i++) {
+				if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
+					sendMessage("REMOVING DELAY " + apt + "/" + rwy);
+					delayList.erase(delayList.begin() + i);
+				}
+			}
+		}
+		else {
+			Delay d = Delay(apt, rwy, time);
+
+			int difTime = difftime(stoi(d.time), stoi(GetTimeNow().substr(0, 4)));
+
+			if (difTime > 0) {
+				sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + time + "z.");
+				delayList.push_back(d);
+				addTimeToListForSpecificAirportAndRunway(difTime, d.time, d.airport, d.time);
+			}
+			else {
+				sendMessage("DELAY NOT ADDED. Time must be in the future");
+			}
+		}
+
 		return true;
 	}
 
