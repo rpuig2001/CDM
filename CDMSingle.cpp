@@ -2641,6 +2641,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (oldTSAT) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_GREEN;
+								if (!invalidateTSAT_Option) {
+									ItemRGB = TAG_YELLOW;
+								}
 								strcpy_s(sItemString, 16, ShowTSAT.substr(0, ShowTSAT.length() - 2).c_str());
 							}
 							else {
@@ -3391,6 +3394,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else if (oldTSAT) {
 									ItemRGB = TAG_GREEN;
+									if (!invalidateTSAT_Option) {
+										ItemRGB = TAG_YELLOW;
+									}
 									strcpy_s(sItemString, 16, TSATString.substr(0, 4).c_str());
 								}
 								else {
