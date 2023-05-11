@@ -37,13 +37,14 @@ const int TAG_FUNC_OPT_EOBT = 120;
 const int TAG_FUNC_OPT_TOBT = 121;
 const int TAG_FUNC_OPT_TSAC = 122;
 const int TAG_FUNC_OPT = 123;
-const int TAG_FUNC_TOGGLECDT = 124;
-const int TAG_FUNC_SETCUSTOMCDT = 125;
+const int TAG_FUNC_REMOVEMANCTOT = 124;
+const int TAG_FUNC_EDITMANCTOT = 125;
 const int TAG_FUNC_EDITCDT = 126;
 const int TAG_FUNC_FMASTEXT = 127;
 const int TAG_FUNC_OPT_TTOT = 128;
-const int TAG_FUNC_EvCTOTtoCDT = 129;
+const int TAG_FUNC_EvCTOTtoCTOT = 129;
 const int TAG_FUNC_OPT_EvCTOT = 130;
+const int TAG_FUNC_MODIFYMANCTOT = 131;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

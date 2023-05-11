@@ -14,9 +14,9 @@ public:
 	string ctot;
 	int hasRestriction;
 	Flow flowRestriction;
-	bool hasCdt;
+	bool hasManualCtot;
 
-	Plane(string mycallsign, string myeobt, string mytsat, string myttot, bool myhasCtot, string myctot, int myhasRestriction, Flow myFlowRestriction, bool myHasCdt) :
-		callsign(mycallsign), eobt(myeobt), tsat(mytsat), ttot(myttot), hasCtot(myhasCtot), ctot(myctot), hasRestriction(myhasRestriction), flowRestriction(myFlowRestriction), hasCdt(myHasCdt) { }
+	Plane(string mycallsign, string myeobt, string mytsat, string myttot, bool myhasCtot, string myctot, int myhasRestriction, Flow myFlowRestriction, bool myHasManualCtot) :
+		callsign(mycallsign), eobt(myeobt), tsat(mytsat), ttot(myttot), hasCtot(myhasCtot), ctot(myctot), hasRestriction(myhasRestriction), flowRestriction(myFlowRestriction), hasManualCtot(myHasManualCtot) { }
 	Plane() {};
 };
