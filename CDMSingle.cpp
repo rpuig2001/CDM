@@ -5975,10 +5975,10 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else if (line.substr(line.find("/") + 4, 1) == " ") {
 			rwy = line.substr(line.find("/") + 1, 3);
 		}
-		string time = line.substr(line.length() - 4, 4);
+		string myTime = line.substr(line.length() - 4, 4);
 
-		//use time 9999 to remove delay for APT/RWY config
-		if (time == "9999") {
+		//use myTime 9999 to remove delay for APT/RWY config
+		if (myTime == "9999") {
 			for (int i = 0; i < delayList.size(); i++) {
 				if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
 					sendMessage("REMOVING DELAY " + apt + "/" + rwy);
@@ -5987,14 +5987,22 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			}
 		}
 		else {
-			Delay d = Delay(apt, rwy, time);
+			Delay d = Delay(apt, rwy, myTime);
 
-			int difTime = difftime(stoi(d.time), stoi(GetTimeNow().substr(0, 4)));
+			//Get Time now
+			time_t rawtime;
+			struct tm* ptm;
+			time(&rawtime);
+			ptm = gmtime(&rawtime);
+			string hour = to_string(ptm->tm_hour % 24);
+			string min = to_string(ptm->tm_min);
+
+			int difTime = difftime(stoi(d.time), stoi(hour + min));
 
 			if (difTime > 0) {
-				sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + time + "z.");
+				sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 				delayList.push_back(d);
-				addTimeToListForSpecificAirportAndRunway(difTime, d.time, d.airport, d.time);
+				addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
 			}
 			else {
 				sendMessage("DELAY NOT ADDED. Time must be in the future");
