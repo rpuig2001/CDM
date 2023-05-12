@@ -695,7 +695,29 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_OPT_TTOT) {
 		if (master && AtcMe) {
-			//TODO
+			OpenPopupList(Area, "TTOT Options", 1);
+			//CDT OPTIONS
+			bool planeFound = false;
+			Plane plane;
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					planeFound = true;
+					plane = slotList[i];
+				}
+			}
+
+			if (planeFound) {
+				if (plane.hasManualCtot) {
+					AddPopupListElement("Edit Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+				}
+			}
+			else {
+				AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+			}
 		}
 	}
 
@@ -743,7 +765,17 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 
-			AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+			if (planeFound) {
+				if (plane.hasManualCtot) {
+					AddPopupListElement("Edit Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+				}
+			}
+			else {
+				AddPopupListElement("Set Custom CDT", "", TAG_FUNC_EDITCDT, false, 2, false);
+			}
 
 			//CTOT OPTIONS
 			bool hasCTOT = false;
@@ -821,7 +853,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_OPT_EvCTOT) {
 	if (master && AtcMe) {
 		OpenPopupList(Area, "Event CTOT Options", 1);
-		AddPopupListElement("Add Event CTOT as CDT", "", TAG_FUNC_EvCTOTtoCTOT, false, 2, false);
+		AddPopupListElement("Add Event CTOT as MAN CTOT", "", TAG_FUNC_EvCTOTtoCTOT, false, 2, false);
 	}
 	}
 
@@ -881,7 +913,81 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_EDITCDT) {
 		if (master && AtcMe) {
-			//TODO
+			bool found = false;
+			string ttot;
+			for (int i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (!slotList[i].ttot.empty()) {
+						found = true;
+						ttot = slotList[i].ttot.substr(0, 4);
+					}
+				}
+			}
+			if (found) {
+				OpenPopupEdit(Area, TAG_FUNC_TRY_TO_SET_CDT, ttot.c_str());
+			}
+			else {
+				OpenPopupEdit(Area, TAG_FUNC_TRY_TO_SET_CDT, "");
+			}
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_TRY_TO_SET_CDT) {
+		if (master && AtcMe) {
+			//only before start-up/push back
+			if ((string)fp.GetGroundState() != "STUP" || (string)fp.GetGroundState() != "ST-UP" || (string)fp.GetGroundState() != "PUSH" || (string)fp.GetGroundState() != "TAXI" || (string)fp.GetGroundState() != "DEPA") {
+				string editedCDT = ItemString;
+				bool hasNoNumber = true;
+				if (editedCDT.length() == 4) {
+					for (int i = 0; i < editedCDT.length(); i++) {
+						if (isdigit(editedCDT[i]) == false) {
+							hasNoNumber = false;
+						}
+					}
+					if (hasNoNumber) {
+						//First, Re-order main list
+						slotList = recalculateSlotList(slotList);
+
+						string callsign = fp.GetCallsign();
+						string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
+						if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+							double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+							double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+							string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
+							// at the earlierst at present time + EXOT
+							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+								fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
+								for (int i = 0; i < slotList.size(); i++)
+								{
+									if ((string)fp.GetCallsign() == slotList[i].callsign) {
+										slotList[i].ttot = editedCDT + "00";
+										if (slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
+											slotList[i].hasCtot = false;
+											slotList[i].ctot = "";
+											slotList[i].hasRestriction = 0;
+
+											toggleReaMsg(fp, false);
+										}
+									}
+								}
+
+								//Add to not modify TOBT if EOBT changes List
+								bool foundInEobtTobtList = false;
+								for (int i = 0; i < difeobttobtList.size(); i++) {
+									if ((string)fp.GetCallsign() == difeobttobtList[i]) {
+										foundInEobtTobtList = true;
+									}
+								}
+								if (!foundInEobtTobtList) {
+									difeobttobtList.push_back(fp.GetCallsign());
+								}
+							}
+						}
+					}
+				}
+			}
 		}
 	}
 

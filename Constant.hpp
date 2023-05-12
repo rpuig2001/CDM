@@ -45,6 +45,7 @@ const int TAG_FUNC_OPT_TTOT = 128;
 const int TAG_FUNC_EvCTOTtoCTOT = 129;
 const int TAG_FUNC_OPT_EvCTOT = 130;
 const int TAG_FUNC_MODIFYMANCTOT = 131;
+const int TAG_FUNC_TRY_TO_SET_CDT = 132;
 
 inline static bool startsWith(const char* pre, const char* str)
 {
