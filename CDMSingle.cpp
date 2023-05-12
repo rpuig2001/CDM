@@ -976,7 +976,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 					if (hasNoNumber) {
 						//First, Re-order main list
-						//slotList = recalculateSlotList(slotList);
+						slotList = recalculateSlotList(slotList);
 
 						string callsign = fp.GetCallsign();
 						string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
@@ -993,7 +993,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 									if (slotList[i].callsign == fp.GetCallsign()) {
 										slotList[i].hasManualCtot = true;
 										//Delay all aircraft to adjust sequence.
-										//addTimeToListForSpecificAirportAndRunway(10, calculateTime(GetTimeNow(), 5), fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+										addTimeToListForSpecificAirportAndRunway(10, calculateTime(GetTimeNow(), 5), fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
 									}
 								}
 							}
@@ -4851,39 +4851,8 @@ void CDM::addTimeToList(int timeToAdd, string minTSAT) {
 	vector<Plane> mySlotList = slotList;
 
 	for (int i = 0; i < mySlotList.size(); i++) {
-		CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-		if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
-			int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
-			bool ok = false;
-			if (minTSAT.substr(0, 2) == mySlotList[i].tsat.substr(0, 2)) {
-				if (difTime >= 0) {
-					ok = true;
-				}
-			}
-			else {
-				if (difTime >= 40) {
-					ok = true;
-				}
-			}
-			if (ok) {
-				mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
-				mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
-				if (mySlotList[i].hasCtot) {
-					mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
-				}
-			}
-		}
-	}
-
-	slotList = mySlotList;
-}
-
-void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway) {
-	vector<Plane> mySlotList = slotList;
-
-	for (int i = 0; i < mySlotList.size(); i++) {
-		CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-		if (myFp.GetFlightPlanData().GetDepartureRwy() == runway && myFp.GetFlightPlanData().GetOrigin() == airport) {
+		if (!mySlotList[i].hasManualCtot) {
+			CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
 			if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
 				int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
 				bool ok = false;
@@ -4902,6 +4871,41 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 					mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
 					if (mySlotList[i].hasCtot) {
 						mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
+					}
+				}
+			}
+		}
+	}
+
+	slotList = mySlotList;
+}
+
+void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway) {
+	vector<Plane> mySlotList = slotList;
+
+	for (int i = 0; i < mySlotList.size(); i++) {
+		if (mySlotList[i].hasManualCtot) {
+			CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+			if (myFp.GetFlightPlanData().GetDepartureRwy() == runway && myFp.GetFlightPlanData().GetOrigin() == airport) {
+				if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
+					int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
+					bool ok = false;
+					if (minTSAT.substr(0, 2) == mySlotList[i].tsat.substr(0, 2)) {
+						if (difTime >= 0) {
+							ok = true;
+						}
+					}
+					else {
+						if (difTime >= 40) {
+							ok = true;
+						}
+					}
+					if (ok) {
+						mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
+						mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
+						if (mySlotList[i].hasCtot) {
+							mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
+						}
 					}
 				}
 			}
