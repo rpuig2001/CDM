@@ -222,10 +222,12 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
 - ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
+- ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time_start).
 - ``.cdm lvo`` - Toggle lvo ON or OFF.
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
 - ``.cdm rates`` - Updates rates values from rate.txt.
+- ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
 - ``.cdm help`` - Sends a message with the available commands.
 
 ## Functions and colors:
@@ -270,8 +272,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
 - Column TTOT: The plugin calculates a TSAT based on this column, the TTOT, you can't have planes with same TTOT, the time between departures is calculated from the rate/hour. So if you need 40 departures/hour, the plugin will calculate it for you with no equal TTOTs.
   - Functions:
-    - ``Set actual TTOT as CDT`` -> Sets TTOT as CDT.
-    - ``Edit/Set custom CDT`` -> Sets CDT as desired.
+    - ``Edit/Set custom CDT`` -> Sets CDT as desired if CDT is available (for example, if a CDT is already used by another pilot TTOT, it would not be set as it's already in use).
   - Colors:
     - ``color9`` -> Default.
 
@@ -309,3 +310,11 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Colors:
     - ``color11`` -> Default.
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REA Msg is sent.
+    - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> MANUAL/EVENT CTOT and Flow/CAD CTOT.
+
+- Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
+  - Functions:
+    - ``Add Event CTOT as MAN CTOT`` -> Set the CTOT of the tfc as a Manual CTOT (For events such as CTL or CTP).
+  - Colors:
+    - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> Default.
