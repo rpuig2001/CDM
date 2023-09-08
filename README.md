@@ -118,7 +118,7 @@ CDM includes the following times:
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
-  - [OPTIONAL] FlowRestrictions URL to the JSON file - Format is defined below (ex. FlowRestrictions url:"https://...."), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
+  - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank if not in use "".
@@ -174,11 +174,28 @@ CDM includes the following times:
 
 
 
-## Flow Restriction
+## Event CTOTs
 ### How does it work?
-Flow restrictions create CTOTs to planes afected with published MDIs from ECFMP.
-If we want to change the TOBT, we must recalculate the CTOT by pressing with "left click" the CTOT time and selecting "reload CTOT".
-The data from the API will be refreshed every 5 minutes.
+Used for the EVCTOT column with the following format: <callsign>,<CTOT>
+
+Example:
+
+``
+ETH2504,0800
+JST3,0802
+HFO184,0804
+ASY121,0806
+DTK454,0808
+QTR119,0820
+SVA247,0822
+MS47,0824
+DTK379,0828
+DHL204,0836
+QTR454,0840
+CFG1MA,0842
+UAL422,0844
+``
+
 
 ### How to use them?
 https://ecfmp.vatsim.net/api/v1/plugin should be set in the Flow Measure field of the CDMconfig.xml.
