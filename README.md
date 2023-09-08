@@ -320,7 +320,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Functions:
     - ``Send REA Msg`` -> It will be contarntly looking for a better CTOT every refreshtime when this is checked.
     - ``Remove from REA Msg`` -> It will keep ctot and will not look for a better CTOT anymore.
-    - ``Set/Remove MANUAL CTOT`` -> It creates or removes a CTOT for the user.
+    - ``Set/Remove MANUAL CTOT`` -> It creates or removes a CTOT for the user (Only CTOTs where TSAT>now+5min are allowed).
   - Colors:
     - ``color11`` -> Default.
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REA Msg is sent.
@@ -329,6 +329,6 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
   - Functions:
-    - ``Add Event CTOT as MAN CTOT`` -> Set the CTOT of the tfc as a Manual CTOT (For events such as CTL or CTP).
+    - ``Add Event CTOT as MAN CTOT`` -> Set the CTOT of the tfc as a Manual CTOT (For events such as CTL or CTP) - (CTOT will only be set when CTOTs where TSAT>now+5min).
   - Colors:
     - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> Default.
