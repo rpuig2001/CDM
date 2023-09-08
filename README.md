@@ -196,10 +196,6 @@ CFG1MA,0842
 UAL422,0844
 ``
 
-
-### How to use them?
-https://ecfmp.vatsim.net/api/v1/plugin should be set in the Flow Measure field of the CDMconfig.xml.
-
 ## FTP files and format
 ### Files
 Every airport will have a different txt file (ex. LEBL airport: CDM_data_LEBL.txt)
