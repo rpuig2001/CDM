@@ -1489,7 +1489,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 
-				if (planeHasTaxiTimeAssigned && ItemCode == TAG_ITEM_TSAT) {
+				if (planeHasTaxiTimeAssigned) {
 					if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
 						taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
 					}
@@ -4990,7 +4990,7 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 	vector<Plane> mySlotList = slotList;
 
 	for (int i = 0; i < mySlotList.size(); i++) {
-		if (mySlotList[i].hasManualCtot) {
+		if (!mySlotList[i].hasManualCtot) {
 			CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
 			if (myFp.GetFlightPlanData().GetDepartureRwy() == runway && myFp.GetFlightPlanData().GetOrigin() == airport) {
 				if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
