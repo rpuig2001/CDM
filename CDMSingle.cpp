@@ -44,6 +44,7 @@ string flowRestrictionsUrl;
 int defTaxiTime;
 string cadUrl;
 string myCallsign;
+bool option_su_wait;
 
 //Ftp data
 string ftpHost;
@@ -213,6 +214,12 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
+	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
+
+	option_su_wait = false;
+	if (opt_su_wait == "true") {
+		option_su_wait = true;
+	}
 
 	debugMode = false;
 	if (stringDebugMode == "true") {
@@ -859,8 +866,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		if (master && AtcMe) {
-			//SET SU_ISSET
-			fp.GetControllerAssignedData().SetFlightStripAnnotation(4, "SU_WAIT");
+			//SET SU_WAIT WHEN OPTION ENABLED
+			if (option_su_wait) {
+				fp.GetControllerAssignedData().SetFlightStripAnnotation(4, "SU_WAIT");
+			}
 
 			fp.GetControllerAssignedData().SetFlightStripAnnotation(0, formatTime(GetActualTime()).c_str());
 
