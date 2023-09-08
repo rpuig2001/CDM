@@ -1014,6 +1014,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						}
 
 						if (hasNoNumber) {
+							slotList = recalculateSlotList(slotList);
 							string callsign = fp.GetCallsign();
 							string depRwy = fp.GetFlightPlanData().GetDepartureRwy(); boost::to_upper(depRwy);
 							if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
@@ -1022,12 +1023,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
 								string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 								// at the earlierst at present time + EXOT
-								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+								if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
 									fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
 									for (int i = 0; i < slotList.size(); i++)
 									{
 										if (slotList[i].callsign == fp.GetCallsign()) {
 											slotList[i].hasManualCtot = true;
+											addTimeToListForSpecificAirportAndRunway(10, calculateTime(GetTimeNow(), 5), fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
 										}
 									}
 									//Add to not modify TOBT if EOBT changes List
@@ -1092,7 +1094,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
 							string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 							// at the earlierst at present time + EXOT
-							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+							if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
 								fp.GetControllerAssignedData().SetFlightStripAnnotation(0, calculatedTOBT.substr(0, 4).c_str());
 								for (int i = 0; i < slotList.size(); i++)
 								{
