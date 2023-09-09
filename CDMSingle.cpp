@@ -5663,8 +5663,17 @@ string CDM::GetTimeNow() {
 	time(&rawtime);
 	ptm = gmtime(&rawtime);
 	string hour = to_string(ptm->tm_hour % 24);
+	if (stoi(hour) < 10) {
+		hour = "0" + hour;
+	}
 	string min = to_string(ptm->tm_min);
+	if (stoi(min) < 10) {
+		min = "0" + min;
+	}
 	string sec = to_string(ptm->tm_sec);
+	if (stoi(sec) < 10) {
+		sec = "0" + sec;
+	}
 
 	return hour + min + sec;
 }
