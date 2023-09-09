@@ -180,7 +180,7 @@ Used for the EVCTOT column with the following format: <callsign>,<CTOT>
 
 Example:
 
-``
+```
 ETH2504,0800
 JST3,0802
 HFO184,0804
@@ -194,7 +194,7 @@ DHL204,0836
 QTR454,0840
 CFG1MA,0842
 UAL422,0844
-``
+```
 
 ## FTP files and format
 ### Files
