@@ -122,7 +122,6 @@ CDM includes the following times:
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank if not in use "".
-  - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``, ex:``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``, if no taxizone defined, the default taxi time is set to 15 min.
@@ -181,7 +180,7 @@ Used for the EVCTOT column with the following format: <callsign>,<CTOT>
 
 Example:
 
-``
+```
 ETH2504,0800
 JST3,0802
 HFO184,0804
@@ -195,7 +194,7 @@ DHL204,0836
 QTR454,0840
 CFG1MA,0842
 UAL422,0844
-``
+```
 
 ## FTP files and format
 ### Files
