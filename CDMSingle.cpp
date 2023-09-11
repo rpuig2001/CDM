@@ -6037,7 +6037,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm help", sCommandLine))
 	{
-		sendMessage("CDM Commands: .cdm reload - .cdm refresh - .cdm save - .cdm load - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm delay {minutes} - .cdm lvo - .cdm realmode - .cdm remarks - .cdm rates - .cdm help");
+		sendMessage("CDM Commands: .cdm reload - .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm customdelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm remarks - .cdm rates - .cdm help");
 		return true;
 	}
 
@@ -6166,7 +6166,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Done");
 		return true;
 	}
-
+	/*
 	if (startsWith(".cdm delay", sCommandLine))
 	{
 		//Get Time NOW
@@ -6208,7 +6208,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 		return true;
 	}
-
+	*/
 	if (startsWith(".cdm nvo", sCommandLine))
 	{
 		rateString = getFromXml("/CDM/rate/@ops");
