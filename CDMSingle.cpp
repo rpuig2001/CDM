@@ -655,11 +655,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
 				}
 			}
-			if (!plane.hasManualCtot) {
-				AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
-			}
 			else {
-				AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
+				if (!plane.hasManualCtot) {
+					AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
+				}
 			}
 		}
 	}
@@ -819,11 +821,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					AddPopupListElement("Remove CTOT", "", TAG_FUNC_REMOVECTOT, false, 2, false);
 				}
 			}
-			if (!plane.hasManualCtot) {
-				AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
-			}
 			else {
-				AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
+				if (!plane.hasManualCtot) {
+					AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
+				}
 			}
 		}
 	}
@@ -876,9 +880,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			//Send REA MSG if CTOT
 			for (int i = 0; i < slotList.size(); i++) {
 				if ((string)fp.GetCallsign() == slotList[i].callsign && slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
-					slotList[i].hasCtot = false;
+					/*slotList[i].hasCtot = false;
 					slotList[i].ctot = "";
-					slotList[i].hasRestriction = 0;
+					slotList[i].hasRestriction = 0;*/
 
 					toggleReaMsg(fp, false);
 				}
