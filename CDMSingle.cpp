@@ -6166,9 +6166,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		sendMessage("Done");
 		return true;
 	}
-	/*
+	
 	if (startsWith(".cdm delay", sCommandLine))
 	{
+		sendMessage("Command disabled, please check the customdelay command from the documentation.");
+		/*
 		//Get Time NOW
 		time_t rawtime;
 		struct tm* ptm;
@@ -6205,10 +6207,10 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 				addTime = true;
 				addTimeToList(stoi(timeAdded), hour + min + "00");
 			}
-		}
+		}*/
 		return true;
 	}
-	*/
+	
 	if (startsWith(".cdm nvo", sCommandLine))
 	{
 		rateString = getFromXml("/CDM/rate/@ops");
