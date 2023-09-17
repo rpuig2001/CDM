@@ -116,6 +116,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
+	RegisterTagItemFunction("TSAT Delay", TAG_FUNC_CUSTOMTSAT);
 
 	// Register Tag Item "CDM-TTOT"
 	RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
@@ -1207,6 +1208,63 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 
 			}
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_CUSTOMTSAT) {
+		if (_stricmp(fp.GetFlightPlanData().GetDepartureRwy(), "") == 0) return;
+		if (master)
+			OpenPopupEdit(Area, TAG_FUNC_EDITFIRSTTSAT, "");
+	}
+
+	else if (FunctionId == TAG_FUNC_EDITFIRSTTSAT) {
+		if (FuncBuffer == FunctionId)
+		{
+			FuncBuffer = 0;
+			string rwy = fp.GetFlightPlanData().GetDepartureRwy();
+			string apt = fp.GetFlightPlanData().GetOrigin();
+			string myTime = ItemString;
+
+			//use myTime 9999 to remove delay for APT/RWY config
+			if (myTime == "9999") {
+				for (int i = 0; i < delayList.size(); i++) {
+					if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
+						sendMessage("REMOVING DELAY " + apt + "/" + rwy);
+						delayList.erase(delayList.begin() + i);
+					}
+				}
+			}
+			else {
+				try {
+					Delay d = Delay(apt, rwy, myTime);
+
+					//Get Time now
+					time_t rawtime;
+					struct tm* ptm;
+					time(&rawtime);
+					ptm = gmtime(&rawtime);
+					string hour = to_string(ptm->tm_hour % 24);
+					string min = to_string(ptm->tm_min);
+
+					int difTime = difftime(stoi(d.time), stoi(hour + min));
+
+					if (difTime > 0) {
+						sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
+						delayList.push_back(d);
+						addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+					}
+					else {
+						sendMessage("DELAY NOT ADDED. Time must be in the future");
+					}
+				}
+				catch (...)
+				{
+					sendMessage("DELAY NOT ADDED. An error occured. Check time format.");
+				}
+			}
+		}
+		else {
+			FuncBuffer = FunctionId;
 		}
 	}
 }
@@ -6404,6 +6462,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 }
 
 void CDM::OnTimer(int Counter) {
+
+	FuncBuffer = 0;
 
 	blink = !blink;
 

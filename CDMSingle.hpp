@@ -23,7 +23,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.3"
+#define MY_PLUGIN_VERSION   "2.2.4"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -224,6 +224,8 @@ public:
 	void getCADvalues();
 
 	virtual void OnTimer(int Count);
+
+	int FuncBuffer;
 
 protected:
 	Document config;
