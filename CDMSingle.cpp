@@ -3233,6 +3233,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										if (!refreshinghasManualCtot) {
 											refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
 										}
+										if (slotList[i].hasRestriction == 1) {
+											checkFlowStatus(slotList[i]);
+										}
 									}
 								}
 							}
@@ -5317,6 +5320,25 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 10");
 			}
 			OutOfTsat.erase(OutOfTsat.begin() + i);
+		}
+	}
+}
+
+void CDM::checkFlowStatus(Plane plane) {
+	bool flowexists = false;
+	for (Flow flow : flowData)
+	{
+		if (flow.ident == plane.flowRestriction.ident) {
+			flowexists = true;
+		}
+
+	}
+	if (!flowexists) {
+		for (int a = 0; a < slotList.size(); a++)
+		{
+			if (slotList[a].callsign == plane.callsign) {
+				slotList.erase(slotList.begin() + a);
+			}
 		}
 	}
 }

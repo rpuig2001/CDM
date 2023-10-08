@@ -207,6 +207,8 @@ public:
 
 	void OnRefresh(HDC hDC, int Phase);
 
+	void checkFlowStatus(Plane plane);
+
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
