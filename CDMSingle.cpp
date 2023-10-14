@@ -3869,12 +3869,13 @@ bool CDM::getRateFromUrl(string url) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == res) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD TaxiZones URL...");
 	}
@@ -5379,85 +5380,95 @@ void CDM::getFlowData() {
 		CURL* curl;
 		CURLcode res;
 		std::string readBuffer;
+		long responseCode;
 		curl = curl_easy_init();
 		if (curl) {
 			curl_easy_setopt(curl, CURLOPT_URL, flowRestrictionsUrl);
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 			res = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 			curl_easy_cleanup(curl);
 		}
-		Json::Reader reader;
-		Json::Value obj;
-		Json::FastWriter fastWriter;
-		reader.parse(readBuffer, obj);
 
-		const Json::Value& measures = obj["flow_measures"];
-		for (int i = 0; i < measures.size(); i++) {
-			//Get Id
-			int id = stoi(fastWriter.write(measures[i]["id"]));
-			//Get Ident
-			string ident = fastWriter.write(measures[i]["ident"]);
-			ident.erase(std::remove(ident.begin(), ident.end(), '"'));
-			//Get Event Id
-			string myEvent_id = fastWriter.write(measures[i]["event_id"]);
-			int event_id = -1;
-			if (myEvent_id.find("null") == std::string::npos) {
-				event_id = stoi(fastWriter.write(measures[i]["event_id"]));
-			}
-			//Get reason
-			string reason = fastWriter.write(measures[i]["reason"]);
-			reason.erase(std::remove(reason.begin(), reason.end(), '"'));
-			//Get valid_time
-			string timeStart = fastWriter.write(measures[i]["starttime"]);
-			timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '"'));
-			string timeEnd = fastWriter.write(measures[i]["endtime"]);
-			timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'));
-			string valid_time = timeStart.substr(timeStart.length() - 11, 2) + timeStart.substr(timeStart.length() - 8, 2) + "-" + timeEnd.substr(timeEnd.length() - 11, 2) + timeEnd.substr(timeEnd.length() - 8, 2);
-			string valid_date = timeStart.substr(8, 2) + "/" + timeStart.substr(5, 2);
-			//Get type
-			string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
-			typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
-			//Get Value
-			double valueMeasure = 0;
-			if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
-				string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
-				if (isNumber(valueMeasureString)) {
-					valueMeasure = stoi(valueMeasureString) / 60;
-				}
-			}
-			//Get Filters
-			vector<string> ADEP;
-			vector<string> ADES;
-			
-			for (int a = 0; a < measures[i]["filters"].size(); a++) {
-				string typeMeasureFilter = fastWriter.write(measures[i]["filters"][a]["type"]);
-				typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '"'));
-				if (typeMeasureFilter.find("ADEP") != std::string::npos) {
-					for (int z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-						string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-						myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
-						boost::to_upper(myApt);
-						ADEP.push_back(myApt);
-					}
-				}
-				else if (typeMeasureFilter.find("ADES") != std::string::npos) {
-					for (int z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-						string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-						myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
-						boost::to_upper(myApt);
-						ADES.push_back(myApt);
-					}
-				}
-			}
-
-			Flow flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
-			if (flow.type.find("minimum_departure_interval") != std::string::npos) {
-				flowDataTemp.push_back(flow);
-			}
+		if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == res){
+			// handle error 404
+			sendMessage("UNABLE TO LOAD FlowRestrictions URL...");
 		}
+		else {
+			Json::Reader reader;
+			Json::Value obj;
+			Json::FastWriter fastWriter;
+			reader.parse(readBuffer, obj);
 
-		flowData = flowDataTemp;
+			const Json::Value& measures = obj["flow_measures"];
+			for (int i = 0; i < measures.size(); i++) {
+				//Get Id
+				int id = stoi(fastWriter.write(measures[i]["id"]));
+				//Get Ident
+				string ident = fastWriter.write(measures[i]["ident"]);
+				ident.erase(std::remove(ident.begin(), ident.end(), '"'));
+				//Get Event Id
+				string myEvent_id = fastWriter.write(measures[i]["event_id"]);
+				int event_id = -1;
+				if (myEvent_id.find("null") == std::string::npos) {
+					event_id = stoi(fastWriter.write(measures[i]["event_id"]));
+				}
+				//Get reason
+				string reason = fastWriter.write(measures[i]["reason"]);
+				reason.erase(std::remove(reason.begin(), reason.end(), '"'));
+				//Get valid_time
+				string timeStart = fastWriter.write(measures[i]["starttime"]);
+				timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '"'));
+				string timeEnd = fastWriter.write(measures[i]["endtime"]);
+				timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'));
+				string valid_time = timeStart.substr(timeStart.length() - 11, 2) + timeStart.substr(timeStart.length() - 8, 2) + "-" + timeEnd.substr(timeEnd.length() - 11, 2) + timeEnd.substr(timeEnd.length() - 8, 2);
+				string valid_date = timeStart.substr(8, 2) + "/" + timeStart.substr(5, 2);
+				//Get type
+				string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
+				typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
+				//Get Value
+				double valueMeasure = 0;
+				if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
+					string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
+					if (isNumber(valueMeasureString)) {
+						valueMeasure = stoi(valueMeasureString) / 60;
+					}
+				}
+				//Get Filters
+				vector<string> ADEP;
+				vector<string> ADES;
+
+				for (int a = 0; a < measures[i]["filters"].size(); a++) {
+					string typeMeasureFilter = fastWriter.write(measures[i]["filters"][a]["type"]);
+					typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '"'));
+					if (typeMeasureFilter.find("ADEP") != std::string::npos) {
+						for (int z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
+							string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
+							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
+							boost::to_upper(myApt);
+							ADEP.push_back(myApt);
+						}
+					}
+					else if (typeMeasureFilter.find("ADES") != std::string::npos) {
+						for (int z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
+							string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
+							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
+							boost::to_upper(myApt);
+							ADES.push_back(myApt);
+						}
+					}
+				}
+
+				Flow flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
+				if (flow.type.find("minimum_departure_interval") != std::string::npos) {
+					flowDataTemp.push_back(flow);
+				}
+			}
+
+			flowData = flowDataTemp;
+		}
 	}
 }
 
@@ -5550,12 +5561,13 @@ bool CDM::getCtotsFromUrl(string code)
 		curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		res = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == res) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 	}
@@ -5583,12 +5595,13 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD TaxiZones URL...");
 	}
@@ -5632,12 +5645,13 @@ void CDM::getCADvalues() {
 		curl_easy_setopt(curl, CURLOPT_URL, cadUrl);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CAD URL...");
 	}
@@ -5687,12 +5701,13 @@ vector<CAD> CDM::returnCADvalues(string url)
 		curl_easy_setopt(curl, CURLOPT_URL, url);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CAD URL...");
 	}
