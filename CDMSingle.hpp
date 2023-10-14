@@ -58,7 +58,7 @@ public:
 
 	Rate rateForRunway(string airport, string depRwy);
 
-	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
+	void refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
 
 	void PushToOtherControllers(CFlightPlan fp);
 
@@ -213,7 +213,7 @@ public:
 
 	string getFromXml(string xpath);
 
-	bool addCtotToMainList(string lineValue);
+	void addCtotToMainList(string lineValue);
 
 	void addVatcanCtotToEvCTOT(string line);
 
