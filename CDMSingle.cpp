@@ -4233,7 +4233,7 @@ void CDM::RemoveMasterAirports() {
 	}
 }
 
-bool CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
+void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
 	bool hasManualCtot = false;
 	bool equalTTOT = true;
 	bool correctTTOT = true;
@@ -5815,7 +5815,7 @@ string CDM::getFromXml(string xpath)
 	}
 }
 
-bool CDM::addCtotToMainList(string lineValue) {
+void CDM::addCtotToMainList(string lineValue) {
 	Flow myFlow;
 	//Get Time now
 	time_t rawtime;
