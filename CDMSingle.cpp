@@ -3875,7 +3875,7 @@ bool CDM::getRateFromUrl(string url) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == res) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD TaxiZones URL...");
 	}
