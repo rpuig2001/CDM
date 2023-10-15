@@ -456,11 +456,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		if (annotTSAC.empty() && !completeTOBT.empty()) {
 			//Get Time now
 			time_t rawtime;
-			struct tm* ptm;
+			struct tm ptm;
 			time(&rawtime);
-			ptm = gmtime(&rawtime);
-			string hour = to_string(ptm->tm_hour % 24);
-			string min = to_string(ptm->tm_min);
+			gmtime_s(&ptm, &rawtime);
+			string hour = to_string(ptm.tm_hour % 24);
+			string min = to_string(ptm.tm_min);
 
 			if (stoi(min) < 10) {
 				min = "0" + min;
@@ -534,11 +534,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (annotAsrt.empty()) {
 				//Get Time now
 				time_t rawtime;
-				struct tm* ptm;
+				struct tm ptm;
 				time(&rawtime);
-				ptm = gmtime(&rawtime);
-				string hour = to_string(ptm->tm_hour % 24);
-				string min = to_string(ptm->tm_min);
+				gmtime_s(&ptm, &rawtime);
+				string hour = to_string(ptm.tm_hour % 24);
+				string min = to_string(ptm.tm_min);
 
 				if (stoi(min) < 10) {
 					min = "0" + min;
@@ -891,11 +891,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 			//Get Time now
 			time_t rawtime;
-			struct tm* ptm;
+			struct tm ptm;
 			time(&rawtime);
-			ptm = gmtime(&rawtime);
-			string hour = to_string(ptm->tm_hour % 24);
-			string min = to_string(ptm->tm_min);
+			gmtime_s(&ptm, &rawtime);
+			string hour = to_string(ptm.tm_hour % 24);
+			string min = to_string(ptm.tm_min);
 
 			if (stoi(min) < 10) {
 				min = "0" + min;
@@ -1240,11 +1240,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 					//Get Time now
 					time_t rawtime;
-					struct tm* ptm;
+					struct tm ptm;
 					time(&rawtime);
-					ptm = gmtime(&rawtime);
-					string hour = to_string(ptm->tm_hour % 24);
-					string min = to_string(ptm->tm_min);
+					gmtime_s(&ptm, &rawtime);
+					string hour = to_string(ptm.tm_hour % 24);
+					string min = to_string(ptm.tm_min);
 
 					int difTime = difftime(stoi(d.time), stoi(hour + min));
 
@@ -1480,11 +1480,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 				//Get Time NOW
 				time_t rawtime;
-				struct tm* ptm;
+				struct tm ptm;
 				time(&rawtime);
-				ptm = gmtime(&rawtime);
-				string hour = to_string(ptm->tm_hour % 24);
-				string min = to_string(ptm->tm_min);
+				gmtime_s(&ptm, &rawtime);
+				string hour = to_string(ptm.tm_hour % 24);
+				string min = to_string(ptm.tm_min);
 
 				if (stoi(min) < 10) {
 					min = "0" + min;
@@ -2506,11 +2506,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									if (myASRTText.empty()) {
 										//Get Time now
 										time_t rawtime;
-										struct tm* ptm;
+										struct tm ptm;
 										time(&rawtime);
-										ptm = gmtime(&rawtime);
-										string hour = to_string(ptm->tm_hour % 24);
-										string min = to_string(ptm->tm_min);
+										gmtime_s(&ptm, &rawtime);
+										string hour = to_string(ptm.tm_hour % 24);
+										string min = to_string(ptm.tm_min);
 
 										if (stoi(min) < 10) {
 											min = "0" + min;
@@ -4740,11 +4740,11 @@ string CDM::GetActualTime()
 {
 	//Get Time now
 	time_t rawtime;
-	struct tm* ptm;
+	struct tm ptm;
 	time(&rawtime);
-	ptm = gmtime(&rawtime);
-	string hour = to_string(ptm->tm_hour % 24);
-	string min = to_string(ptm->tm_min);
+	gmtime_s(&ptm, &rawtime);
+	string hour = to_string(ptm.tm_hour % 24);
+	string min = to_string(ptm.tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -4758,21 +4758,21 @@ string CDM::GetActualTime()
 string CDM::GetDateMonthNow() {
 	//Get Time now
 	time_t rawtime;
-	struct tm* ptm;
+	struct tm ptm;
 	time(&rawtime);
-	ptm = gmtime(&rawtime);
-	string day = to_string(ptm->tm_mday);
-	string month = to_string(ptm->tm_mon + 1);
+	gmtime_s(&ptm, &rawtime);
+	string day = to_string(ptm.tm_mday);
+	string month = to_string(ptm.tm_mon + 1);
 	return day + "-" + month;
 }
 
 string CDM::EobtPlusTime(string EOBT, int addedTime) {
 	time_t rawtime;
-	struct tm* ptm;
+	struct tm ptm;
 	time(&rawtime);
-	ptm = gmtime(&rawtime);
-	string hour = to_string(ptm->tm_hour % 24);
-	string min = to_string(ptm->tm_min);
+	gmtime_s(&ptm, &rawtime);
+	string hour = to_string(ptm.tm_hour % 24);
+	string min = to_string(ptm.tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -4884,11 +4884,11 @@ void CDM::checkCtot() {
 			if (p.tsat == "999999") {
 				//Get Time now
 				time_t rawtime;
-				struct tm* ptm;
+				struct tm ptm;
 				time(&rawtime);
-				ptm = gmtime(&rawtime);
-				string hour = to_string(ptm->tm_hour % 24);
-				string min = to_string(ptm->tm_min);
+				gmtime_s(&ptm, &rawtime);
+				string hour = to_string(ptm.tm_hour % 24);
+				string min = to_string(ptm.tm_min);
 
 				if (stoi(min) < 10) {
 					min = "0" + min;
@@ -5758,18 +5758,18 @@ int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2)
 
 string CDM::GetTimeNow() {
 	time_t rawtime;
-	struct tm* ptm;
+	struct tm ptm;
 	time(&rawtime);
-	ptm = gmtime(&rawtime);
-	string hour = to_string(ptm->tm_hour % 24);
+	gmtime_s(&ptm, &rawtime);
+	string hour = to_string(ptm.tm_hour % 24);
 	if (stoi(hour) < 10) {
 		hour = "0" + hour;
 	}
-	string min = to_string(ptm->tm_min);
+	string min = to_string(ptm.tm_min);
 	if (stoi(min) < 10) {
 		min = "0" + min;
 	}
-	string sec = to_string(ptm->tm_sec);
+	string sec = to_string(ptm.tm_sec);
 	if (stoi(sec) < 10) {
 		sec = "0" + sec;
 	}
@@ -5819,11 +5819,11 @@ void CDM::addCtotToMainList(string lineValue) {
 	Flow myFlow;
 	//Get Time now
 	time_t rawtime;
-	struct tm* ptm;
+	struct tm ptm;
 	time(&rawtime);
-	ptm = gmtime(&rawtime);
-	string hour = to_string(ptm->tm_hour % 24);
-	string min = to_string(ptm->tm_min);
+	gmtime_s(&ptm, &rawtime);
+	string hour = to_string(ptm.tm_hour % 24);
+	string min = to_string(ptm.tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -5889,11 +5889,11 @@ void CDM::addVatcanCtotToMainList(string callsign, string slot) {
 	Flow myFlow;
 	//Get Time now
 	time_t rawtime;
-	struct tm* ptm;
+	struct tm ptm;
 	time(&rawtime);
-	ptm = gmtime(&rawtime);
-	string hour = to_string(ptm->tm_hour % 24);
-	string min = to_string(ptm->tm_min);
+	gmtime_s(&ptm, &rawtime);
+	string hour = to_string(ptm.tm_hour % 24);
+	string min = to_string(ptm.tm_min);
 
 	if (stoi(min) < 10) {
 		min = "0" + min;
@@ -6220,11 +6220,11 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 			//Get Time now
 			time_t rawtime;
-			struct tm* ptm;
+			struct tm ptm;
 			time(&rawtime);
-			ptm = gmtime(&rawtime);
-			string hour = to_string(ptm->tm_hour % 24);
-			string min = to_string(ptm->tm_min);
+			gmtime_s(&ptm, &rawtime);
+			string hour = to_string(ptm.tm_hour % 24);
+			string min = to_string(ptm.tm_min);
 
 			int difTime = difftime(stoi(d.time), stoi(hour + min));
 
