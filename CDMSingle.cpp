@@ -3875,7 +3875,7 @@ bool CDM::getRateFromUrl(string url) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
+	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD TaxiZones URL...");
 	}
@@ -5392,7 +5392,7 @@ void CDM::getFlowData() {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result){
+		if (responseCode == 404 || CURLE_OK != result){
 			// handle error 404
 			sendMessage("UNABLE TO LOAD FlowRestrictions URL...");
 		}
@@ -5567,7 +5567,7 @@ bool CDM::getCtotsFromUrl(string code)
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
+	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 	}
@@ -5601,7 +5601,7 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
+	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD TaxiZones URL...");
 	}
@@ -5649,9 +5649,9 @@ void CDM::getCADvalues() {
 		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
-	}
+	} 
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
+	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CAD URL...");
 	}
@@ -5707,7 +5707,7 @@ vector<CAD> CDM::returnCADvalues(string url)
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
+	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CAD URL...");
 	}
