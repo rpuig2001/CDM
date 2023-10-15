@@ -5346,14 +5346,14 @@ void CDM::checkFlowStatus(Plane plane) {
 
 string CDM::getCidByCallsign(string callsign) {
 	CURL* curl;
-	CURLcode res;
+	CURLcode result;
 	std::string readBuffer;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, "https://data.vatsim.net/v3/vatsim-data.json");
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		res = curl_easy_perform(curl);
+		result = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
 	}
 	Json::Reader reader;
@@ -5378,7 +5378,7 @@ void CDM::getFlowData() {
 	if (!flowRestrictionsUrl.empty()) {
 		vector<Flow> flowDataTemp;
 		CURL* curl;
-		CURLcode res;
+		CURLcode result;
 		std::string readBuffer;
 		long responseCode;
 		curl = curl_easy_init();
@@ -5387,12 +5387,12 @@ void CDM::getFlowData() {
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-			res = curl_easy_perform(curl);
+			result = curl_easy_perform(curl);
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == res){
+		if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result){
 			// handle error 404
 			sendMessage("UNABLE TO LOAD FlowRestrictions URL...");
 		}
@@ -5553,7 +5553,7 @@ bool CDM::getCtotsFromUrl(string code)
 	evCtots.clear();
 	string vatcanUrl = code;
 	CURL* curl;
-	CURLcode res;
+	CURLcode result;
 	std::string readBuffer;
 	long responseCode;
 	curl = curl_easy_init();
@@ -5562,12 +5562,12 @@ bool CDM::getCtotsFromUrl(string code)
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		res = curl_easy_perform(curl);
+		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == res) {
+	if (responseCode == 404 || CURLE_OPERATION_TIMEDOUT == result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 	}
