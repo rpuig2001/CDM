@@ -3861,9 +3861,9 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 bool CDM::getRateFromUrl(string url) {
 	vector<Rate> myRates;
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -4938,7 +4938,7 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 	int hours = stoi(timeString.substr(0, 2));
 	int mins = stoi(timeString.substr(2, 2));
 	int sec = stoi(timeString.substr(4, timeString.length() - 1));
-
+	
 	int movTime = minsToAdd * 60;
 	while (movTime > 0) {
 		sec += 1;
@@ -5346,7 +5346,7 @@ void CDM::checkFlowStatus(Plane plane) {
 
 string CDM::getCidByCallsign(string callsign) {
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	std::string readBuffer;
 	curl = curl_easy_init();
 	if (curl) {
@@ -5379,9 +5379,9 @@ void CDM::getFlowData() {
 	if (!flowRestrictionsUrl.empty()) {
 		vector<Flow> flowDataTemp;
 		CURL* curl;
-		CURLcode result;
+		CURLcode result = CURLE_FAILED_INIT;
 		std::string readBuffer;
-		long responseCode;
+		long responseCode = 0;
 		curl = curl_easy_init();
 		if (curl) {
 			curl_easy_setopt(curl, CURLOPT_URL, flowRestrictionsUrl.c_str());
@@ -5530,7 +5530,7 @@ void CDM::upload(string fileName, string airport)
 
 int CDM::GetVersion() {
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	std::string readBuffer = "";
 	curl = curl_easy_init();
 	if (curl) {
@@ -5555,9 +5555,9 @@ bool CDM::getCtotsFromUrl(string code)
 	evCtots.clear();
 	string vatcanUrl = code;
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	std::string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl.c_str());
@@ -5589,9 +5589,9 @@ bool CDM::getCtotsFromUrl(string code)
 
 bool CDM::getTaxiZonesFromUrl(string url) {
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
@@ -5639,9 +5639,9 @@ void CDM::getCADvalues() {
 	}
 
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, cadUrl.c_str());
@@ -5695,9 +5695,9 @@ vector<CAD> CDM::returnCADvalues(string url)
 	}
 
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
