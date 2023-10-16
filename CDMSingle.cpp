@@ -3972,10 +3972,10 @@ bool CDM::getRateFromUrl(string url) {
 							}
 						}
 						//Increase time according the rate change
-						slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[myPos])));
-						slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[myPos])));
+						slotList[z].tsat = calculateTime(slotList[z].tsat, (60.0 / stoi(r.rates[myPos])));
+						slotList[z].ttot = calculateTime(slotList[z].ttot, (60.0 / stoi(r.rates[myPos])));
 						if (slotList[z].hasCtot) {
-							slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[myPos])));
+							slotList[z].ctot = calculateTime(slotList[z].ctot, (60.0 / stoi(r.rates[myPos])));
 						}
 					}
 				}
@@ -4081,10 +4081,10 @@ bool CDM::getRate() {
 							}
 						}
 						//Increase time according the rate change
-						slotList[z].tsat = calculateTime(slotList[z].tsat, (60 / stoi(r.rates[myPos])));
-						slotList[z].ttot = calculateTime(slotList[z].ttot, (60 / stoi(r.rates[myPos])));
+						slotList[z].tsat = calculateTime(slotList[z].tsat, (60.0 / stoi(r.rates[myPos])));
+						slotList[z].ttot = calculateTime(slotList[z].ttot, (60.0 / stoi(r.rates[myPos])));
 						if (slotList[z].hasCtot) {
-							slotList[z].ctot = calculateTime(slotList[z].ctot, (60 / stoi(r.rates[myPos])));
+							slotList[z].ctot = calculateTime(slotList[z].ctot, (60.0 / stoi(r.rates[myPos])));
 						}
 					}
 				}
@@ -5433,7 +5433,7 @@ void CDM::getFlowData() {
 				if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
 					string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
 					if (isNumber(valueMeasureString)) {
-						valueMeasure = stoi(valueMeasureString) / 60;
+						valueMeasure = stoi(valueMeasureString) / 60.0;
 					}
 				}
 				//Get Filters
