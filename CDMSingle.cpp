@@ -5437,6 +5437,12 @@ void CDM::getFlowData() {
 						valueMeasure = stoi(valueMeasureString) / 60.0;
 					}
 				}
+				if (typeMeasure.find("per_hour") != std::string::npos) {
+					string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
+					if (isNumber(valueMeasureString)) {
+						valueMeasure = stoi(valueMeasureString);
+					}
+				}
 				//Get Filters
 				vector<string> ADEP;
 				vector<string> ADES;
@@ -5463,7 +5469,7 @@ void CDM::getFlowData() {
 				}
 
 				Flow flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
-				if (flow.type.find("minimum_departure_interval") != std::string::npos) {
+				if (flow.type.find("minimum_departure_interval") != std::string::npos || flow.type.find("per_hour") != std::string::npos) {
 					flowDataTemp.push_back(flow);
 				}
 			}
