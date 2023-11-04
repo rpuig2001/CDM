@@ -5426,6 +5426,13 @@ void CDM::getFlowData() {
 				timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'));
 				string valid_time = timeStart.substr(timeStart.length() - 11, 2) + timeStart.substr(timeStart.length() - 8, 2) + "-" + timeEnd.substr(timeEnd.length() - 11, 2) + timeEnd.substr(timeEnd.length() - 8, 2);
 				string valid_date = timeStart.substr(8, 2) + "/" + timeStart.substr(5, 2);
+				//Get withdrawn_at
+				string withdrawn = fastWriter.write(measures[i]["withdrawn_at"]);
+				withdrawn.erase(std::remove(withdrawn.begin(), withdrawn.end(), '"'));
+				bool isWithdrawn = false;
+				if (withdrawn.length() > 5) {
+					isWithdrawn = true;
+				}
 				//Get type
 				string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
 				typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
@@ -5469,7 +5476,7 @@ void CDM::getFlowData() {
 				}
 
 				Flow flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
-				if (flow.type.find("minimum_departure_interval") != std::string::npos || flow.type.find("per_hour") != std::string::npos) {
+				if ((flow.type.find("minimum_departure_interval") != std::string::npos || flow.type.find("per_hour") != std::string::npos) && isWithdrawn != false) {
 					flowDataTemp.push_back(flow);
 				}
 			}
