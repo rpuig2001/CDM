@@ -235,7 +235,6 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
-- ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
 - ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time_start).
 - ``.cdm lvo`` - Toggle lvo ON or OFF.
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
