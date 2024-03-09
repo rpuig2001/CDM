@@ -5494,51 +5494,141 @@ void CDM::saveData() {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
 				ofstream myfile;
-				string fileName = dfad + "_" + airport + ".txt";
-				myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
-				for (Plane plane : slotList) {
-					if (myfile.is_open())
-					{
-						if (airport == FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin()) {
-							//GetEvCtot
-							string slot = "ctot";
-							if (plane.hasManualCtot) {
-								slot = plane.ttot;
-							}
-							else {
-								for (size_t i = 0; i < evCtots.size(); i++) {
-									if (evCtots[i][0] == plane.callsign) {
-										slot = evCtots[i][1];
+				//Type1 -> https://fs.nool.ee/MSFS/VDGS/Specs/DATALINK.txt
+				if (true) {
+					string fileName = dfad + "_" + airport + ".json";
+					createJsonVDGS(slotList, fileName, airport);
+				}
+				else {
+					string fileName = dfad + "_" + airport + ".txt";
+					myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
+					for (Plane plane : slotList) {
+						if (myfile.is_open())
+						{
+							if (airport == FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin()) {
+								//GetEvCtot
+								string slot = "ctot";
+								if (plane.hasManualCtot) {
+									slot = plane.ttot;
+								}
+								else {
+									for (size_t i = 0; i < evCtots.size(); i++) {
+										if (evCtots[i][0] == plane.callsign) {
+											slot = evCtots[i][1];
+										}
 									}
 								}
-							}
-							
-							string str;
-							if (plane.hasCtot) {
-								if (plane.hasRestriction != 0) {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.ident + ",";
+
+								string str;
+								if (plane.hasCtot) {
+									if (plane.hasRestriction != 0) {
+										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.ident + ",";
+									}
+									else {
+										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + ",flowRestriction" + ",";
+									}
 								}
 								else {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + ",flowRestriction" + ",";
+									if (plane.hasRestriction != 0) {
+										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + "," + plane.flowRestriction.ident + ",";
+									}
+									else {
+										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + ",flowRestriction" + ",";
+									}
 								}
+								myfile << str << endl;
 							}
-							else {
-								if (plane.hasRestriction != 0) {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + "," + plane.flowRestriction.ident + ",";
-								}
-								else {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + ",flowRestriction" + ",";
-								}
-							}
-							myfile << str << endl;
 						}
 					}
+					myfile.close();
+					upload(fileName, airport);
 				}
-				myfile.close();
-				upload(fileName, airport);
 			}
 		}
 	}
+}
+
+
+void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport) {
+	Document document;
+	document.SetObject();
+	Value version;
+	version.SetInt(1);
+	document.AddMember("version", version, document.GetAllocator());
+	
+	Value flightsArray(kArrayType);
+
+	for (Plane plane : slotList) {
+		string tobtString = "", tsatString = "";
+		if (plane.eobt.length() >= 4) {
+			tobtString = plane.eobt;
+		}
+		if (plane.tsat.length() >= 4) {
+			tsatString = plane.tsat;
+		}
+		Value flight(kObjectType);
+		Value lat;
+		lat.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Latitude);
+		Value lon;
+		lon.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Longitude);
+		Value icao_type(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetAircraftFPType(), document.GetAllocator());
+		Value callsign(plane.callsign.c_str(), document.GetAllocator());
+		Value flightNum(plane.callsign.c_str(), document.GetAllocator());
+		Value tobt(tobtString.substr(0, 4).c_str(), document.GetAllocator());
+		Value tsat(tsatString.substr(0, 4).c_str(), document.GetAllocator());
+
+		flight.AddMember("lat", lat, document.GetAllocator());
+		flight.AddMember("lon", lon, document.GetAllocator());
+		flight.AddMember("icao_type", icao_type, document.GetAllocator());
+		flight.AddMember("callsign", callsign, document.GetAllocator());
+		flight.AddMember("flight", flightNum, document.GetAllocator());
+		flight.AddMember("tobt", tobt, document.GetAllocator());
+		flight.AddMember("tsat", tsat, document.GetAllocator());
+		string slot = "";
+		if (plane.hasCtot) {
+			slot = plane.ctot;
+		} else {
+			//GetEvCtot
+			string slot = "ctot";
+			if (plane.hasManualCtot) {
+				slot = plane.ttot;
+			}
+			else {
+				for (size_t i = 0; i < evCtots.size(); i++) {
+					if (evCtots[i][0] == plane.callsign) {
+						slot = evCtots[i][1];
+					}
+				}
+			}
+		}
+		if (slot.length() >= 4) {
+			Value ctot(slot.substr(0, 4).c_str(), document.GetAllocator());
+			flight.AddMember("ctot", ctot, document.GetAllocator());
+		}
+		Value runway(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDepartureRwy(), document.GetAllocator());
+		Value sid(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetSidName(), document.GetAllocator());
+		flight.AddMember("runway", runway, document.GetAllocator());
+		flight.AddMember("sid", sid, document.GetAllocator());
+		flightsArray.PushBack(flight, document.GetAllocator());
+	}
+
+	document.AddMember("flights", flightsArray, document.GetAllocator());
+	
+	// Convert the document to a JSON string
+	StringBuffer buffer;
+	Writer<StringBuffer> writer(buffer);
+	document.Accept(writer);
+	
+	std::ofstream outFile(fileName);
+	if (outFile.is_open()) {
+		outFile << buffer.GetString() << std::endl;
+		outFile.close();
+	}
+	else {
+		sendMessage("Error writing the vdgs file");
+	}
+
+	upload(fileName, airport);
 }
 
 bool CDM::isNumber(string s)

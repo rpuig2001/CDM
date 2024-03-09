@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "json/json.h"
 #include "CAD.h"
 #include "Rate.h"
@@ -125,6 +126,8 @@ public:
 	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
 
 	int GetVersion();
+
+	void createJsonVDGS(vector<Plane> slotList, string fileName, string airport);
 
 	bool isNumber(string s);
 
