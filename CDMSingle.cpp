@@ -50,6 +50,7 @@ bool option_su_wait;
 string ftpHost;
 string ftpUser;
 string ftpPassword;
+string vdgsFileType;
 
 vector<Plane> slotList;
 vector<Flow> flowData;
@@ -212,6 +213,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
+	vdgsFileType = getFromXml("/CDM/vdgsFileType/@type");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
@@ -5494,8 +5496,8 @@ void CDM::saveData() {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
 				ofstream myfile;
-				//Type1 -> https://fs.nool.ee/MSFS/VDGS/Specs/DATALINK.txt
-				if (true) {
+				//Type2 -> https://fs.nool.ee/MSFS/VDGS/Specs/DATALINK.txt
+				if (vdgsFileType == "2") {
 					string fileName = dfad + "_" + airport + ".json";
 					createJsonVDGS(slotList, fileName, airport);
 				}
