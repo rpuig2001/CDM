@@ -6219,38 +6219,64 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else if (line.substr(line.find("/") + 4, 1) == " ") {
 			rwy = line.substr(line.find("/") + 1, 3);
 		}
-		string myTime = line.substr(line.length() - 4, 4);
+		
+		bool isTimeOk = false;
+		std::istringstream iss(line);
+		std::vector<std::string> customDelayValues;
+		std::string token;
+		while (std::getline(iss, token, ' ')) {
+			customDelayValues.push_back(token);
+		}
+		for (const auto& substring : customDelayValues) {
+			std::cout << substring << std::endl;
+		}
+		string myTime = customDelayValues[customDelayValues.size() - 1];
 
-		//use myTime 9999 to remove delay for APT/RWY config
-		if (myTime == "9999") {
-			for (size_t i = 0; i < delayList.size(); i++) {
-				if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
-					sendMessage("REMOVING DELAY " + apt + "/" + rwy);
-					delayList.erase(delayList.begin() + i);
+		if (myTime.length() == 4 && isNumber(myTime)) {
+			isTimeOk = true;
+		}
+		else {
+			if ((myTime.length() == 2 || myTime.length() == 1) && isNumber(myTime)) {
+				isTimeOk = true;
+				myTime = (calculateTime(GetTimeNow(), stoi(myTime)).substr(0, 4));
+			}
+		}
+
+		if (isTimeOk) {
+			//use myTime 9999 to remove delay for APT/RWY config
+			if (myTime == "9999") {
+				for (size_t i = 0; i < delayList.size(); i++) {
+					if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
+						sendMessage("REMOVING DELAY " + apt + "/" + rwy);
+						delayList.erase(delayList.begin() + i);
+					}
+				}
+			}
+			else {
+				Delay d = Delay(apt, rwy, myTime);
+
+				//Get Time now
+				time_t rawtime;
+				struct tm ptm;
+				time(&rawtime);
+				gmtime_s(&ptm, &rawtime);
+				string hour = to_string(ptm.tm_hour % 24);
+				string min = to_string(ptm.tm_min);
+
+				int difTime = difftime(stoi(d.time), stoi(hour + min));
+
+				if (difTime > 0) {
+					sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
+					delayList.push_back(d);
+					addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+				}
+				else {
+					sendMessage("DELAY NOT ADDED. Time must be in the future");
 				}
 			}
 		}
 		else {
-			Delay d = Delay(apt, rwy, myTime);
-
-			//Get Time now
-			time_t rawtime;
-			struct tm ptm;
-			time(&rawtime);
-			gmtime_s(&ptm, &rawtime);
-			string hour = to_string(ptm.tm_hour % 24);
-			string min = to_string(ptm.tm_min);
-
-			int difTime = difftime(stoi(d.time), stoi(hour + min));
-
-			if (difTime > 0) {
-				sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
-				delayList.push_back(d);
-				addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
-			}
-			else {
-				sendMessage("DELAY NOT ADDED. Time must be in the future");
-			}
+			sendMessage("Wrong time formatting to add delay. Please use time in 4 digits format (1234) or minutes with 1 or 2 digits codes (12 or 1)");
 		}
 
 		return true;
