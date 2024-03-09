@@ -5497,11 +5497,11 @@ void CDM::saveData() {
 			for (string airport : masterAirports) {
 				ofstream myfile;
 				//Type2 -> https://fs.nool.ee/MSFS/VDGS/Specs/DATALINK.txt
-				if (vdgsFileType == "2") {
+				if (vdgsFileType == "2" || vdgsFileType == "3") {
 					string fileName = dfad + "_" + airport + ".json";
 					createJsonVDGS(slotList, fileName, airport);
 				}
-				else {
+				if (vdgsFileType == "1" || vdgsFileType == "3") {
 					string fileName = dfad + "_" + airport + ".txt";
 					myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
 					for (Plane plane : slotList) {
