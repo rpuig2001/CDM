@@ -5500,6 +5500,19 @@ void CDM::saveData() {
 					if (myfile.is_open())
 					{
 						if (airport == FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin()) {
+							//GetEvCtot
+							string slot = "ctot";
+							if (plane.hasManualCtot) {
+								slot = plane.ttot;
+							}
+							else {
+								for (size_t i = 0; i < evCtots.size(); i++) {
+									if (evCtots[i][0] == plane.callsign) {
+										slot = evCtots[i][1];
+									}
+								}
+							}
+							
 							string str;
 							if (plane.hasCtot) {
 								if (plane.hasRestriction != 0) {
@@ -5511,10 +5524,10 @@ void CDM::saveData() {
 							}
 							else {
 								if (plane.hasRestriction != 0) {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + "," + plane.flowRestriction.ident + ",";
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + "," + plane.flowRestriction.ident + ",";
 								}
 								else {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + ",ctot" + ",flowRestriction" + ",";
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + ",flowRestriction" + ",";
 								}
 							}
 							myfile << str << endl;
