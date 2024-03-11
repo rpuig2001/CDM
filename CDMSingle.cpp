@@ -5575,7 +5575,7 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
 		lon.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Longitude);
 		Value icao_type(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetAircraftFPType(), document.GetAllocator());
 		Value callsign(plane.callsign.c_str(), document.GetAllocator());
-		Value flightNum(plane.callsign.c_str(), document.GetAllocator());
+		Value destination(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDestination(), document.GetAllocator());
 		Value tobt(tobtString.substr(0, 4).c_str(), document.GetAllocator());
 		Value tsat(tsatString.substr(0, 4).c_str(), document.GetAllocator());
 
@@ -5583,7 +5583,7 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
 		flight.AddMember("lon", lon, document.GetAllocator());
 		flight.AddMember("icao_type", icao_type, document.GetAllocator());
 		flight.AddMember("callsign", callsign, document.GetAllocator());
-		flight.AddMember("flight", flightNum, document.GetAllocator());
+		flight.AddMember("destination", destination, document.GetAllocator());
 		flight.AddMember("tobt", tobt, document.GetAllocator());
 		flight.AddMember("tsat", tsat, document.GetAllocator());
 		string slot = "";
