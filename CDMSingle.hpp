@@ -12,6 +12,7 @@
 #include <boost/format.hpp>
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
+#include "rapidjson/writer.h"
 #include "json/json.h"
 #include "CAD.h"
 #include "Rate.h"
@@ -58,7 +59,7 @@ public:
 
 	Rate rateForRunway(string airport, string depRwy);
 
-	bool refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
+	void refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
 
 	void PushToOtherControllers(CFlightPlan fp);
 
@@ -125,6 +126,8 @@ public:
 	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
 
 	int GetVersion();
+
+	void createJsonVDGS(vector<Plane> slotList, string fileName, string airport);
 
 	bool isNumber(string s);
 
@@ -207,11 +210,13 @@ public:
 
 	void OnRefresh(HDC hDC, int Phase);
 
+	void checkFlowStatus(Plane plane);
+
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
 
-	bool addCtotToMainList(string lineValue);
+	void addCtotToMainList(string lineValue);
 
 	void addVatcanCtotToEvCTOT(string line);
 

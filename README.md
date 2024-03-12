@@ -119,6 +119,7 @@ CDM includes the following times:
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
+  - VDGS file type: 1-TXT, 2-JSON, 3-TXT&JSON (ex. vdgsFileType type="3").
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank if not in use "".
@@ -201,7 +202,7 @@ UAL422,0844
 ### Files
 Every airport will have a different txt file (ex. LEBL airport: CDM_data_LEBL.txt)
 
-### Format
+### TXT Format
 ``CALLSIGN,TOBT,TSAT,TTOT,CTOT,FlowRestrictionMessage,``
 ```
 BAW224,183600,183600,184400,ctot,flowRestriction,
@@ -219,6 +220,38 @@ EZY12JM,183600,185600,190600,ctot,flowRestriction,
 RYR42TQ,183600,185700,190800,ctot,flowRestriction,
 BEE154A,183600,190000,191000,1924,London Event,
 ```
+
+### JSON Format
+```
+{
+   "version":1,
+   "flights":[
+      {
+         "lat":41.2923,
+         "lon":2.09795,
+         "icao_type":"A320",
+         "callsign":"CFG7521",
+         "flight":"CFG7521",
+         "tobt":"1910",
+         "tsat":"1910",
+         "runway":"24L",
+         "sid":"MOPAS5Q"
+      },
+      {
+         "lat":41.2915,
+         "lon":2.07371,
+         "icao_type":"A320",
+         "callsign":"BAW483B",
+         "flight":"BAW483B",
+         "tobt":"1913",
+         "tsat":"1913",
+         "runway":"24L",
+         "sid":"MOPAS5Q"
+      }
+   ]
+}
+```
+
 ## CAD - Capacity Availability Document
 On this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) there are the capacities for the arrival airports.
 The CDM will separate aircrafts with the same destination by the rate specified in the CAD creating a CTOT with the Flow Message (FM) of "ARR CAP" (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
@@ -235,7 +268,8 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
-- ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time_start).
+- ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
+- ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start (time_start can be a 4 digits time (2114 - 21:14 time) or 1/2 digits minutes (5 - 5min or 10 - 10 min) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex1. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100 // Ex2. ``.cdm customdelay LEBL/24L 10`` -> All TSATs will start at now+10 min). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time).
 - ``.cdm lvo`` - Toggle lvo ON or OFF.
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
