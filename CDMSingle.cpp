@@ -1744,11 +1744,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
 							if (!annotTSAC.empty()) {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "�");
+								strcpy_s(sItemString, 16, "¤");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "�");
+								strcpy_s(sItemString, 16, "¬");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_ASAT)
@@ -2780,11 +2780,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_GREEN;
 								}
-								strcpy_s(sItemString, 16, "�");
+								strcpy_s(sItemString, 16, "¤");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "�");
+								strcpy_s(sItemString, 16, "¬");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_TSAT)
