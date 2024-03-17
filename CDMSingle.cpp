@@ -5495,13 +5495,13 @@ void CDM::saveData() {
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
-				ofstream myfile;
 				//Type2 -> https://fs.nool.ee/MSFS/VDGS/Specs/DATALINK.txt
 				if (vdgsFileType == "2" || vdgsFileType == "3") {
 					string fileName = dfad + "_" + airport + ".json";
 					createJsonVDGS(slotList, fileName, airport);
 				}
 				if (vdgsFileType == "1" || vdgsFileType == "3") {
+					ofstream myfile;
 					string fileName = dfad + "_" + airport + ".txt";
 					myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
 					for (Plane plane : slotList) {
@@ -5543,7 +5543,7 @@ void CDM::saveData() {
 						}
 					}
 					myfile.close();
-					upload(fileName, airport);
+					upload(fileName, airport, ".txt");
 				}
 			}
 		}
@@ -5621,7 +5621,8 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
 	Writer<StringBuffer> writer(buffer);
 	document.Accept(writer);
 	
-	std::ofstream outFile(fileName);
+	ofstream outFile;
+	outFile.open(fileName, std::ofstream::out | std::ofstream::trunc);
 	if (outFile.is_open()) {
 		outFile << buffer.GetString() << std::endl;
 		outFile.close();
@@ -5630,7 +5631,7 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
 		sendMessage("Error writing the vdgs file");
 	}
 
-	upload(fileName, airport);
+	upload(fileName, airport, ".json");
 }
 
 bool CDM::isNumber(string s)
@@ -5638,9 +5639,9 @@ bool CDM::isNumber(string s)
 	return std::any_of(s.begin(), s.end(), ::isdigit);
 }
 
-void CDM::upload(string fileName, string airport)
+void CDM::upload(string fileName, string airport, string type)
 {
-	string saveName = "/CDM_data_" + airport + ".txt";
+	string saveName = "/CDM_data_" + airport + type;
 	HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
 	HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
 	FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);

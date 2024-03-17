@@ -105,8 +105,6 @@ public:
 
 	void saveData();
 
-	void upload(string fileName, string airport);
-
 	void multithread(void(CDM::* f)());
 
 	bool checkIsNumber(string str);
@@ -130,6 +128,8 @@ public:
 	void createJsonVDGS(vector<Plane> slotList, string fileName, string airport);
 
 	bool isNumber(string s);
+
+	void upload(string fileName, string airport, string type);
 
 	vector<string> explode(std::string const& s, char delim);
 
