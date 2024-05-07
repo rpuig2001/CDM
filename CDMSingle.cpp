@@ -71,6 +71,7 @@ vector<string> difeobttobtList;
 vector<string> reaSent;
 vector<string> reaCTOTSent;
 vector<CAD> CADvalues;
+vector<vector<string>> slotFile;
 vector<vector<string>> evCtots;
 vector<Delay> delayList;
 
@@ -1378,6 +1379,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					CTOTcheck.push_back(callsign);
 				}
 			}*/
+
+			if (ctotCid) {
+				bool evCtotFound = false;
+				for (size_t i = 0; i < evCtots.size(); i++) {
+					if (evCtots[i][0] == callsign) {
+						evCtotFound = true;
+					}
+				}
+				if (!evCtotFound) {
+					evCtots.push_back({ callsign, "" });
+					std::thread t(&CDM::setEvCtot, this, callsign);
+					t.detach();
+				}
+			}
 
 			bool isValidToCalculateEventMode = false;
 			string tobt = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
@@ -5682,6 +5697,7 @@ int CDM::GetVersion() {
 bool CDM::getCtotsFromUrl(string code)
 {
 	evCtots.clear();
+	slotFile.clear();
 	string vatcanUrl = code;
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -6011,7 +6027,7 @@ void CDM::addCtotToMainList(string lineValue) {
 }
 
 void CDM::addVatcanCtotToEvCTOT(string line) {
-	evCtots.push_back({ line.substr(0,line.find(",")), line.substr(line.find(",")+1, 4)});
+	slotFile.push_back({ line.substr(0,line.find(",")), line.substr(line.find(",")+1, 4)});
 }
 
 /*
@@ -6567,17 +6583,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			sendMessage("NO AIRPORT SET");
 		}
-		string apts = "";
-		if (masterAirports.size() > 0) {
-			for (string apt : masterAirports)
-			{
-				apts += apt + " ";
-			}
-			sendMessage("MASTER AIRPORTS: " + apts);
-		}
-		else {
-			sendMessage("NO MASTER AIRPORTS");
-		}
 		return true;
 	}
 
@@ -6609,16 +6614,25 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			sendMessage("NO AIRPORT SET");
 		}
-		string apts = "";
-		if (masterAirports.size() > 0) {
-			for (string apt : masterAirports)
-			{
-				apts += apt + " ";
+
+		return true;
+	}
+
+	if (startsWith(".cdm resetmaster", sCommandLine))
+	{
+		string line = sCommandLine; boost::to_upper(line);
+		vector<string> lineAirports = explode(line, ' ');
+
+		if (lineAirports.size() > 2) {
+			string ATC_Position = ControllerMyself().GetCallsign();
+			for (size_t i = 2; i < lineAirports.size(); i++) {
+				string addedAirport = lineAirports[i];
+				std::thread t(&CDM::removeAllMasterAirportsByAirport, this, addedAirport);
+				t.detach();
 			}
-			sendMessage("MASTER AIRPORTS: " + apts);
 		}
 		else {
-			sendMessage("NO MASTER AIRPORTS");
+			sendMessage("NO AIRPORT SET");
 		}
 
 		return true;
@@ -6724,7 +6738,7 @@ bool CDM::removeMasterAirport(string airport, string position, int a) {
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeMaster?airport=" + airport + "&position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		result = curl_easy_perform(curl);
@@ -6747,9 +6761,9 @@ bool CDM::removeMasterAirport(string airport, string position, int a) {
 				return true;
 			}
 			sendMessage("Could not remove master airport " + airport);
-			return false;
 		}
 	}
+	return false;
 }
 
 bool CDM::removeAllMasterAirports(string position) {
@@ -6759,9 +6773,9 @@ bool CDM::removeAllMasterAirports(string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMaster?position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMasterByAirport?position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
 		result = curl_easy_perform(curl);
@@ -6783,7 +6797,82 @@ bool CDM::removeAllMasterAirports(string position) {
 				masterAirports.clear();
 				return true;
 			}
-			return false;
 		}
 	}
+	return false;
+}
+
+void CDM::removeAllMasterAirportsByAirport(string airport) {
+	CURL* curl;
+	CURLcode result = CURLE_FAILED_INIT;
+	string readBuffer;
+	long responseCode = 0;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMasterByAirport?airport=" + airport);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_POST, true);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || CURLE_OK != result) {
+		sendMessage("UNABLE TO CONNECT CDM-API...");
+	}
+	else {
+		sendMessage("Removed masters for airport " + airport);
+	}
+}
+
+bool CDM::setEvCtot(string callsign) {
+	CURL* curl;
+	CURLcode result = CURLE_FAILED_INIT;
+	string readBuffer;
+	long responseCode = 0;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/plane/cidCheck?callsign=" + callsign);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || CURLE_OK != result) {
+		sendMessage("UNABLE TO CONNECT CDM-API...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+		//Get data from .txt file
+		string cid;
+		while (getline(is, cid))
+		{
+			if (cid.length() > 2) {
+				for (int i = 0; i < slotFile.size(); i++) {
+					if (slotFile[i][0] == cid) {
+						sendMessage(callsign + " linked with EvCTOT " + slotFile[i][1]);
+						for (int a = 0; a < evCtots.size(); a++) {
+							if (evCtots[a][0] == callsign) {
+								evCtots[a] = { callsign, slotFile[i][1] };
+								return true;
+							};
+						}
+					}
+				}
+			}
+			for (int a = 0; a < evCtots.size(); a++) {
+				if (evCtots[a][0] == callsign) {
+					evCtots[a] = { callsign, "" };
+					return true;
+				};
+			}
+		}
+	}
+	return false;
 }

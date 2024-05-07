@@ -236,6 +236,10 @@ public:
 
 	bool removeAllMasterAirports(string position);
 
+	void removeAllMasterAirportsByAirport(string airport);
+
+	bool setEvCtot(string callsign);
+
 	int FuncBuffer;
 
 protected:
