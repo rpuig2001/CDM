@@ -234,6 +234,8 @@ public:
 
 	bool removeMasterAirport(string airport, string position, int a);
 
+	bool removeAllMasterAirports(string position);
+
 	int FuncBuffer;
 
 protected:

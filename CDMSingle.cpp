@@ -43,6 +43,7 @@ string ctotURL;
 string flowRestrictionsUrl;
 int defTaxiTime;
 string cadUrl;
+string cdm_api;
 string myCallsign;
 bool option_su_wait;
 
@@ -250,6 +251,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Initialize with empty callsign
 	myCallsign = "";
 
+	//CDM API
+	cdm_api = "http://localhost:3000";
+
 
 	//Get CAD values
 	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
@@ -378,6 +382,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
 CDM::~CDM()
 {
+	RemoveMasterAirports();
 }
 
 
@@ -4229,8 +4234,10 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
 
 void CDM::RemoveMasterAirports() {
 	if (!masterAirports.empty()) {
-		sendMessage("Reconected with a new callsign, removing master airports...");
-		masterAirports.clear();
+		string ATC_Position = ControllerMyself().GetCallsign();
+		sendMessage("Removing master airports...");
+		std::thread t(&CDM::removeAllMasterAirports, this, ATC_Position);
+		t.detach();
 		myCallsign = ControllerMyself().GetCallsign();
 	}
 }
@@ -6542,7 +6549,6 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		if (lineAirports.size() > 2) {
 			string ATC_Position = ControllerMyself().GetCallsign();
-			
 			for (size_t i = 2; i < lineAirports.size(); i++) {
 				string addedAirport = lineAirports[i];
 				bool found = false;
@@ -6679,7 +6685,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:3000/airport/setMaster?airport=" + airport + "&position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/setMaster?airport=" + airport + "&position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6716,7 +6722,7 @@ bool CDM::removeMasterAirport(string airport, string position, int a) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "http://localhost:3000/airport/removeMaster?airport=" + airport + "&position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeMaster?airport=" + airport + "&position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6741,6 +6747,42 @@ bool CDM::removeMasterAirport(string airport, string position, int a) {
 				return true;
 			}
 			sendMessage("Could not remove master airport " + airport);
+			return false;
+		}
+	}
+}
+
+bool CDM::removeAllMasterAirports(string position) {
+	CURL* curl;
+	CURLcode result = CURLE_FAILED_INIT;
+	string readBuffer;
+	long responseCode = 0;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMaster?position=" + position);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || CURLE_OK != result) {
+		sendMessage("UNABLE TO CONNECT CDM-API...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			if (lineValue == "true") {
+				sendMessage("Successfully removed all master airports for " + position);
+				masterAirports.clear();
+				return true;
+			}
 			return false;
 		}
 	}
