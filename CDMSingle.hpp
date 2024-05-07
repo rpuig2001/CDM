@@ -230,6 +230,10 @@ public:
 
 	virtual void OnTimer(int Count);
 
+	bool setMasterAirport(string airport, string position);
+
+	bool removeMasterAirport(string airport, string position, int a);
+
 	int FuncBuffer;
 
 protected:
