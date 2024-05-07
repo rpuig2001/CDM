@@ -232,7 +232,7 @@ public:
 
 	bool setMasterAirport(string airport, string position);
 
-	bool removeMasterAirport(string airport, string position, int a);
+	bool removeMasterAirport(string airport, string position);
 
 	bool removeAllMasterAirports(string position);
 

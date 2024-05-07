@@ -1021,8 +1021,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				string editedCTOT = "";
 				for (size_t i = 0; i < evCtots.size(); i++) {
 					if (evCtots[i][0] == fp.GetCallsign()) {
-						hasEvCTOT = true;
-						editedCTOT = evCtots[i][1];
+						if (evCtots[i][1] != "") {
+							hasEvCTOT = true;
+							editedCTOT = evCtots[i][1];
+						}
 					}
 				}
 
@@ -6600,7 +6602,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 				for (string apt : masterAirports)
 				{
 					if (apt == addedAirport) {
-						std::thread t(&CDM::removeMasterAirport, this, addedAirport, ATC_Position, a);
+						std::thread t(&CDM::removeMasterAirport, this, addedAirport, ATC_Position);
 						t.detach();
 						found = true;
 					}
@@ -6729,7 +6731,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 	}
 }
 
-bool CDM::removeMasterAirport(string airport, string position, int a) {
+bool CDM::removeMasterAirport(string airport, string position) {
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
@@ -6757,8 +6759,13 @@ bool CDM::removeMasterAirport(string airport, string position, int a) {
 		{
 			if (lineValue == "true") {
 				sendMessage("Successfully removed master airport " + airport);
-				masterAirports.erase(masterAirports.begin() + a);
-				return true;
+				for (int a = 0; a < masterAirports.size(); a++)
+				{
+					if (masterAirports[a] == airport) {
+						masterAirports.erase(masterAirports.begin() + a);
+						return true;
+					}
+				}
 			}
 			sendMessage("Could not remove master airport " + airport);
 		}
