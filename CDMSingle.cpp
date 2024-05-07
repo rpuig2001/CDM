@@ -6773,7 +6773,7 @@ bool CDM::removeAllMasterAirports(string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMasterByAirport?position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMasterByPosition?position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
