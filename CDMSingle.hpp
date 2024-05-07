@@ -206,7 +206,11 @@ public:
 
 	virtual void sendMessage(string message);
 
+	void OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan);
+
 	void RemoveMasterAirports();
+
+	void backgroundProcess_recaulculate();
 
 	void OnRefresh(HDC hDC, int Phase);
 
@@ -215,6 +219,8 @@ public:
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
+
+	string setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan);
 
 	void addCtotToMainList(string lineValue);
 
