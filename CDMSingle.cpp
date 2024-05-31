@@ -27,7 +27,7 @@ string lvoRateString;
 int expiredCTOTTime;
 bool defaultRate;
 int countTime;
-int countFlowTime;
+int countFetchServerTime;
 int countTfcDisconnection;
 int refreshTime;
 bool addTime;
@@ -40,9 +40,8 @@ string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
 string ctotURL;
-string flowRestrictionsUrl;
+string cdmServerUrl;
 int defTaxiTime;
-string cadUrl;
 string cdm_api;
 string myCallsign;
 bool option_su_wait;
@@ -54,7 +53,6 @@ string ftpPassword;
 string vdgsFileType;
 
 vector<Plane> slotList;
-vector<Flow> flowData;
 vector<string> asatList;
 vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
@@ -70,10 +68,11 @@ vector<string> disconnectionList;
 vector<string> difeobttobtList;
 vector<string> reaSent;
 vector<string> reaCTOTSent;
-vector<CAD> CADvalues;
 vector<vector<string>> slotFile;
 vector<vector<string>> evCtots;
 vector<Delay> delayList;
+vector<ServerRestricted> serverRestrictedPlanes;
+vector<string> setTSATlater;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -192,7 +191,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	initialSidLoad = false;
 
 	countTime = stoi(GetTimeNow());
-	countFlowTime = stoi(GetTimeNow());
+	countFetchServerTime = stoi(GetTimeNow());
 	//countTime = stoi(GetTimeNow()) - refreshTime;
 	addTime = false;
 
@@ -214,7 +213,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ctotURL = getFromXml("/CDM/Ctot/@url");
 	string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
-	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	vdgsFileType = getFromXml("/CDM/vdgsFileType/@type");
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
@@ -243,23 +241,17 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		invalidateTSAT_Option = false;
 	}
 
-	//Flow Data
-	getFlowData();
+	//CDM-Server
+	cdmServerUrl = "https://cdm-server-production.up.railway.app";
+
+	//CDM-Server Fetch restricted
+	getCdmServerRestricted();
 
 	//Init reamrksOption
 	remarksOption = false;
 
 	//Initialize with empty callsign
 	myCallsign = "";
-
-	//CDM API
-	cdm_api = "http://localhost:3000";
-
-
-	//Get CAD values
-	cadUrl = "https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt";
-	//getCADvalues();
-	multithread(&CDM::getCADvalues);
 
 	lvo = false;
 	if (rateUrl.length() <= 1) {
@@ -574,42 +566,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				for (size_t i = 0; i < slotList.size(); i++)
 				{
 					if (slotList[i].callsign == fp.GetCallsign()) {
-						if (slotList[i].hasCtot) {
-							if (slotList[i].hasRestriction != 0) {
-								hasRestriction = 0;
-							}
-						}
-					}
-				}
-				if (hasRestriction != 0) {
-					//Reload CTOT
-					for (size_t a = 0; a < slotList.size(); a++)
-					{
-						if (slotList[a].callsign == fp.GetCallsign()) {
-							if (slotList[a].hasCtot) {
-								slotList.erase(slotList.begin() + a);
-							}
-						}
-					}
-
-					for (size_t i = 0; i < slotList.size(); i++)
-					{
-						if (slotList[i].callsign == fp.GetCallsign()) {
-							slotList[i].hasCtot = false;
-							slotList[i].ctot = "";
-							string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
-							if (remarks.find("CTOT") != string::npos) {
-								if (remarks.find("%") != string::npos) {
-									string stringToAdd = remarks.substr(0, remarks.find("CTOT")) + remarks.substr(remarks.find("%"), remarks.length() - remarks.find("%"));
-									fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-									remarks = stringToAdd;
-								}
-								else {
-									string stringToAdd = remarks.substr(0, remarks.find("CTOT") - 1);
-									fp.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
-									remarks = stringToAdd;
-								}
-							}
+						if (slotList[i].hasRestriction) {
+							hasRestriction = 0;
 						}
 					}
 				}
@@ -625,8 +583,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			for (size_t i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
-					if (slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
-						sendMessage(slotList[i].callsign + " FM -> " + slotList[i].flowRestriction.ident);
+					if (slotList[i].hasRestriction) {
+						sendMessage(slotList[i].callsign + " FM -> " + slotList[i].flowReason);
 					}
 				}
 			}
@@ -640,11 +598,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			for (size_t i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
-					if (slotList[i].hasCtot) {
+					if (slotList[i].hasRestriction) {
 						hasCTOT = true;
-						if (slotList[i].hasRestriction != 0) {
-							hasRestriction = 1;
-						}
+						hasRestriction = 1;
 					}
 				}
 			}
@@ -693,7 +649,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		for (size_t a = 0; a < slotList.size(); a++)
 		{
 			if (slotList[a].callsign == fp.GetCallsign()) {
-				if (slotList[a].hasCtot) {
+				if (slotList[a].hasRestriction) {
 					slotList.erase(slotList.begin() + a);
 				}
 			}
@@ -702,7 +658,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		for (size_t i = 0; i < slotList.size(); i++)
 		{
 			if (slotList[i].callsign == fp.GetCallsign()) {
-				slotList[i].hasCtot = false;
+				slotList[i].hasRestriction = false;
 				slotList[i].ctot = "";
 				string remarks = fp.GetControllerAssignedData().GetFlightStripAnnotation(3);
 				if (remarks.find("CTOT") != string::npos) {
@@ -813,7 +769,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			for (size_t i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
-					if (slotList[i].hasCtot) {
+					if (slotList[i].hasRestriction) {
 						hasCTOT = true;
 						if (slotList[i].hasRestriction != 0) {
 							hasRestriction = 1;
@@ -900,7 +856,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 			//Send REA MSG if CTOT
 			for (size_t i = 0; i < slotList.size(); i++) {
-				if ((string)fp.GetCallsign() == slotList[i].callsign && slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
+				if ((string)fp.GetCallsign() == slotList[i].callsign && slotList[i].hasRestriction && slotList[i].hasRestriction != 0) {
 					/*slotList[i].hasCtot = false;
 					slotList[i].ctot = "";
 					slotList[i].hasRestriction = 0;*/
@@ -997,8 +953,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								{
 									if ((string)fp.GetCallsign() == slotList[i].callsign) {
 										slotList[i].ttot = editedCDT + "00";
-										if (slotList[i].hasCtot && slotList[i].hasRestriction != 0) {
-											slotList[i].hasCtot = false;
+										if (slotList[i].hasRestriction && slotList[i].hasRestriction != 0) {
+											slotList[i].hasRestriction = false;
 											slotList[i].ctot = "";
 											slotList[i].hasRestriction = 0;
 
@@ -1182,7 +1138,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					{
 						if (slotList[i].callsign == fp.GetCallsign()) {
 							found = true;
-							if (!slotList[i].hasCtot || (slotList[i].hasCtot && (slotList[i].hasRestriction == 1 || slotList[i].hasRestriction == 2))) {
+							if (!slotList[i].hasRestriction || (slotList[i].hasRestriction && (slotList[i].hasRestriction == 1 || slotList[i].hasRestriction == 2))) {
 								slotList.erase(slotList.begin() + i);
 							}
 							fp.GetControllerAssignedData().SetFlightStripAnnotation(0, editedTOBT.c_str());
@@ -1213,7 +1169,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				fp.GetControllerAssignedData().SetFlightStripAnnotation(1, "");
 				for (size_t i = 0; i < slotList.size(); i++) {
 					if ((string)fp.GetCallsign() == slotList[i].callsign) {
-						if (!slotList[i].hasCtot || (slotList[i].hasCtot && (slotList[i].hasRestriction == 1 || slotList[i].hasRestriction == 2))) {
+						if (!slotList[i].hasRestriction || (slotList[i].hasRestriction && (slotList[i].hasRestriction == 1 || slotList[i].hasRestriction == 2))) {
 							slotList.erase(slotList.begin() + i);
 						}
 						//Update times to slaves
@@ -1228,7 +1184,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						difeobttobtList.erase(difeobttobtList.begin() + i);
 					}
 				}
-
+				//Check API
+				std::thread t(&CDM::setTSATApi, this, (string)fp.GetCallsign(), "");
+				t.detach();
 			}
 		}
 	}
@@ -1435,7 +1393,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			bool hasCtot = false, hasManualCtot = false;
 			if (aircraftFind) {
-				if (slotList[pos].hasCtot) {
+				if (slotList[pos].hasRestriction) {
 					hasCtot = true;
 				}
 				if (slotList[pos].hasManualCtot) {
@@ -1445,61 +1403,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			//It'll calculate pilot's times after pressing READY TOBT Function
 			if (isValidToCalculateEventMode) {
-
-				//Get Restriction: 0 -> false | 1 -> Flow | 2 -> CAD
-				int hasFlowMeasures = 0;
-				Flow myFlow;
-				if (!aircraftFind) {
-					for (size_t z = 0; z < flowData.size(); z++)
-					{
-						bool destFound = false;
-						for (string s : flowData[z].ADES) {
-
-							if (s.find(destination) != string::npos) {
-								destFound = true;
-							}
-							else if (s.substr(2, 2) == "**") {
-								if (destination.substr(0, 2) == s.substr(0, 2)) {
-									destFound = true;
-								}
-								else if (s.substr(0, 2) == "**") {
-									destFound = true;
-								}
-							}
-						}
-						if (destFound) {
-							//Chech origin
-							bool depaFound = false;
-							for (string s : flowData[z].ADEP) {
-								if (s.find(origin) != string::npos) {
-									depaFound = true;
-								}
-								else if (s.substr(2, 2) == "**") {
-									if (origin.substr(0, 2) == s.substr(0, 2)) {
-										depaFound = true;
-									}
-									else if (s.substr(0, 2) == "**") {
-										depaFound = true;
-									}
-								}
-							}
-
-							if (depaFound) {
-								//Check day && Month
-								string dayMonth = GetDateMonthNow();
-								if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(flowData[z].valid_date.substr(0, flowData[z].valid_date.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(flowData[z].valid_date.substr(flowData[z].valid_date.find("/") + 1))) {
-									//Check valid time
-									int timeNow = stoi(GetActualTime());
-									if (stoi(flowData[z].valid_time.substr(0, flowData[z].valid_time.find("-"))) <= timeNow && stoi(flowData[z].valid_time.substr(flowData[z].valid_time.find("-") + 1)) >= timeNow) {
-										hasFlowMeasures = 1;
-										myFlow = flowData[z];
-									}
-								}
-							}
-						}
-					}
-				}
-
 				//EOBT
 				EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 				string EOBTstring = EOBT;
@@ -1702,7 +1605,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//Remove ACFT Find
 						if (aircraftFind) {
 							PushToOtherControllers(FlightPlan);
-							if (aircraftFind && (!slotList[pos].hasCtot || (slotList[pos].hasCtot && (slotList[pos].hasRestriction == 1 || slotList[pos].hasRestriction == 2)))) {
+							if (aircraftFind) {
 								slotList.erase(slotList.begin() + pos);
 							}
 						}
@@ -1807,22 +1710,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 
-							if (hasCtot) {
-								if (slotList[pos].hasManualCtot) {
-									ItemRGB = TAG_RED;
-								}
-								else if (!inreaList) {
-									ItemRGB = TAG_CTOT;
-								}
-								else {
-									ItemRGB = TAG_YELLOW;
-								}
-								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
-							}
-							else if(aircraftFind) {
+							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
 									ItemRGB = TAG_ORANGE;
-									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0,4).c_str());
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+								else if (slotList[pos].hasRestriction) {
+									if (!inreaList) {
+										ItemRGB = TAG_CTOT;
+									}
+									else {
+										ItemRGB = TAG_YELLOW;
+									}
+									strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
 								}
 							}
 						}
@@ -2030,7 +1930,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (!aircraftFind) {
 								//Calculate Rate
 								int rate;
-								bool flowChecked = false;
 
 								Rate dataRate = rateForRunway(origin, depRwy);
 								if (dataRate.airport == "-1") {
@@ -2061,31 +1960,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 
 								double rateHour = (double)60 / rate;
-
-								//Check if CAD applies
-								bool CADapplies = false;
-								CAD myCad = CAD("xxxx", 0);
-								for (CAD cad : CADvalues) {
-									if (cad.airport == destination) {
-										CADapplies = true;
-										myCad = cad;
-									}
-								}
-								//Check Wildcard for CAD (ex. LE**)
-								if (!CADapplies) {
-									for (CAD cad : CADvalues) {
-										if (cad.airport.size() == 4) {
-											if (cad.airport.substr(2, 2) == "**") {
-												if (cad.airport.substr(0, 2) == destination.substr(0, 2)) {
-													CADapplies = true;
-													myCad = CAD(destination, cad.rate);
-												}
-											}
-										}
-									}
-								}
-
-								bool CADRestrictionApplies = false;
 								bool sameOrDependantRwys = false;
 
 								while (equalTTOT) {
@@ -2217,196 +2091,68 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 
 									if (correctTTOT) {
-										bool correctFlowTTOT = true;
-										bool correctCAD = true;
 										vector<Plane> sameDestList;
 										sameDestList.clear();
-
-										//Check flow measures if exists
-										if (hasFlowMeasures == 1) {
-											sameDestList.clear();
-											int seperationFlow = myFlow.value;
-											for (size_t z = 0; z < slotList.size(); z++)
-											{
-												string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-												bool validToAdd = false;
-												for (string apt : myFlow.ADES) {
-													if (apt.find(destFound) != string::npos) {
-														validToAdd = true;
-													}
-													else if (apt.substr(2, 2) == "**") {
-														if (destFound.substr(0, 2) == apt.substr(0, 2)) {
-															validToAdd = true;
-														}
-														else if (apt.substr(0, 2) == "**") {
-															validToAdd = true;
-														}
-													}
-												}
-												if (validToAdd) {
-													sameDestList.push_back(slotList[z]);
-												}
-											}
-
-											for (size_t z = 0; z < sameDestList.size(); z++)
-											{
-												CFlightPlan fpList = FlightPlanSelect(slotList[z].callsign.c_str());
-												bool found = false;
-												string listTTOT = sameDestList[z].ttot;
-												string listCallsign = sameDestList[z].callsign;
-												string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-												string listAirport = fpList.GetFlightPlanData().GetOrigin();
-												while (!found) {
-													found = true;
-													if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-														found = false;
-														TTOTFinal = calculateTime(TTOTFinal, 1);
-														correctFlowTTOT = false;
-													}
-													else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-														found = false;
-														TTOTFinal = calculateTime(TTOTFinal, 1);
-														correctFlowTTOT = false;
-													}
-												}
-											}
+										equalTTOT = false;
+										TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+										TSAT = TSATfinal.c_str();
+										TTOT = TTOTFinal.c_str();
+										if (hasCtot) {
 											if (aircraftFind) {
-												if (!hasCtot) {
-													hasCtot = true;
-													slotList[pos].hasCtot = true;
-													slotList[pos].ctot = formatTime(TTOTFinal);
+												if (TTOTFinal != slotList[pos].ttot) {
+													Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot, slotList[pos].hasRestriction, slotList[pos].flowReason, hasManualCtot);
+													slotList[pos] = p;
+													remarks = setCTOTremarks(remarks, p, FlightPlan);
 												}
 											}
 											else {
-												hasCtot = true;
-												myCtot = formatTime(TTOTFinal);
+												if (myCtot.empty()) {
+													Plane p(callsign, EOBT, TSAT, TTOT, "", 0, "", hasManualCtot);
+													for (size_t i = 0; i < slotList.size(); i++) {
+														if (slotList[i].callsign == callsign) {
+															slotList.erase(slotList.begin() + i);
+														}
+													}
+													slotList.push_back(p);
+													pos = slotList.size() - 1;
+												}
+												else {
+													Plane p(callsign, EOBT, TSAT, TTOT, myCtot, 0, "", hasManualCtot);
+													slotList.push_back(p);
+													pos = slotList.size() - 1;
+												}
+												
+												remarks = setCTOTremarks(remarks, slotList[pos], FlightPlan);
 											}
 										}
 										else {
-											//CAD check
-											if (CADapplies) {
-												if (myCad.airport != "xxxx") {
-													double seperationCAD = 60 / myCad.rate;
-													for (size_t z = 0; z < slotList.size(); z++)
-													{
-														string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-														if (myCad.airport == destFound) {
-															sameDestList.push_back(slotList[z]);
-														}
-													}
-
-													for (size_t z = 0; z < sameDestList.size(); z++)
-													{
-														CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
-														bool found = false;
-														string listTTOT = sameDestList[z].ttot;
-														string listCallsign = sameDestList[z].callsign;
-														string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-														string listAirport = fpList.GetFlightPlanData().GetOrigin();
-														while (!found) {
-															found = true;
-															if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-																found = false;
-																TTOTFinal = calculateTime(TTOTFinal, 0.5);
-																correctCAD = false;
-																CADRestrictionApplies = true;
-															}
-															else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-																found = false;
-																TTOTFinal = calculateTime(TTOTFinal, 0.5);
-																correctCAD = false;
-																CADRestrictionApplies = true;
-															}
-														}
-													}
-												}
-											}
-
-											//Create a CTOT if is not the first to apply CAD
-											if (CADRestrictionApplies && hasFlowMeasures == 0 && correctCAD) {
-												vector<string> tempVect;
-												myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
-												if (aircraftFind) {
-													if (!hasCtot) {
-														hasCtot = true;
-														slotList[pos].hasRestriction = 2;
-														slotList[pos].hasCtot = true;
-														slotList[pos].ctot = formatTime(TTOTFinal);
-														slotList[pos].flowRestriction = myFlow;
-													}
-												}
-												else {
-													hasFlowMeasures = 2;
-													myCtot = formatTime(TTOTFinal);
-													hasCtot = true;
-												}
-											}
-											else if (!CADRestrictionApplies && hasFlowMeasures == 2 && correctCAD) {
-												if (aircraftFind) {
-													if (hasCtot) {
-														hasCtot = false;
-														slotList[pos].hasRestriction = 0;
-														slotList[pos].hasCtot = false;
-														slotList[pos].ctot = "";
-													}
-												}
-												else {
-													hasFlowMeasures = 0;
-													hasCtot = false;
-												}
-											}
-										}
-
-										if (correctFlowTTOT && correctCAD) {
-											equalTTOT = false;
-											TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-											TSAT = TSATfinal.c_str();
-											TTOT = TTOTFinal.c_str();
-											if (hasCtot) {
-												if (aircraftFind) {
-													if (TTOTFinal != slotList[pos].ttot) {
-														Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasManualCtot);
-														slotList[pos] = p;
-														remarks = setCTOTremarks(remarks, p, FlightPlan);
-													}
-												}
-												else {
-													if (myCtot.empty()) {
-														Plane p(callsign, EOBT, TSAT, TTOT, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasManualCtot);
-														for (size_t i = 0; i < slotList.size(); i++) {
-															if (slotList[i].callsign == callsign) {
-																slotList.erase(slotList.begin() + i);
-															}
-														}
-														slotList.push_back(p);
-														pos = slotList.size() - 1;
-													}
-													else {
-														Plane p(callsign, EOBT, TSAT, TTOT, true, myCtot, hasFlowMeasures, myFlow, hasManualCtot);
-														slotList.push_back(p);
-														pos = slotList.size() - 1;
-													}
-													
+											if (aircraftFind) {
+												if (TTOTFinal != slotList[pos].ttot) {
+													Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot, slotList[pos].hasRestriction, slotList[pos].flowReason, hasManualCtot);
+													slotList[pos] = p;
 													remarks = setCTOTremarks(remarks, slotList[pos], FlightPlan);
 												}
 											}
 											else {
-												if (aircraftFind) {
-													if (TTOTFinal != slotList[pos].ttot) {
-														Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow, hasManualCtot);
-														slotList[pos] = p;
-
-														remarks = setCTOTremarks(remarks, slotList[pos], FlightPlan);
-													}
-												}
-												else {
-													Plane p(callsign, EOBT, TSAT, TTOT, false, "", hasFlowMeasures, myFlow, hasManualCtot);
-													slotList.push_back(p);
-													pos = slotList.size() - 1;
-
-													remarks = setCTOTremarks(remarks, slotList[pos], FlightPlan);
-												}
+												Plane p(callsign, EOBT, TSAT, TTOT, "", 0, "", hasManualCtot);
+												slotList.push_back(p);
+												pos = slotList.size() - 1;
+												remarks = setCTOTremarks(remarks, slotList[pos], FlightPlan);
 											}
+										}
+										//Check API
+										bool doRequest = false;
+										if (aircraftFind) {
+											if (TTOTFinal != slotList[pos].ttot) {
+												doRequest = true;
+											}
+										}
+										else {
+											doRequest = true;
+										}
+										if (doRequest) {
+											std::thread t(&CDM::setTSATApi, this, callsign, TSATfinal);
+											t.detach();
 										}
 									}
 								}
@@ -2515,7 +2261,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 								//If SACTA sts SU_WAIT is set recaluclate CTOT if there is CTOT
 								if (aircraftFind) {
-									if (slotList[pos].hasCtot && slotList[pos].hasRestriction != 0) {
+									if (slotList[pos].hasRestriction && slotList[pos].hasRestriction != 0) {
 										string sts = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(4);
 										bool csFound = false;
 										for (size_t x = 0; x < reaSent.size(); x++) {
@@ -2651,7 +2397,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						if (oldTSAT && aircraftFind) {
-							if (slotList[pos].hasManualCtot || slotList[pos].hasCtot) {
+							if (slotList[pos].hasManualCtot || slotList[pos].hasRestriction) {
 								oldTSAT = false;
 							}
 						}
@@ -3006,7 +2752,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									strcpy_s(sItemString, 16, message.c_str());
 								}
 								else if (slotList[pos].hasRestriction != 0) {
-									    string message = slotList[pos].flowRestriction.ident;
+									    string message = slotList[pos].flowReason;
 										ItemRGB = TAG_YELLOW;
 										strcpy_s(sItemString, 16, message.c_str());
 									}
@@ -3021,22 +2767,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 
-							if (hasCtot) {
-								if (slotList[pos].hasManualCtot) {
-									ItemRGB = TAG_RED;
-								}
-								else if (!inreaList) {
-									ItemRGB = TAG_CTOT;
-								}
-								else {
-									ItemRGB = TAG_YELLOW;
-								}
-								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
-							}
-							else if (aircraftFind) {
+							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
 									ItemRGB = TAG_ORANGE;
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+								else if (slotList[pos].hasRestriction) {
+									if (!inreaList) {
+										ItemRGB = TAG_CTOT;
+									}
+									else {
+										ItemRGB = TAG_YELLOW;
+									}
+									strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
 								}
 							}
 						}
@@ -3057,13 +2800,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//Refresh FlowData every 5 minutes
 						int myNow = stoi(GetTimeNow());
-						if (myNow - countFlowTime > 300) {
-							multithread(&CDM::getFlowData);
-							multithread(&CDM::getCADvalues);
+						if (myNow - countFetchServerTime > 30) {
+							multithread(&CDM::getCdmServerRestricted);
+							sendWaitingTSAT();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 							}
-							countFlowTime = myNow;
+							countFetchServerTime = myNow;
 						}
 
 						//Refresh times every x sec
@@ -3102,16 +2845,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					if (aircraftFind) {
-						if (!TSATFind && (!slotList[pos].hasCtot || (slotList[pos].hasCtot && (slotList[pos].hasRestriction == 1 || slotList[pos].hasRestriction == 2)))) {
+						if (!TSATFind && (!slotList[pos].hasRestriction || (slotList[pos].hasRestriction && (slotList[pos].hasRestriction == 1 || slotList[pos].hasRestriction == 2)))) {
 							slotList.erase(slotList.begin() + pos);
 						}
 						else if (TSATString != slotList[pos].tsat && TSATFind) {
 							if (hasCtot) {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasManualCtot);
+								Plane p(callsign, EOBT, TSATString, TTOTString, slotList[pos].ctot, slotList[pos].hasRestriction, slotList[pos].flowReason, hasManualCtot);
 								slotList[pos] = p;
 							}
 							else {
-								Plane p(callsign, EOBT, TSATString, TTOTString, true, slotList[pos].ctot, hasFlowMeasures, myFlow, hasManualCtot);
+								Plane p(callsign, EOBT, TSATString, TTOTString, slotList[pos].ctot, slotList[pos].hasRestriction, slotList[pos].flowReason, hasManualCtot);
 								string valueToAdd = callsign + "," + EOBT + "," + TSATString + "," + TTOTString;
 								slotList[pos] = p;
 							}
@@ -3119,7 +2862,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else {
 						if (TSATFind) {
-							Plane p(callsign, EOBT, TSATString, TTOTString, false, "", hasFlowMeasures, myFlow, hasManualCtot);
+							Plane p(callsign, EOBT, TSATString, TTOTString, "", 0, "", hasManualCtot);
 							slotList.push_back(p);
 						}
 					}
@@ -3197,7 +2940,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						if (oldTSAT && aircraftFind) {
-							if (slotList[pos].hasManualCtot || slotList[pos].hasCtot) {
+							if (slotList[pos].hasManualCtot || slotList[pos].hasRestriction) {
 								oldTSAT = false;
 							}
 						}
@@ -3246,20 +2989,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (slotList[pos].ctot != rmkCtot) {
 									if (aircraftFind) {
 										slotList[pos].ctot = rmkCtot;
-										slotList[pos].hasCtot = true;
+										slotList[pos].hasRestriction = true;
 									}
 								}
 							}
 							else {
 								if (aircraftFind) {
 									slotList[pos].ctot = rmkCtot;
-									slotList[pos].hasCtot = true;
+									slotList[pos].hasRestriction = true;
 								}
 							}
 						}
 						else if (hasCtot) {
 							if (aircraftFind) {
-								slotList[pos].hasCtot = false;
+								slotList[pos].hasRestriction = false;
 							}
 						}
 
@@ -3516,7 +3259,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
 						if (aircraftFind) {
 							if (slotList[pos].hasRestriction != 0) {
-								string message = slotList[pos].flowRestriction.ident;
+								string message = slotList[pos].flowReason;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, message.c_str());
 							}
@@ -3531,22 +3274,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 
-							if (hasCtot) {
-								if (slotList[pos].hasManualCtot) {
-									ItemRGB = TAG_RED;
-								}
-								else if (!inreaList) {
-									ItemRGB = TAG_CTOT;
-								}
-								else {
-									ItemRGB = TAG_YELLOW;
-								}
-								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
-							}
-							else if (aircraftFind) {
+							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
 									ItemRGB = TAG_ORANGE;
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+								else if (slotList[pos].hasRestriction) {
+									if (!inreaList) {
+										ItemRGB = TAG_CTOT;
+									}
+									else {
+										ItemRGB = TAG_YELLOW;
+									}
+									strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
 								}
 							}
 						}
@@ -3587,22 +3327,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 
-							if (hasCtot) {
-								if (slotList[pos].hasManualCtot) {
-									ItemRGB = TAG_RED;
-								}
-								else if (!inreaList) {
-									ItemRGB = TAG_CTOT;
-								}
-								else {
-									ItemRGB = TAG_YELLOW;
-								}
-								strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
-							}
-							else if (aircraftFind) {
+							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
 									ItemRGB = TAG_ORANGE;
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+								else if (slotList[pos].hasRestriction) {
+									if (!inreaList) {
+										ItemRGB = TAG_CTOT;
+									}
+									else {
+										ItemRGB = TAG_YELLOW;
+									}
+									strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
 								}
 							}
 						}
@@ -3647,22 +3384,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
-					if (hasCtot) {
-						if (slotList[pos].hasManualCtot) {
-							ItemRGB = TAG_RED;
-						}
-						else if (!inreaList) {
-							ItemRGB = TAG_CTOT;
-						}
-						else {
-							ItemRGB = TAG_YELLOW;
-						}
-						strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
-					}
-					else if (aircraftFind) {
+					if (aircraftFind) {
 						if (slotList[pos].hasManualCtot) {
 							ItemRGB = TAG_ORANGE;
 							strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+						}
+						else if (slotList[pos].hasRestriction) {
+							if (!inreaList) {
+								ItemRGB = TAG_CTOT;
+							}
+							else {
+								ItemRGB = TAG_YELLOW;
+							}
+							strcpy_s(sItemString, 16, slotList[pos].ctot.c_str());
 						}
 					}
 				}
@@ -3696,6 +3430,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			{
 				ItemRGB = TAG_EOBT;
 				strcpy_s(sItemString, 16, EOBTfinal.c_str());
+			}
+			if (ItemCode == TAG_ITEM_CTOT)
+			{
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+						ItemRGB = TAG_CTOT;
+						strcpy_s(sItemString, 16, sr.ctot.c_str());
+					}
+				}
+			}
+			if (ItemCode == TAG_ITEM_FLOW_MESSAGE)
+			{
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+						ItemRGB = TAG_YELLOW;
+						strcpy_s(sItemString, 16, sr.reason.c_str());
+					}
+				}
 			}
 		}
 	}
@@ -3787,7 +3539,7 @@ bool CDM::getRateFromUrl(string url) {
 				if (!found) {
 					CDMairports.push_back(myRateDataAirport);
 				}
-
+				
 			}
 		}
 	}
@@ -3823,7 +3575,7 @@ bool CDM::getRateFromUrl(string url) {
 						//Increase time according the rate change
 						slotList[z].tsat = calculateTime(slotList[z].tsat, (60.0 / stoi(r.rates[myPos])));
 						slotList[z].ttot = calculateTime(slotList[z].ttot, (60.0 / stoi(r.rates[myPos])));
-						if (slotList[z].hasCtot) {
+						if (slotList[z].hasRestriction) {
 							slotList[z].ctot = calculateTime(slotList[z].ctot, (60.0 / stoi(r.rates[myPos])));
 						}
 					}
@@ -3932,7 +3684,7 @@ bool CDM::getRate() {
 						//Increase time according the rate change
 						slotList[z].tsat = calculateTime(slotList[z].tsat, (60.0 / stoi(r.rates[myPos])));
 						slotList[z].ttot = calculateTime(slotList[z].ttot, (60.0 / stoi(r.rates[myPos])));
-						if (slotList[z].hasCtot) {
+						if (slotList[z].hasRestriction) {
 							slotList[z].ctot = calculateTime(slotList[z].ctot, (60.0 / stoi(r.rates[myPos])));
 						}
 					}
@@ -4124,7 +3876,7 @@ void CDM::backgroundProcess_recaulculate() {
 			}
 		}
 
-		if (!slotList[i].hasCtot || inreaList) {
+		if (!slotList[i].hasRestriction || inreaList) {
 			string myTTOT, myTSAT, myEOBT, myAirport, myDepRwy = "", myRemarks;
 			int myTTime = defTaxiTime;
 
@@ -4169,21 +3921,11 @@ void CDM::backgroundProcess_recaulculate() {
 
 				myRemarks = myFlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(3);
 				bool myhasCTOT = false;
-				bool myhasCTOTFlowRestriction = false;
-				bool refreshinghasManualCtot = false;
-				int myCtotPos = 0;
 				for (size_t s = 0; s < slotList.size(); s++)
 				{
 					if (myCallsign == slotList[s].callsign) {
-						if (slotList[s].hasCtot) {
+						if (slotList[s].hasRestriction || slotList[s].hasManualCtot) {
 							myhasCTOT = true;
-							myCtotPos = s;
-							if (slotList[s].hasRestriction == 1) {
-								myhasCTOTFlowRestriction = true;
-							}
-						}
-						if (slotList[s].hasManualCtot) {
-							refreshinghasManualCtot = true;
 						}
 					}
 				}
@@ -4276,20 +4018,17 @@ void CDM::backgroundProcess_recaulculate() {
 					}
 				}
 
-				if (!refreshinghasManualCtot) {
-					std::thread t(&CDM::refreshTimes, this, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
+				if (!myhasCTOT) {
+					std::thread t(&CDM::refreshTimes, this, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, i, true);
 					t.detach();
 					//refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks, myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
-				}
-				if (slotList[i].hasRestriction == 1) {
-					checkFlowStatus(slotList[i]);
 				}
 			}
 		}
 	}
 }
 
-void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind) {
+void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int pos, bool aircraftFind) {
 	bool hasManualCtot = false;
 	bool equalTTOT = true;
 	bool correctTTOT = true;
@@ -4297,18 +4036,15 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 	bool alreadySetTOStd = false;
 	bool okToLook = false;
 	string timeNow = GetActualTime() + "00";
-	Flow myFlow;
 	int hasRestriction = 0;
+	string myFlow = "";
 
 	for (size_t s = 0; s < slotList.size(); s++)
 	{
 		if (callsign == slotList[s].callsign) {
-			if (slotList[s].hasRestriction == 1) {
+			if (slotList[s].hasRestriction) {
 				hasRestriction = 1;
-				myFlow = slotList[s].flowRestriction;
-			}else if (slotList[s].hasRestriction == 2) {
-				hasRestriction = 2;
-				myFlow = slotList[s].flowRestriction;
+				myFlow = slotList[s].flowReason;
 			}
 		}
 	}
@@ -4355,32 +4091,6 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 	}
 
 	if (okToLook) {
-
-		//Check if CAD applies
-		bool CADapplies = false;
-		CAD myCad = CAD("xxxx", 0);
-		for (CAD cad : CADvalues) {
-			if (cad.airport == FlightPlan.GetFlightPlanData().GetDestination()) {
-				CADapplies = true;
-				myCad = cad;
-			}
-		}
-		//Check Wildcard for CAD (ex. LE**)
-		if (!CADapplies) {
-			for (CAD cad : CADvalues) {
-				if (cad.airport.size() == 4) {
-					string fpMydestination = FlightPlan.GetFlightPlanData().GetDestination();
-					if (cad.airport.substr(2, 2) == "**") {
-						if (cad.airport.substr(0, 2) == fpMydestination.substr(0, 2)) {
-							CADapplies = true;
-							myCad = CAD(fpMydestination, cad.rate);
-						}
-					}
-				}
-			}
-		}
-
-		bool CADRestrictionApplies = false;
 		bool sameOrDependantRwys = false;
 
 		while (equalTTOT) {
@@ -4542,172 +4252,46 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 			}
 
 			if (correctTTOT) {
-				bool correctFlowTTOT = true;
-				bool correctCAD = true;
 				vector<Plane> sameDestList;
 				sameDestList.clear();
-
-				//Check flow measures if exists
-				if (hasRestriction == 1) {
-					sameDestList.clear();
-					int seperationFlow = myFlow.value;
-					for (size_t z = 0; z < slotList.size(); z++)
-					{
-						string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-						bool validToAdd = false;
-						for (string apt : myFlow.ADES) {
-							if (apt.find(destFound) != string::npos) {
-								validToAdd = true;
-							}
-							else if (apt.substr(2, 2) == "**") {
-								if (destFound.substr(0, 2) == apt.substr(0, 2)) {
-									validToAdd = true;
-								}
-								else if (apt.substr(0, 2) == "**") {
-									validToAdd = true;
-								}
-							}
-						}
-						if (validToAdd) {
-							sameDestList.push_back(slotList[z]);
-						}
-					}
-
-					for (size_t z = 0; z < sameDestList.size(); z++)
-					{
-						CFlightPlan fpList = FlightPlanSelect(slotList[z].callsign.c_str());
-						bool found = false;
-						string listTTOT = sameDestList[z].ttot;
-						string listCallsign = sameDestList[z].callsign;
-						string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-						string listAirport = fpList.GetFlightPlanData().GetOrigin();
-						while (!found) {
-							found = true;
-							if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-								found = false;
-								TTOTFinal = calculateTime(TTOTFinal, 1);
-								correctFlowTTOT = false;
-							}
-							else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-								found = false;
-								TTOTFinal = calculateTime(TTOTFinal, 1);
-								correctFlowTTOT = false;
-							}
-						}
-					}
+				equalTTOT = false;
+				TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+				string TSAT = TSATfinal.c_str();
+				string TTOT = TTOTFinal.c_str();
+				string myCTOT = formatTime(TTOTFinal);
+				if (hasCTOT) {
 					if (aircraftFind) {
-						if (!hasCTOT) {
-							hasCTOT = true;
-						}
-					}
-				}
-				else {
-					//CAD check
-					if (CADapplies) {
-						if (myCad.airport != "xxxx") {
-							double seperationCAD = 60 / myCad.rate;
-							for (size_t z = 0; z < slotList.size(); z++)
-							{
-								string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
-								if (myCad.airport == destFound) {
-									sameDestList.push_back(slotList[z]);
-								}
-							}
-
-							for (size_t z = 0; z < sameDestList.size(); z++)
-							{
-								CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
-								bool found = false;
-								string listTTOT = sameDestList[z].ttot;
-								string listCallsign = sameDestList[z].callsign;
-								string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-								string listAirport = fpList.GetFlightPlanData().GetOrigin();
-								while (!found) {
-									found = true;
-									if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-										found = false;
-										TTOTFinal = calculateTime(TTOTFinal, 0.5);
-										correctCAD = false;
-										CADRestrictionApplies = true;
-									}
-									else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationCAD))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationCAD))) && callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-										found = false;
-										TTOTFinal = calculateTime(TTOTFinal, 0.5);
-										correctCAD = false;
-										CADRestrictionApplies = true;
-									}
-								}
-							}
-						}
-					}
-
-					//Create a CTOT if is not the first to apply CAD
-					if (CADRestrictionApplies && hasRestriction == 0 && correctCAD) {
-						vector<string> tempVect;
-						myFlow = Flow(0, "ARR CAP", 0, "ARRIVAL CAPACITY LIMITED BY CAD", "", "", "", 0.0, tempVect, tempVect);
-						if (aircraftFind) {
-							if (!hasCTOT) {
-								hasCTOT = true;
-								slotList[pos].hasRestriction = 2;
-								slotList[pos].hasCtot = true;
-								slotList[pos].ctot = formatTime(TTOTFinal);
-								slotList[pos].flowRestriction = myFlow;
-							}
-						}
-						else {
-							hasRestriction = 2;
-							hasCTOT = true;
-						}
-					}
-					else if (!CADRestrictionApplies && hasRestriction == 2 && correctCAD) {
-						if (aircraftFind) {
-							if (hasCTOT) {
-								hasCTOT = false;
-								slotList[pos].hasRestriction = 0;
-								slotList[pos].hasCtot = false;
-								slotList[pos].ctot = "";
-							}
-						}
-						else {
-							hasRestriction = 0;
-							hasCTOT = false;
-						}
-					}
-				}
-
-				if (correctCAD && correctFlowTTOT) {
-					equalTTOT = false;
-					TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-					string TSAT = TSATfinal.c_str();
-					string TTOT = TTOTFinal.c_str();
-					string myCTOT = formatTime(TTOTFinal);
-					if (hasCTOT) {
-						if (aircraftFind) {
-							if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
-								Plane p(callsign, EOBT, TSAT, TTOT, true, myCTOT, hasRestriction, myFlow, hasManualCtot);
-								slotList[pos] = p;
-								remarks = setCTOTremarks(remarks, p, FlightPlan);
-							}
-						}
-						else {
-							Plane p(callsign, EOBT, TSAT, TTOT, true, myCTOT, hasRestriction, myFlow, hasManualCtot);
-							slotList.push_back(p);
+						if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
+							Plane p(callsign, EOBT, TSAT, TTOT, myCTOT, hasRestriction, myFlow, hasManualCtot);
+							slotList[pos] = p;
 							remarks = setCTOTremarks(remarks, p, FlightPlan);
 						}
 					}
 					else {
-						if (aircraftFind) {
-							if (TTOTFinal != slotList[pos].ttot) {
-								Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow, hasManualCtot);
-								slotList[pos] = p;
-								remarks = setCTOTremarks(remarks, p, FlightPlan);
-							}
-						}
-						else {
-							Plane p(callsign, EOBT, TSAT, TTOT, false, "", false, myFlow, hasManualCtot);
-							slotList.push_back(p);
+						Plane p(callsign, EOBT, TSAT, TTOT, myCTOT, hasRestriction, myFlow, hasManualCtot);
+						slotList.push_back(p);
+						remarks = setCTOTremarks(remarks, p, FlightPlan);
+					}
+				}
+				else {
+					if (aircraftFind) {
+						if (TTOTFinal != slotList[pos].ttot) {
+							Plane p(callsign, EOBT, TSAT, TTOT, "", false, myFlow, hasManualCtot);
+							slotList[pos] = p;
 							remarks = setCTOTremarks(remarks, p, FlightPlan);
 						}
+					}
+					else {
+						Plane p(callsign, EOBT, TSAT, TTOT, "", false, myFlow, hasManualCtot);
+						slotList.push_back(p);
+						remarks = setCTOTremarks(remarks, p, FlightPlan);
+					}
+				}
+				//Check API
+				if (aircraftFind) {
+					if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
+						std::thread t(&CDM::setTSATApi, this, callsign, TSATfinal);
+						t.detach();
 					}
 				}
 			}
@@ -5006,7 +4590,7 @@ string CDM::calculateTime(string timeString, double minsToAdd) {
 }
 
 bool CDM::checkCtotInRange(Plane plane) {
-	if (plane.hasCtot) {
+	if (plane.hasRestriction) {
 		if (plane.ctot.size() == 4 && plane.ttot.size() > 4) {
 			string CTOThour = plane.ctot.substr(0, 2);
 			string CTOTmin = plane.ctot.substr(2, 2);
@@ -5072,7 +4656,7 @@ void CDM::addTimeToList(int timeToAdd, string minTSAT) {
 				if (ok) {
 					mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
 					mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
-					if (mySlotList[i].hasCtot) {
+					if (mySlotList[i].hasRestriction) {
 						mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
 					}
 				}
@@ -5106,7 +4690,7 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 					if (ok) {
 						mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
 						mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
-						if (mySlotList[i].hasCtot) {
+						if (mySlotList[i].hasRestriction) {
 							mySlotList[i].ctot = calculateTime(mySlotList[i].ctot, timeToAdd);
 						}
 					}
@@ -5345,25 +4929,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	}
 }
 
-void CDM::checkFlowStatus(Plane plane) {
-	bool flowexists = false;
-	for (Flow flow : flowData)
-	{
-		if (flow.ident == plane.flowRestriction.ident) {
-			flowexists = true;
-		}
-
-	}
-	if (!flowexists) {
-		for (size_t a = 0; a < slotList.size(); a++)
-		{
-			if (slotList[a].callsign == plane.callsign) {
-				slotList.erase(slotList.begin() + a);
-			}
-		}
-	}
-}
-
 string CDM::getCidByCallsign(string callsign) {
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -5395,117 +4960,6 @@ string CDM::getCidByCallsign(string callsign) {
 	return "0";
 }
 
-void CDM::getFlowData() {
-	if (!flowRestrictionsUrl.empty()) {
-		vector<Flow> flowDataTemp;
-		CURL* curl;
-		CURLcode result = CURLE_FAILED_INIT;
-		std::string readBuffer;
-		long responseCode = 0;
-		curl = curl_easy_init();
-		if (curl) {
-			curl_easy_setopt(curl, CURLOPT_URL, flowRestrictionsUrl.c_str());
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-			result = curl_easy_perform(curl);
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-			curl_easy_cleanup(curl);
-		}
-
-		if (responseCode == 404 || CURLE_OK != result){
-			// handle error 404
-			sendMessage("UNABLE TO LOAD FlowRestrictions URL...");
-		}
-		else {
-			Json::Reader reader;
-			Json::Value obj;
-			Json::FastWriter fastWriter;
-			reader.parse(readBuffer, obj);
-
-			const Json::Value& measures = obj["flow_measures"];
-			for (size_t i = 0; i < measures.size(); i++) {
-				//Get Id
-				int id = stoi(fastWriter.write(measures[i]["id"]));
-				//Get Ident
-				string ident = fastWriter.write(measures[i]["ident"]);
-				ident.erase(std::remove(ident.begin(), ident.end(), '"'));
-				//Get Event Id
-				string myEvent_id = fastWriter.write(measures[i]["event_id"]);
-				int event_id = -1;
-				if (myEvent_id.find("null") == std::string::npos) {
-					event_id = stoi(fastWriter.write(measures[i]["event_id"]));
-				}
-				//Get reason
-				string reason = fastWriter.write(measures[i]["reason"]);
-				reason.erase(std::remove(reason.begin(), reason.end(), '"'));
-				//Get valid_time
-				string timeStart = fastWriter.write(measures[i]["starttime"]);
-				timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '"'));
-				string timeEnd = fastWriter.write(measures[i]["endtime"]);
-				timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'));
-				string valid_time = timeStart.substr(timeStart.length() - 11, 2) + timeStart.substr(timeStart.length() - 8, 2) + "-" + timeEnd.substr(timeEnd.length() - 11, 2) + timeEnd.substr(timeEnd.length() - 8, 2);
-				string valid_date = timeStart.substr(8, 2) + "/" + timeStart.substr(5, 2);
-				//Get withdrawn_at
-				string withdrawn = fastWriter.write(measures[i]["withdrawn_at"]);
-				withdrawn.erase(std::remove(withdrawn.begin(), withdrawn.end(), '"'));
-				bool isWithdrawn = false;
-				if (withdrawn.length() > 5) {
-					isWithdrawn = true;
-				}
-				//Get type
-				string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
-				typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
-				//Get Value
-				double valueMeasure = 0;
-				if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
-					string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
-					if (isNumber(valueMeasureString)) {
-						valueMeasure = stoi(valueMeasureString) / 60.0;
-					}
-				}
-				if (typeMeasure.find("per_hour") != std::string::npos) {
-					string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
-					if (isNumber(valueMeasureString)) {
-						valueMeasure = stoi(valueMeasureString);
-					}
-				}
-				//Get Filters
-				vector<string> ADEP;
-				vector<string> ADES;
-
-				for (size_t a = 0; a < measures[i]["filters"].size(); a++) {
-					string typeMeasureFilter = fastWriter.write(measures[i]["filters"][a]["type"]);
-					typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '"'));
-					if (typeMeasureFilter.find("ADEP") != std::string::npos) {
-						for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-							string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
-							boost::to_upper(myApt);
-							ADEP.push_back(myApt);
-						}
-					}
-					else if (typeMeasureFilter.find("ADES") != std::string::npos) {
-						for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-							string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
-							boost::to_upper(myApt);
-							ADES.push_back(myApt);
-						}
-					}
-				}
-
-				Flow flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
-				if ((flow.type.find("minimum_departure_interval") != std::string::npos || flow.type.find("per_hour") != std::string::npos) && isWithdrawn == false) {
-					flowDataTemp.push_back(flow);
-				}
-			}
-
-			flowData = flowDataTemp;
-		}
-	}
-}
-
 void CDM::saveData() {
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
@@ -5523,34 +4977,16 @@ void CDM::saveData() {
 						if (myfile.is_open())
 						{
 							if (airport == FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin()) {
-								//GetEvCtot
-								string slot = "ctot";
-								if (plane.hasManualCtot) {
-									slot = plane.ttot;
-								}
-								else {
-									for (size_t i = 0; i < evCtots.size(); i++) {
-										if (evCtots[i][0] == plane.callsign) {
-											slot = evCtots[i][1];
-										}
-									}
-								}
 
 								string str;
-								if (plane.hasCtot) {
-									if (plane.hasRestriction != 0) {
-										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowRestriction.ident + ",";
+								if (plane.hasManualCtot) {
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ttot.substr(0, 4) + ",MAN RESTRICTION" + ",";
+								} else {
+									if (plane.hasRestriction) {
+										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + "," + plane.flowReason + ",";
 									}
 									else {
 										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot + ",flowRestriction" + ",";
-									}
-								}
-								else {
-									if (plane.hasRestriction != 0) {
-										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + "," + plane.flowRestriction.ident + ",";
-									}
-									else {
-										str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + slot + ",flowRestriction" + ",";
 									}
 								}
 								myfile << str << endl;
@@ -5602,24 +5038,11 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
 		flight.AddMember("tobt", tobt, document.GetAllocator());
 		flight.AddMember("tsat", tsat, document.GetAllocator());
 		string slot = "";
-		if (plane.hasCtot) {
-			slot = plane.ctot;
-		} else {
-			//GetEvCtot
-			string slot = "ctot";
-			if (plane.hasManualCtot) {
-				slot = plane.ttot;
-			}
-			else {
-				for (size_t i = 0; i < evCtots.size(); i++) {
-					if (evCtots[i][0] == plane.callsign) {
-						slot = evCtots[i][1];
-					}
-				}
-			}
-		}
-		if (slot.length() >= 4) {
-			Value ctot(slot.substr(0, 4).c_str(), document.GetAllocator());
+		if (plane.hasManualCtot) {
+			Value ctot(plane.ttot.substr(0, 4).c_str(), document.GetAllocator());
+			flight.AddMember("ctot", ctot, document.GetAllocator());
+		} else if (plane.hasRestriction){
+			Value ctot(plane.ctot.substr(0, 4).c_str(), document.GetAllocator());
 			flight.AddMember("ctot", ctot, document.GetAllocator());
 		}
 		Value runway(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDepartureRwy(), document.GetAllocator());
@@ -5770,116 +5193,6 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 	return true;
 }
 
-void CDM::getCADvalues() {
-	vector<CAD> CADValuesTemp;
-	if (debugMode) {
-		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
-	}
-
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cadUrl.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	} 
-
-	if (responseCode == 404 || CURLE_OK != result) {
-		// handle error 404
-		sendMessage("UNABLE TO LOAD CAD URL...");
-	}
-	else {
-		std::istringstream is(readBuffer);
-
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (!lineValue.empty()) {
-				if (lineValue.substr(0, 1) != "#") {
-					if (lineValue.find(",") != string::npos) {
-						string airport = lineValue.substr(0, lineValue.find(","));
-						string rate = lineValue.substr(lineValue.find(",") + 1);
-						if (airport == "URL") {
-							vector<CAD> myCadValues = returnCADvalues(rate);
-							for (CAD c : myCadValues) {
-								CADValuesTemp.push_back(c);
-							}
-						}
-						if (checkIsNumber(rate) && !rate.empty()) {
-							CAD cad = CAD(airport, stoi(rate));
-							CADValuesTemp.push_back(cad);
-						}
-					}
-				}
-			}
-		}
-	}
-	CADvalues = CADValuesTemp;
-}
-
-vector<CAD> CDM::returnCADvalues(string url)
-{
-	vector<CAD> myCADvalues;
-	if (debugMode) {
-		sendMessage("[DEBUG MESSAGE] - GETTING CAD VALUES");
-	}
-
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
-
-	if (responseCode == 404 || CURLE_OK != result) {
-		// handle error 404
-		sendMessage("UNABLE TO LOAD CAD URL...");
-	}
-	else {
-		std::istringstream is(readBuffer);
-
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (!lineValue.empty()) {
-				if (lineValue.substr(0, 1) != "#") {
-					if (lineValue.find(",") != string::npos) {
-						//Avoid Blank value
-						if (!isdigit(lineValue[lineValue.length() - 1])) {
-							lineValue = lineValue.substr(0, lineValue.length() - 1);
-						}
-						string airport = lineValue.substr(0, lineValue.find(","));
-						string rate = lineValue.substr(lineValue.find(",") + 1);
-						if (checkIsNumber(rate) && !rate.empty()) {
-							CAD cad = CAD(airport, stoi(rate));
-							myCADvalues.push_back(cad);
-						}
-					}
-				}
-			}
-		}
-	}
-
-	return myCADvalues;
-}
-
 int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2) {
 
 	string stringHour1 = hour1;
@@ -5967,11 +5280,11 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 		remarks = stringToAdd;
 	}
 
-	if (plane.hasCtot) {
-		stringToAdd = remarks + " CTOT" + plane.ctot + " %" + plane.tsat + "|" + plane.ttot;
-	}
-	else if (plane.hasManualCtot) {
+	if (plane.hasManualCtot) {
 		stringToAdd = remarks + " CTOT" + plane.ttot + " %" + plane.tsat + "|" + plane.ttot;
+	}
+	else if (plane.hasRestriction) {
+		stringToAdd = remarks + " CTOT" + plane.ctot + " %" + plane.tsat + "|" + plane.ttot;
 	}
 	else {
 		stringToAdd = remarks + " %" + plane.tsat + "|" + plane.ttot;
@@ -5982,111 +5295,8 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 	return remarks;
 }
 
-void CDM::addCtotToMainList(string lineValue) {
-	Flow myFlow;
-	//Get Time now
-	time_t rawtime;
-	struct tm ptm;
-	time(&rawtime);
-	gmtime_s(&ptm, &rawtime);
-	string hour = to_string(ptm.tm_hour % 24);
-	string min = to_string(ptm.tm_min);
-
-	if (stoi(min) < 10) {
-		min = "0" + min;
-	}
-	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(0, 1);
-	}
-	bool found = false;
-	for (size_t i = 0; i < slotList.size(); i++)
-	{
-		if (slotList[i].callsign == lineValue.substr(0, lineValue.find(","))) {
-			bool oldCTOT = true;
-			string CTOTHour = slotList[i].ttot.substr(slotList[i].ttot.length() - 6, 2);
-			string CTOTMin = slotList[i].ttot.substr(slotList[i].ttot.length() - 4, 2);
-			int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
-			if (hour != CTOTHour) {
-				if (difTime >= expiredCTOTTime + 40) {
-					oldCTOT = false;
-				}
-			}
-			else {
-				if (difTime >= expiredCTOTTime) {
-					oldCTOT = false;
-				}
-			}
-			if (!oldCTOT) {
-				Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), 0, myFlow, false);
-				slotList[i] = p;
-				found = true;
-			}
-		}
-	}
-	if (!found) {
-		bool oldCTOT = true;
-		string CTOTHour = lineValue.substr(lineValue.find(",")+1, 2);
-		string CTOTMin = lineValue.substr(lineValue.find(",")+3, 2);
-		int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
-		if (hour != CTOTHour) {
-			if (difTime >= expiredCTOTTime + 40) {
-				oldCTOT = false;
-			}
-		}
-		else {
-			if (difTime >= expiredCTOTTime) {
-				oldCTOT = false;
-			}
-		}
-		if (!oldCTOT) {
-			Plane p(lineValue.substr(0, lineValue.find(",")), "999999", "999999", lineValue.substr(lineValue.find(",") + 1, 4) + "00", true, lineValue.substr(lineValue.find(",") + 1, 4), 0, myFlow, false);
-			slotList.push_back(p);
-		}
-	}
-}
-
 void CDM::addVatcanCtotToEvCTOT(string line) {
 	slotFile.push_back({ line.substr(0,line.find(",")), line.substr(line.find(",")+1, 4)});
-}
-
-/*
-* NOT IN USE ANYMORE
-* */
-void CDM::addVatcanCtotToMainList(string callsign, string slot) {
-	Flow myFlow;
-	//Get Time now
-	time_t rawtime;
-	struct tm ptm;
-	time(&rawtime);
-	gmtime_s(&ptm, &rawtime);
-	string hour = to_string(ptm.tm_hour % 24);
-	string min = to_string(ptm.tm_min);
-
-	if (stoi(min) < 10) {
-		min = "0" + min;
-	}
-	if (stoi(hour) < 10) {
-		hour = "0" + hour.substr(0, 1);
-	}
-
-	bool oldCTOT = true;
-	string CTOTHour = slot.substr(0, 2);
-	string CTOTMin = slot.substr(2, 2);
-	int difTime = GetdifferenceTime(CTOTHour, CTOTMin, hour, min);
-	if (hour != CTOTHour) {
-		if (difTime >= expiredCTOTTime + 40) {
-			oldCTOT = false;
-		}
-	}
-	else {
-		if (difTime >= expiredCTOTTime) {
-			oldCTOT = false;
-		}
-	}
-	if (!oldCTOT) {
-		Plane p(callsign, "999999", "999999", slot + "00", true, slot, 0, myFlow, false);
-		slotList.push_back(p);
-	}
 }
 
 vector<string> CDM::explode(std::string const& s, char delim)
@@ -6106,180 +5316,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm refresh", sCommandLine)) {
 		sendMessage("Refreshing Now...");
 		countTime = stoi(GetTimeNow()) - refreshTime;
-		countFlowTime = stoi(GetTimeNow()) - 60;
+		countFetchServerTime = stoi(GetTimeNow()) - 60;
 		return true;
 	}
-
-	if (startsWith(".cdm flow", sCommandLine)) {
-		sendMessage("Reloading Flow data...");
-		multithread(&CDM::getFlowData);
-		return true;
-	}
-
-	if (startsWith(".cdm cad", sCommandLine)) {
-		sendMessage("Refreshing CAD...");
-		getCADvalues();
-		return true;
-	}
-
-	/**
-	* COMMAND DISABLED
-	/
-	if (startsWith(".cdm reload", sCommandLine))
-	{
-		sendMessage("Reloading CDM....");
-		for (Plane pl : slotList) {
-			deleteFlightStrips(pl.callsign);
-		}
-		slotList.clear();
-		asatList.clear();
-		taxiTimesList.clear();
-		TxtTimesVector.clear();
-		OutOfTsat.clear();
-		colors.clear();
-		flowData.clear();
-		rate.clear();
-		planeAiportList.clear();
-		masterAirports.clear();
-		CDMairports.clear();
-		CTOTcheck.clear();
-		finalTimesList.clear();
-		//Get data from xml config file
-		defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
-		refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
-		expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
-		rateString = getFromXml("/CDM/rate/@ops");
-		lvoRateString = getFromXml("/CDM/rateLvo/@ops");
-		taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
-		string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
-		string stringDebugMode = getFromXml("/CDM/Debug/@mode");
-		flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
-		debugMode = false;
-		if (stringDebugMode == "true") {
-			debugMode = true;
-			sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
-		}
-
-		invalidateTSAT_Option = true;
-		if (invalidateTSAT_OptionStr == "false") {
-			invalidateTSAT_Option = false;
-		}
-
-		lvo = false;
-		if (rateUrl.length() <= 1) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
-			}
-			getRate();
-		}
-		else {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
-			}
-			getRateFromUrl(rateUrl);
-		}
-
-
-		if (taxiZonesUrl.length() <= 1) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM LOCAL TXT FILE");
-			}
-			//Get data from .txt file
-			fstream file;
-			string lineValue;
-			file.open(lfad.c_str(), std::ios::in);
-			while (getline(file, lineValue))
-			{
-				if (!lineValue.empty()) {
-					if (lineValue.substr(0, 1) != "#") {
-						TxtTimesVector.push_back(lineValue);
-					}
-				}
-			}
-		}
-		else {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
-			}
-			getTaxiZonesFromUrl(taxiZonesUrl);
-		}
-
-		getFlowData();
-
-		getCADvalues();
-
-		if (ctotURL.length() <= 1) {
-			ctotCid = false;
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
-			}
-		}
-		else {
-			ctotCid = true;
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
-			}
-			getCtotsFromUrl(ctotURL);
-		}
-
-		fstream fileColors;
-		string lineValueColors;
-		vector<int> sep;
-		fileColors.open(vfad.c_str(), std::ios::in);
-		COLORREF color = RGB(0, 0, 0);
-		smatch match;
-		while (getline(fileColors, lineValueColors))
-		{
-			if (regex_match(lineValueColors, match, regex("^color(\\d+):(\\d+),(\\d+),(\\d+)$", regex::icase)))
-			{
-				color = RGB(stoi(match[2]), stoi(match[3]), stoi(match[4]));
-				switch (stoi(match[1]))
-				{
-				case 1:
-					TAG_GREEN = color;
-					break;
-				case 2:
-					TAG_GREENNOTACTIVE = color;
-					break;
-				case 3:
-					TAG_GREY = color;
-					break;
-				case 4:
-					TAG_ORANGE = color;
-					break;
-				case 5:
-					TAG_YELLOW = color;
-					break;
-				case 6:
-					TAG_DARKYELLOW = color;
-					break;
-				case 7:
-					TAG_RED = color;
-					break;
-				case 8:
-					TAG_EOBT = color;
-					break;
-				case 9:
-					TAG_TTOT = color;
-					break;
-				case 10:
-					TAG_ASRT = color;
-					break;
-				case 11:
-					TAG_CTOT = color;
-					break;
-				case 12:
-					SU_SET_COLOR = color;
-					break;
-				default:
-					break;
-				}
-			}
-		}
-		sendMessage("Done");
-		return true;
-	}
-	*/
 
 	if (startsWith(".cdm refreshtime", sCommandLine)) {
 		string line = sCommandLine;
@@ -6442,7 +5481,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		for (Plane pl : slotList)
 		{
-			if (pl.hasCtot) {
+			if (pl.hasRestriction) {
 				outfile << pl.callsign + "," + pl.eobt + "," + pl.tsat + "," + pl.ttot + "," + pl.ctot + ",c" << std::endl;
 			}
 			else {
@@ -6718,7 +5757,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/setMaster?airport=" + airport + "&position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6755,7 +5794,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeMaster?airport=" + airport + "&position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6797,7 +5836,7 @@ bool CDM::removeAllMasterAirports(string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMasterByPosition?position=" + position);
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6833,7 +5872,7 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/airport/removeAllMasterByAirport?airport=" + airport);
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6858,7 +5897,7 @@ bool CDM::setEvCtot(string callsign) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdm_api + "/plane/cidCheck?callsign=" + callsign);
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/plane/cidCheck?callsign=" + callsign);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -6899,4 +5938,195 @@ bool CDM::setEvCtot(string callsign) {
 		}
 	}
 	return false;
+}
+
+void CDM::getCdmServerRestricted() {
+	sendMessage("Fetching CTOTs...");
+	vector<Plane> tempList = slotList;
+	CURL* curl;
+	CURLcode result = CURLE_FAILED_INIT;
+	std::string readBuffer;
+	long responseCode = 0;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/restricted");
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || CURLE_OK != result) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD CDM-API URL...");
+	}
+	else {
+		Json::Reader reader;
+		Json::Value obj;
+		Json::FastWriter fastWriter;
+		reader.parse(readBuffer, obj);
+
+		//Reset all CTOTs
+		for (size_t i = 0; i < tempList.size(); i++) {
+			tempList[i].ctot = "";
+			tempList[i].flowReason = "";
+			tempList[i].hasRestriction = 0;
+		}
+
+		serverRestrictedPlanes.clear();
+
+		const Json::Value& measures = obj;
+		for (size_t i = 0; i < measures.size(); i++) {
+			//Get callsign 
+			string callsign = fastWriter.write(measures[i]["callsign"]);
+			callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+			callsign = callsign.substr(0, callsign.length() - 2);
+
+			//Get CTOT
+			string ctot = fastWriter.write(measures[i]["ctot"]);
+			ctot.erase(std::remove(ctot.begin(), ctot.end(), '"'));
+
+			//Get reason
+			string reason = fastWriter.write(measures[i]["reason"]);
+			reason.erase(std::remove(reason.begin(), reason.end(), '"'));
+
+			serverRestrictedPlanes.push_back({ callsign,ctot,reason });
+
+			for (size_t i = 0; i < tempList.size(); i++) {
+				if (tempList[i].callsign == callsign) {
+					string taxiTime = getTaxiTime(callsign);
+					tempList[i] = {
+						callsign,
+						tempList[i].eobt,
+						calculateLessTime(ctot + "00", stod(taxiTime)),
+						ctot,
+						ctot,
+						1,
+						reason,
+						tempList[i].hasManualCtot
+					};
+				}
+			}
+		}
+	}
+	slotList = tempList;
+}
+
+void CDM::sendWaitingTSAT() {
+	vector<string> tempList = setTSATlater;
+	for (int i = 0; i < tempList.size(); i++) {
+		for (Plane p : slotList) {
+			sendMessage(p.callsign + "Is in the TSAT waiting list");
+			if (p.callsign == tempList[i]) {
+				setTSATlater.erase(setTSATlater.begin() + i);
+				if (!p.hasRestriction) {
+					std::thread t(&CDM::setTSATApi, this, p.callsign, p.tsat);
+					t.detach();
+				}
+			}
+		}
+	}
+}
+
+void CDM::setTSATApi(string myCallsign, string tsat) {
+	vector<Plane> tempList = slotList;
+	if (tsat.length() >= 4) {
+		tsat = tsat.substr(0, 4);
+	}
+	else {
+		tsat = "";
+	}
+
+	string taxiTime = getTaxiTime(myCallsign);
+
+	CURL* curl;
+	CURLcode result = CURLE_FAILED_INIT;
+	string readBuffer;
+	long responseCode = 0;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/cdm?callsign=" + myCallsign + "&taxi=" + taxiTime + "&tsat=" + tsat);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || CURLE_OK != result) {
+		sendMessage("UNABLE TO CONNECT CDM-API...");
+	}
+	else {
+		Json::Reader reader;
+		Json::Value obj;
+		Json::FastWriter fastWriter;
+		reader.parse(readBuffer, obj);
+		if (obj.isMember("callsign")) {
+			//Get callsign 
+			string callsign = fastWriter.write(obj["callsign"]);
+			callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+			callsign = callsign.substr(0, callsign.length() - 2);
+
+			//Get CTOT
+			string ctot = fastWriter.write(obj["ctot"]);
+			ctot.erase(std::remove(ctot.begin(), ctot.end(), '"'));
+			ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
+			ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
+
+			//Get reason
+			string reason = fastWriter.write(obj["reason"]);
+			reason.erase(std::remove(reason.begin(), reason.end(), '"'));
+			reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
+			reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
+
+			for (size_t i = 0; i < tempList.size(); i++) {
+				if (tempList[i].callsign == callsign) {
+					sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
+					if (ctot != "") {
+						tempList[i] = {
+							callsign,
+							tempList[i].eobt,
+							calculateLessTime(ctot + "00", stod(taxiTime)),
+							ctot,
+							ctot,
+							1,
+							reason,
+							tempList[i].hasManualCtot
+						};
+					}
+					else {
+						tempList[i].ctot = "";
+						tempList[i].flowReason = "";
+						tempList[i].hasRestriction = 0;
+					}
+				}
+			}
+			slotList = tempList;
+		}
+		else {
+			sendMessage("Could not set TSAT " + tsat + " for " + myCallsign + ". CDM will automatically retry in 30 seconds...");
+			setTSATlater.push_back(myCallsign);
+		}
+	}
+}
+
+string CDM::getTaxiTime(string callsign) {
+	string taxiTime = "15";
+	for (size_t j = 0; j < taxiTimesList.size(); j++)
+	{
+		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == myCallsign) {
+			if (taxiTimesList[j].substr(taxiTimesList[j].length() - 2, 1) == ",") {
+				taxiTime = taxiTimesList[j].substr(taxiTimesList[j].length() - 1, 1);
+			}
+			else {
+				taxiTime = taxiTimesList[j].substr(taxiTimesList[j].length() - 2, 2);
+			}
+		}
+	}
+	return taxiTime;
 }
