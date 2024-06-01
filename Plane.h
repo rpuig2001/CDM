@@ -10,7 +10,7 @@ public:
 	string tsat;
 	string ttot;
 	string ctot;
-	int hasRestriction;
+	bool hasRestriction;
 	string flowReason;
 	bool hasManualCtot;
 
