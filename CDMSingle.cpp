@@ -425,11 +425,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	if (master) {
+	/*if (master) {
 		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
 			AtcMe = true;
 		}
-	}
+	}*/
 
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
