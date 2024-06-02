@@ -10,11 +10,11 @@ public:
 	string tsat;
 	string ttot;
 	string ctot;
-	bool hasRestriction;
 	string flowReason;
 	bool hasManualCtot;
+	bool showData;
 
-	Plane(string mycallsign, string myeobt, string mytsat, string myttot, string myctot, int myhasRestriction, string myFlowReason, bool myHasManualCtot) :
-		callsign(mycallsign), eobt(myeobt), tsat(mytsat), ttot(myttot), ctot(myctot), hasRestriction(myhasRestriction), flowReason(myFlowReason), hasManualCtot(myHasManualCtot) { }
+	Plane(string mycallsign, string myeobt, string mytsat, string myttot, string myctot, string myFlowReason, bool myHasManualCtot, bool myShowData) :
+		callsign(mycallsign), eobt(myeobt), tsat(mytsat), ttot(myttot), ctot(myctot), flowReason(myFlowReason), hasManualCtot(myHasManualCtot), showData(myShowData) { }
 	Plane() {};
 };
