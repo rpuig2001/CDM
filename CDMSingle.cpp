@@ -2649,15 +2649,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
-							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot) {
-									string message = "MAN ACT";
-									if (slotList[pos].ctot != "") {
-										message = slotList[pos].flowReason + " CAP";
+							if (showData) {
+								if (aircraftFind) {
+									if (slotList[pos].hasManualCtot) {
+										string message = "MAN ACT";
+										if (slotList[pos].ctot != "") {
+											message = slotList[pos].flowReason + " CAP";
+										}
+										ItemRGB = TAG_YELLOW;
+										strcpy_s(sItemString, 16, message.c_str());
 									}
-									ItemRGB = TAG_YELLOW;
-									strcpy_s(sItemString, 16, message.c_str());
 								}
+							}
+							else
+							{
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "....");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
@@ -4140,7 +4147,7 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				}
 				//Check API
 				if (aircraftFind) {
-					if (TTOTFinal != slotList[pos].ttot || slotList[pos].ttot == "999999") {
+					if (TTOTFinal != slotList[pos].ttot) {
 						std::thread t(&CDM::setTSATApi, this, callsign, TSATfinal);
 						t.detach();
 					}
@@ -5879,7 +5886,6 @@ void CDM::sendWaitingTSAT() {
 }
 
 void CDM::setTSATApi(string myCallsign, string tsat) {
-	vector<Plane> tempList = slotList;
 	if (tsat.length() >= 4) {
 		tsat = tsat.substr(0, 4);
 	}
@@ -5931,6 +5937,7 @@ void CDM::setTSATApi(string myCallsign, string tsat) {
 			reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
 			reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
 
+			vector<Plane> tempList = slotList;
 			for (size_t i = 0; i < tempList.size(); i++) {
 				if (tempList[i].callsign == callsign) {
 					sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
@@ -5950,6 +5957,7 @@ void CDM::setTSATApi(string myCallsign, string tsat) {
 						tempList[i].ctot = "";
 						tempList[i].flowReason = "";
 						tempList[i].hasManualCtot = false;
+						tempList[i].showData = true;
 					}
 				}
 			}
