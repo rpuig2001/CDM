@@ -86,15 +86,11 @@ public:
 
 	string formatTime(string timeString);
 
-	void checkCtot();
-
 	void RemoveDataFromTfc(string callsign);
 
 	void disconnectTfcs();
 
 	string calculateTime(string timeString, double minsToAdd);
-
-	bool checkCtotInRange(Plane plane);
 
 	string calculateLessTime(string timeString, double minsToAdd);
 
@@ -109,6 +105,8 @@ public:
 	string getCidByCallsign(string callsign);
 
 	void getCdmServerRestricted();
+
+	void ctotCheck();
 
 	void sendWaitingTSAT();
 
