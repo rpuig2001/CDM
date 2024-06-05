@@ -1168,9 +1168,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 	}
 
-	//Check CTOT status
-	ctotCheck();
-
 	COLORREF ItemRGB = 0xFFFFFFFF;
 	string callsign = FlightPlan.GetCallsign();
 
@@ -3579,7 +3576,6 @@ void CDM::backgroundProcess_recaulculate() {
 	gmtime_s(&ptm, &rawtime);
 	string hour = to_string(ptm.tm_hour % 24);
 	string min = to_string(ptm.tm_min);
-
 	for (size_t i = 0; i < slotList.size(); i++)
 	{
 
@@ -3956,6 +3952,7 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					}
 					else if (TTOTFinal.length() >= 4) {
 						Plane p(callsign, EOBT, TSAT, TTOT, TTOTFinal.substr(0,4), myFlow, hasManualCtot, true);
+						std::lock_guard<std::mutex> lock(mtx);
 						slotList.push_back(p);
 						remarks = setCTOTremarks(remarks, p, FlightPlan);
 					}
@@ -3970,6 +3967,7 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					}
 					else {
 						Plane p(callsign, EOBT, TSAT, TTOT, "", myFlow, hasManualCtot, true);
+						std::lock_guard<std::mutex> lock(mtx);
 						slotList.push_back(p);
 						remarks = setCTOTremarks(remarks, p, FlightPlan);
 					}
@@ -4559,15 +4557,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 12");
 			}
 			suWaitList.erase(suWaitList.begin() + i);
-		}
-	}
-	//Remove from apiCtots
-	for (size_t i = 0; i < apiCtots.size(); i++) {
-		if (apiCtots[i].callsign == callsign) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 13");
-			}
-			apiCtots.erase(apiCtots.begin() + i);
 		}
 	}
 }
@@ -5410,6 +5399,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 		{
 			if (lineValue == "true") {
 				sendMessage("Successfully set master airport " + airport);
+				std::lock_guard<std::mutex> lock(mtx);
 				masterAirports.push_back(airport);
 				return true;
 			}
@@ -5447,6 +5437,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
 		{
 			if (lineValue == "true") {
 				sendMessage("Successfully removed master airport " + airport);
+				std::lock_guard<std::mutex> lock(mtx);
 				for (int a = 0; a < masterAirports.size(); a++)
 				{
 					if (masterAirports[a] == airport) {
@@ -5580,7 +5571,6 @@ bool CDM::setEvCtot(string callsign) {
 }
 
 void CDM::getCdmServerRestricted() {
-	vector<Plane> tempPlanes;
 	sendMessage("Fetching CTOTs...");
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -5607,6 +5597,16 @@ void CDM::getCdmServerRestricted() {
 		Json::Value obj;
 		Json::FastWriter fastWriter;
 		reader.parse(readBuffer, obj);
+
+		
+		//Reset all CTOTs
+		for (size_t i = 0; i < slotList.size(); i++) {
+			if (slotList[i].ctot != "") {
+				slotList[i].hasManualCtot = false;
+			}
+			slotList[i].ctot = "";
+			slotList[i].flowReason = "";
+		}
 
 		serverRestrictedPlanes.clear();
 
@@ -5638,7 +5638,7 @@ void CDM::getCdmServerRestricted() {
 						for (size_t z = 0; z < slotList.size(); z++) {
 							if (slotList[z].callsign == callsign) {
 								string taxiTime = getTaxiTime(callsign);
-								tempPlanes.push_back({
+								slotList[z] = {
 									callsign,
 									slotList[z].eobt,
 									calculateLessTime(ctot + "00", stod(taxiTime)),
@@ -5647,43 +5647,22 @@ void CDM::getCdmServerRestricted() {
 									reason,
 									true,
 									true
-								});
-							}
-						}
-					}
-
-					//Reset all CTOTs
-					vector<Plane> removeCtots;
-					for (Plane slotListPlane : slotList) {
-						bool found = false;
-						for (Plane tempPlane : tempPlanes) {
-							if (slotListPlane.callsign == tempPlane.callsign) {
-								found = true;
-							}
-						}
-						if (!found) {
-							removeCtots.push_back(slotListPlane);
-						}
-					}
-					for (size_t z = 0; z < slotList.size(); z++) {
-						for (size_t a = 0; a < removeCtots.size(); a++) {
-							if (removeCtots[a].callsign == slotList[z].callsign) {
-								slotList[z].ctot = "";
-								slotList[z].flowReason = "";
-								if (slotList[z].ctot != "") {
-									slotList[z].hasManualCtot = false;
+								};
+								if (slotList[z].ttot != (ctot + "00")) {
+									CFlightPlan fp = FlightPlanSelect(slotList[z].callsign.c_str());
+									addTimeToListForSpecificAirportAndRunway(10, calculateTime(GetTimeNow(), 5), fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
 								}
 							}
 						}
 					}
-
-					//Add ACFTs
-					for (Plane p : tempPlanes) {
-						apiCtots.push_back(p);
-					}
+				}
+				catch (const std::exception& e) {
+					// Handle standard exceptions
+					sendMessage("cdm-api exception: " + (string)e.what());
 				}
 				catch (...) {
-					sendMessage("Error occurred parsing data from the cdm-api");
+					// Handle all other exceptions
+					sendMessage("cdm-api exception");
 				}
 			}
 		}
@@ -5692,29 +5671,12 @@ void CDM::getCdmServerRestricted() {
 	sendCheckCIDLater();
 }
 
-void CDM::ctotCheck() {
-	//Add CTOTs
-	for (size_t i = 0; i < apiCtots.size(); i++) {
-		for (size_t z = 0; z < slotList.size(); z++) {
-			if (apiCtots[i].callsign == slotList[z].callsign) {
-				slotList[z] = apiCtots[i];
-				if (slotList[z].ttot != apiCtots[i].ttot) {
-					CFlightPlan fp = FlightPlanSelect(slotList[z].callsign.c_str());
-					addTimeToListForSpecificAirportAndRunway(10, calculateTime(GetTimeNow(), 5), fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
-				}
-				apiCtots.erase(apiCtots.begin() + i);
-			}
-		}
-	}
-}
-
 void CDM::sendWaitingTSAT() {
-	vector<string> tempList = setTSATlater;
-	for (int i = 0; i < tempList.size(); i++) {
+	for (int i = 0; i < setTSATlater.size(); i++) {
 		for (Plane p : slotList) {
-			if (p.callsign == tempList[i]) {
+			if (p.callsign == setTSATlater[i]) {
 				try {
-					tempList.erase(tempList.begin() + i);
+					setTSATlater.erase(setTSATlater.begin() + i);
 					if (!p.hasManualCtot) {
 						std::thread t(&CDM::setTSATApi, this, p.callsign, p.tsat);
 						t.detach();
@@ -5726,17 +5688,14 @@ void CDM::sendWaitingTSAT() {
 			}
 		}
 	}
-	setTSATlater = tempList;
 }
 
 void CDM::sendCheckCIDLater() {
-	vector<string> tempList = checkCIDLater;
-	for (int i = 0; i < tempList.size(); i++) {
-		std::thread t(&CDM::setEvCtot, this, tempList[i]);
+	for (int i = 0; i < checkCIDLater.size(); i++) {
+		std::thread t(&CDM::setEvCtot, this, checkCIDLater[i]);
 		t.detach();
-		tempList.erase(tempList.begin() + i);
+		checkCIDLater.erase(checkCIDLater.begin() + i);
 	}
-	checkCIDLater = tempList;
 }
 
 void CDM::setTSATApi(string callsign, string tsat) {
@@ -5795,29 +5754,27 @@ void CDM::setTSATApi(string callsign, string tsat) {
 			reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
 
 			try {
-				if (ctot.length() == 4) {
-					for (size_t i = 0; i < slotList.size(); i++) {
-						if (slotList[i].callsign == callsign) {
-							sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
-							if (ctot != "") {
-								apiCtots.push_back({
-									callsign,
-									slotList[i].eobt,
-									calculateLessTime(ctot + "00", stod(taxiTime)),
-									ctot + "00",
-									ctot,
+				for (size_t i = 0; i < slotList.size(); i++) {
+					if (slotList[i].callsign == callsign) {
+						sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
+						if (ctot != "") {
+							slotList[i] = {
+								callsign,
+								slotList[i].eobt,
+								calculateLessTime(ctot + "00", stod(taxiTime)),
+								ctot + "00",
+								ctot,
 									reason,
-									true,
-									true
-								});
-							}
-							else {
-								if (slotList[i].ctot != "") {
-									slotList[i].ctot = "";
-									slotList[i].flowReason = "";
-									slotList[i].hasManualCtot = false;
-									slotList[i].showData = true;
-								}
+								true,
+								true
+							};
+						}
+						else {
+							if (slotList[i].ctot != "") {
+								slotList[i].ctot = "";
+								slotList[i].flowReason = "";
+								slotList[i].hasManualCtot = false;
+								slotList[i].showData = true;
 							}
 						}
 					}
@@ -5829,6 +5786,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		}
 		else {
 			sendMessage("Could not set TSAT " + tsat + " for " + callsign + ". CDM will automatically retry in 30 seconds...");
+			std::lock_guard<std::mutex> lock(mtx);
 			setTSATlater.push_back(callsign);
 		}
 	}

@@ -17,6 +17,7 @@
 #include "Rate.h"
 #include "Plane.h"
 #include "ServerRestricted.h"
+#include <mutex>
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
@@ -105,8 +106,6 @@ public:
 	string getCidByCallsign(string callsign);
 
 	void getCdmServerRestricted();
-
-	void ctotCheck();
 
 	void sendWaitingTSAT();
 
@@ -241,7 +240,10 @@ public:
 
 	int FuncBuffer;
 
-protected:
-	Document config;
+	protected:
+		Document config;
+
+	private:
+		std::mutex mtx;
 };
 
