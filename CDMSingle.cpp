@@ -3164,7 +3164,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				ItemRGB = TAG_EOBT;
 				strcpy_s(sItemString, 16, EOBTfinal.c_str());
 			}
-			/*
 			if (ItemCode == TAG_ITEM_CTOT)
 			{
 				for (ServerRestricted sr : serverRestrictedPlanes) {
@@ -3183,7 +3182,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 			}
-			*/
+			if (ItemRGB != 0xFFFFFFFF)
+			{
+				*pColorCode = TAG_COLOR_RGB_DEFINED;
+				*pRGB = ItemRGB;
+			}
 		}
 	}
 }
@@ -5398,10 +5401,18 @@ bool CDM::setMasterAirport(string airport, string position) {
 		while (getline(is, lineValue))
 		{
 			if (lineValue == "true") {
-				sendMessage("Successfully set master airport " + airport);
-				std::lock_guard<std::mutex> lock(mtx);
-				masterAirports.push_back(airport);
-				return true;
+				for (int attempt = 0; attempt < 10; ++attempt) {  // Retry up to 3 times
+					try {
+						std::lock_guard<std::mutex> lock(mtx);
+						masterAirports.push_back(airport);
+						sendMessage("Successfully set master airport " + airport);
+						return true;
+					}
+					catch (const std::system_error& e) {
+						std::cerr << "Exception caught: " << e.what() << std::endl;
+						std::this_thread::sleep_for(std::chrono::milliseconds(100));
+					}
+				}
 			}
 			sendMessage("Unable to set master airport " + airport);
 		}
@@ -5785,9 +5796,9 @@ void CDM::setTSATApi(string callsign, string tsat) {
 			}
 		}
 		else {
-			sendMessage("Could not set TSAT " + tsat + " for " + callsign + ". CDM will automatically retry in 30 seconds...");
 			std::lock_guard<std::mutex> lock(mtx);
 			setTSATlater.push_back(callsign);
+			sendMessage("Could not set TSAT " + tsat + " for " + callsign + ". CDM will automatically retry in 30 seconds...");
 		}
 	}
 
