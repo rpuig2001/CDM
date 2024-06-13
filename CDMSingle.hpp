@@ -109,9 +109,15 @@ public:
 
 	void sendWaitingTSAT();
 
+	void sendWaitingCdmSts();
+
 	void sendCheckCIDLater();
 
 	string getTaxiTime(string callsign);
+
+	void setCdmSts(string callsign, string cdmSts);
+
+	string getCdmSts(string callsign);
 
 	void setTSATApi(string myCallsign, string tsat);
 

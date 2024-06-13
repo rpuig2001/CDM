@@ -74,6 +74,7 @@ vector<vector<string>> evCtots;
 vector<Delay> delayList;
 vector<ServerRestricted> serverRestrictedPlanes;
 vector<string> setTSATlater;
+vector<string> setCdmStslater;
 vector<string> suWaitList;
 vector<string> checkCIDLater;
 
@@ -594,10 +595,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 			OpenPopupList(Area, "CTOT Options", 1);
-			if (!plane.hasManualCtot) {
+			if (!plane.hasManualCtot || plane.ctot != "") {
 				AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
 			}
-			else if (plane.ctot == "") {
+			else if (plane.ctot == "" && plane.hasManualCtot) {
 				AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
 			}
 		}
@@ -715,10 +716,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 
 			//CTOT OPTIONS
-			if (!plane.hasManualCtot) {
+			if (!plane.hasManualCtot || plane.ctot != "") {
 				AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
 			}
-			else if (plane.ctot == "") {
+			else if (plane.ctot == "" && plane.hasManualCtot) {
 				AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
 			}
 		}
@@ -1464,6 +1465,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else {
 								OutOfTsat.erase(OutOfTsat.begin() + i);
+								//Update CDM-API
+								std::thread t(&CDM::setCdmSts, this, callsign, "");
+								t.detach();
 							}
 						}
 					}
@@ -1603,7 +1607,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 									}
 									else {
-										ItemRGB = TAG_YELLOW;
+										ItemRGB = TAG_CTOT;
 										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 									}
 								}
@@ -2064,6 +2068,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 									remarks = stringToAdd;
 								}
+								//Update CDM-API
+								std::thread t(&CDM::setCdmSts, this, callsign, "I");
+								t.detach();
 							}
 						}
 
@@ -2134,6 +2141,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 								remarks = stringToAdd;
 							}
+							//Update CDM-API
+							std::thread t(&CDM::setCdmSts, this, callsign, "I");
+							t.detach();
 						}
 
 						//EOBT
@@ -2537,7 +2547,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											ItemRGB = TAG_ORANGE;
 										}
 										else {
-											ItemRGB = TAG_YELLOW;
+											ItemRGB = TAG_CTOT;
 										}
 										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 									}
@@ -2704,6 +2714,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						if (oldTSAT && !correctState ) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
+							//Update CDM-API
+							std::thread t(&CDM::setCdmSts, this, callsign, "I");
+							t.detach();
 						}
 
 						string completeEOBT = (string)EOBT;
@@ -3025,7 +3038,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										ItemRGB = TAG_ORANGE;
 									}
 									else {
-										ItemRGB = TAG_YELLOW;
+										ItemRGB = TAG_CTOT;
 									}
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 								}
@@ -3074,7 +3087,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										ItemRGB = TAG_ORANGE;
 									}
 									else {
-										ItemRGB = TAG_YELLOW;
+										ItemRGB = TAG_CTOT;
 									}
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 								}
@@ -3127,7 +3140,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_ORANGE;
 							}
 							else {
-								ItemRGB = TAG_YELLOW;
+								ItemRGB = TAG_CTOT;
 							}
 							strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 						}
@@ -4540,6 +4553,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 10");
 			}
 			OutOfTsat.erase(OutOfTsat.begin() + i);
+			//Update CDM-API
+			std::thread t(&CDM::setCdmSts, this, callsign, "");
+			t.detach();
 		}
 	}
 	//Remove from setTSATlater
@@ -4560,6 +4576,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 12");
 			}
 			suWaitList.erase(suWaitList.begin() + i);
+		}
+	}
+	//Remove from setCdmStslater
+	for (size_t i = 0; i < setCdmStslater.size(); i++)
+	{
+		if (callsign == setCdmStslater[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 13");
+			}
+			setCdmStslater.erase(setCdmStslater.begin() + i);
 		}
 	}
 }
@@ -5679,6 +5705,7 @@ void CDM::getCdmServerRestricted() {
 		}
 	}
 	sendWaitingTSAT();
+	sendWaitingCdmSts();
 	sendCheckCIDLater();
 }
 
@@ -5701,6 +5728,16 @@ void CDM::sendWaitingTSAT() {
 	}
 }
 
+void CDM::sendWaitingCdmSts() {
+	string cdmSts = "";
+	for (int i = 0; i < setCdmStslater.size(); i++) {
+		cdmSts = getCdmSts(setCdmStslater[i]);
+		std::thread t(&CDM::setCdmSts, this, setCdmStslater[i], cdmSts);
+		t.detach();
+		setCdmStslater.erase(setCdmStslater.begin() + i);
+	}
+}
+
 void CDM::sendCheckCIDLater() {
 	for (int i = 0; i < checkCIDLater.size(); i++) {
 		std::thread t(&CDM::setEvCtot, this, checkCIDLater[i]);
@@ -5717,6 +5754,8 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		tsat = "";
 	}
 
+	string cdmSts = getCdmSts(callsign);
+
 	string taxiTime = getTaxiTime(callsign);
 
 	CURL* curl;
@@ -5725,7 +5764,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat);
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat + "&cdmSts=" + cdmSts);
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5824,4 +5863,58 @@ string CDM::getTaxiTime(string callsign) {
 		}
 	}
 	return taxiTime;
+}
+
+void CDM::setCdmSts(string callsign, string cdmSts) {
+	CURL* curl;
+	CURLcode result = CURLE_FAILED_INIT;
+	string readBuffer;
+	long responseCode = 0;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_POST, 1L);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || CURLE_OK != result) {
+		setCdmStslater.push_back(callsign);
+		sendMessage("UNABLE TO CONNECT CDM-API...");
+	}
+	else {
+		std::istringstream is(readBuffer);
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			if (lineValue == "true") {
+				sendMessage("Successfully set Status '" + cdmSts + "' for " + callsign);
+			}
+			else {
+				std::lock_guard<std::mutex> lock(mtx);
+				setCdmStslater.push_back(callsign);
+				sendMessage("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
+			}
+		}
+	}
+}
+
+string CDM::getCdmSts(string callsign) {
+	bool outOfTsat = false;
+	for (size_t i = 0; i < OutOfTsat.size(); i++)
+	{
+		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+			outOfTsat = true;
+		}
+	}
+
+	if (outOfTsat) {
+		return "I";
+	}
+	return "";
 }
