@@ -428,12 +428,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	/*if (master) {
-		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
-			AtcMe = true;
-		}
-	}*/
-
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
 		if (master && AtcMe) {
@@ -4513,7 +4507,8 @@ string CDM::getCidByCallsign(string callsign) {
 	std::string readBuffer;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://data.vatsim.net/v3/vatsim-data.json");
+		string url = "https://data.vatsim.net/v3/vatsim-data.json";
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
@@ -4669,7 +4664,8 @@ int CDM::GetVersion() {
 	std::string readBuffer = "";
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, "https://raw.githubusercontent.com/rpuig2001/CDM/master/version.txt");
+		string url = "https://raw.githubusercontent.com/rpuig2001/CDM/master/version.txt";
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
 		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
@@ -5315,7 +5311,8 @@ bool CDM::setMasterAirport(string airport, string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position);
+		string url = cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5361,7 +5358,8 @@ bool CDM::removeMasterAirport(string airport, string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position);
+		string url = cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5404,7 +5402,8 @@ bool CDM::removeAllMasterAirports(string position) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position);
+		string url = cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5440,7 +5439,8 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport);
+		string url = cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5465,7 +5465,8 @@ bool CDM::setEvCtot(string callsign) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/plane/cidCheck?callsign=" + callsign);
+		string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5523,7 +5524,8 @@ void CDM::getCdmServerRestricted() {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/restricted");
+		string url = cdmServerUrl + "/slotService/restricted";
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5682,7 +5684,8 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		long responseCode = 0;
 		curl = curl_easy_init();
 		if (curl) {
-			curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat + "&cdmSts=" + cdmSts);
+			string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat + "&cdmSts=" + cdmSts;
+			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_POST, 1L);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
@@ -5791,7 +5794,8 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts);
+		string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
+		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
