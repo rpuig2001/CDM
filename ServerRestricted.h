@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-using namespace std;
 
 class ServerRestricted {
 public:
@@ -12,5 +11,5 @@ public:
 
 	ServerRestricted(string myCallsign, string myCtot, string myReason) :
 		callsign(myCallsign), ctot(myCtot), reason(myReason) { }
-	ServerRestricted() {};
+	ServerRestricted() = default;
 };
