@@ -379,7 +379,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
 CDM::~CDM()
 {
-	RemoveMasterAirports();
+
 }
 
 

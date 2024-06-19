@@ -44,7 +44,7 @@ public:
 	virtual ~CDM();
 
 	//Define OnGetTagItem function
-	virtual void OnGetTagItem(CFlightPlan FlightPlan,
+	void OnGetTagItem(CFlightPlan FlightPlan,
 		CRadarTarget RadarTarget,
 		int ItemCode,
 		int TagData,
@@ -206,13 +206,13 @@ public:
 		return false;
 	}
 
-	virtual void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
+	void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
 
-	virtual void debugMessage(string type, string message);
+	void debugMessage(string type, string message);
 
-	virtual void sendMessage(string type, string message);
+	void sendMessage(string type, string message);
 
-	virtual void sendMessage(string message);
+	void sendMessage(string message);
 
 	void OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan);
 
@@ -232,7 +232,7 @@ public:
 
 	bool OnCompileCommand(const char* sCommandLine);
 
-	virtual void OnTimer(int Count);
+	void OnTimer(int Count);
 
 	bool setMasterAirport(string airport, string position);
 
