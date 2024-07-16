@@ -418,7 +418,7 @@ void CDM::OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan)
 //
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
 	CFlightPlan fp = FlightPlanSelectASEL();
-	bool AtcMe = true;
+	bool AtcMe = false;
 	bool master = false;
 
 	for (string apt : masterAirports)
@@ -1555,11 +1555,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string annotTSAC = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(2);
 							if (!annotTSAC.empty()) {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "¤");
+								strcpy_s(sItemString, 16, "\xA4");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "¬");
+								strcpy_s(sItemString, 16, "\xAC");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_ASAT)
@@ -1930,14 +1930,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 								//Sync TTOT
 								if (remarks.find("%") != string::npos) {
-									if (TTOT != remarks.substr(remarks.find("%") + 8, 6)) {
-										string stringToAdd = remarks.substr(0, remarks.find("%") - 1);
+									string TTOT1 = slotList[pos].ttot;
+									string TTOT2 = remarks.substr(remarks.find("%") + 8, 6);
+									if (TTOT1 != TTOT2) {
+										string stringToAdd = "%" + slotList[pos].tsat + "|" + slotList[pos].ttot;
 										FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 										remarks = stringToAdd;
 									}
 								}
 								else if (aircraftFind && !stsDepa) {
-									string stringToAdd = remarks + "%" + TSAT + "|" + TTOT;
+									string myTSAT = TSAT;
+									string myTTOT = TTOT;
+									string stringToAdd = "%" + myTSAT + "|" + myTTOT;
 									FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 									remarks = stringToAdd;
 								}
@@ -2241,11 +2245,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_GREEN;
 								}
-								strcpy_s(sItemString, 16, "¤");
+								strcpy_s(sItemString, 16, "\xA4");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "¬");
+								strcpy_s(sItemString, 16, "\xAC");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_TSAT)
@@ -2505,7 +2509,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//Refresh FlowData every 30 seconds minutes
 						int myNow = stoi(GetTimeNow());
 						if (myNow - countFetchServerTime > 30) {
-							multithread(&CDM::getCdmServerRestricted);
+							std::thread t(&CDM::getCdmServerRestricted, this);
+							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 							}
@@ -2522,7 +2527,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								PushToOtherControllers(FlightPlanSelect(slotList[t].callsign.c_str()));
 							}
 
-							multithread(&CDM::saveData);
+							std::thread t(&CDM::saveData, this);
+							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 								sendMessage("[DEBUG MESSAGE] - " + to_string(slotList.size()) + " Planes in the list");
@@ -2530,8 +2536,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							countTime = myNow;
 
 							//Execute background process in the background
-							std::thread t(&CDM::backgroundProcess_recaulculate, this);
-							t.detach();
+							std::thread t1(&CDM::backgroundProcess_recaulculate, this);
+							t1.detach();
 						}
 					}
 				}
@@ -2539,7 +2545,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					// Refresh FlowData every 30 seconds
 					int myNow = stoi(GetTimeNow());
 					if (myNow - countFetchServerTime > 30) {
-						multithread(&CDM::getCdmServerRestricted);
+						std::thread t(&CDM::getCdmServerRestricted, this);
+						t.detach();
 						if (debugMode) {
 							sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 						}
@@ -2807,11 +2814,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_GREEN;
 								}
-								strcpy_s(sItemString, 16, "¤");
+								strcpy_s(sItemString, 16, "\xA4");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "¬");
+								strcpy_s(sItemString, 16, "\xAC");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_TSAT)
@@ -3885,7 +3892,6 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					}
 					else if (TTOTFinal.length() >= 4) {
 						Plane p(callsign, EOBT, TSAT, TTOT, TTOTFinal.substr(0,4), myFlow, hasManualCtot, true);
-						std::lock_guard<std::mutex> lock(mtx);
 						slotList.push_back(p);
 						remarks = setCTOTremarks(remarks, p, FlightPlan);
 					}
@@ -3900,7 +3906,6 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 					}
 					else {
 						Plane p(callsign, EOBT, TSAT, TTOT, "", myFlow, hasManualCtot, true);
-						std::lock_guard<std::mutex> lock(mtx);
 						slotList.push_back(p);
 						remarks = setCTOTremarks(remarks, p, FlightPlan);
 					}
@@ -4853,7 +4858,7 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 		remarks = stringToAdd;
 	}
 	
-	stringToAdd = remarks + "%" + plane.tsat + "|" + plane.ttot;
+	stringToAdd = "%" + plane.tsat + "|" + plane.ttot;
 
 	FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 	remarks = stringToAdd;
@@ -5340,7 +5345,6 @@ bool CDM::setMasterAirport(string airport, string position) {
 			if (lineValue == "true") {
 				for (int attempt = 0; attempt < 10; ++attempt) {  // Retry up to 3 times
 					try {
-						std::lock_guard<std::mutex> lock(mtx);
 						masterAirports.push_back(airport);
 						sendMessage("Successfully set master airport " + airport);
 						return true;
@@ -5386,7 +5390,6 @@ bool CDM::removeMasterAirport(string airport, string position) {
 		{
 			if (lineValue == "true") {
 				sendMessage("Successfully removed master airport " + airport);
-				std::lock_guard<std::mutex> lock(mtx);
 				for (int a = 0; a < masterAirports.size(); a++)
 				{
 					if (masterAirports[a] == airport) {
@@ -5523,7 +5526,7 @@ bool CDM::setEvCtot(string callsign) {
 }
 
 void CDM::getCdmServerRestricted() {
-	sendMessage("Fetching CTOTs...");
+	//sendMessage("Fetching CTOTs...");
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
 	std::string readBuffer;
@@ -5733,7 +5736,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 				try {
 					for (size_t i = 0; i < slotList.size(); i++) {
 						if (slotList[i].callsign == callsign) {
-							sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
+							//sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
 							if (ctot != "") {
 								slotList[i] = {
 									callsign,
@@ -5762,9 +5765,8 @@ void CDM::setTSATApi(string callsign, string tsat) {
 				}
 			}
 			else {
-				std::lock_guard<std::mutex> lock(mtx);
 				setTSATlater.push_back(callsign);
-				sendMessage("Could not set TSAT " + tsat + " for " + callsign + ". CDM will automatically retry in 30 seconds...");
+				//sendMessage("Could not set TSAT " + tsat + " for " + callsign + ". CDM will automatically retry in 30 seconds...");
 			}
 		}
 	}
@@ -5822,9 +5824,8 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 		while (getline(is, lineValue))
 		{
 			if (lineValue != "true") {
-				std::lock_guard<std::mutex> lock(mtx);
 				setCdmStslater.push_back(callsign);
-				sendMessage("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
+				//sendMessage("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
 			}
 		}
 	}
