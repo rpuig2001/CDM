@@ -14,6 +14,7 @@
     <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="Delay.h" />
+    <ClInclude Include="EcfmpRestriction.h" />
     <ClInclude Include="json_tool.h" />
     <ClInclude Include="Libs\EuroScopePlugIn.h" />
     <ClInclude Include="Plane.h" />
@@ -28,7 +29,6 @@
     <ClCompile Include="json_reader.cpp" />
     <ClCompile Include="json_value.cpp" />
     <ClCompile Include="json_writer.cpp" />
-    <ClCompile Include="Plane.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>
