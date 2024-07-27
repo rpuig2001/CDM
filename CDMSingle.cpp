@@ -4949,9 +4949,6 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
 		outFile << buffer.GetString() << std::endl;
 		outFile.close();
 	}
-	else {
-		sendMessage("Error writing the vdgs file");
-	}
 
 	upload(fileName, airport, ".json");
 }
