@@ -133,6 +133,8 @@ public:
 
 	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
 
+	void removeLog();
+
 	int GetVersion();
 
 	void createJsonVDGS(vector<Plane> slotList, string fileName, string airport);
@@ -140,6 +142,8 @@ public:
 	bool isNumber(string s);
 
 	void upload(string fileName, string airport, string type);
+
+	void addLogLine(string text);
 
 	vector<string> explode(std::string const& s, char delim);
 
