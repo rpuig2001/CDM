@@ -5702,7 +5702,6 @@ bool CDM::setMasterAirport(string airport, string position) {
 
 	if (responseCode == 404 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
-		sendMessage("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
 		std::istringstream is(readBuffer);
@@ -5753,7 +5752,6 @@ bool CDM::removeMasterAirport(string airport, string position) {
 
 	if (responseCode == 404 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
-		sendMessage("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
 		std::istringstream is(readBuffer);
@@ -5800,7 +5798,6 @@ bool CDM::removeAllMasterAirports(string position) {
 
 	if (responseCode == 404 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
-		sendMessage("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
 		std::istringstream is(readBuffer);
@@ -5840,11 +5837,9 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 
 	if (responseCode == 404 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
-		sendMessage("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
 		addLogLine("Removed masters for airport " + airport);
-		sendMessage("Removed masters for airport " + airport);
 	}
 }
 
@@ -5869,7 +5864,6 @@ bool CDM::setEvCtot(string callsign) {
 
 	if (responseCode == 404 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
-		sendMessage("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
 		std::istringstream is(readBuffer);
@@ -6103,7 +6097,6 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		if (responseCode == 404 || CURLE_OK != result) {
 			setTSATlater.push_back(callsign);
 			addLogLine("UNABLE TO CONNECT CDM-API...");
-			sendMessage("UNABLE TO CONNECT CDM-API...");
 		}
 		else {
 			Json::Reader reader;
@@ -6221,7 +6214,6 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 	if (responseCode == 404 || CURLE_OK != result) {
 		setCdmStslater.push_back(callsign);
 		addLogLine("UNABLE TO CONNECT CDM-API...");
-		sendMessage("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
 		std::istringstream is(readBuffer);
