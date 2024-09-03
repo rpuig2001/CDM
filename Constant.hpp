@@ -15,6 +15,8 @@ const int TAG_ITEM_READYSTARTUP = 12;
 const int TAG_ITEM_OPTIONS = 13;
 const int TAG_ITEM_TSAC_SIMPLE = 14;
 const int TAG_ITEM_EV_CTOT = 15;
+const int TAG_ITEM_TSAT_TOBT_DIFF = 16;
+const int NOW_TSAT_DIFF = 17;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;

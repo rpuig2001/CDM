@@ -127,6 +127,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
+	RegisterTagItemType("TSAT/TOBT-DIFF", TAG_ITEM_TSAT_TOBT_DIFF);
 	RegisterTagItemFunction("TSAT Delay", TAG_FUNC_CUSTOMTSAT);
 
 	// Register Tag Item "CDM-TTOT"
@@ -154,8 +155,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-E"
 	RegisterTagItemType("E", TAG_ITEM_E);
 
-	//Register
+	//Register Others
 	RegisterTagItemType("Flow Message", TAG_ITEM_FLOW_MESSAGE);
+	RegisterTagItemType("TimeNow to TSAT diff", NOW_TSAT_DIFF);
 
 	// Register Tag Item "CDM-CTOT"
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
@@ -2441,6 +2443,94 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, "....");
 							}
 						}
+						else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)
+						{
+							if (showData) {
+								string value = slotList[pos].tsat.substr(0,4) + "/" + getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+
+								if (SU_ISSET) {
+									ItemRGB = SU_SET_COLOR;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (notYetEOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREY;
+									strcpy_s(sItemString, 16, "~");
+								}
+								else if (lastMinute) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (moreLessFive) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (oldTSAT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									if (!invalidateTSAT_Option) {
+										ItemRGB = TAG_YELLOW;
+									}
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREENNOTACTIVE;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+							}
+							else
+							{
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "....");
+							}
+						}
+						else if (ItemCode == NOW_TSAT_DIFF)
+						{
+							if (showData) {
+								string value = getDiffNowTSAT(slotList[pos].tsat);
+
+								if (SU_ISSET) {
+									ItemRGB = SU_SET_COLOR;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (notYetEOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREY;
+									strcpy_s(sItemString, 16, "~");
+								}
+								else if (lastMinute) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (moreLessFive) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (oldTSAT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									if (!invalidateTSAT_Option) {
+										ItemRGB = TAG_YELLOW;
+									}
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREENNOTACTIVE;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+							}
+							else
+							{
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "....");
+							}
+						}
 						else if (ItemCode == TAG_ITEM_TTOT)
 						{
 							if (showData) {
@@ -3013,6 +3103,80 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, TSATString.c_str());
 								}
+							}
+						}
+						else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)
+						{
+							string value = slotList[pos].tsat.substr(0, 4) + "/" + getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+
+							if (SU_ISSET) {
+								ItemRGB = SU_SET_COLOR;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else if (notYetEOBT) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "~");
+							}
+							else if (lastMinute) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else if (moreLessFive) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else if (oldTSAT) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREEN;
+								if (!invalidateTSAT_Option) {
+									ItemRGB = TAG_YELLOW;
+								}
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREENNOTACTIVE;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+						}
+						else if (ItemCode == NOW_TSAT_DIFF)
+						{
+							string value = getDiffNowTSAT(slotList[pos].tsat);
+
+							if (SU_ISSET) {
+								ItemRGB = SU_SET_COLOR;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else if (notYetEOBT) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "~");
+							}
+							else if (lastMinute) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else if (moreLessFive) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else if (oldTSAT) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREEN;
+								if (!invalidateTSAT_Option) {
+									ItemRGB = TAG_YELLOW;
+								}
+								strcpy_s(sItemString, 16, value.c_str());
+							}
+							else {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_GREENNOTACTIVE;
+								strcpy_s(sItemString, 16, value.c_str());
 							}
 						}
 						else if (ItemCode == TAG_ITEM_TTOT)
@@ -5203,12 +5367,51 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 		stringToAdd = remarks.substr(0, remarks.find("%") - 1);
 		remarks = stringToAdd;
 	}
-	
+
 	stringToAdd = "%" + plane.tsat + "|" + plane.ttot;
 
 	FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 	remarks = stringToAdd;
 	return remarks;
+}
+
+string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
+	if (TSAT == TOBT || TSAT.length() < 4 || TOBT.length() < 4) {
+		return "0";
+	}
+
+	int tsat_hours = stoi(TSAT.substr(0, 2));
+	int tsat_minutes = stoi(TSAT.substr(2, 2));
+	int tobt_hours = stoi(TOBT.substr(0, 2));
+	int tobt_minutes = stoi(TOBT.substr(2, 2));
+
+	int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
+	int tobt_total_minutes = tobt_hours * 60 + tobt_minutes;
+
+	return to_string(tsat_total_minutes - tobt_total_minutes);
+}
+
+string CDM::getDiffNowTSAT(string TSAT) {
+	string timeNow = GetTimeNow();
+	if (TSAT.length() < 4 || timeNow.length() <4) {
+		return "0";
+	}
+	if (timeNow.substr(0, 4) == TSAT.substr(0, 4)) {
+		return "0";
+	}
+
+	int tsat_hours = stoi(TSAT.substr(0, 2));
+	int tsat_minutes = stoi(TSAT.substr(2, 2));
+	int timeNow_hours = stoi(timeNow.substr(0, 2));
+	int timeNow_minutes = stoi(timeNow.substr(2, 2));
+
+	int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
+	int timeNow_total_minutes = timeNow_hours * 60 + timeNow_minutes;
+
+	if (TSAT > timeNow) {
+		return to_string(timeNow_total_minutes - tsat_total_minutes);
+	}
+	return "+" + to_string(timeNow_total_minutes - tsat_total_minutes);
 }
 
 void CDM::addVatcanCtotToEvCTOT(string line) {
