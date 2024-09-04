@@ -446,12 +446,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			master = true;
 		}
 	}
-
-	if (master) {
+	AtcMe = true;
+	/*if (master) {
 		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
 			AtcMe = true;
 		}
-	}
+	}*/
 
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
@@ -2446,7 +2446,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)
 						{
 							if (showData) {
-								string value = slotList[pos].tsat.substr(0,4) + "/" + getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+								string value = slotList[pos].tsat.substr(0,4) + getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
 
 								if (SU_ISSET) {
 									ItemRGB = SU_SET_COLOR;
@@ -3107,7 +3107,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)
 						{
-							string value = slotList[pos].tsat.substr(0, 4) + "/" + getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+							string value = slotList[pos].tsat.substr(0, 4) + getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
 
 							if (SU_ISSET) {
 								ItemRGB = SU_SET_COLOR;
@@ -5377,7 +5377,7 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 
 string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
 	if (TSAT == TOBT || TSAT.length() < 4 || TOBT.length() < 4) {
-		return "0";
+		return "";
 	}
 
 	int tsat_hours = stoi(TSAT.substr(0, 2));
@@ -5388,7 +5388,7 @@ string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
 	int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
 	int tobt_total_minutes = tobt_hours * 60 + tobt_minutes;
 
-	return to_string(tsat_total_minutes - tobt_total_minutes);
+	return "/" + to_string(tsat_total_minutes - tobt_total_minutes);
 }
 
 string CDM::getDiffNowTSAT(string TSAT) {
