@@ -50,6 +50,8 @@ const int TAG_FUNC_MODIFYMANCTOT = 131;
 const int TAG_FUNC_TRY_TO_SET_CDT = 132;
 const int TAG_FUNC_CUSTOMTSAT = 133;
 const int TAG_FUNC_EDITFIRSTTSAT = 134;
+const int TAG_FUNC_DISABLECTOT = 135;
+const int TAG_FUNC_ENABLECTOT = 136;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

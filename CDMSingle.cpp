@@ -82,6 +82,7 @@ vector<string> setTSATlater;
 vector<string> setCdmStslater;
 vector<string> suWaitList;
 vector<string> checkCIDLater;
+vector<string> disabledCtots;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -436,6 +437,7 @@ void CDM::OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan)
 
 //
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
+	try{
 	CFlightPlan fp = FlightPlanSelectASEL();
 	bool AtcMe = false;
 	bool master = false;
@@ -624,9 +626,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			OpenPopupList(Area, "CTOT Options", 1);
 			if (!plane.hasManualCtot || plane.ctot != "") {
 				AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
+				if (flightHasCtotDisabled(fp.GetCallsign())) {
+					AddPopupListElement("Enable CDM-Network", "", TAG_FUNC_ENABLECTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Disable CDM-Network", "", TAG_FUNC_DISABLECTOT, false, 2, false);
+				}
 			}
 			else if (plane.ctot == "" && plane.hasManualCtot) {
 				AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
+				if (flightHasCtotDisabled(fp.GetCallsign())) {
+					AddPopupListElement("Enable CDM-Network", "", TAG_FUNC_ENABLECTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Disable CDM-Network", "", TAG_FUNC_DISABLECTOT, false, 2, false);
+				}
 			}
 		}
 	}
@@ -735,9 +749,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			//CTOT OPTIONS
 			if (!plane.hasManualCtot || plane.ctot != "") {
 				AddPopupListElement("Set Manual CTOT", "", TAG_FUNC_EDITMANCTOT, false, 2, false);
+				if (flightHasCtotDisabled(fp.GetCallsign())) {
+					AddPopupListElement("Enable CDM-Network", "", TAG_FUNC_ENABLECTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Disable CDM-Network", "", TAG_FUNC_DISABLECTOT, false, 2, false);
+				}
 			}
 			else if (plane.ctot == "" && plane.hasManualCtot) {
 				AddPopupListElement("Remove Manual CTOT", "", TAG_FUNC_REMOVEMANCTOT, false, 2, false);
+				if (flightHasCtotDisabled(fp.GetCallsign())) {
+					AddPopupListElement("Enable CDM-Network", "", TAG_FUNC_ENABLECTOT, false, 2, false);
+				}
+				else {
+					AddPopupListElement("Disable CDM-Network", "", TAG_FUNC_DISABLECTOT, false, 2, false);
+				}
 			}
 		}
 	}
@@ -968,6 +994,36 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
+	else if (FunctionId == TAG_FUNC_DISABLECTOT) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_DISABLECTOT");
+			bool found = false;
+			for (string callsign : disabledCtots) {
+				if (callsign == fp.GetCallsign()) {
+					found = true;
+				}
+			}
+			if (!found) {
+				addLogLine("Disabled CTOT for: " + (string)fp.GetCallsign());
+				disabledCtots.push_back(fp.GetCallsign());
+			}
+		}
+	}
+	else if (FunctionId == TAG_FUNC_ENABLECTOT) {
+	if (master && AtcMe) {
+		addLogLine("TRIGGER - TAG_FUNC_ENABLECTOT");
+		bool found = false;
+		for (string callsign : disabledCtots) {
+			if (callsign == fp.GetCallsign()) {
+				found = true;
+			}
+		}
+		if (found) {
+			addLogLine("Enabled CTOT for: " + (string)fp.GetCallsign());
+			disabledCtots.push_back(fp.GetCallsign());
+		}
+	}
+	}
 	else if (FunctionId == TAG_FUNC_EDITMANCTOT) {
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_EDITMANCTOT");
@@ -1173,6 +1229,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 		}
 	}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception OnFunctionCall: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception OnFunctionCall");
+	}
 }
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
@@ -1189,9 +1252,10 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
 {
-	if (ItemCode == TAG_ITEM_TSAT) {
+	try{
+	if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
 		//Check master status
-		if (myAtcCallsign != ControllerMyself().GetCallsign() && ItemCode == TAG_ITEM_TSAT) {
+		if (myAtcCallsign != ControllerMyself().GetCallsign()) {
 			if (myAtcCallsign == "") {
 				myAtcCallsign = ControllerMyself().GetCallsign();
 			}
@@ -1429,7 +1493,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 
 				// Check if runway changed
-				if (aircraftFind && ItemCode == TAG_ITEM_TSAT) {
+				if (aircraftFind && (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)) {
 					if (planeHasTaxiTimeAssigned) {
 						if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
 							if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
@@ -2061,7 +2125,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 
-							if (ItemCode == TAG_ITEM_TSAT) {
+							if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
 
 								//Remove disconnected planes after 5 min disconnected
 								if (countTfcDisconnection != -1) {
@@ -2745,28 +2809,29 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						//Refresh CDM API every 30 seconds
 						int myNow = stoi(GetTimeNow());
 						if (myNow - countFetchServerTime > 30) {
+							countFetchServerTime = myNow;
 							addLogLine("[AUTO] - REFRESH API");
 							std::thread t(&CDM::getCdmServerRestricted, this);
 							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA");
 							}
-							countFetchServerTime = myNow;
 						}
 
 						//Refresh ecfmpData every 5 min
 						if (myNow - countEcfmpTime > 300) {
+							countEcfmpTime = myNow;
 							addLogLine("[AUTO] - REFRESH ECFMP");
 							std::thread t(&CDM::getEcfmpData, this);
 							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 							}
-							countEcfmpTime = myNow;
 						}
 
 						//Refresh times every x sec
 						if (myNow - countTime > refreshTime) {
+							countTime = myNow;
 							addLogLine("[AUTO] - REFRESH CDM INTERNAL DATA");
 							//Order list according TTOT
 							slotList = recalculateSlotList(slotList);
@@ -2781,7 +2846,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 								sendMessage("[DEBUG MESSAGE] - " + to_string(slotList.size()) + " Planes in the list");
 							}
-							countTime = myNow;
 
 							//Execute background process in the background
 							std::thread t1(&CDM::backgroundProcess_recaulculate, this);
@@ -2793,12 +2857,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					// Refresh FlowData every 30 seconds
 					int myNow = stoi(GetTimeNow());
 					if (myNow - countFetchServerTime > 30) {
+						countFetchServerTime = myNow;
 						std::thread t(&CDM::getCdmServerRestricted, this);
 						t.detach();
 						if (debugMode) {
 							sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 						}
-						countFetchServerTime = myNow;
 					}
 
 					bool TSATFind = false;
@@ -3452,6 +3516,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 	}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception OnGetTagItem: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception OnGetTagItem");
+	}
 }
 
 static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* userp)
@@ -3835,6 +3906,7 @@ void CDM::RemoveMasterAirports() {
 }
 
 void CDM::backgroundProcess_recaulculate() {
+	try{
 	addLogLine("[AUTO] - Starting CDM recalculation process");
 	//Get Time NOW
 	time_t rawtime;
@@ -4004,9 +4076,17 @@ void CDM::backgroundProcess_recaulculate() {
 		}
 	}
 	addLogLine("[AUTO] - Finished CDM recalculation process");
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception backgroundProcess_recaulculate: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception backgroundProcess_recaulculate");
+	}
 }
 
 void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int pos, bool aircraftFind) {
+	try{
 	bool hasManualCtot = false;
 	bool equalTTOT = true;
 	bool correctTTOT = true;
@@ -4305,6 +4385,13 @@ void CDM::refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, str
 				}
 			}
 		}
+	}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception refreshTimes: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception refreshTimes");
 	}
 }
 
@@ -4762,6 +4849,7 @@ void CDM::disconnectTfcs() {
 }
 
 void CDM::RemoveDataFromTfc(string callsign) {
+	try{
 	deleteFlightStrips(callsign);
 	//Delete from vector
 	for (size_t i = 0; i < slotList.size(); i++) {
@@ -4896,6 +4984,33 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			setCdmStslater.erase(setCdmStslater.begin() + i);
 		}
 	}
+	//Remove from disabledCtots
+	for (size_t i = 0; i < disabledCtots.size(); i++)
+	{
+		if (callsign == disabledCtots[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 14");
+			}
+			disabledCtots.erase(disabledCtots.begin() + i);
+		}
+	}
+	//Remove from checkCIDLater
+	for (size_t i = 0; i < checkCIDLater.size(); i++)
+	{
+		if (callsign == checkCIDLater[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 15");
+			}
+			checkCIDLater.erase(checkCIDLater.begin() + i);
+		}
+	}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception removeDataFromTfc: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception removeDataFromTfc");
+	}
 }
 
 string CDM::getCidByCallsign(string callsign) {
@@ -4930,7 +5045,17 @@ string CDM::getCidByCallsign(string callsign) {
 	return "0";
 }
 
+bool CDM::flightHasCtotDisabled(string callsign) {
+	for (string cs : disabledCtots) {
+		if (cs == callsign) {
+			return true;
+		}
+	}
+	return false;
+}
+
 void CDM::getEcfmpData() {
+	try {
 	if (!flowRestrictionsUrl.empty()) {
 		addLogLine("AUTO - Call getEcfmpData");
 		vector<EcfmpRestriction> flowDataTemp;
@@ -5041,9 +5166,17 @@ void CDM::getEcfmpData() {
 		}
 	}
 	addLogLine("AUTO - FINISHED getEcfmpData");
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getEcfmpData: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getEcfmpData");
+	}
 }
 
 void CDM::saveData() {
+	try{
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
@@ -5079,6 +5212,13 @@ void CDM::saveData() {
 				}
 			}
 		}
+	}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception saveData " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception saveData");
 	}
 }
 
@@ -5376,7 +5516,10 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 }
 
 string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
-	if (TSAT == TOBT || TSAT.length() < 4 || TOBT.length() < 4) {
+	if (TSAT.length() < 4 || TOBT.length() < 4) {
+		return "";
+	}
+	if (TSAT.substr(0, 4) == TOBT.substr(0, 4)) {
 		return "";
 	}
 
@@ -5885,6 +6028,7 @@ void CDM::OnTimer(int Counter) {
 //API requests
 
 bool CDM::setMasterAirport(string airport, string position) {
+	try{
 	addLogLine("Call - Set Master airport " + airport + "(" + position + ")");
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -5922,8 +6066,6 @@ bool CDM::setMasterAirport(string airport, string position) {
 					}
 					catch (const std::system_error& e) {
 						addLogLine("Exception in setMasterAirport()");
-						std::cerr << "Exception caught: " << e.what() << std::endl;
-						std::this_thread::sleep_for(std::chrono::milliseconds(100));
 					}
 				}
 			}
@@ -5932,6 +6074,15 @@ bool CDM::setMasterAirport(string airport, string position) {
 		}
 	}
 	return false;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
+		return false;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception setMasterAirport");
+		return false;
+	}
 }
 
 bool CDM::removeMasterAirport(string airport, string position) {
@@ -5965,22 +6116,23 @@ bool CDM::removeMasterAirport(string airport, string position) {
 			if (lineValue == "true") {
 				addLogLine("Successfully removed master airport " + airport);
 				sendMessage("Successfully removed master airport " + airport);
-				for (int a = 0; a < masterAirports.size(); a++)
-				{
-					if (masterAirports[a] == airport) {
-						masterAirports.erase(masterAirports.begin() + a);
-						return true;
-					}
-				}
 			}
-			addLogLine("Could not remove master airport " + airport);
-			sendMessage("Could not remove master airport " + airport);
+			addLogLine("Successfully removed master airport (Locally only) " + airport);
+			sendMessage("Successfully removed master airport (Locally only) " + airport);
+		}
+		for (int a = 0; a < masterAirports.size(); a++)
+		{
+			if (masterAirports[a] == airport) {
+				masterAirports.erase(masterAirports.begin() + a);
+				return true;
+			}
 		}
 	}
 	return false;
 }
 
 bool CDM::removeAllMasterAirports(string position) {
+	try{
 	addLogLine("Call - Remove all masters for " + position);
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -6017,9 +6169,19 @@ bool CDM::removeAllMasterAirports(string position) {
 		}
 	}
 	return false;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception removeAllMasterAirports: " + (string)e.what());
+		return false;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception removeAllMasterAirports");
+		return false;
+	}
 }
 
 void CDM::removeAllMasterAirportsByAirport(string airport) {
+	try{
 	addLogLine("Call - Remove all masters from " + airport);
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -6044,9 +6206,17 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 	else {
 		addLogLine("Removed masters for airport " + airport);
 	}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport");
+	}
 }
 
 bool CDM::setEvCtot(string callsign) {
+	try {
 	addLogLine("Call - Set Event CTOT for " + callsign);
 	CURL* curl;
 	CURLcode result = CURLE_FAILED_INIT;
@@ -6104,9 +6274,19 @@ bool CDM::setEvCtot(string callsign) {
 		}
 	}
 	return false;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception setEvCtot: " + (string)e.what());
+		return false;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception setEvCtot");
+		return false;
+	}
 }
 
 void CDM::getCdmServerRestricted() {
+	try{
 	addLogLine("Call - Fetching CTOTs");
 	//sendMessage("Fetching CTOTs...");
 	CURL* curl;
@@ -6175,7 +6355,7 @@ void CDM::getCdmServerRestricted() {
 				try {
 					if (ctot.size() == 4) {
 						for (size_t z = 0; z < slotList.size(); z++) {
-							if (slotList[z].callsign == callsign) {
+							if (slotList[z].callsign == callsign && !flightHasCtotDisabled(callsign)) {
 								string taxiTime = getTaxiTime(callsign);
 								slotList[z] = {
 									callsign,
@@ -6214,6 +6394,13 @@ void CDM::getCdmServerRestricted() {
 	sendWaitingCdmSts();
 	sendCheckCIDLater();
 	addLogLine("COMPLETED - Fetching CTOTs");
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception Fetching CTOTs: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception Fetching CTOTs");
+	}
 }
 
 void CDM::sendWaitingTSAT() {
@@ -6230,7 +6417,6 @@ void CDM::sendWaitingTSAT() {
 				}
 				catch (...) {
 					addLogLine("Error occurred parsing data from the cdm-api (sendWaitingTSAT)");
-					sendMessage("Error occurred parsing data from the cdm-api (sendWaitingTSAT)");
 				}
 			}
 		}
@@ -6258,6 +6444,7 @@ void CDM::sendCheckCIDLater() {
 }
 
 void CDM::setTSATApi(string callsign, string tsat) {
+	try{
 	addLogLine("Call - Set TSAT (" + tsat + ") for " + callsign);
 	bool createRequest = false;
 	for (Plane p : slotList) {
@@ -6358,7 +6545,6 @@ void CDM::setTSATApi(string callsign, string tsat) {
 				}
 				catch (...) {
 					addLogLine("Exception: Error occurred parsing data from the cdm - api (setTSATApi)");
-					sendMessage("Error occurred parsing data from the cdm-api");
 				}
 			}
 			else {
@@ -6375,6 +6561,25 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		}
 	}
 	addLogLine("COMPLETED - setTSATApi for " + callsign);
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception setTSATApi: " + (string)e.what());
+		for (size_t a = 0; a < slotList.size(); a++)
+		{
+			if (slotList[a].callsign == callsign) {
+				slotList[a].showData = true;
+			}
+		}
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception setTSATApi");
+		for (size_t a = 0; a < slotList.size(); a++)
+		{
+			if (slotList[a].callsign == callsign) {
+				slotList[a].showData = true;
+			}
+		}
+	}
 }
 
 string CDM::getTaxiTime(string callsign) {
@@ -6396,40 +6601,48 @@ string CDM::getTaxiTime(string callsign) {
 }
 
 void CDM::setCdmSts(string callsign, string cdmSts) {
-	addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, 1L);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+	try {
+		addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
+		CURL* curl;
+		CURLcode result = CURLE_FAILED_INIT;
+		string readBuffer;
+		long responseCode = 0;
+		curl = curl_easy_init();
+		if (curl) {
+			string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
+			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_POST, 1L);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+			result = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+			curl_easy_cleanup(curl);
+		}
 
-	if (responseCode == 404 || CURLE_OK != result) {
-		setCdmStslater.push_back(callsign);
-		addLogLine("UNABLE TO CONNECT CDM-API...");
-	}
-	else {
-		std::istringstream is(readBuffer);
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (lineValue != "true") {
-				setCdmStslater.push_back(callsign);
-				addLogLine("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
-				//sendMessage("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
+		if (responseCode == 404 || CURLE_OK != result) {
+			setCdmStslater.push_back(callsign);
+			addLogLine("UNABLE TO CONNECT CDM-API...");
+		}
+		else {
+			std::istringstream is(readBuffer);
+			//Get data from .txt file
+			string lineValue;
+			while (getline(is, lineValue))
+			{
+				if (lineValue != "true") {
+					setCdmStslater.push_back(callsign);
+					addLogLine("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
+					//sendMessage("Could not set cdmSts -> '" + cdmSts + "' for " + callsign + ". CDM will automatically retry in 30 seconds...");
+				}
 			}
 		}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception setCdmSts: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception setCdmSts");
 	}
 }
 
