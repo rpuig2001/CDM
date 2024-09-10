@@ -1603,9 +1603,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else {
 								OutOfTsat.erase(OutOfTsat.begin() + i);
-								//Update CDM-API
-								std::thread t(&CDM::setCdmSts, this, callsign, "");
-								t.detach();
 							}
 						}
 					}
@@ -3550,7 +3547,7 @@ bool CDM::getRateFromUrl(string url) {
 
 	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
-		sendMessage("UNABLE TO LOAD TaxiZones URL...");
+		addLogLine("UNABLE TO LOAD TaxiZones URL...");
 	}
 	else {
 		std::istringstream is(readBuffer);
@@ -6309,7 +6306,6 @@ void CDM::getCdmServerRestricted() {
 	if (responseCode == 404 || CURLE_OK != result) {
 		// handle error 404
 		addLogLine("UNABLE TO LOAD CDM-API URL...");
-		sendMessage("UNABLE TO LOAD CDM-API URL...");
 	}
 	else {
 		Json::Reader reader;
@@ -6389,10 +6385,10 @@ void CDM::getCdmServerRestricted() {
 				}
 			}
 		}
+		sendWaitingTSAT();
+		sendWaitingCdmSts();
+		sendCheckCIDLater();
 	}
-	sendWaitingTSAT();
-	sendWaitingCdmSts();
-	sendCheckCIDLater();
 	addLogLine("COMPLETED - Fetching CTOTs");
 	}
 	catch (const std::exception& e) {
@@ -6485,7 +6481,15 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		}
 
 		if (responseCode == 404 || CURLE_OK != result) {
-			setTSATlater.push_back(callsign);
+			bool found = false;
+			for (string cs : setTSATlater) {
+				if (cs == callsign) {
+					found = true;
+				}
+			}
+			if (!found) {
+				setTSATlater.push_back(callsign);
+			}
 			addLogLine("UNABLE TO CONNECT CDM-API...");
 		}
 		else {
@@ -6621,7 +6625,15 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 		}
 
 		if (responseCode == 404 || CURLE_OK != result) {
-			setCdmStslater.push_back(callsign);
+			bool found = false;
+			for (string cs : setCdmStslater) {
+				if (cs == callsign) {
+					found = true;
+				}
+			}
+			if (!found) {
+				setCdmStslater.push_back(callsign);
+			}
 			addLogLine("UNABLE TO CONNECT CDM-API...");
 		}
 		else {
