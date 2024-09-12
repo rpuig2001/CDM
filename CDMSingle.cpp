@@ -850,6 +850,19 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 		}
 
+		//Reset CTOT by CDM-Network
+		for (size_t i = 0; i < slotList.size(); i++)
+		{
+			if (slotList[i].callsign == fp.GetCallsign()) {
+				if (slotList[i].ctot != "") {
+					slotList[i].ctot = "";
+					slotList[i].flowReason = "";
+					slotList[i].hasManualCtot = false;
+					slotList[i].showData = true;
+				}
+			}
+		}
+
 		//Update times to slaves
 		countTime = stoi(GetTimeNow()) - refreshTime;
 	}
@@ -1013,14 +1026,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (master && AtcMe) {
 		addLogLine("TRIGGER - TAG_FUNC_ENABLECTOT");
 		bool found = false;
-		for (string callsign : disabledCtots) {
-			if (callsign == fp.GetCallsign()) {
-				found = true;
+		for (int i = 0; i < disabledCtots.size(); i++) {
+			if (disabledCtots[i] == fp.GetCallsign()) {
+				disabledCtots.erase(disabledCtots.begin() + i);
 			}
-		}
-		if (found) {
-			addLogLine("Enabled CTOT for: " + (string)fp.GetCallsign());
-			disabledCtots.push_back(fp.GetCallsign());
 		}
 	}
 	}
@@ -6522,7 +6531,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 						if (slotList[i].callsign == callsign) {
 							addLogLine(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
 							//sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
-							if (ctot != "") {
+							if (ctot != "" && !flightHasCtotDisabled(callsign)) {
 								slotList[i] = {
 									callsign,
 									slotList[i].eobt,
