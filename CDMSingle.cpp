@@ -1249,7 +1249,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	string tsat = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(3);
-	if (tsat.find("%")) {
+	if (tsat.find("%") != string::npos) {
 		disconnectionList.push_back(FlightPlan.GetCallsign());
 		countTfcDisconnection = stoi(GetTimeNow());
 	}
@@ -1374,7 +1374,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			//If relaMode is NOT activated, then it'll wait to press the READY TOBT Function to activate the variable "isValidToCalculateEventMode"
-			if (tobt.length() > 0) {
+			if (tobt.length() == 4) {
 				isValidToCalculateEventMode = true;
 			}
 
@@ -1456,7 +1456,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				string EOBTstring = EOBT;
 				string EOBTfinal = formatTime(EOBTstring);
 
-				if (tobt.length() > 0) {
+				if (tobt.length() == 4) {
 					EOBTfinal = tobt;
 				}
 
