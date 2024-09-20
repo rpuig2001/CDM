@@ -24,7 +24,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.5.5b"
+#define MY_PLUGIN_VERSION   "2.2.5.6b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -98,6 +98,8 @@ public:
 	string GetTimeNow();
 
 	void saveData();
+
+	int getPlanePosition(string callsign);
 
 	void multithread(void(CDM::* f)());
 
@@ -228,7 +230,7 @@ public:
 
 	void backgroundProcess_recaulculate();
 
-	void refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int pos, bool aircraftFind);
+	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool aircraftFind);
 
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
