@@ -1325,36 +1325,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			const char* TTOT = "";
 			int taxiTime = defTaxiTime;
 
-			//If using vatcan Code
-			/*
-			if (ctotCid) {
-				bool ctotValidated = false;
-				for (size_t i = 0; i < CTOTcheck.size(); i++) {
-					if (callsign == CTOTcheck[i]) {
-						ctotValidated = true;
-					}
-				}
-
-				if (!ctotValidated) {
-					string savedCid;
-					string ctotCallsign;
-					for (size_t i = 0; i < slotList.size(); i++)
-					{
-						savedCid = slotList[i].callsign;
-						if (checkIsNumber(savedCid)) {
-							string cid = getCidByCallsign(callsign);
-							if (stoi(cid) == stoi(savedCid)) {
-								slotList[i].callsign = callsign;
-								slotList[i].hasCtot = true;
-								pos = i;
-								aircraftFind = true;
-							}
-						}
-					}
-					CTOTcheck.push_back(callsign);
-				}
-			}*/
-
 			if (ctotCid) {
 				bool evCtotFound = false;
 				for (size_t i = 0; i < evCtots.size(); i++) {
@@ -4440,27 +4410,6 @@ void CDM::PushToOtherControllers(CFlightPlan fp) {
 		}
 	}
 }
-/*
-* Method to calculate TSAT from TTOT
-
-void CDM::CalculateTSAT(string TTOT) {
-
-}
-*/
-/*
-* Method to calculate TTOT
-
-void CDM::CalculateAvailableTTOT(string TTOT) {
-
-}
-*/
-/*
-* Method to check if plane has CTOT
-
-void CDM::CheckCtot(string TTOT) {
-
-}
-*/
 
 string CDM::GetActualTime()
 {
@@ -4563,11 +4512,13 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	{
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", e.what(), true, true, false, true, false);
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
+		addLogLine("ERROR: Unhandled exception getTaxiTime: " + (string)e.what());
 	}
 	catch (...)
 	{
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", std::to_string(GetLastError()).c_str(), true, true, false, true, false);
 		DisplayUserMessage(MY_PLUGIN_NAME, "Error", line.c_str(), true, true, false, true, false);
+		addLogLine("ERROR: Unhandled exception getTaxiTime");
 	}
 
 	return to_string(defTaxiTime);
@@ -4586,96 +4537,116 @@ int CDM::inPoly(int nvert, double* vertx, double* verty, double testx, double te
 
 
 string CDM::formatTime(string timeString) {
-	if (timeString.length() <= 0) {
-		timeString = "0000" + timeString;
+	try {
+		if (timeString.length() <= 0) {
+			timeString = "0000" + timeString;
+			return timeString;
+		}
+		else if (timeString.length() <= 1) {
+			timeString = "000" + timeString;
+			return timeString;
+		}
+		else if (timeString.length() <= 2) {
+			timeString = "00" + timeString;
+			return timeString;
+		}
+		else if (timeString.length() <= 3) {
+			timeString = "0" + timeString;
+			return timeString;
+		}
+		else if (timeString.length() == 4) {
+			return timeString;
+		}
+		else if (timeString.length() >= 5) {
+			timeString = timeString.substr(0, 4);
+			return timeString;
+		}
+		else {
+			return timeString;
+		}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception formatTime: " + (string)e.what());
 		return timeString;
 	}
-	else if (timeString.length() <= 1) {
-		timeString = "000" + timeString;
-		return timeString;
-	}
-	else if (timeString.length() <= 2) {
-		timeString = "00" + timeString;
-		return timeString;
-	}
-	else if (timeString.length() <= 3) {
-		timeString = "0" + timeString;
-		return timeString;
-	}
-	else if (timeString.length() == 4) {
-		return timeString;
-	}
-	else if (timeString.length() >= 5) {
-		timeString = timeString.substr(0, 4);
-		return timeString;
-	}
-	else {
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception formatTime");
 		return timeString;
 	}
 }
 
 
 string CDM::calculateTime(string timeString, double minsToAdd) {
-	if (timeString.length() <= 0) {
-		timeString = "0000" + timeString;
-	}
-	else if (timeString.length() <= 1) {
-		timeString = "000" + timeString;
-	}
-	else if (timeString.length() <= 2) {
-		timeString = "00" + timeString;
-	}
-	else if (timeString.length() <= 3) {
-		timeString = "0" + timeString;
-	}
-	int hours = stoi(timeString.substr(0, 2));
-	int mins = stoi(timeString.substr(2, 2));
-	int sec = stoi(timeString.substr(4, timeString.length() - 1));
-	
-	int movTime = minsToAdd * 60;
-	while (movTime > 0) {
-		sec += 1;
-		if (sec > 59) {
-			sec = 0;
-			mins += 1;
-			if (mins > 59) {
-				mins = 0;
-				hours += 1;
-				if (hours > 23) {
-					hours = 0;
+	try {
+		if (timeString.length() <= 0) {
+			timeString = "0000" + timeString;
+		}
+		else if (timeString.length() <= 1) {
+			timeString = "000" + timeString;
+		}
+		else if (timeString.length() <= 2) {
+			timeString = "00" + timeString;
+		}
+		else if (timeString.length() <= 3) {
+			timeString = "0" + timeString;
+		}
+		int hours = stoi(timeString.substr(0, 2));
+		int mins = stoi(timeString.substr(2, 2));
+		int sec = stoi(timeString.substr(4, timeString.length() - 1));
+
+		int movTime = minsToAdd * 60;
+		while (movTime > 0) {
+			sec += 1;
+			if (sec > 59) {
+				sec = 0;
+				mins += 1;
+				if (mins > 59) {
+					mins = 0;
+					hours += 1;
+					if (hours > 23) {
+						hours = 0;
+					}
 				}
 			}
+			movTime -= 1;
+		};
+
+		//calculate hours
+		string hourFinal;
+		if (hours < 10) {
+			hourFinal = "0" + to_string(hours);
 		}
-		movTime -= 1;
-	};
+		else {
+			hourFinal = to_string(hours);
+		}
+		//calculate mins
+		string minsFinal;
+		if (mins < 10) {
+			minsFinal = "0" + to_string(mins);
+		}
+		else {
+			minsFinal = to_string(mins);
+		}
+		//calculate sec
+		string secFinal;
+		if (sec < 10) {
+			secFinal = "0" + to_string(sec);
+		}
+		else {
+			secFinal = to_string(sec);
+		}
+		string timeFinal = hourFinal + minsFinal + secFinal;
 
-	//calculate hours
-	string hourFinal;
-	if (hours < 10) {
-		hourFinal = "0" + to_string(hours);
+		return timeFinal;
 	}
-	else {
-		hourFinal = to_string(hours);
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception calculateTime: " + (string)e.what());
+		return timeString;
 	}
-	//calculate mins
-	string minsFinal;
-	if (mins < 10) {
-		minsFinal = "0" + to_string(mins);
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception calculateTime");
+		return timeString;
 	}
-	else {
-		minsFinal = to_string(mins);
-	}
-	//calculate sec
-	string secFinal;
-	if (sec < 10) {
-		secFinal = "0" + to_string(sec);
-	}
-	else {
-		secFinal = to_string(sec);
-	}
-	string timeFinal = hourFinal + minsFinal + secFinal;
-
-	return timeFinal;
 }
 
 void CDM::toggleReaMsg(CFlightPlan fp, bool deleteIfExist)
@@ -4700,42 +4671,12 @@ void CDM::toggleReaMsg(CFlightPlan fp, bool deleteIfExist)
 }
 
 void CDM::addTimeToList(int timeToAdd, string minTSAT) {
-	vector<Plane> mySlotList = slotList;
+	try {
+		vector<Plane> mySlotList = slotList;
 
-	for (size_t i = 0; i < mySlotList.size(); i++) {
-		if (!mySlotList[i].hasManualCtot) {
-			CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-			if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
-				int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
-				bool ok = false;
-				if (minTSAT.substr(0, 2) == mySlotList[i].tsat.substr(0, 2)) {
-					if (difTime >= 0) {
-						ok = true;
-					}
-				}
-				else {
-					if (difTime >= 40) {
-						ok = true;
-					}
-				}
-				if (ok) {
-					mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
-					mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
-				}
-			}
-		}
-	}
-
-	slotList = mySlotList;
-}
-
-void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway) {
-	vector<Plane> mySlotList = slotList;
-
-	for (size_t i = 0; i < mySlotList.size(); i++) {
-		if (!mySlotList[i].hasManualCtot) {
-			CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-			if (myFp.GetFlightPlanData().GetDepartureRwy() == runway && myFp.GetFlightPlanData().GetOrigin() == airport) {
+		for (size_t i = 0; i < mySlotList.size(); i++) {
+			if (!mySlotList[i].hasManualCtot) {
+				CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
 				if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
 					int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
 					bool ok = false;
@@ -4756,38 +4697,92 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 				}
 			}
 		}
-	}
 
-	slotList = mySlotList;
+		slotList = mySlotList;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception addTimeToList: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception addTimeToList");
+	}
 }
 
-vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
-	int slotListLength = mySlotList.size();
-	bool ordered = false;
-	string value1 = "", value2 = "";
-	while (!ordered){
-		ordered = true;
-		for (int i = 0; i < slotListLength; i++) {
-			if (i < slotListLength - 1) {
-				value1 = mySlotList[i].ttot;
-				value2 = mySlotList[i + 1].ttot;
-				if (stoi(value1) > stoi(value2)) {
-					ordered = false;
-					Plane saved1 = mySlotList[i];
-					Plane saved2 = mySlotList[i + 1];
-					mySlotList[i] = saved2;
-					mySlotList[i + 1] = saved1;
-				}
-				//swap if previous no ctot and after has ctot. Otherwise, calculation maks same TTOT...
-				else if (stoi(value1) == stoi(value2) && mySlotList[i].hasManualCtot == false && mySlotList[i + 1].hasManualCtot) {
-					ordered = false;
-					Plane saved1 = mySlotList[i];
-					Plane saved2 = mySlotList[i + 1];
-					mySlotList[i] = saved2;
-					mySlotList[i + 1] = saved1;
+void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway) {
+	try{
+		vector<Plane> mySlotList = slotList;
+
+		for (size_t i = 0; i < mySlotList.size(); i++) {
+			if (!mySlotList[i].hasManualCtot) {
+				CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+				if (myFp.GetFlightPlanData().GetDepartureRwy() == runway && myFp.GetFlightPlanData().GetOrigin() == airport) {
+					if ((string)myFp.GetGroundState() != "STUP" && (string)myFp.GetGroundState() != "ST-UP" && (string)myFp.GetGroundState() != "PUSH" && (string)myFp.GetGroundState() != "TAXI" && (string)myFp.GetGroundState() != "DEPA") {
+						int difTime = GetdifferenceTime(mySlotList[i].tsat.substr(0, 2), mySlotList[i].tsat.substr(2, 2), minTSAT.substr(0, 2), minTSAT.substr(2, 2));
+						bool ok = false;
+						if (minTSAT.substr(0, 2) == mySlotList[i].tsat.substr(0, 2)) {
+							if (difTime >= 0) {
+								ok = true;
+							}
+						}
+						else {
+							if (difTime >= 40) {
+								ok = true;
+							}
+						}
+						if (ok) {
+							mySlotList[i].tsat = calculateTime(mySlotList[i].tsat, timeToAdd);
+							mySlotList[i].ttot = calculateTime(mySlotList[i].ttot, timeToAdd);
+						}
+					}
 				}
 			}
 		}
+
+		slotList = mySlotList;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception addTimeToListForSpecificAirportAndRunway: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception addTimeToListForSpecificAirportAndRunway");
+	}
+}
+
+vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
+	try {
+		int slotListLength = mySlotList.size();
+		bool ordered = false;
+		string value1 = "", value2 = "";
+		while (!ordered) {
+			ordered = true;
+			for (int i = 0; i < slotListLength; i++) {
+				if (i < slotListLength - 1) {
+					value1 = mySlotList[i].ttot;
+					value2 = mySlotList[i + 1].ttot;
+					if (stoi(value1) > stoi(value2)) {
+						ordered = false;
+						Plane saved1 = mySlotList[i];
+						Plane saved2 = mySlotList[i + 1];
+						mySlotList[i] = saved2;
+						mySlotList[i + 1] = saved1;
+					}
+					//swap if previous no ctot and after has ctot. Otherwise, calculation maks same TTOT...
+					else if (stoi(value1) == stoi(value2) && mySlotList[i].hasManualCtot == false && mySlotList[i + 1].hasManualCtot) {
+						ordered = false;
+						Plane saved1 = mySlotList[i];
+						Plane saved2 = mySlotList[i + 1];
+						mySlotList[i] = saved2;
+						mySlotList[i + 1] = saved1;
+					}
+				}
+			}
+		}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception recalculateSlotList: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception recalculateSlotList");
 	}
 
 	return cleanUpSlotListVector(mySlotList);
@@ -4807,6 +4802,7 @@ vector<Plane> CDM::cleanUpSlotListVector(vector<Plane> mySlotList) {
 }
 
 string CDM::calculateLessTime(string timeString, double minsToAdd) {
+	try{
 	if (timeString.length() <= 0) {
 		timeString = "0000" + timeString;
 	}
@@ -4867,6 +4863,15 @@ string CDM::calculateLessTime(string timeString, double minsToAdd) {
 	string timeFinal = hourFinal + minsFinal + secFinal;
 
 	return timeFinal;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception calculateLessTime: " + (string)e.what());
+		return timeString;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception calculateLessTime");
+		return timeString;
+	}
 }
 
 bool CDM::checkIsNumber(string str) {
@@ -4885,11 +4890,19 @@ bool CDM::checkIsNumber(string str) {
 }
 
 void CDM::disconnectTfcs() {
-	for (string callsign : disconnectionList)
-	{
-		RemoveDataFromTfc(callsign);
+	try{
+		for (string callsign : disconnectionList)
+		{
+			RemoveDataFromTfc(callsign);
+		}
+		disconnectionList.clear();
 	}
-	disconnectionList.clear();
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception disconnectTfcs: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception disconnectTfcs");
+	}
 }
 
 void CDM::RemoveDataFromTfc(string callsign) {
@@ -5055,38 +5068,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception removeDataFromTfc");
 	}
-}
-
-string CDM::getCidByCallsign(string callsign) {
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	std::string readBuffer;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = "https://data.vatsim.net/v3/vatsim-data.json";
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_cleanup(curl);
-	}
-	Json::Reader reader;
-	Json::Value obj;
-	Json::FastWriter fastWriter;
-	reader.parse(readBuffer, obj);
-
-	string foundCallsign;
-
-	const Json::Value& pilots = obj["pilots"];
-	for (size_t i = 0; i < pilots.size(); i++) {
-		foundCallsign = fastWriter.write(pilots[i]["callsign"]);
-		if (foundCallsign.substr(1, foundCallsign.length() - 3) == callsign) {
-			std::string myCid = fastWriter.write(pilots[i]["cid"]);
-			return myCid;
-		}
-	}
-	return "0";
 }
 
 bool CDM::flightHasCtotDisabled(string callsign) {
@@ -5287,69 +5268,77 @@ int CDM::getPlanePosition(string callsign) {
 
 
 void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport) {
-	Document document;
-	document.SetObject();
-	Value version;
-	version.SetInt(1);
-	document.AddMember("version", version, document.GetAllocator());
-	
-	Value flightsArray(kArrayType);
+	try {
+		Document document;
+		document.SetObject();
+		Value version;
+		version.SetInt(1);
+		document.AddMember("version", version, document.GetAllocator());
 
-	for (Plane plane : slotList) {
-		if (FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin() == airport) {
-			string tobtString = "", tsatString = "";
-			if (plane.eobt.length() >= 4) {
-				tobtString = plane.eobt;
-			}
-			if (plane.tsat.length() >= 4) {
-				tsatString = plane.tsat;
-			}
-			Value flight(kObjectType);
-			Value lat;
-			lat.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Latitude);
-			Value lon;
-			lon.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Longitude);
-			Value icao_type(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetAircraftFPType(), document.GetAllocator());
-			Value callsign(plane.callsign.c_str(), document.GetAllocator());
-			Value destination(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDestination(), document.GetAllocator());
-			Value tobt(tobtString.substr(0, 4).c_str(), document.GetAllocator());
-			Value tsat(tsatString.substr(0, 4).c_str(), document.GetAllocator());
+		Value flightsArray(kArrayType);
 
-			flight.AddMember("lat", lat, document.GetAllocator());
-			flight.AddMember("lon", lon, document.GetAllocator());
-			flight.AddMember("icao_type", icao_type, document.GetAllocator());
-			flight.AddMember("callsign", callsign, document.GetAllocator());
-			flight.AddMember("destination", destination, document.GetAllocator());
-			flight.AddMember("tobt", tobt, document.GetAllocator());
-			flight.AddMember("tsat", tsat, document.GetAllocator());
-			string slot = "";
-			if (plane.hasManualCtot && plane.ttot.length() >= 4) {
-				Value ctot(plane.ttot.substr(0, 4).c_str(), document.GetAllocator());
-				flight.AddMember("ctot", ctot, document.GetAllocator());
+		for (Plane plane : slotList) {
+			if (FlightPlanSelect(plane.callsign.c_str()).GetFlightPlanData().GetOrigin() == airport) {
+				string tobtString = "", tsatString = "";
+				if (plane.eobt.length() >= 4) {
+					tobtString = plane.eobt;
+				}
+				if (plane.tsat.length() >= 4) {
+					tsatString = plane.tsat;
+				}
+				Value flight(kObjectType);
+				Value lat;
+				lat.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Latitude);
+				Value lon;
+				lon.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Longitude);
+				Value icao_type(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetAircraftFPType(), document.GetAllocator());
+				Value callsign(plane.callsign.c_str(), document.GetAllocator());
+				Value destination(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDestination(), document.GetAllocator());
+				Value tobt(tobtString.substr(0, 4).c_str(), document.GetAllocator());
+				Value tsat(tsatString.substr(0, 4).c_str(), document.GetAllocator());
+
+				flight.AddMember("lat", lat, document.GetAllocator());
+				flight.AddMember("lon", lon, document.GetAllocator());
+				flight.AddMember("icao_type", icao_type, document.GetAllocator());
+				flight.AddMember("callsign", callsign, document.GetAllocator());
+				flight.AddMember("destination", destination, document.GetAllocator());
+				flight.AddMember("tobt", tobt, document.GetAllocator());
+				flight.AddMember("tsat", tsat, document.GetAllocator());
+				string slot = "";
+				if (plane.hasManualCtot && plane.ttot.length() >= 4) {
+					Value ctot(plane.ttot.substr(0, 4).c_str(), document.GetAllocator());
+					flight.AddMember("ctot", ctot, document.GetAllocator());
+				}
+				Value runway(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDepartureRwy(), document.GetAllocator());
+				Value sid(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetSidName(), document.GetAllocator());
+				flight.AddMember("runway", runway, document.GetAllocator());
+				flight.AddMember("sid", sid, document.GetAllocator());
+				flightsArray.PushBack(flight, document.GetAllocator());
 			}
-			Value runway(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetDepartureRwy(), document.GetAllocator());
-			Value sid(RadarTargetSelect(plane.callsign.c_str()).GetCorrelatedFlightPlan().GetFlightPlanData().GetSidName(), document.GetAllocator());
-			flight.AddMember("runway", runway, document.GetAllocator());
-			flight.AddMember("sid", sid, document.GetAllocator());
-			flightsArray.PushBack(flight, document.GetAllocator());
 		}
-	}
 
-	document.AddMember("flights", flightsArray, document.GetAllocator());
-	
-	// Convert the document to a JSON string
-	StringBuffer buffer;
-	Writer<StringBuffer> writer(buffer);
-	document.Accept(writer);
-	
-	ofstream outFile;
-	outFile.open(fileName, std::ofstream::out | std::ofstream::trunc);
-	if (outFile.is_open()) {
-		outFile << buffer.GetString() << std::endl;
-		outFile.close();
-	}
+		document.AddMember("flights", flightsArray, document.GetAllocator());
 
-	upload(fileName, airport, ".json");
+		// Convert the document to a JSON string
+		StringBuffer buffer;
+		Writer<StringBuffer> writer(buffer);
+		document.Accept(writer);
+
+		ofstream outFile;
+		outFile.open(fileName, std::ofstream::out | std::ofstream::trunc);
+		if (outFile.is_open()) {
+			outFile << buffer.GetString() << std::endl;
+			outFile.close();
+		}
+
+		upload(fileName, airport, ".json");
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception createJsonVDGS: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception createJsonVDGS");
+	}
 }
 
 bool CDM::isNumber(string s)
@@ -5359,12 +5348,20 @@ bool CDM::isNumber(string s)
 
 void CDM::upload(string fileName, string airport, string type)
 {
-	string saveName = "/CDM_data_" + airport + type;
-	HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-	HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
-	FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
-	InternetCloseHandle(hFtpSession);
-	InternetCloseHandle(hInternet);
+	try {
+		string saveName = "/CDM_data_" + airport + type;
+		HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+		HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
+		FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
+		InternetCloseHandle(hFtpSession);
+		InternetCloseHandle(hInternet);
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception upload: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception upload");
+	}
 }
 
 void CDM::addLogLine(string text) {
@@ -5407,82 +5404,98 @@ int CDM::GetVersion() {
 
 bool CDM::getCtotsFromUrl(string code)
 {
-	evCtots.clear();
-	slotFile.clear();
-	string vatcanUrl = code;
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	std::string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
-
-	if (responseCode == 404 || CURLE_OK != result) {
-		// handle error 404
-		sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
-	}
-	else {
-		std::istringstream is(readBuffer);
-
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			addVatcanCtotToEvCTOT(lineValue);
+	try {
+		evCtots.clear();
+		slotFile.clear();
+		string vatcanUrl = code;
+		CURL* curl;
+		CURLcode result = CURLE_FAILED_INIT;
+		std::string readBuffer;
+		long responseCode = 0;
+		curl = curl_easy_init();
+		if (curl) {
+			curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl.c_str());
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			result = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+			curl_easy_cleanup(curl);
 		}
+
+		if (responseCode == 404 || CURLE_OK != result) {
+			// handle error 404
+			sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
+		}
+		else {
+			std::istringstream is(readBuffer);
+
+			//Get data from .txt file
+			string lineValue;
+			while (getline(is, lineValue))
+			{
+				addVatcanCtotToEvCTOT(lineValue);
+			}
+		}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getCtotsFromUrl: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getCtotsFromUrl");
 	}
 
 	return true;
 }
 
 bool CDM::getTaxiZonesFromUrl(string url) {
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+	try {
+		CURL* curl;
+		CURLcode result = CURLE_FAILED_INIT;
+		string readBuffer;
+		long responseCode = 0;
+		curl = curl_easy_init();
+		if (curl) {
+			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			result = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+			curl_easy_cleanup(curl);
+		}
 
-	if (responseCode == 404 || CURLE_OK != result) {
-		// handle error 404
-		sendMessage("UNABLE TO LOAD TaxiZones URL...");
-	}
-	else {
-		std::istringstream is(readBuffer);
+		if (responseCode == 404 || CURLE_OK != result) {
+			// handle error 404
+			sendMessage("UNABLE TO LOAD TaxiZones URL...");
+		}
+		else {
+			std::istringstream is(readBuffer);
 
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (!lineValue.empty()) {
-				if (lineValue.substr(0, 1) != "#") {
-					if (lineValue.length() > 1) {
-						if (isdigit(lineValue[lineValue.length() - 1])) {
-							TxtTimesVector.push_back(lineValue);
-						}
-						else {
-							TxtTimesVector.push_back(lineValue.substr(0, lineValue.length() - 1));
+			//Get data from .txt file
+			string lineValue;
+			while (getline(is, lineValue))
+			{
+				if (!lineValue.empty()) {
+					if (lineValue.substr(0, 1) != "#") {
+						if (lineValue.length() > 1) {
+							if (isdigit(lineValue[lineValue.length() - 1])) {
+								TxtTimesVector.push_back(lineValue);
+							}
+							else {
+								TxtTimesVector.push_back(lineValue.substr(0, lineValue.length() - 1));
+							}
 						}
 					}
 				}
 			}
 		}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getTaxiZonesFromUrl: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getTaxiZonesFromUrl");
 	}
 
 	return true;
@@ -5565,6 +5578,7 @@ string CDM::getFromXml(string xpath)
 }
 
 string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) {
+	try{
 	string stringToAdd = remarks;
 	if (remarks.find("%") != string::npos) {
 		stringToAdd = remarks.substr(0, remarks.find("%") - 1);
@@ -5576,48 +5590,77 @@ string CDM::setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan) 
 	FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(3, stringToAdd.c_str());
 	remarks = stringToAdd;
 	return remarks;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception setCTOTremarks: " + (string)e.what());
+		return remarks;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception setCTOTremarks");
+		return remarks;
+	}
 }
 
 string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
-	if (TSAT.length() < 4 || TOBT.length() < 4) {
+	try {
+		if (TSAT.length() < 4 || TOBT.length() < 4) {
+			return "";
+		}
+		if (TSAT.substr(0, 4) == TOBT.substr(0, 4)) {
+			return "";
+		}
+
+		int tsat_hours = stoi(TSAT.substr(0, 2));
+		int tsat_minutes = stoi(TSAT.substr(2, 2));
+		int tobt_hours = stoi(TOBT.substr(0, 2));
+		int tobt_minutes = stoi(TOBT.substr(2, 2));
+
+		int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
+		int tobt_total_minutes = tobt_hours * 60 + tobt_minutes;
+
+		return "/" + to_string(tsat_total_minutes - tobt_total_minutes);
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getDiffTOBTTSAT: " + (string)e.what());
 		return "";
 	}
-	if (TSAT.substr(0, 4) == TOBT.substr(0, 4)) {
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getDiffTOBTTSAT");
 		return "";
 	}
-
-	int tsat_hours = stoi(TSAT.substr(0, 2));
-	int tsat_minutes = stoi(TSAT.substr(2, 2));
-	int tobt_hours = stoi(TOBT.substr(0, 2));
-	int tobt_minutes = stoi(TOBT.substr(2, 2));
-
-	int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
-	int tobt_total_minutes = tobt_hours * 60 + tobt_minutes;
-
-	return "/" + to_string(tsat_total_minutes - tobt_total_minutes);
 }
 
 string CDM::getDiffNowTSAT(string TSAT) {
-	string timeNow = GetTimeNow();
-	if (TSAT.length() < 4 || timeNow.length() <4) {
+	try {
+		string timeNow = GetTimeNow();
+		if (TSAT.length() < 4 || timeNow.length() < 4) {
+			return "0";
+		}
+		if (timeNow.substr(0, 4) == TSAT.substr(0, 4)) {
+			return "0";
+		}
+
+		int tsat_hours = stoi(TSAT.substr(0, 2));
+		int tsat_minutes = stoi(TSAT.substr(2, 2));
+		int timeNow_hours = stoi(timeNow.substr(0, 2));
+		int timeNow_minutes = stoi(timeNow.substr(2, 2));
+
+		int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
+		int timeNow_total_minutes = timeNow_hours * 60 + timeNow_minutes;
+
+		if (TSAT > timeNow) {
+			return to_string(timeNow_total_minutes - tsat_total_minutes);
+		}
+		return "+" + to_string(timeNow_total_minutes - tsat_total_minutes);
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getDiffNowTSAT: " + (string)e.what());
 		return "0";
 	}
-	if (timeNow.substr(0, 4) == TSAT.substr(0, 4)) {
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getDiffNowTSAT");
 		return "0";
 	}
-
-	int tsat_hours = stoi(TSAT.substr(0, 2));
-	int tsat_minutes = stoi(TSAT.substr(2, 2));
-	int timeNow_hours = stoi(timeNow.substr(0, 2));
-	int timeNow_minutes = stoi(timeNow.substr(2, 2));
-
-	int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
-	int timeNow_total_minutes = timeNow_hours * 60 + timeNow_minutes;
-
-	if (TSAT > timeNow) {
-		return to_string(timeNow_total_minutes - tsat_total_minutes);
-	}
-	return "+" + to_string(timeNow_total_minutes - tsat_total_minutes);
 }
 
 void CDM::addVatcanCtotToEvCTOT(string line) {
