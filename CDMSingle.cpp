@@ -1274,7 +1274,7 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize)
 {
-	try{
+	try {
 	if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
 		//Check master status
 		if (myAtcCallsign != ControllerMyself().GetCallsign()) {
@@ -2088,6 +2088,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												Plane p(callsign, EOBT, TSAT, TTOT, "", "", myEcfmp, hasEcfmpRestriction, hasManualCtot, true);
 												doRequest = true;
 												slotList.push_back(p);
+												pos = getPlanePosition(callsign);
 												remarks = setCTOTremarks(remarks, slotList[pos], FlightPlan);
 											}
 											//Check API
@@ -5714,20 +5715,30 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	}
 
 	if (startsWith(".cdm refreshtime", sCommandLine)) {
-		addLogLine(sCommandLine);
-		string line = sCommandLine;
-		if (line.substr(line.length() - 3, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 2)) * 50;
-			sendMessage("Refresh Time set to: " + line.substr(line.length() - 2));
+		try {
+			addLogLine(sCommandLine);
+			string line = sCommandLine;
+			if (line.substr(line.length() - 3, 1) == " ") {
+				refreshTime = stoi(line.substr(line.length() - 2)) * 50;
+				sendMessage("Refresh Time set to: " + line.substr(line.length() - 2));
+			}
+			else if (line.substr(line.length() - 2, 1) == " ") {
+				refreshTime = stoi(line.substr(line.length() - 1));
+				sendMessage("Refresh Time set to: " + line.substr(line.length() - 1));
+			}
+			else {
+				sendMessage("INCORRECT REFRESH TIME VALUE...");
+			}
+			return true;
 		}
-		else if (line.substr(line.length() - 2, 1) == " ") {
-			refreshTime = stoi(line.substr(line.length() - 1));
-			sendMessage("Refresh Time set to: " + line.substr(line.length() - 1));
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm refreshtime: " + (string)e.what());
+			return true;
 		}
-		else {
-			sendMessage("INCORRECT REFRESH TIME VALUE...");
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm refreshtime");
+			return true;
 		}
-		return true;
 	}
 
 	if (startsWith(".cdm help", sCommandLine))
@@ -5800,94 +5811,114 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm customdelay", sCommandLine))
 	{
-		addLogLine(sCommandLine);
-		string line = sCommandLine;
-		string apt = line.substr(line.find("/") - 4, 4);
-		string rwy = "";
-		if (line.substr(line.find("/") + 3, 1) == " ") {
-			rwy = line.substr(line.find("/") + 1, 2);
-		}
-		else if (line.substr(line.find("/") + 4, 1) == " ") {
-			rwy = line.substr(line.find("/") + 1, 3);
-		}
-		
-		bool isTimeOk = false;
-		std::istringstream iss(line);
-		std::vector<std::string> customDelayValues;
-		std::string token;
-		while (std::getline(iss, token, ' ')) {
-			customDelayValues.push_back(token);
-		}
-		for (const auto& substring : customDelayValues) {
-			std::cout << substring << std::endl;
-		}
-		string myTime = customDelayValues[customDelayValues.size() - 1];
-
-		if (myTime.length() == 4 && isNumber(myTime)) {
-			isTimeOk = true;
-		}
-		else {
-			if ((myTime.length() == 2 || myTime.length() == 1) && isNumber(myTime)) {
-				isTimeOk = true;
-				myTime = (calculateTime(GetTimeNow(), stoi(myTime)).substr(0, 4));
+		try {
+			addLogLine(sCommandLine);
+			string line = sCommandLine;
+			string apt = line.substr(line.find("/") - 4, 4);
+			string rwy = "";
+			if (line.substr(line.find("/") + 3, 1) == " ") {
+				rwy = line.substr(line.find("/") + 1, 2);
 			}
-		}
+			else if (line.substr(line.find("/") + 4, 1) == " ") {
+				rwy = line.substr(line.find("/") + 1, 3);
+			}
 
-		if (isTimeOk) {
-			//use myTime 9999 to remove delay for APT/RWY config
-			if (myTime == "9999") {
-				for (size_t i = 0; i < delayList.size(); i++) {
-					if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
-						sendMessage("REMOVING DELAY " + apt + "/" + rwy);
-						delayList.erase(delayList.begin() + i);
+			bool isTimeOk = false;
+			std::istringstream iss(line);
+			std::vector<std::string> customDelayValues;
+			std::string token;
+			while (std::getline(iss, token, ' ')) {
+				customDelayValues.push_back(token);
+			}
+			for (const auto& substring : customDelayValues) {
+				std::cout << substring << std::endl;
+			}
+			string myTime = customDelayValues[customDelayValues.size() - 1];
+
+			if (myTime.length() == 4 && isNumber(myTime)) {
+				isTimeOk = true;
+			}
+			else {
+				if ((myTime.length() == 2 || myTime.length() == 1) && isNumber(myTime)) {
+					isTimeOk = true;
+					myTime = (calculateTime(GetTimeNow(), stoi(myTime)).substr(0, 4));
+				}
+			}
+
+			if (isTimeOk) {
+				//use myTime 9999 to remove delay for APT/RWY config
+				if (myTime == "9999") {
+					for (size_t i = 0; i < delayList.size(); i++) {
+						if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
+							sendMessage("REMOVING DELAY " + apt + "/" + rwy);
+							delayList.erase(delayList.begin() + i);
+						}
+					}
+				}
+				else {
+					Delay d = Delay(apt, rwy, myTime);
+
+					//Get Time now
+					time_t rawtime;
+					struct tm ptm;
+					time(&rawtime);
+					gmtime_s(&ptm, &rawtime);
+					string hour = to_string(ptm.tm_hour % 24);
+					string min = to_string(ptm.tm_min);
+
+					int difTime = difftime(stoi(d.time), stoi(hour + min));
+
+					if (difTime > 0) {
+						sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
+						delayList.push_back(d);
+						addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+					}
+					else {
+						sendMessage("DELAY NOT ADDED. Time must be in the future");
 					}
 				}
 			}
 			else {
-				Delay d = Delay(apt, rwy, myTime);
-
-				//Get Time now
-				time_t rawtime;
-				struct tm ptm;
-				time(&rawtime);
-				gmtime_s(&ptm, &rawtime);
-				string hour = to_string(ptm.tm_hour % 24);
-				string min = to_string(ptm.tm_min);
-
-				int difTime = difftime(stoi(d.time), stoi(hour + min));
-
-				if (difTime > 0) {
-					sendMessage("Adding DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
-					delayList.push_back(d);
-					addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
-				}
-				else {
-					sendMessage("DELAY NOT ADDED. Time must be in the future");
-				}
+				sendMessage("Wrong time formatting to add delay. Please use time in 4 digits format (1234) or minutes with 1 or 2 digits codes (12 or 1)");
 			}
-		}
-		else {
-			sendMessage("Wrong time formatting to add delay. Please use time in 4 digits format (1234) or minutes with 1 or 2 digits codes (12 or 1)");
-		}
 
-		return true;
+			return true;
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm customdelay: " + (string)e.what());
+			return true;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm customdelay");
+			return true;
+		}
 	}
 
 	if (startsWith(".cdm save", sCommandLine))
 	{
-		addLogLine(sCommandLine);
-		sendMessage("Saving CDM data....");
-		//save data to file
-		ofstream outfile(sfad.c_str());
+		try {
+			addLogLine(sCommandLine);
+			sendMessage("Saving CDM data....");
+			//save data to file
+			ofstream outfile(sfad.c_str());
 
-		for (Plane pl : slotList)
-		{
-			outfile << pl.callsign + "," + pl.eobt + "," + pl.tsat + "," + pl.ttot << std::endl;
+			for (Plane pl : slotList)
+			{
+				outfile << pl.callsign + "," + pl.eobt + "," + pl.tsat + "," + pl.ttot << std::endl;
+			}
+
+			outfile.close();
+			sendMessage("Done");
+			return true;
 		}
-
-		outfile.close();
-		sendMessage("Done");
-		return true;
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm save: " + (string)e.what());
+			return true;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm save");
+			return true;
+		}
 	}
 	
 	if (startsWith(".cdm delay", sCommandLine))
@@ -6013,85 +6044,115 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 	if (startsWith(".cdm master", sCommandLine))
 	{
-		addLogLine(sCommandLine);
-		string line = sCommandLine; boost::to_upper(line);
-		vector<string> lineAirports = explode(line, ' ');
+		try {
+			addLogLine(sCommandLine);
+			string line = sCommandLine; boost::to_upper(line);
+			vector<string> lineAirports = explode(line, ' ');
 
-		if (lineAirports.size() > 2) {
-			string ATC_Position = ControllerMyself().GetCallsign();
-			for (size_t i = 2; i < lineAirports.size(); i++) {
-				string addedAirport = lineAirports[i];
-				bool found = false;
-				for (string apt : masterAirports)
-				{
-					if (apt == addedAirport) {
-						found = true;
+			if (lineAirports.size() > 2) {
+				string ATC_Position = ControllerMyself().GetCallsign();
+				for (size_t i = 2; i < lineAirports.size(); i++) {
+					string addedAirport = lineAirports[i];
+					bool found = false;
+					for (string apt : masterAirports)
+					{
+						if (apt == addedAirport) {
+							found = true;
+						}
+					}
+					if (!found) {
+						std::thread t(&CDM::setMasterAirport, this, addedAirport, ATC_Position);
+						t.detach();
 					}
 				}
-				if (!found) {
-					std::thread t(&CDM::setMasterAirport, this, addedAirport, ATC_Position);
-					t.detach();
-				}
 			}
+			else {
+				sendMessage("NO AIRPORT SET");
+			}
+			return true;
 		}
-		else {
-			sendMessage("NO AIRPORT SET");
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm master: " + (string)e.what());
+			return true;
 		}
-		return true;
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm master");
+			return true;
+		}
 	}
 
 	if (startsWith(".cdm slave", sCommandLine))
 	{
-		addLogLine(sCommandLine);
-		string line = sCommandLine; boost::to_upper(line);
-		vector<string> lineAirports = explode(line, ' ');
+		try {
+			addLogLine(sCommandLine);
+			string line = sCommandLine; boost::to_upper(line);
+			vector<string> lineAirports = explode(line, ' ');
 
-		if (lineAirports.size() > 2) {
-			string ATC_Position = ControllerMyself().GetCallsign();
-			for (size_t i = 2; i < lineAirports.size(); i++) {
-				string addedAirport = lineAirports[i];
-				bool found = false;
-				int a = 0;
-				for (string apt : masterAirports)
-				{
-					if (apt == addedAirport) {
-						std::thread t(&CDM::removeMasterAirport, this, addedAirport, ATC_Position);
-						t.detach();
-						found = true;
+			if (lineAirports.size() > 2) {
+				string ATC_Position = ControllerMyself().GetCallsign();
+				for (size_t i = 2; i < lineAirports.size(); i++) {
+					string addedAirport = lineAirports[i];
+					bool found = false;
+					int a = 0;
+					for (string apt : masterAirports)
+					{
+						if (apt == addedAirport) {
+							std::thread t(&CDM::removeMasterAirport, this, addedAirport, ATC_Position);
+							t.detach();
+							found = true;
+						}
+						a++;
 					}
-					a++;
-				}
-				if (!found) {
-					sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
+					if (!found) {
+						sendMessage("AIRPORT " + addedAirport + " NOT FOUND");
+					}
 				}
 			}
-		}
-		else {
-			sendMessage("NO AIRPORT SET");
-		}
+			else {
+				sendMessage("NO AIRPORT SET");
+			}
 
-		return true;
+			return true;
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm slave: " + (string)e.what());
+			return true;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm slave");
+			return true;
+		}
 	}
 
 	if (startsWith(".cdm resetmaster", sCommandLine))
 	{
-		addLogLine(sCommandLine);
-		string line = sCommandLine; boost::to_upper(line);
-		vector<string> lineAirports = explode(line, ' ');
+		try {
+			addLogLine(sCommandLine);
+			string line = sCommandLine; boost::to_upper(line);
+			vector<string> lineAirports = explode(line, ' ');
 
-		if (lineAirports.size() > 2) {
-			string ATC_Position = ControllerMyself().GetCallsign();
-			for (size_t i = 2; i < lineAirports.size(); i++) {
-				string addedAirport = lineAirports[i];
-				std::thread t(&CDM::removeAllMasterAirportsByAirport, this, addedAirport);
-				t.detach();
+			if (lineAirports.size() > 2) {
+				string ATC_Position = ControllerMyself().GetCallsign();
+				for (size_t i = 2; i < lineAirports.size(); i++) {
+					string addedAirport = lineAirports[i];
+					std::thread t(&CDM::removeAllMasterAirportsByAirport, this, addedAirport);
+					t.detach();
+				}
 			}
-		}
-		else {
-			sendMessage("NO AIRPORT SET");
-		}
+			else {
+				sendMessage("NO AIRPORT SET");
+			}
 
-		return true;
+			return true;
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm resetmaster: " + (string)e.what());
+			return true;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm resetmaster");
+			return true;
+		}
 	}
 
 	if (startsWith(".cdm data", sCommandLine))
