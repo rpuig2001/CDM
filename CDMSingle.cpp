@@ -2108,19 +2108,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
-
-								//Remove disconnected planes after 5 min disconnected
-								if (countTfcDisconnection != -1) {
-									if (countTfcDisconnection - stoi(GetTimeNow()) < -300) {
-										countTfcDisconnection = -1;
-										disconnectTfcs();
-										pos = getPlanePosition(callsign);
-										if (pos == -1) {
-											aircraftFind = false;
-										}
-									}
-								}
-
 								//Sync TTOT
 								if (aircraftFind && remarks.find("%") != string::npos) {
 									string TTOT1 = slotList[pos].ttot;
@@ -2798,6 +2785,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//Refresh CDM API every 30 seconds
 						int myNow = stoi(GetTimeNow());
+
+						//Remove disconnected planes after 5 min disconnected
+						if (countTfcDisconnection != -1) {
+							if (myNow - countTfcDisconnection > 300) {
+								countTfcDisconnection = -1;
+								disconnectTfcs();
+								pos = getPlanePosition(callsign);
+								if (pos == -1) {
+									aircraftFind = false;
+								}
+							}
+						}
+
 						if (myNow - countFetchServerTime > 30) {
 							countFetchServerTime = myNow;
 							addLogLine("[AUTO] - REFRESH API");
