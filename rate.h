@@ -1,7 +1,6 @@
 #pragma once
 #include <iostream>
 #include <string>
-#include "Flow.h"
 using namespace std;
 
 class Rate {

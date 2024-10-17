@@ -14,17 +14,17 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "json/json.h"
-#include "CAD.h"
 #include "Rate.h"
 #include "Plane.h"
-#include "Flow.h"
+#include "ServerRestricted.h"
+#include <mutex>
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.4"
+#define MY_PLUGIN_VERSION   "2.2.5.8.2b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -44,7 +44,7 @@ public:
 	virtual ~CDM();
 
 	//Define OnGetTagItem function
-	virtual void OnGetTagItem(CFlightPlan FlightPlan,
+	void OnGetTagItem(CFlightPlan FlightPlan,
 		CRadarTarget RadarTarget,
 		int ItemCode,
 		int TagData,
@@ -58,8 +58,6 @@ public:
 	bool getRate();
 
 	Rate rateForRunway(string airport, string depRwy);
-
-	void refreshTimes(CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool hasCTOT, int ctotPos, int pos, bool aircraftFind);
 
 	void PushToOtherControllers(CFlightPlan fp);
 
@@ -89,15 +87,11 @@ public:
 
 	string formatTime(string timeString);
 
-	void checkCtot();
-
 	void RemoveDataFromTfc(string callsign);
 
 	void disconnectTfcs();
 
 	string calculateTime(string timeString, double minsToAdd);
-
-	bool checkCtotInRange(Plane plane);
 
 	string calculateLessTime(string timeString, double minsToAdd);
 
@@ -105,13 +99,33 @@ public:
 
 	void saveData();
 
+	int getPlanePosition(string callsign);
+
 	void multithread(void(CDM::* f)());
 
 	bool checkIsNumber(string str);
 
 	string getCidByCallsign(string callsign);
 
-	void getFlowData();
+	bool flightHasCtotDisabled(string callsign);
+
+	void getEcfmpData();
+
+	void getCdmServerRestricted();
+
+	void sendWaitingTSAT();
+
+	void sendWaitingCdmSts();
+
+	void sendCheckCIDLater();
+
+	string getTaxiTime(string callsign);
+
+	void setCdmSts(string callsign, string cdmSts);
+
+	string getCdmSts(string callsign);
+
+	void setTSATApi(string myCallsign, string tsat);
 
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
@@ -123,6 +137,8 @@ public:
 
 	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
 
+	void removeLog();
+
 	int GetVersion();
 
 	void createJsonVDGS(vector<Plane> slotList, string fileName, string airport);
@@ -130,6 +146,8 @@ public:
 	bool isNumber(string s);
 
 	void upload(string fileName, string airport, string type);
+
+	void addLogLine(string text);
 
 	vector<string> explode(std::string const& s, char delim);
 
@@ -198,41 +216,51 @@ public:
 		return false;
 	}
 
-	virtual void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
+	void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
 
-	virtual void debugMessage(string type, string message);
+	void debugMessage(string type, string message);
 
-	virtual void sendMessage(string type, string message);
+	void sendMessage(string type, string message);
 
-	virtual void sendMessage(string message);
+	void sendMessage(string message);
+
+	void OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan);
 
 	void RemoveMasterAirports();
 
-	void OnRefresh(HDC hDC, int Phase);
+	void backgroundProcess_recaulculate();
 
-	void checkFlowStatus(Plane plane);
+	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool aircraftFind);
 
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
 
-	void addCtotToMainList(string lineValue);
+	string setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan);
+
+	string getDiffTOBTTSAT(string TSAT, string TOBT);
+
+	string getDiffNowTSAT(string TSAT);
 
 	void addVatcanCtotToEvCTOT(string line);
 
-	void addVatcanCtotToMainList(string callsign, string slot);
-
 	bool OnCompileCommand(const char* sCommandLine);
 
-	vector<CAD> returnCADvalues(string url);
+	void OnTimer(int Count);
 
-	void getCADvalues();
+	bool setMasterAirport(string airport, string position);
 
-	virtual void OnTimer(int Count);
+	bool removeMasterAirport(string airport, string position);
+
+	bool removeAllMasterAirports(string position);
+
+	void removeAllMasterAirportsByAirport(string airport);
+
+	bool setEvCtot(string callsign);
 
 	int FuncBuffer;
 
-protected:
-	Document config;
+	protected:
+		Document config;
 };
 
