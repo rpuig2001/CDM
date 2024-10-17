@@ -6597,23 +6597,28 @@ void CDM::getCdmServerRestricted() {
 }
 
 void CDM::sendWaitingTSAT() {
-	addLogLine("Called sendWaitingTSAT...");
-	vector<Plane> setTSATlaterTemp = setTSATlater;
-	for (int i = 0; i < setTSATlaterTemp.size();) {
-		if (setTSATlaterTemp[i].callsign == setTSATlaterTemp[i].callsign) {
+	try {
+		addLogLine("Called sendWaitingTSAT...");
+		vector<Plane> setTSATlaterTemp = setTSATlater;
+
+		for (int i = 0; i < setTSATlaterTemp.size(); ++i) {
 			addLogLine("sendWaitingTSAT - " + setTSATlaterTemp[i].callsign);
-			try {
-				for (int a = 0; a < setTSATlater.size(); a++) {
-					if (setTSATlater[a].callsign == setTSATlaterTemp[i].callsign) {
-						setTSATlater.erase(setTSATlater.begin() + a);
-					}
+			for (auto it = setTSATlater.begin(); it != setTSATlater.end();) {
+				if (it->callsign == setTSATlaterTemp[i].callsign) {
+					it = setTSATlater.erase(it);
 				}
-				setTSATApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].tsat);
+				else {
+					++it;
+				}
 			}
-			catch (...) {
-				addLogLine("Error occurred parsing data from the cdm-api (sendWaitingTSAT)");
-			}
+			setTSATApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].tsat);
 		}
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception sendWaitingTSAT: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("Error occurred parsing data from the cdm-api (sendWaitingTSAT)");
 	}
 }
 
