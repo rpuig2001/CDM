@@ -49,6 +49,7 @@ string flowRestrictionsUrl;
 string cdm_api;
 string myAtcCallsign;
 bool option_su_wait;
+string apikey;
 
 //Ftp data
 string ftpHost;
@@ -3541,7 +3542,7 @@ bool CDM::getRateFromUrl(string url) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		// handle error 404
 		addLogLine("UNABLE TO LOAD TaxiZones URL...");
 	}
@@ -5116,7 +5117,7 @@ void CDM::getEcfmpData() {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD ECFMP DATA...");
 		}
@@ -5444,7 +5445,7 @@ bool CDM::getCtotsFromUrl(string code)
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 		}
@@ -5486,7 +5487,7 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD TaxiZones URL...");
 		}
@@ -6225,6 +6226,10 @@ bool CDM::setMasterAirport(string airport, string position) {
 	curl = curl_easy_init();
 	if (curl) {
 		string url = cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position;
+		string apiKeyHeader = "x-api-key: " + apikey;
+		struct curl_slist* headers = NULL;
+		headers = curl_slist_append(headers, apiKeyHeader.c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, 1L);
@@ -6235,7 +6240,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 		masterAirports.push_back(airport);
 		sendMessage("Successfully set master airport (Locally only) " + airport);
@@ -6285,6 +6290,10 @@ bool CDM::removeMasterAirport(string airport, string position) {
 	curl = curl_easy_init();
 	if (curl) {
 		string url = cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position;
+		string apiKeyHeader = "x-api-key: " + apikey;
+		struct curl_slist* headers = NULL;
+		headers = curl_slist_append(headers, apiKeyHeader.c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
@@ -6295,7 +6304,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 		for (int a = 0; a < masterAirports.size(); a++)
 		{
@@ -6344,6 +6353,10 @@ bool CDM::removeAllMasterAirports(string position) {
 	curl = curl_easy_init();
 	if (curl) {
 		string url = cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position;
+		string apiKeyHeader = "x-api-key: " + apikey;
+		struct curl_slist* headers = NULL;
+		headers = curl_slist_append(headers, apiKeyHeader.c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
@@ -6354,7 +6367,7 @@ bool CDM::removeAllMasterAirports(string position) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
@@ -6394,6 +6407,10 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 	curl = curl_easy_init();
 	if (curl) {
 		string url = cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport;
+		string apiKeyHeader = "x-api-key: " + apikey;
+		struct curl_slist* headers = NULL;
+		headers = curl_slist_append(headers, apiKeyHeader.c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_POST, true);
@@ -6404,7 +6421,7 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
@@ -6430,6 +6447,10 @@ bool CDM::setEvCtot(string callsign) {
 	curl = curl_easy_init();
 	if (curl) {
 		string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
+		string apiKeyHeader = "x-api-key: " + apikey;
+		struct curl_slist* headers = NULL;
+		headers = curl_slist_append(headers, apiKeyHeader.c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
@@ -6440,7 +6461,7 @@ bool CDM::setEvCtot(string callsign) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
@@ -6502,6 +6523,10 @@ void CDM::getCdmServerRestricted() {
 	curl = curl_easy_init();
 	if (curl) {
 		string url = cdmServerUrl + "/slotService/restricted";
+		string apiKeyHeader = "x-api-key: " + apikey;
+		struct curl_slist* headers = NULL;
+		headers = curl_slist_append(headers, apiKeyHeader.c_str());
+		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
@@ -6512,7 +6537,7 @@ void CDM::getCdmServerRestricted() {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 		// handle error 404
 		addLogLine("UNABLE TO LOAD CDM-API URL...");
 	}
@@ -6684,6 +6709,10 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		curl = curl_easy_init();
 		if (curl) {
 			string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat + "&cdmSts=" + cdmSts;
+			string apiKeyHeader = "x-api-key: " + apikey;
+			struct curl_slist* headers = NULL;
+			headers = curl_slist_append(headers, apiKeyHeader.c_str());
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_POST, 1L);
@@ -6694,7 +6723,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 			setTSATlater.push_back(plane);
 			for (int i = 0; i < slotList.size(); i++) {
@@ -6830,6 +6859,10 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 		curl = curl_easy_init();
 		if (curl) {
 			string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
+			string apiKeyHeader = "x-api-key: " + apikey;
+			struct curl_slist* headers = NULL;
+			headers = curl_slist_append(headers, apiKeyHeader.c_str());
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
 			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_POST, 1L);
@@ -6840,7 +6873,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			setCdmStslater.push_back(callsign);
 			addLogLine("UNABLE TO CONNECT CDM-API...");
 		}
