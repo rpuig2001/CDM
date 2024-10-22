@@ -449,12 +449,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			master = true;
 		}
 	}
-	AtcMe = true;
-	/*if (master) {
+	AtcMe = false;
+	if (master) {
 		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
 			AtcMe = true;
 		}
-	}*/
+	}
 
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
@@ -6240,7 +6240,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+	if ((responseCode == 404 || CURLE_OK != result) && responseCode != 401) {
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 		masterAirports.push_back(airport);
 		sendMessage("Successfully set master airport (Locally only) " + airport);
@@ -6486,7 +6486,6 @@ bool CDM::setEvCtot(string callsign) {
 									};
 								}
 							}
-							evCtots.push_back({ callsign, slotFile[i][1] });
 						}
 					}
 				}
