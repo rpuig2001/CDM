@@ -6476,14 +6476,17 @@ bool CDM::setEvCtot(string callsign) {
 						if (slotFile[i][0] == cid) {
 							addLogLine(callsign + " linked with EvCTOT " + slotFile[i][1]);
 							sendMessage(callsign + " linked with EvCTOT " + slotFile[i][1]);
+							bool found = false;
 							for (int a = 0; a < evCtots.size(); a++) {
 								if (evCtots[a].size() > 0) {
 									if (evCtots[a][0] == callsign) {
 										evCtots[a] = { callsign, slotFile[i][1] };
+										found = true;
 										return true;
 									};
 								}
 							}
+							evCtots.push_back({ callsign, slotFile[i][1] });
 						}
 					}
 				}
