@@ -51,6 +51,10 @@ string myAtcCallsign;
 bool option_su_wait;
 string apikey;
 
+int activeSetStatus;
+int activeSetTsat;
+int activeCheckCid;
+
 //Ftp data
 string ftpHost;
 string ftpUser;
@@ -274,6 +278,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Init reamrksOption
 	remarksOption = false;
+
+	//Init active actions
+	activeSetStatus = 0;
+	activeSetTsat = 0;
+	activeCheckCid = 0;
 
 	//Initialize with empty callsign
 	myAtcCallsign = "";
@@ -6438,6 +6447,7 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 
 bool CDM::setEvCtot(string callsign) {
 	addLogLine("Called setEvCtot...");
+	activeCheckCid += 1;
 	try {
 	addLogLine("Call - Set Event CTOT for " + callsign);
 	CURL* curl;
@@ -6462,6 +6472,8 @@ bool CDM::setEvCtot(string callsign) {
 	}
 
 	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+		activeCheckCid -= 1;
+		checkCIDLater.push_back(callsign);
 		addLogLine("UNABLE TO CONNECT CDM-API...");
 	}
 	else {
@@ -6497,17 +6509,23 @@ bool CDM::setEvCtot(string callsign) {
 				};
 			}*/
 		}
+		activeCheckCid -= 1;
 		if(cid == "") {
+			activeCheckCid -= 1;
 			checkCIDLater.push_back(callsign);
 		}
 	}
 	return false;
 	}
 	catch (const std::exception& e) {
+		activeCheckCid -= 1;
+		checkCIDLater.push_back(callsign);
 		addLogLine("ERROR: Unhandled exception setEvCtot: " + (string)e.what());
 		return false;
 	}
 	catch (...) {
+		activeCheckCid -= 1;
+		checkCIDLater.push_back(callsign);
 		addLogLine("ERROR: Unhandled exception setEvCtot");
 		return false;
 	}
@@ -6625,20 +6643,26 @@ void CDM::getCdmServerRestricted() {
 
 void CDM::sendWaitingTSAT() {
 	try {
+		bool activeTask = true;
+		int counter = 0;
+		while (activeTask) {
+			if (activeSetTsat > 0 || counter > 100) {
+				activeSetTsat = 0;
+				std::this_thread::sleep_for(std::chrono::milliseconds(100));
+			}
+			else {
+				activeTask = false;
+			}
+			counter++;
+		}
+
 		addLogLine("Called sendWaitingTSAT...");
 		vector<Plane> setTSATlaterTemp = setTSATlater;
+		setTSATlater.clear();
 
-		for (int i = 0; i < setTSATlaterTemp.size(); ++i) {
-			addLogLine("sendWaitingTSAT - " + setTSATlaterTemp[i].callsign);
-			for (auto it = setTSATlater.begin(); it != setTSATlater.end();) {
-				if (it->callsign == setTSATlaterTemp[i].callsign) {
-					it = setTSATlater.erase(it);
-				}
-				else {
-					++it;
-				}
-			}
-			setTSATApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].tsat);
+		for (const Plane& plane : setTSATlaterTemp) {
+			addLogLine("sendWaitingTSAT - " + plane.callsign);
+			setTSATApi(plane.callsign, plane.tsat);
 		}
 	}
 	catch (const std::exception& e) {
@@ -6650,37 +6674,53 @@ void CDM::sendWaitingTSAT() {
 }
 
 void CDM::sendWaitingCdmSts() {
-	string cdmSts = "";
-	vector<string> setCdmStslaterTemp = setCdmStslater;
-	for (int i = 0; i < setCdmStslaterTemp.size();) {
-		string callsign = setCdmStslaterTemp[i];
-		cdmSts = getCdmSts(callsign);
-		addLogLine("sendWaitingCdmSts - " + callsign);
-		for (int a = 0; a < setCdmStslater.size(); a++) {
-			if (setCdmStslater[a] == callsign) {
-				setCdmStslater.erase(setCdmStslater.begin() + a);
-			}
+	bool activeTask = true;
+	int counter = 0;
+	while (activeTask) {
+		if (activeSetStatus > 0 || counter > 100) {
+			activeSetStatus = 0;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
+		else {
+			activeTask = false;
+		}
+	}
+
+	vector<string> callsignsToProcess = setCdmStslater;
+	setCdmStslater.clear();
+
+	for (const string& callsign : callsignsToProcess) {
+		string cdmSts = getCdmSts(callsign);
+		addLogLine("sendWaitingCdmSts - " + callsign);
 		setCdmSts(callsign, cdmSts);
 	}
 }
 
 void CDM::sendCheckCIDLater() {
-	vector<string> checkCIDLaterTemp = checkCIDLater;
-	for (int i = 0; i < checkCIDLaterTemp.size();) {
-		string callsign = checkCIDLaterTemp[i];
-		addLogLine("sendCheckCIDLater - " + callsign);
-		for (int a = 0; a < checkCIDLater.size(); a++) {
-			if (checkCIDLater[a] == callsign) {
-				checkCIDLater.erase(checkCIDLater.begin() + a);
-			}
+	bool activeTask = true;
+	int counter = 0;
+	while (activeTask) {
+		if (activeCheckCid > 0 || counter > 100) {
+			activeCheckCid = 0;
+			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
+		else {
+			activeTask = false;
+		}
+	}
+
+	vector<string> callsignsToProcess = checkCIDLater;
+	checkCIDLater.clear();
+
+	for (const string& callsign : callsignsToProcess) {
+		addLogLine("sendCheckCIDLater - " + callsign);
 		setEvCtot(callsign);
 	}
 }
 
 void CDM::setTSATApi(string callsign, string tsat) {
 	addLogLine("Called setTSATApi...");
+	activeSetTsat += 1;
 	try{
 	addLogLine("Call - Set TSAT (" + tsat + ") for " + callsign);
 	bool createRequest = false;
@@ -6726,6 +6766,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		}
 
 		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			activeSetTsat -= 1;
 			Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 			setTSATlater.push_back(plane);
 			for (int i = 0; i < slotList.size(); i++) {
@@ -6791,17 +6832,23 @@ void CDM::setTSATApi(string callsign, string tsat) {
 							}
 						}
 					}
+					activeSetTsat -= 1;
 				}
 				else {
+					activeSetTsat -= 1;
 					Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 					setTSATlater.push_back(plane);
 				}
 			}
 			else {
+				activeSetTsat -= 1;
 				Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 				setTSATlater.push_back(plane);
 			}
 		}
+	}
+	else {
+		activeSetTsat -= 1;
 	}
 
 	for (size_t a = 0; a < slotList.size(); a++)
@@ -6813,6 +6860,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 	addLogLine("COMPLETED - setTSATApi for " + callsign);
 	}
 	catch (const std::exception& e) {
+		activeSetTsat -= 1;
 		addLogLine("ERROR: Unhandled exception setTSATApi: " + (string)e.what());
 		for (size_t a = 0; a < slotList.size(); a++)
 		{
@@ -6822,6 +6870,7 @@ void CDM::setTSATApi(string callsign, string tsat) {
 		}
 	}
 	catch (...) {
+		activeSetTsat -= 1;
 		addLogLine("ERROR: Unhandled exception setTSATApi");
 		for (size_t a = 0; a < slotList.size(); a++)
 		{
@@ -6852,6 +6901,7 @@ string CDM::getTaxiTime(string callsign) {
 
 void CDM::setCdmSts(string callsign, string cdmSts) {
 	addLogLine("Called setCdmSts...");
+	activeSetStatus += 1;
 	try {
 		addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
 		CURL* curl;
@@ -6876,6 +6926,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 		}
 
 		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			activeSetStatus -= 1;
 			setCdmStslater.push_back(callsign);
 			addLogLine("UNABLE TO CONNECT CDM-API...");
 		}
@@ -6889,12 +6940,17 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 					setCdmStslater.push_back(callsign);
 				}
 			}
+			activeSetStatus -= 1;
 		}
 	}
 	catch (const std::exception& e) {
+		activeSetStatus -= 1;
+		setCdmStslater.push_back(callsign);
 		addLogLine("ERROR: Unhandled exception setCdmSts: " + (string)e.what());
 	}
 	catch (...) {
+		activeSetStatus -= 1;
+		setCdmStslater.push_back(callsign);
 		addLogLine("ERROR: Unhandled exception setCdmSts");
 	}
 }
