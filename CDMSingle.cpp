@@ -5,6 +5,7 @@
 #include <thread>
 #include "Delay.h"
 #include "EcfmpRestriction.h"
+#include <mutex>
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -12,7 +13,7 @@ bool blink;
 bool debugMode, initialSidLoad;
 
 int disCount;
-
+std::mutex slotListMutex;
 ifstream sidDatei;
 char DllPathFile[_MAX_PATH];
 string pfad;
@@ -88,6 +89,7 @@ vector<string> setCdmStslater;
 vector<string> suWaitList;
 vector<string> checkCIDLater;
 vector<string> disabledCtots;
+vector<vector<string>> networkStatus;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -174,6 +176,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemType("EV-CTOT", TAG_ITEM_EV_CTOT);
 	RegisterTagItemFunction("EvCTOT Options", TAG_FUNC_OPT_EvCTOT);
 	RegisterTagItemFunction("EvCTOT to MANUAL CTOT", TAG_FUNC_EvCTOTtoCTOT);
+
+	// Register Tag Item and functions "NETWORK STATUS"
+	RegisterTagItemType("Network Sts", TAG_ITEM_NETWORK_STATUS);
+	RegisterTagItemFunction("Network Sts Options", TAG_FUNC_NETWORK_STATUS_OPTIONS);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -620,6 +626,36 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 			}
+		}
+	}
+	else if (FunctionId == TAG_FUNC_NETWORK_STATUS_OPTIONS) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_NETWORK_STATUS_OPTIONS");
+			OpenPopupList(Area, "Network Sts Options", 1);
+			AddPopupListElement("Set REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
+			AddPopupListElement("Set PRIO", "", TAG_FUNC_NETWORK_SET_PRIO, false, 2, false);
+			AddPopupListElement("Remove Sts", "", TAG_FUNC_NETWORK_REMOVE_STATUS, false, 2, false);
+		}
+	}
+	else if (FunctionId == TAG_FUNC_NETWORK_SET_REA) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_REA");
+			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
+			t3.detach();
+		}
+	}
+	else if (FunctionId == TAG_FUNC_NETWORK_SET_PRIO) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_PRIO");
+			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "PRIO");
+			t3.detach();
+		}
+	}
+	else if (FunctionId == TAG_FUNC_NETWORK_REMOVE_STATUS) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_NETWORK_REMOVE_STATUS");
+			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "");
+			t3.detach();
 		}
 	}
 
@@ -1763,6 +1799,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
+							string status = "";
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									status = networkStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, status.c_str());
+							}
+						}
 					}
 					else {
 
@@ -2792,6 +2840,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
+						string status = "";
+						for (size_t i = 0; i < networkStatus.size(); i++) {
+							if (networkStatus[i][0] == callsign) {
+								status = networkStatus[i][1];
+							}
+						}
+						if (status != "") {
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
+						}
+						}
 
 						//Refresh CDM API every 30 seconds
 						int myNow = stoi(GetTimeNow());
@@ -2847,6 +2907,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 								sendMessage("[DEBUG MESSAGE] - " + to_string(slotList.size()) + " Planes in the list");
 							}
+
+							std::thread t0(&CDM::getCdmServerStatus, this);
+							t0.detach();
 
 							//Execute background process in the background
 							std::thread t1(&CDM::backgroundProcess_recaulculate, this);
@@ -3375,6 +3438,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, slot.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
+						string status = "";
+						for (size_t i = 0; i < networkStatus.size(); i++) {
+							if (networkStatus[i][0] == callsign) {
+								status = networkStatus[i][1];
+							}
+						}
+						if (status != "") {
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
+						}
+						}
 					}
 					else
 					{
@@ -3422,6 +3497,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (inEvCtotsList) {
 								ItemRGB = TAG_GREY;
 								strcpy_s(sItemString, 16, slot.c_str());
+							}
+						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
+							string status = "";
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									status = networkStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
 					}
@@ -3475,6 +3562,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (inEvCtotsList) {
 						ItemRGB = TAG_GREY;
 						strcpy_s(sItemString, 16, slot.c_str());
+					}
+				}
+				else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
+					string status = "";
+					for (size_t i = 0; i < networkStatus.size(); i++) {
+						if (networkStatus[i][0] == callsign) {
+							status = networkStatus[i][1];
+						}
+					}
+					if (status != "") {
+						ItemRGB = TAG_YELLOW;
+						strcpy_s(sItemString, 16, status.c_str());
 					}
 				}
 			}
@@ -6646,21 +6745,25 @@ void CDM::sendWaitingTSAT() {
 		bool activeTask = true;
 		int counter = 0;
 		while (activeTask) {
-			if (activeSetTsat > 0 || counter > 100) {
-				activeSetTsat = 0;
+			if (activeSetTsat > 0) {
 				std::this_thread::sleep_for(std::chrono::milliseconds(100));
 			}
 			else {
 				activeTask = false;
 			}
+			if (counter > 500) {
+				activeSetTsat = 0;
+				activeTask = false;
+				addLogLine("sendWaitingTSAT - restarting activeTask...");
+			}
 			counter++;
 		}
-
+		addLogLine("Call sendWaitingTSAT - " + to_string(setTSATlater.size()));
 		addLogLine("Called sendWaitingTSAT...");
 		vector<Plane> setTSATlaterTemp = setTSATlater;
 		setTSATlater.clear();
 
-		for (const Plane& plane : setTSATlaterTemp) {
+		for (const Plane plane : setTSATlaterTemp) {
 			addLogLine("sendWaitingTSAT - " + plane.callsign);
 			setTSATApi(plane.callsign, plane.tsat);
 		}
@@ -6677,15 +6780,21 @@ void CDM::sendWaitingCdmSts() {
 	bool activeTask = true;
 	int counter = 0;
 	while (activeTask) {
-		if (activeSetStatus > 0 || counter > 100) {
-			activeSetStatus = 0;
+		if (activeSetStatus > 0) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		else {
 			activeTask = false;
 		}
-	}
 
+		if (counter > 500) {
+			activeSetStatus = 0;
+			activeTask = false;
+			addLogLine("sendWaitingCdmSts - restarting activeTask...");
+		}
+		counter++;
+	}
+	addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmStslater.size()));
 	vector<string> callsignsToProcess = setCdmStslater;
 	setCdmStslater.clear();
 
@@ -6700,15 +6809,20 @@ void CDM::sendCheckCIDLater() {
 	bool activeTask = true;
 	int counter = 0;
 	while (activeTask) {
-		if (activeCheckCid > 0 || counter > 100) {
-			activeCheckCid = 0;
+		if (activeCheckCid > 0) {
 			std::this_thread::sleep_for(std::chrono::milliseconds(100));
 		}
 		else {
 			activeTask = false;
 		}
+		if (counter > 500) {
+			activeCheckCid = 0;
+			activeTask = false;
+			addLogLine("sendCheckCIDLater - restarting activeTask...");
+		}
+		counter++;
 	}
-
+	addLogLine("Call sendCheckCIDLater - " + to_string(checkCIDLater.size()));
 	vector<string> callsignsToProcess = checkCIDLater;
 	checkCIDLater.clear();
 
@@ -6721,113 +6835,115 @@ void CDM::sendCheckCIDLater() {
 void CDM::setTSATApi(string callsign, string tsat) {
 	addLogLine("Called setTSATApi...");
 	activeSetTsat += 1;
-	try{
-	addLogLine("Call - Set TSAT (" + tsat + ") for " + callsign);
-	bool createRequest = false;
-	for (Plane p : slotList) {
-		//Do not send API request if Manual CTOT is created by user.
-		if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign) {
-			createRequest = true;
-		}
-	}
 
-	if (createRequest) {
-
-		if (tsat.length() >= 4) {
-			tsat = tsat.substr(0, 4);
-		}
-		else {
-			tsat = "";
+	try {
+		vector<Plane> slotListTemp; // Local copy of the slotList
+		{
+			std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
+			slotListTemp = slotList; // Copy the slotList
 		}
 
-		string cdmSts = getCdmSts(callsign);
+		addLogLine("Call - Set TSAT (" + tsat + ") for " + callsign);
+		bool createRequest = false;
 
-		string taxiTime = getTaxiTime(callsign);
-
-		CURL* curl;
-		CURLcode result = CURLE_FAILED_INIT;
-		string readBuffer;
-		long responseCode = 0;
-		curl = curl_easy_init();
-		if (curl) {
-			string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat + "&cdmSts=" + cdmSts;
-			string apiKeyHeader = "x-api-key: " + apikey;
-			struct curl_slist* headers = NULL;
-			headers = curl_slist_append(headers, apiKeyHeader.c_str());
-			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-			curl_easy_setopt(curl, CURLOPT_POST, 1L);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-			result = curl_easy_perform(curl);
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-			curl_easy_cleanup(curl);
-		}
-
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-			activeSetTsat -= 1;
-			Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
-			setTSATlater.push_back(plane);
-			for (int i = 0; i < slotList.size(); i++) {
-				//Show data again
-				if (slotList[i].callsign == callsign) {
-					slotList[i].showData = true;
-				}
+		for (Plane p : slotListTemp) {
+			// Do not send API request if Manual CTOT is created by user.
+			if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign) {
+				createRequest = true;
 			}
-			addLogLine("UNABLE TO CONNECT CDM-API...");
 		}
-		else {
-			Json::Reader reader;
-			Json::Value obj;
-			Json::FastWriter fastWriter;
-			reader.parse(readBuffer, obj);
-			if (!obj.isNull()) {
-				if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
-					//Get callsign 
-					string callsign = fastWriter.write(obj["callsign"]);
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
 
-					//Get CTOT
+		if (createRequest) {
+			tsat = (tsat.length() >= 4) ? tsat.substr(0, 4) : "";
+
+			string cdmSts = getCdmSts(callsign);
+			string taxiTime = getTaxiTime(callsign);
+
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+
+			if (curl) {
+				string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tsat=" + tsat + "&cdmSts=" + cdmSts;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_POST, 1L);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				activeSetTsat -= 1;
+				Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
+				{
+					std::lock_guard<std::mutex> lock(slotListMutex);
+					setTSATlater.push_back(plane); // Safely modify setTSATlater
+				}
+				for (int i = 0; i < slotListTemp.size(); i++) {
+					if (slotListTemp[i].callsign == callsign) {
+						slotListTemp[i].showData = true;
+					}
+				}
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+				if (!obj.isNull() && obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
+					string apiCallsign = fastWriter.write(obj["callsign"]);
+					apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
+					apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
+
 					string ctot = fastWriter.write(obj["ctot"]);
-					ctot.erase(std::remove(ctot.begin(), ctot.end(), '"'));
-					ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
-					ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
+					ctot.erase(remove(ctot.begin(), ctot.end(), '"'), ctot.end());
+					ctot.erase(remove(ctot.begin(), ctot.end(), '\n'), ctot.end());
 
-					//Get reason
 					string reason = fastWriter.write(obj["mostPenalizingAirspace"]);
-					reason.erase(std::remove(reason.begin(), reason.end(), '"'));
-					reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
-					reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
+					reason.erase(remove(reason.begin(), reason.end(), '"'), reason.end());
+					reason.erase(remove(reason.begin(), reason.end(), '\n'), reason.end());
 
-
-					for (size_t i = 0; i < slotList.size(); i++) {
-						if (slotList[i].callsign == callsign) {
-							addLogLine(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
-							//sendMessage(callsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
-							if (ctot != "" && !flightHasCtotDisabled(callsign)) {
-								slotList[i] = {
-									callsign,
-									slotList[i].eobt,
-									calculateLessTime(ctot + "00", stod(taxiTime)),
-									ctot + "00",
-									ctot,
-									reason,
-									slotList[i].ecfmpRestriction,
-									slotList[i].hasEcfmpRestriction,
-									true,
-									true
-								};
+					for (size_t i = 0; i < slotListTemp.size(); i++) {
+						if (slotListTemp[i].callsign == apiCallsign) {
+							addLogLine(apiCallsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
+							if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
+								// Update with thread-safe access
+								{
+									std::lock_guard<std::mutex> lock(slotListMutex);
+									slotList[i] = {
+										apiCallsign,
+										slotListTemp[i].eobt,
+										calculateLessTime(ctot + "00", stod(taxiTime)),
+										ctot + "00",
+										ctot,
+										reason,
+										slotListTemp[i].ecfmpRestriction,
+										slotListTemp[i].hasEcfmpRestriction,
+										true,
+										true
+									};
+								}
 							}
 							else {
-								if (slotList[i].ctot != "") {
-									slotList[i].ctot = "";
-									slotList[i].flowReason = "";
-									slotList[i].hasManualCtot = false;
-									slotList[i].showData = true;
+								if (slotListTemp[i].ctot != "") {
+									// Reset CTOT
+									{
+										std::lock_guard<std::mutex> lock(slotListMutex);
+										slotListTemp[i].ctot = "";
+										slotListTemp[i].flowReason = "";
+										slotListTemp[i].hasManualCtot = false;
+										slotListTemp[i].showData = true;
+									}
 								}
 							}
 						}
@@ -6837,45 +6953,65 @@ void CDM::setTSATApi(string callsign, string tsat) {
 				else {
 					activeSetTsat -= 1;
 					Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
-					setTSATlater.push_back(plane);
+					{
+						std::lock_guard<std::mutex> lock(slotListMutex);
+						setTSATlater.push_back(plane);
+					}
 				}
 			}
-			else {
-				activeSetTsat -= 1;
-				Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
-				setTSATlater.push_back(plane);
+		}
+		else {
+			activeSetTsat -= 1;
+		}
+
+		// Update showData for slotList
+		{
+			std::lock_guard<std::mutex> lock(slotListMutex);
+			for (size_t a = 0; a < slotListTemp.size(); a++) {
+				if (slotListTemp[a].callsign == callsign) {
+					slotListTemp[a].showData = true;
+				}
 			}
 		}
-	}
-	else {
-		activeSetTsat -= 1;
-	}
 
-	for (size_t a = 0; a < slotList.size(); a++)
-	{
-		if (slotList[a].callsign == callsign) {
-			slotList[a].showData = true;
+		// Update original slotList from slotListTemp
+		{
+			std::lock_guard<std::mutex> lock(slotListMutex);
+			for (size_t a = 0; a < slotListTemp.size(); a++) {
+				for (size_t z = 0; z < slotList.size(); z++) {
+					if (slotListTemp[a].callsign == slotList[z].callsign) {
+						slotList[z].ctot = slotListTemp[a].ctot;
+						slotList[z].flowReason = slotListTemp[a].flowReason;
+						slotList[z].hasManualCtot = slotListTemp[a].hasManualCtot;
+						slotList[z].showData = true;
+					}
+				}
+			}
 		}
-	}
-	addLogLine("COMPLETED - setTSATApi for " + callsign);
+
+		addLogLine("COMPLETED - setTSATApi for " + callsign);
 	}
 	catch (const std::exception& e) {
 		activeSetTsat -= 1;
 		addLogLine("ERROR: Unhandled exception setTSATApi: " + (string)e.what());
-		for (size_t a = 0; a < slotList.size(); a++)
 		{
-			if (slotList[a].callsign == callsign) {
-				slotList[a].showData = true;
+			std::lock_guard<std::mutex> lock(slotListMutex);
+			for (size_t a = 0; a < slotList.size(); a++) {
+				if (slotList[a].callsign == callsign) {
+					slotList[a].showData = true;
+				}
 			}
 		}
 	}
 	catch (...) {
 		activeSetTsat -= 1;
 		addLogLine("ERROR: Unhandled exception setTSATApi");
-		for (size_t a = 0; a < slotList.size(); a++)
 		{
-			if (slotList[a].callsign == callsign) {
-				slotList[a].showData = true;
+			std::lock_guard<std::mutex> lock(slotListMutex);
+			for (size_t a = 0; a < slotList.size(); a++) {
+				if (slotList[a].callsign == callsign) {
+					slotList[a].showData = true;
+				}
 			}
 		}
 	}
@@ -6939,6 +7075,10 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 				if (lineValue != "true") {
 					setCdmStslater.push_back(callsign);
 				}
+				else {
+					std::thread t0(&CDM::getCdmServerStatus, this);
+					t0.detach();
+				}
 			}
 			activeSetStatus -= 1;
 		}
@@ -6971,4 +7111,71 @@ string CDM::getCdmSts(string callsign) {
 	}
 	addLogLine("getCdmSts: ");
 	return "";
+}
+
+void CDM::getCdmServerStatus() {
+	addLogLine("Called getCdmServerStatus...");
+	try {
+		vector<vector<string>> networkStatusTemp;
+		CURL* curl;
+		CURLcode result = CURLE_FAILED_INIT;
+		std::string readBuffer;
+		long responseCode = 0;
+		curl = curl_easy_init();
+		if (curl) {
+			string url = cdmServerUrl + "/slotService/allStatus";
+			string apiKeyHeader = "x-api-key: " + apikey;
+			struct curl_slist* headers = NULL;
+			headers = curl_slist_append(headers, apiKeyHeader.c_str());
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+			result = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+			curl_easy_cleanup(curl);
+		}
+
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			// handle error 404
+			addLogLine("UNABLE TO LOAD CDM-API URL...");
+		}
+		else {
+			Json::Reader reader;
+			Json::Value obj;
+			Json::FastWriter fastWriter;
+			reader.parse(readBuffer, obj);
+
+			networkStatusTemp.clear();
+
+			const Json::Value& data = obj;
+			for (size_t i = 0; i < data.size(); i++) {
+				if (data[i].isMember("callsign") && data[i].isMember("cdmSts")) {
+					//Get callsign 
+					string callsign = fastWriter.write(data[i]["callsign"]);
+					callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+					callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+					callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+
+					//Get CTOT
+					string cdmSts = fastWriter.write(data[i]["cdmSts"]);
+					cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '"'));
+					cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
+					cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
+
+					networkStatusTemp.push_back({ callsign, cdmSts });
+				}
+			}
+		}
+		networkStatus = networkStatusTemp;
+		addLogLine("COMPLETED - getCdmServerStatus");
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getCdmServerStatus: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getCdmServerStatus");
+	}
 }
