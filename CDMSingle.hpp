@@ -127,6 +127,8 @@ public:
 
 	void getCdmServerStatus();
 
+	void getNetworkRates();
+
 	void setTSATApi(string myCallsign, string tsat);
 
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);

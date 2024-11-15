@@ -71,6 +71,7 @@ vector<string> TxtTimesVector;
 vector<string> OutOfTsat;
 vector<string> colors;
 vector<Rate> rate;
+vector<Rate> initialRate;
 vector<string> planeAiportList;
 vector<string> masterAirports;
 vector<string> CDMairports;
@@ -275,6 +276,14 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Flow Data
 	std::thread t(&CDM::getEcfmpData, this);
 	t.detach();
+
+	//Check rates
+	std::thread t7(&CDM::getNetworkRates, this);
+	t7.detach();
+
+	//Get Server Status
+	std::thread t0(&CDM::getCdmServerStatus, this);
+	t0.detach();
 
 	//CDM-Server
 	cdmServerUrl = "https://cdm-server-production.up.railway.app";
@@ -3827,6 +3836,7 @@ bool CDM::getRateFromUrl(string url) {
 	}
 
 	rate = myRates;
+	initialRate = rate;
 
 	return true;
 }
@@ -3933,6 +3943,7 @@ bool CDM::getRate() {
 	}
 
 	rate = myRates;
+	initialRate = rate;
 
 	return true;
 }
@@ -4262,6 +4273,11 @@ void CDM::backgroundProcess_recaulculate() {
 			}
 		}
 	}
+
+	//Check rates
+	std::thread t7(&CDM::getNetworkRates, this);
+	t7.detach();
+
 	addLogLine("[AUTO] - Finished CDM recalculation process");
 	}
 	catch (const std::exception& e) {
@@ -7060,6 +7076,10 @@ void CDM::setTSATApi(string callsign, string tsat) {
 			}
 		}
 
+		//Fetch cdmSts
+		std::thread t9(&CDM::getCdmServerStatus, this);
+		t9.detach();
+
 		addLogLine("COMPLETED - setTSATApi for " + callsign);
 	}
 	catch (const std::exception& e) {
@@ -7248,5 +7268,94 @@ void CDM::getCdmServerStatus() {
 	}
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception getCdmServerStatus");
+	}
+}
+
+
+void CDM::getNetworkRates() {
+	addLogLine("Called getNetworkRates...");
+	try {
+		vector<Rate> tempRate = initialRate;
+		CURL* curl;
+		CURLcode result = CURLE_FAILED_INIT;
+		std::string readBuffer;
+		long responseCode = 0;
+		curl = curl_easy_init();
+		if (curl) {
+			string url = cdmServerUrl + "/slotService/restrictions";
+			string apiKeyHeader = "x-api-key: " + apikey;
+			struct curl_slist* headers = NULL;
+			headers = curl_slist_append(headers, apiKeyHeader.c_str());
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+			result = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+			curl_easy_cleanup(curl);
+		}
+
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			// handle error 404
+			addLogLine("UNABLE TO LOAD CDM-API URL...");
+		}
+		else {
+			Json::Reader reader;
+			Json::Value obj;
+			Json::FastWriter fastWriter;
+			reader.parse(readBuffer, obj);
+
+			const Json::Value& data = obj;
+			for (size_t i = 0; i < data.size(); i++) {
+				if (data[i].isMember("type") && data[i].isMember("airspace") && data[i].isMember("capacity")) {
+
+					//Get airspace name
+					string airspace = fastWriter.write(data[i]["airspace"]);
+					airspace.erase(std::remove(airspace.begin(), airspace.end(), '"'));
+					airspace.erase(std::remove(airspace.begin(), airspace.end(), '\n'));
+					airspace.erase(std::remove(airspace.begin(), airspace.end(), '\n'));
+					bool aptFound = false;
+					for (string apt : masterAirports)
+					{
+						if (apt == airspace) {
+							aptFound = true;
+						}
+					}
+					if (aptFound) {
+						//Get callsign 
+						string type = fastWriter.write(data[i]["type"]);
+						type.erase(std::remove(type.begin(), type.end(), '"'));
+						type.erase(std::remove(type.begin(), type.end(), '\n'));
+						type.erase(std::remove(type.begin(), type.end(), '\n'));
+
+						if (type == "DEP") {
+							//Get CTOT
+							string capacity = fastWriter.write(data[i]["capacity"]);
+							capacity.erase(std::remove(capacity.begin(), capacity.end(), '"'));
+							capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
+							capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
+
+							for (int i = 0; i < tempRate.size(); i++) {
+								if (tempRate[i].airport == airspace) {
+									for (int a = 0; a < tempRate[i].rates.size(); a++) {
+										tempRate[i].rates[a] = capacity;
+									}
+								}
+							}
+						}
+					}
+				}
+			}
+		}
+		rate = tempRate;
+		addLogLine("COMPLETED - getNetworkRates");
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception getNetworkRates: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception getNetworkRates");
 	}
 }
