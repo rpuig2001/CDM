@@ -660,14 +660,16 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 
-			OpenPopupList(Area, "Network Sts Options", 1);
-			if (status == "" && status != "PRIO") {
-				AddPopupListElement("PRIO", "", TAG_FUNC_NETWORK_SET_PRIO, false, 2, false);
-			}
-			if (status == "" && status != "REA" && hasCtot) {
-				AddPopupListElement("REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
-			}
-			if (status == "REA" || status == "PRIO") {
+			if (status == "") {
+				OpenPopupList(Area, "CDM-Network", 1);
+				if (status != "PRIO") {
+					AddPopupListElement("PRIO", "", TAG_FUNC_NETWORK_SET_PRIO, false, 2, false);
+				}
+				if (status != "REA" && hasCtot) {
+					AddPopupListElement("REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
+				}
+			} else if (status == "REA" || status == "PRIO") {
+				OpenPopupList(Area, "CDM-Network", 1);
 				AddPopupListElement("Remove CDM-Network Sts", "", TAG_FUNC_NETWORK_REMOVE_STATUS, false, 2, false);
 			}
 		}
