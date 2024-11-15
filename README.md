@@ -252,17 +252,17 @@ BEE154A,183600,190000,191000,1924,London Event,
 ```
 
 ## CAD - Capacity Availability Document (Server-side)
-# CAD - Arrival Airports (Server-side)
+### CAD - Arrival Airports (Server-side)
 To define arrival airport capacities, this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) can be filled up.
 It takes all the Vatsim network flight paths and calculates an arrival time. In case of the arrival time being speprated less than the minimum defined, the plane will be delayed by a CTOT.
 CTOT and FM will be showing in the CDM plugin if traffic is affected.
 
-# CAD - Airspaces (Server-side)
+### CAD - Airspaces (Server-side)
 To define arrival airspaces capacities, this Document (https://github.com/rpuig2001/Capacity-Availability-Document-CDM/blob/main/airspaces.geojson) can be filled up.
 It takes all the Vatsim network flight paths and calculates a 4D path (longitudinal, vertical and entry/exit times) based on the filed flightplan. In case the capacity of an specified sector is greater than the defined, the plane will be delayed by a CTOT.
 CTOT and FM will be showing in the CDM plugin if traffic is affected.
 
-# CAD - More info
+### CAD - More info
 For more information, check the CAD GitHub Repository.
 https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
