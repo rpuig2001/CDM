@@ -5945,7 +5945,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm help", sCommandLine))
 	{
 		addLogLine(sCommandLine);
-		sendMessage("CDM Commands: .cdm reload - .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm customdelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm remarks - .cdm rates - .cdm help");
+		sendMessage("CDM Commands: .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm customdelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm remarks - .cdm rate - .cdm help");
 		return true;
 	}
 
