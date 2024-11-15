@@ -13,8 +13,8 @@ CDM includes the following times:
 
 ## How to use:
 - Load up the plugin.
-- If there is no master controller, you should use the command ``.cdm master {airport}`` of the airport you want to become the master. You can have as many airport as you want, but there can ony be **1 MASTER at the same time** (The MASTER should be DELIVERY or the lowest ATC position to have access to all CDM actions).
-- Add The following items to the departure list with their actions:
+- If there is no master controller, you should use the command ``.cdm master {airport}`` of the airport you want to become the master. You can have as many airports as you want, but there can ony be **1 MASTER at the same time** (The MASTER should be DELIVERY or the lowest ATC position to have access to all CDM actions).
+- All items and actions available:
 
 - EOBT
 
@@ -79,14 +79,13 @@ CDM includes the following times:
 
 
 ## MASTER AND SLAVE:
-- Master: The master is the "admin" of the CDM and is the only controller who calculates the times (TSAT, TTOT and ASRT)
-  - Use ``.cdm master {airport}`` command (**TO LET THE CDM DO IT'S JOB, ONLY 1 CONTROLLER CAN BE THE MASTER AT THE SAME TIME**).
+- Master: The master is the "admin" of the CDM and is the only controller who calculates the CDM times.
+  - Use ``.cdm master {airport}`` command (**ONLY 1 CONTROLLER CAN BE THE MASTER AT THE SAME TIME, in case of an alreadz existing master. CDM will not be able to set another master**).
 - Slave: The Slave Monitors the CDM and has some limited actions.
   - Default type, so, you don't need to change anything unless you are now a master, where you can use ``.cdm slave {airport}`` command.
 
 ### HOW TO DO A CONTROLLER CHANGE CORRECTLY:
-1. Check to have the same *CDMconfig.xml* and *taxizones.txt* configuration, otherwise it won't work correctly.
-2. The **Old controller** changes to Slave with command ``.cdm slave``.
+1. The **Old controller** changes to Slave with command ``.cdm slave``.
 3. Once there are no master controllers, the **new controlles** gets the master "rol" with the command ``.cdm master {airport}``.
 4. That's it!
 
@@ -112,13 +111,13 @@ CDM includes the following times:
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").
   - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
-  - ReaMsg (ex. minutes="0"). - It sets the time to add for the *"Send Rea Message"* function.
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
+  - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
-  - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
+  - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
   - VDGS file type: 1-TXT, 2-JSON, 3-TXT&JSON (ex. vdgsFileType type="3").
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
@@ -252,28 +251,32 @@ BEE154A,183600,190000,191000,1924,London Event,
 }
 ```
 
-## CAD - Capacity Availability Document
-On this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) there are the capacities for the arrival airports.
-The CDM will separate aircrafts with the same destination by the rate specified in the CAD creating a CTOT with the Flow Message (FM) of "ARR CAP" (If the arrival rate is less than the departure airport and NO Flow Measures are in force)).
-The data from the CAD will be refreshed every 5 minutes (Same as the Flow Measures).
+## CAD - Capacity Availability Document (Server-side)
+# CAD - Arrival Airports (Server-side)
+To define arrival airport capacities, this Document (https://raw.githubusercontent.com/rpuig2001/Capacity-Availability-Document-CDM/main/CAD.txt) can be filled up.
+It takes all the Vatsim network flight paths and calculates an arrival time. In case of the arrival time being speprated less than the minimum defined, the plane will be delayed by a CTOT.
+CTOT and FM will be showing in the CDM plugin if traffic is affected.
 
+# CAD - Airspaces (Server-side)
+To define arrival airspaces capacities, this Document (https://github.com/rpuig2001/Capacity-Availability-Document-CDM/blob/main/airspaces.geojson) can be filled up.
+It takes all the Vatsim network flight paths and calculates a 4D path (longitudinal, vertical and entry/exit times) based on the filed flightplan. In case the capacity of an specified sector is greater than the defined, the plane will be delayed by a CTOT.
+CTOT and FM will be showing in the CDM plugin if traffic is affected.
+
+# CAD - More info
 For more information, check the CAD GitHub Repository.
 https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
 ## Commands
-- ``.cdm reload`` - Reloads all CDM plugin configs and taxizones file.
 - ``.cdm refresh`` - Force the refresh phase to do it now.
 - ``.cdm save`` - Saves data to savedData.txt.
-- ``.cdm load`` - Loads savedData.txt.
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
-- ``.cdm delay {minutes}`` - Adds delay minutes to all traffics that have a TSAT greater then now. (it doesn't apply if TSAT has already passed) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED.
 - ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start (time_start can be a 4 digits time (2114 - 21:14 time) or 1/2 digits minutes (5 - 5min or 10 - 10 min) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex1. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100 // Ex2. ``.cdm customdelay LEBL/24L 10`` -> All TSATs will start at now+10 min). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time).
 - ``.cdm lvo`` - Toggle lvo ON or OFF.
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
-- ``.cdm rates`` - Updates rates values from rate.txt.
+- ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
 - ``.cdm help`` - Sends a message with the available commands.
 
