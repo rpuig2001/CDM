@@ -631,10 +631,36 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_NETWORK_STATUS_OPTIONS) {
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_NETWORK_STATUS_OPTIONS");
+
+			//Get actual status
+			string status = "";
+			for (size_t i = 0; i < networkStatus.size(); i++) {
+				if (networkStatus[i][0] == fp.GetCallsign()) {
+					status = networkStatus[i][1];
+				}
+			}
+
+			//Check has CTOT
+			bool hasCtot = false;
+			for (size_t i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (slotList[i].hasManualCtot && slotList[i].ctot != "") {
+						hasCtot = true;
+					}
+				}
+			}
+
 			OpenPopupList(Area, "Network Sts Options", 1);
-			AddPopupListElement("Set REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
-			AddPopupListElement("Set PRIO", "", TAG_FUNC_NETWORK_SET_PRIO, false, 2, false);
-			AddPopupListElement("Remove Sts", "", TAG_FUNC_NETWORK_REMOVE_STATUS, false, 2, false);
+			if (status == "" && status != "PRIO") {
+				AddPopupListElement("PRIO", "", TAG_FUNC_NETWORK_SET_PRIO, false, 2, false);
+			}
+			if (status == "" && status != "REA" && hasCtot) {
+				AddPopupListElement("REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
+			}
+			if (status == "REA" || status == "PRIO") {
+				AddPopupListElement("Remove CDM-Network Sts", "", TAG_FUNC_NETWORK_REMOVE_STATUS, false, 2, false);
+			}
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_SET_REA) {
@@ -1808,6 +1834,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							if (status != "") {
 								ItemRGB = TAG_YELLOW;
+								if (status == "REA") {
+									ItemRGB = TAG_YELLOW;
+								}
+								else if (status == "PRIO") {
+									ItemRGB = TAG_ORANGE;
+								}
+								else if (status == "SUSP") {
+									ItemRGB = TAG_RED;
+								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
@@ -2244,7 +2279,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									remarks = stringToAdd;
 								}
 								//Update CDM-API
-								std::thread t(&CDM::setCdmSts, this, callsign, "I");
+								std::thread t(&CDM::setCdmSts, this, callsign, "SUSP");
 								t.detach();
 							}
 						}
@@ -2312,7 +2347,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								remarks = stringToAdd;
 							}
 							//Update CDM-API
-							std::thread t(&CDM::setCdmSts, this, callsign, "I");
+							std::thread t(&CDM::setCdmSts, this, callsign, "SUSP");
 							t.detach();
 						}
 
@@ -2849,6 +2884,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						if (status != "") {
 							ItemRGB = TAG_YELLOW;
+							if (status == "REA") {
+								ItemRGB = TAG_YELLOW;
+							}
+							else if (status == "PRIO") {
+								ItemRGB = TAG_ORANGE;
+							}
+							else if (status == "SUSP") {
+								ItemRGB = TAG_RED;
+							}
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
@@ -3447,6 +3491,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						if (status != "") {
 							ItemRGB = TAG_YELLOW;
+							if (status == "REA") {
+								ItemRGB = TAG_YELLOW;
+							}
+							else if (status == "PRIO") {
+								ItemRGB = TAG_ORANGE;
+							}
+							else if (status == "SUSP") {
+								ItemRGB = TAG_RED;
+							}
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
@@ -3508,6 +3561,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							if (status != "") {
 								ItemRGB = TAG_YELLOW;
+								if (status == "REA") {
+									ItemRGB = TAG_YELLOW;
+								}
+								else if (status == "PRIO") {
+									ItemRGB = TAG_ORANGE;
+								}
+								else if (status == "SUSP") {
+									ItemRGB = TAG_RED;
+								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
@@ -3573,6 +3635,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					if (status != "") {
 						ItemRGB = TAG_YELLOW;
+						if (status == "REA") {
+							ItemRGB = TAG_YELLOW;
+						}
+						else if (status == "PRIO") {
+							ItemRGB = TAG_ORANGE;
+						}
+						else if (status == "SUSP") {
+							ItemRGB = TAG_RED;
+						}
 						strcpy_s(sItemString, 16, status.c_str());
 					}
 				}
@@ -7106,8 +7177,8 @@ string CDM::getCdmSts(string callsign) {
 	}
 
 	if (outOfTsat) {
-		addLogLine("getCdmSts: I");
-		return "I";
+		addLogLine("getCdmSts: SUSP");
+		return "SUSP";
 	}
 	addLogLine("getCdmSts: ");
 	return "";
