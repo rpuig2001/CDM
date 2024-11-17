@@ -119,6 +119,8 @@ public:
 
 	void sendCheckCIDLater();
 
+	void setTOBTApi(string callsign, string tobt);
+
 	string getTaxiTime(string callsign);
 
 	void setCdmSts(string callsign, string cdmSts);
@@ -128,8 +130,6 @@ public:
 	void getCdmServerStatus();
 
 	void getNetworkRates();
-
-	void setTSATApi(string myCallsign, string tsat);
 
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
