@@ -2181,7 +2181,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											TTOT = TTOTFinal.c_str();
 											bool doRequest = false;
 											if (aircraftFind) {
-												if (TTOTFinal != slotList[pos].ttot) {
+												if (TTOT != slotList[pos].ttot) {
 													Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot, slotList[pos].flowReason, myEcfmp, hasEcfmpRestriction, hasManualCtot, true);
 													doRequest = true;
 													slotList[pos] = p;
@@ -4546,14 +4546,14 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						string TTOT = TTOTFinal.c_str();
 						if (plane.hasManualCtot) {
 							if (aircraftFind) {
-								if (TTOTFinal != plane.ttot && TTOTFinal.length() >= 4) {
+								if (TTOT != plane.ttot && TTOT.length() >= 4) {
 									Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
 									plane = p;
 									doRequest = true;
 									remarks = setCTOTremarks(remarks, p, FlightPlan);
 								}
 							}
-							else if (TTOTFinal.length() >= 4) {
+							else if (TTOT.length() >= 4) {
 								Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
 								plane = p;
 								remarks = setCTOTremarks(remarks, p, FlightPlan);
@@ -4561,14 +4561,14 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						}
 						else {
 							if (aircraftFind) {
-								if (TTOTFinal != plane.ttot && TTOTFinal.length() >= 4) {
+								if (TTOT != plane.ttot && TTOT.length() >= 4) {
 									Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
 									plane = p;
 									doRequest = true;
 									remarks = setCTOTremarks(remarks, p, FlightPlan);
 								}
 							}
-							else if (TTOTFinal.length() >= 4) {
+							else if (TTOT.length() >= 4) {
 								Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
 								plane = p;
 								remarks = setCTOTremarks(remarks, p, FlightPlan);
