@@ -51,6 +51,7 @@ string cdm_api;
 string myAtcCallsign;
 bool option_su_wait;
 string apikey;
+bool serverEnabled;
 
 int activeSetStatus;
 int activeSetTsat;
@@ -249,6 +250,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
+	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
 
 	option_su_wait = false;
@@ -265,6 +267,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	realMode = false;
 	if (realModeStr == "true") {
 		realMode = true;
+	}
+
+	serverEnabled = true;
+	if (cdmserver == "false") {
+		serverEnabled = true;
 	}
 
 	//Invalidate FP at TSAT+6
@@ -5951,7 +5958,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm help", sCommandLine))
 	{
 		addLogLine(sCommandLine);
-		sendMessage("CDM Commands: .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm customdelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm remarks - .cdm rate - .cdm help");
+		sendMessage("CDM Commands: .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm customdelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm server - .cdm remarks - .cdm rate - .cdm help");
 		return true;
 	}
 
@@ -5965,6 +5972,20 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			realMode = true;
 			sendMessage("Real Mode set to ON");
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm server", sCommandLine))
+	{
+		addLogLine(sCommandLine);
+		if (serverEnabled) {
+			serverEnabled = false;
+			sendMessage("Server Disabled");
+		}
+		else {
+			serverEnabled = true;
+			sendMessage("Server Disabled");
 		}
 		return true;
 	}
@@ -6422,124 +6443,143 @@ void CDM::OnTimer(int Counter) {
 
 bool CDM::setMasterAirport(string airport, string position) {
 	addLogLine("Called setMasterAirport...");
-	try{
-	addLogLine("Call - Set Master airport " + airport + "(" + position + ")");
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position;
-		string apiKeyHeader = "x-api-key: " + apikey;
-		struct curl_slist* headers = NULL;
-		headers = curl_slist_append(headers, apiKeyHeader.c_str());
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, 1L);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+	if (serverEnabled) {
+		try {
+			addLogLine("Call - Set Master airport " + airport + "(" + position + ")");
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_POST, 1L);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
 
-	if ((responseCode == 404 || CURLE_OK != result) && responseCode != 401) {
-		addLogLine("UNABLE TO CONNECT CDM-API...");
+			if ((responseCode == 404 || CURLE_OK != result) && responseCode != 401) {
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+				masterAirports.push_back(airport);
+				sendMessage("Successfully set master airport (Locally only) " + airport);
+				addLogLine("Successfully set master airport (Locally only) " + airport);
+			}
+			else {
+				std::istringstream is(readBuffer);
+				string lineValue;
+				while (getline(is, lineValue))
+				{
+					if (lineValue == "true") {
+						for (int attempt = 0; attempt < 10; ++attempt) {  // Retry up to 3 times
+							try {
+								masterAirports.push_back(airport);
+								sendMessage("Successfully set master airport " + airport);
+								addLogLine("Successfully set master airport " + airport);
+								return true;
+							}
+							catch (const std::system_error& e) {
+								addLogLine("Exception in setMasterAirport()");
+							}
+						}
+					}
+					sendMessage("Unable to set master airport " + airport);
+					addLogLine("Unable to set master airport " + airport);
+				}
+			}
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
+			return false;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception setMasterAirport");
+			return false;
+		}
+	}
+	else {
 		masterAirports.push_back(airport);
 		sendMessage("Successfully set master airport (Locally only) " + airport);
 		addLogLine("Successfully set master airport (Locally only) " + airport);
 	}
-	else {
-		std::istringstream is(readBuffer);
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (lineValue == "true") {
-				for (int attempt = 0; attempt < 10; ++attempt) {  // Retry up to 3 times
-					try {
-						masterAirports.push_back(airport);
-						sendMessage("Successfully set master airport " + airport);
-						addLogLine("Successfully set master airport " + airport);
-						return true;
-					}
-					catch (const std::system_error& e) {
-						addLogLine("Exception in setMasterAirport()");
-					}
-				}
-			}
-			sendMessage("Unable to set master airport " + airport);
-			addLogLine("Unable to set master airport " + airport);
-		}
-	}
 	return false;
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
-		return false;
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception setMasterAirport");
-		return false;
-	}
 }
 
 bool CDM::removeMasterAirport(string airport, string position) {
 	addLogLine("Call - Remove Master airport " + airport + "(" + position + ")");
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position;
-		string apiKeyHeader = "x-api-key: " + apikey;
-		struct curl_slist* headers = NULL;
-		headers = curl_slist_append(headers, apiKeyHeader.c_str());
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, true);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+	if (serverEnabled) {
+		CURL* curl;
+		CURLcode result = CURLE_FAILED_INIT;
+		string readBuffer;
+		long responseCode = 0;
+		curl = curl_easy_init();
+		if (curl) {
+			string url = cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position;
+			string apiKeyHeader = "x-api-key: " + apikey;
+			struct curl_slist* headers = NULL;
+			headers = curl_slist_append(headers, apiKeyHeader.c_str());
+			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+			curl_easy_setopt(curl, CURLOPT_POST, true);
+			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			result = curl_easy_perform(curl);
+			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+			curl_easy_cleanup(curl);
+		}
 
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-		addLogLine("UNABLE TO CONNECT CDM-API...");
-		for (int a = 0; a < masterAirports.size(); a++)
-		{
-			if (masterAirports[a] == airport) {
-				masterAirports.erase(masterAirports.begin() + a);
-				addLogLine("Successfully removed master airport (Locally only) " + airport);
-				sendMessage("Successfully removed master airport (Locally only) " + airport);
-				return true;
+		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			addLogLine("UNABLE TO CONNECT CDM-API...");
+			for (int a = 0; a < masterAirports.size(); a++)
+			{
+				if (masterAirports[a] == airport) {
+					masterAirports.erase(masterAirports.begin() + a);
+					addLogLine("Successfully removed master airport (Locally only) " + airport);
+					sendMessage("Successfully removed master airport (Locally only) " + airport);
+					return true;
+				}
+			}
+		}
+		else {
+			std::istringstream is(readBuffer);
+			//Get data from .txt file
+			string lineValue;
+			while (getline(is, lineValue))
+			{
+				if (lineValue == "true") {
+					addLogLine("Successfully removed master airport " + airport);
+					sendMessage("Successfully removed master airport " + airport);
+				}
+				else {
+					addLogLine("Successfully removed master airport (Locally only) " + airport);
+					sendMessage("Successfully removed master airport (Locally only) " + airport);
+				}
+			}
+			for (int a = 0; a < masterAirports.size(); a++)
+			{
+				if (masterAirports[a] == airport) {
+					masterAirports.erase(masterAirports.begin() + a);
+					return true;
+				}
 			}
 		}
 	}
 	else {
-		std::istringstream is(readBuffer);
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (lineValue == "true") {
-				addLogLine("Successfully removed master airport " + airport);
-				sendMessage("Successfully removed master airport " + airport);
-			}
-			else {
-				addLogLine("Successfully removed master airport (Locally only) " + airport);
-				sendMessage("Successfully removed master airport (Locally only) " + airport);
-			}
-		}
 		for (int a = 0; a < masterAirports.size(); a++)
 		{
 			if (masterAirports[a] == airport) {
 				masterAirports.erase(masterAirports.begin() + a);
+				addLogLine("Successfully removed master airport (Locally only) " + airport);
+				sendMessage("Successfully removed master airport (Locally only) " + airport);
 				return true;
 			}
 		}
@@ -6549,292 +6589,305 @@ bool CDM::removeMasterAirport(string airport, string position) {
 
 bool CDM::removeAllMasterAirports(string position) {
 	addLogLine("Called removeAllMasterAirports...");
-	try{
-	addLogLine("Call - Remove all masters for " + position);
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position;
-		string apiKeyHeader = "x-api-key: " + apikey;
-		struct curl_slist* headers = NULL;
-		headers = curl_slist_append(headers, apiKeyHeader.c_str());
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, true);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
-
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-		addLogLine("UNABLE TO CONNECT CDM-API...");
-	}
-	else {
-		std::istringstream is(readBuffer);
-		//Get data from .txt file
-		string lineValue;
-		while (getline(is, lineValue))
-		{
-			if (lineValue == "true") {
-				addLogLine("Successfully removed all master airports for " + position);
-				sendMessage("Successfully removed all master airports for " + position);
-				masterAirports.clear();
-				return true;
+	if (serverEnabled) {
+		try {
+			addLogLine("Call - Remove all masters for " + position);
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_POST, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
 			}
+
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+			}
+			else {
+				std::istringstream is(readBuffer);
+				string lineValue;
+				while (getline(is, lineValue))
+				{
+					if (lineValue == "true") {
+						addLogLine("Successfully removed all master airports for " + position);
+						sendMessage("Successfully removed all master airports for " + position);
+						masterAirports.clear();
+						return true;
+					}
+				}
+			}
+			return false;
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception removeAllMasterAirports: " + (string)e.what());
+			return false;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception removeAllMasterAirports");
+			return false;
 		}
 	}
-	return false;
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception removeAllMasterAirports: " + (string)e.what());
-		return false;
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception removeAllMasterAirports");
-		return false;
+	else {
+		addLogLine("Successfully removed all master airports for " + position);
+		sendMessage("Successfully removed all master airports for " + position);
+		masterAirports.clear();
+		return true;
 	}
 }
 
 void CDM::removeAllMasterAirportsByAirport(string airport) {
-	addLogLine("Called removeAllMasterAirportsByAirport...");
-	try{
-	addLogLine("Call - Remove all masters from " + airport);
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport;
-		string apiKeyHeader = "x-api-key: " + apikey;
-		struct curl_slist* headers = NULL;
-		headers = curl_slist_append(headers, apiKeyHeader.c_str());
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_POST, true);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+	if (serverEnabled) {
+		addLogLine("Called removeAllMasterAirportsByAirport...");
+		try {
+			addLogLine("Call - Remove all masters from " + airport);
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_POST, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
 
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-		addLogLine("UNABLE TO CONNECT CDM-API...");
-	}
-	else {
-		addLogLine("Removed masters for airport " + airport);
-	}
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport: " + (string)e.what());
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport");
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+			}
+			else {
+				addLogLine("Removed masters for airport " + airport);
+			}
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport");
+		}
 	}
 }
 
 bool CDM::setEvCtot(string callsign) {
-	addLogLine("Called setEvCtot...");
-	activeCheckCid += 1;
-	try {
-	addLogLine("Call - Set Event CTOT for " + callsign);
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
-		string apiKeyHeader = "x-api-key: " + apikey;
-		struct curl_slist* headers = NULL;
-		headers = curl_slist_append(headers, apiKeyHeader.c_str());
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
+	if (serverEnabled) {
+		addLogLine("Called setEvCtot...");
+		activeCheckCid += 1;
+		try {
+			addLogLine("Call - Set Event CTOT for " + callsign);
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
 
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-		activeCheckCid -= 1;
-		checkCIDLater.push_back(callsign);
-		addLogLine("UNABLE TO CONNECT CDM-API...");
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				activeCheckCid -= 1;
+				checkCIDLater.push_back(callsign);
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+			}
+			else {
+				std::istringstream is(readBuffer);
+				//Get data from .txt file
+				string cid;
+				while (getline(is, cid))
+				{
+					if (cid.length() > 2) {
+						for (int i = 0; i < slotFile.size(); i++) {
+							if (slotFile[i].size() > 1) {
+								if (slotFile[i][0] == cid) {
+									addLogLine(callsign + " linked with EvCTOT " + slotFile[i][1]);
+									sendMessage(callsign + " linked with EvCTOT " + slotFile[i][1]);
+									bool found = false;
+									for (int a = 0; a < evCtots.size(); a++) {
+										if (evCtots[a].size() > 0) {
+											if (evCtots[a][0] == callsign) {
+												evCtots[a] = { callsign, slotFile[i][1] };
+												found = true;
+												return true;
+											};
+										}
+									}
+								}
+							}
+						}
+					}
+					/*for (int a = 0; a < evCtots.size(); a++) {
+						if (evCtots[a][0] == callsign) {
+							evCtots[a] = { callsign, "" };
+							return true;
+						};
+					}*/
+				}
+				activeCheckCid -= 1;
+				if (cid == "") {
+					activeCheckCid -= 1;
+					checkCIDLater.push_back(callsign);
+				}
+			}
+			return false;
+		}
+		catch (const std::exception& e) {
+			activeCheckCid -= 1;
+			checkCIDLater.push_back(callsign);
+			addLogLine("ERROR: Unhandled exception setEvCtot: " + (string)e.what());
+			return false;
+		}
+		catch (...) {
+			activeCheckCid -= 1;
+			checkCIDLater.push_back(callsign);
+			addLogLine("ERROR: Unhandled exception setEvCtot");
+			return false;
+		}
 	}
-	else {
-		std::istringstream is(readBuffer);
-		//Get data from .txt file
-		string cid;
-		while (getline(is, cid))
-		{
-			if (cid.length() > 2) {
-				for (int i = 0; i < slotFile.size(); i++) {
-					if (slotFile[i].size() > 1) {
-						if (slotFile[i][0] == cid) {
-							addLogLine(callsign + " linked with EvCTOT " + slotFile[i][1]);
-							sendMessage(callsign + " linked with EvCTOT " + slotFile[i][1]);
-							bool found = false;
-							for (int a = 0; a < evCtots.size(); a++) {
-								if (evCtots[a].size() > 0) {
-									if (evCtots[a][0] == callsign) {
-										evCtots[a] = { callsign, slotFile[i][1] };
-										found = true;
-										return true;
+}
+
+void CDM::getCdmServerRestricted() {
+	if (serverEnabled) {
+		addLogLine("Called getCdmServerRestricted...");
+		try {
+			vector<ServerRestricted> serverRestrictedPlanesTemp;
+			vector<Plane> slotListTemp = slotList;
+			addLogLine("Call - Fetching CTOTs");
+			//sendMessage("Fetching CTOTs...");
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/slotService/restricted";
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+
+				//Reset all CTOTs
+				for (size_t i = 0; i < slotListTemp.size(); i++) {
+					if (slotListTemp[i].ctot != "") {
+						slotListTemp[i].hasManualCtot = false;
+					}
+					slotListTemp[i].ctot = "";
+					slotListTemp[i].flowReason = "";
+				}
+
+				serverRestrictedPlanesTemp.clear();
+
+				const Json::Value& restricted = obj;
+				for (size_t i = 0; i < restricted.size(); i++) {
+					if (restricted[i].isMember("callsign") && restricted[i].isMember("ctot") && restricted[i].isMember("mostPenalizingAirspace")) {
+						//Get callsign 
+						string callsign = fastWriter.write(restricted[i]["callsign"]);
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+
+						//Get CTOT
+						string ctot = fastWriter.write(restricted[i]["ctot"]);
+						ctot.erase(std::remove(ctot.begin(), ctot.end(), '"'));
+						ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
+						ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
+
+						//Get reason
+						string reason = fastWriter.write(restricted[i]["mostPenalizingAirspace"]);
+						reason.erase(std::remove(reason.begin(), reason.end(), '"'));
+						reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
+						reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
+
+						serverRestrictedPlanesTemp.push_back({ callsign,ctot,reason });
+
+						if (ctot.size() == 4) {
+							for (size_t z = 0; z < slotListTemp.size(); z++) {
+								if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign)) {
+									string taxiTime = getTaxiTime(callsign);
+									slotListTemp[z] = {
+										callsign,
+										slotListTemp[z].eobt,
+										slotListTemp[z].tsat,
+										slotListTemp[z].ttot,
+										ctot,
+										reason,
+										slotListTemp[z].ecfmpRestriction,
+										slotListTemp[z].hasEcfmpRestriction,
+										true,
+										true
 									};
 								}
 							}
 						}
 					}
 				}
+				serverRestrictedPlanes = serverRestrictedPlanesTemp;
+				sendWaitingTSAT();
+				sendWaitingCdmSts();
+				sendCheckCIDLater();
+				std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
+				slotList = slotListTemp;
 			}
-			/*for (int a = 0; a < evCtots.size(); a++) {
-				if (evCtots[a][0] == callsign) {
-					evCtots[a] = { callsign, "" };
-					return true;
-				};
-			}*/
+			addLogLine("COMPLETED - Fetching CTOTs");
 		}
-		activeCheckCid -= 1;
-		if(cid == "") {
-			activeCheckCid -= 1;
-			checkCIDLater.push_back(callsign);
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception Fetching CTOTs: " + (string)e.what());
 		}
-	}
-	return false;
-	}
-	catch (const std::exception& e) {
-		activeCheckCid -= 1;
-		checkCIDLater.push_back(callsign);
-		addLogLine("ERROR: Unhandled exception setEvCtot: " + (string)e.what());
-		return false;
-	}
-	catch (...) {
-		activeCheckCid -= 1;
-		checkCIDLater.push_back(callsign);
-		addLogLine("ERROR: Unhandled exception setEvCtot");
-		return false;
-	}
-}
-
-void CDM::getCdmServerRestricted() {
-	addLogLine("Called getCdmServerRestricted...");
-	try{
-	vector<ServerRestricted> serverRestrictedPlanesTemp;
-	vector<Plane> slotListTemp = slotList;
-	addLogLine("Call - Fetching CTOTs");
-	//sendMessage("Fetching CTOTs...");
-	CURL* curl;
-	CURLcode result = CURLE_FAILED_INIT;
-	std::string readBuffer;
-	long responseCode = 0;
-	curl = curl_easy_init();
-	if (curl) {
-		string url = cdmServerUrl + "/slotService/restricted";
-		string apiKeyHeader = "x-api-key: " + apikey;
-		struct curl_slist* headers = NULL;
-		headers = curl_slist_append(headers, apiKeyHeader.c_str());
-		curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-		curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-		result = curl_easy_perform(curl);
-		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-		curl_easy_cleanup(curl);
-	}
-
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-		// handle error 404
-		addLogLine("UNABLE TO LOAD CDM-API URL...");
-	}
-	else {
-		Json::Reader reader;
-		Json::Value obj;
-		Json::FastWriter fastWriter;
-		reader.parse(readBuffer, obj);
-
-		
-		//Reset all CTOTs
-		for (size_t i = 0; i < slotListTemp.size(); i++) {
-			if (slotListTemp[i].ctot != "") {
-				slotListTemp[i].hasManualCtot = false;
-			}
-			slotListTemp[i].ctot = "";
-			slotListTemp[i].flowReason = "";
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception Fetching CTOTs");
 		}
-
-		serverRestrictedPlanesTemp.clear();
-
-		const Json::Value& restricted = obj;
-		for (size_t i = 0; i < restricted.size(); i++) {
-			if (restricted[i].isMember("callsign") && restricted[i].isMember("ctot") && restricted[i].isMember("mostPenalizingAirspace")) {
-				//Get callsign 
-				string callsign = fastWriter.write(restricted[i]["callsign"]);
-				callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
-				callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
-				callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
-
-				//Get CTOT
-				string ctot = fastWriter.write(restricted[i]["ctot"]);
-				ctot.erase(std::remove(ctot.begin(), ctot.end(), '"'));
-				ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
-				ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
-
-				//Get reason
-				string reason = fastWriter.write(restricted[i]["mostPenalizingAirspace"]);
-				reason.erase(std::remove(reason.begin(), reason.end(), '"'));
-				reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
-				reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
-
-				serverRestrictedPlanesTemp.push_back({ callsign,ctot,reason });
-
-				if (ctot.size() == 4) {
-					for (size_t z = 0; z < slotListTemp.size(); z++) {
-						if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign)) {
-							string taxiTime = getTaxiTime(callsign);
-							slotListTemp[z] = {
-								callsign,
-								slotListTemp[z].eobt,
-								slotListTemp[z].tsat,
-								slotListTemp[z].ttot,
-								ctot,
-								reason,
-								slotListTemp[z].ecfmpRestriction,
-								slotListTemp[z].hasEcfmpRestriction,
-								true,
-								true
-							};
-						}
-					}
-				}
-			}
-		}
-		serverRestrictedPlanes = serverRestrictedPlanesTemp;
-		sendWaitingTSAT();
-		sendWaitingCdmSts();
-		sendCheckCIDLater();
-		std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
-		slotList = slotListTemp;
-	}
-	addLogLine("COMPLETED - Fetching CTOTs");
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception Fetching CTOTs: " + (string)e.what());
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception Fetching CTOTs");
 	}
 }
 
@@ -6931,189 +6984,198 @@ void CDM::sendCheckCIDLater() {
 }
 
 void CDM::setTOBTApi(string callsign, string tobt) {
-	addLogLine("Called setTOBTApi...");
-	activeSetTsat += 1;
-
-	try {
-		vector<Plane> slotListTemp; // Local copy of the slotList
-		{
-			std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
-			slotListTemp = slotList; // Copy the slotList
-		}
-
-		addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign);
-		bool createRequest = false;
-
-		for (Plane p : slotListTemp) {
-			// Do not send API request if Manual CTOT is created by user.
-			if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign) {
-				createRequest = true;
-			}
-		}
-
-		if (createRequest) {
-			tobt = (tobt.length() >= 4) ? tobt.substr(0, 4) : "";
-
-			string cdmSts = getCdmSts(callsign);
-			string taxiTime = getTaxiTime(callsign);
-
-			CURL* curl;
-			CURLcode result = CURLE_FAILED_INIT;
-			string readBuffer;
-			long responseCode = 0;
-			curl = curl_easy_init();
-
-			if (curl) {
-				string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt + "&cdmSts=" + cdmSts;
-				string apiKeyHeader = "x-api-key: " + apikey;
-				struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
-				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-				curl_easy_setopt(curl, CURLOPT_POST, 1L);
-				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-				result = curl_easy_perform(curl);
-				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-				curl_easy_cleanup(curl);
+	if (serverEnabled) {
+		addLogLine("Called setTOBTApi...");
+		activeSetTsat += 1;
+		try {
+			vector<Plane> slotListTemp; // Local copy of the slotList
+			{
+				std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
+				slotListTemp = slotList; // Copy the slotList
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-				activeSetTsat -= 1;
-				Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
-				{
-					std::lock_guard<std::mutex> lock(slotListMutex);
-					setTSATlater.push_back(plane); // Safely modify setTSATlater
+			addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign);
+			bool createRequest = false;
+
+			for (Plane p : slotListTemp) {
+				// Do not send API request if Manual CTOT is created by user.
+				if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign) {
+					createRequest = true;
 				}
-				for (int i = 0; i < slotListTemp.size(); i++) {
-					if (slotListTemp[i].callsign == callsign) {
-						slotListTemp[i].showData = true;
-					}
-				}
-				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
-			else {
-				Json::Reader reader;
-				Json::Value obj;
-				Json::FastWriter fastWriter;
-				reader.parse(readBuffer, obj);
 
-				if (!obj.isNull() && obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
-					string apiCallsign = fastWriter.write(obj["callsign"]);
-					apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
-					apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
+			if (createRequest) {
+				tobt = (tobt.length() >= 4) ? tobt.substr(0, 4) : "";
 
-					string ctot = fastWriter.write(obj["ctot"]);
-					ctot.erase(remove(ctot.begin(), ctot.end(), '"'), ctot.end());
-					ctot.erase(remove(ctot.begin(), ctot.end(), '\n'), ctot.end());
+				string cdmSts = getCdmSts(callsign);
+				string taxiTime = getTaxiTime(callsign);
 
-					string reason = fastWriter.write(obj["mostPenalizingAirspace"]);
-					reason.erase(remove(reason.begin(), reason.end(), '"'), reason.end());
-					reason.erase(remove(reason.begin(), reason.end(), '\n'), reason.end());
+				CURL* curl;
+				CURLcode result = CURLE_FAILED_INIT;
+				string readBuffer;
+				long responseCode = 0;
+				curl = curl_easy_init();
 
-					for (size_t i = 0; i < slotListTemp.size(); i++) {
-						if (slotListTemp[i].callsign == apiCallsign) {
-							addLogLine(apiCallsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
-							if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
-								// Update with thread-safe access
-								{
-									std::lock_guard<std::mutex> lock(slotListMutex);
-									slotList[i] = {
-										apiCallsign,
-										slotListTemp[i].eobt,
-										slotList[i].tsat,
-										slotList[i].ttot,
-										ctot,
-										reason,
-										slotListTemp[i].ecfmpRestriction,
-										slotListTemp[i].hasEcfmpRestriction,
-										true,
-										true
-									};
-								}
-							}
-							else {
-								if (slotListTemp[i].ctot != "") {
-									// Reset CTOT
-									{
-										std::lock_guard<std::mutex> lock(slotListMutex);
-										slotListTemp[i].ctot = "";
-										slotListTemp[i].flowReason = "";
-										slotListTemp[i].hasManualCtot = false;
-										slotListTemp[i].showData = true;
-									}
-								}
-							}
-						}
-					}
-					activeSetTsat -= 1;
+				if (curl) {
+					string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt + "&cdmSts=" + cdmSts;
+					string apiKeyHeader = "x-api-key: " + apikey;
+					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
+					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+					curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+					curl_easy_setopt(curl, CURLOPT_POST, 1L);
+					curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+					curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+					result = curl_easy_perform(curl);
+					curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+					curl_easy_cleanup(curl);
 				}
-				else {
+
+				if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 					activeSetTsat -= 1;
 					Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
 					{
 						std::lock_guard<std::mutex> lock(slotListMutex);
-						setTSATlater.push_back(plane);
+						setTSATlater.push_back(plane); // Safely modify setTSATlater
+					}
+					for (int i = 0; i < slotListTemp.size(); i++) {
+						if (slotListTemp[i].callsign == callsign) {
+							slotListTemp[i].showData = true;
+						}
+					}
+					addLogLine("UNABLE TO CONNECT CDM-API...");
+				}
+				else {
+					Json::Reader reader;
+					Json::Value obj;
+					Json::FastWriter fastWriter;
+					reader.parse(readBuffer, obj);
+
+					if (!obj.isNull() && obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
+						string apiCallsign = fastWriter.write(obj["callsign"]);
+						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
+						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
+
+						string ctot = fastWriter.write(obj["ctot"]);
+						ctot.erase(remove(ctot.begin(), ctot.end(), '"'), ctot.end());
+						ctot.erase(remove(ctot.begin(), ctot.end(), '\n'), ctot.end());
+
+						string reason = fastWriter.write(obj["mostPenalizingAirspace"]);
+						reason.erase(remove(reason.begin(), reason.end(), '"'), reason.end());
+						reason.erase(remove(reason.begin(), reason.end(), '\n'), reason.end());
+
+						for (size_t i = 0; i < slotListTemp.size(); i++) {
+							if (slotListTemp[i].callsign == apiCallsign) {
+								addLogLine(apiCallsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason + "]");
+								if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
+									// Update with thread-safe access
+									{
+										std::lock_guard<std::mutex> lock(slotListMutex);
+										slotList[i] = {
+											apiCallsign,
+											slotListTemp[i].eobt,
+											slotList[i].tsat,
+											slotList[i].ttot,
+											ctot,
+											reason,
+											slotListTemp[i].ecfmpRestriction,
+											slotListTemp[i].hasEcfmpRestriction,
+											true,
+											true
+										};
+									}
+								}
+								else {
+									if (slotListTemp[i].ctot != "") {
+										// Reset CTOT
+										{
+											std::lock_guard<std::mutex> lock(slotListMutex);
+											slotListTemp[i].ctot = "";
+											slotListTemp[i].flowReason = "";
+											slotListTemp[i].hasManualCtot = false;
+											slotListTemp[i].showData = true;
+										}
+									}
+								}
+							}
+						}
+						activeSetTsat -= 1;
+					}
+					else {
+						activeSetTsat -= 1;
+						Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
+						{
+							std::lock_guard<std::mutex> lock(slotListMutex);
+							setTSATlater.push_back(plane);
+						}
 					}
 				}
 			}
+			else {
+				activeSetTsat -= 1;
+			}
+
+			// Update showData for slotList
+			{
+				std::lock_guard<std::mutex> lock(slotListMutex);
+				for (size_t a = 0; a < slotListTemp.size(); a++) {
+					if (slotListTemp[a].callsign == callsign) {
+						slotListTemp[a].showData = true;
+					}
+				}
+			}
+
+			// Update original slotList from slotListTemp
+			{
+				std::lock_guard<std::mutex> lock(slotListMutex);
+				for (size_t a = 0; a < slotListTemp.size(); a++) {
+					for (size_t z = 0; z < slotList.size(); z++) {
+						if (slotListTemp[a].callsign == slotList[z].callsign) {
+							slotList[z].ctot = slotListTemp[a].ctot;
+							slotList[z].flowReason = slotListTemp[a].flowReason;
+							slotList[z].hasManualCtot = slotListTemp[a].hasManualCtot;
+							slotList[z].showData = true;
+						}
+					}
+				}
+			}
+
+			//Fetch cdmSts
+			std::thread t9(&CDM::getCdmServerStatus, this);
+			t9.detach();
+
+			addLogLine("COMPLETED - setTOBTApi for " + callsign);
 		}
-		else {
+		catch (const std::exception& e) {
 			activeSetTsat -= 1;
-		}
-
-		// Update showData for slotList
-		{
-			std::lock_guard<std::mutex> lock(slotListMutex);
-			for (size_t a = 0; a < slotListTemp.size(); a++) {
-				if (slotListTemp[a].callsign == callsign) {
-					slotListTemp[a].showData = true;
-				}
-			}
-		}
-
-		// Update original slotList from slotListTemp
-		{
-			std::lock_guard<std::mutex> lock(slotListMutex);
-			for (size_t a = 0; a < slotListTemp.size(); a++) {
-				for (size_t z = 0; z < slotList.size(); z++) {
-					if (slotListTemp[a].callsign == slotList[z].callsign) {
-						slotList[z].ctot = slotListTemp[a].ctot;
-						slotList[z].flowReason = slotListTemp[a].flowReason;
-						slotList[z].hasManualCtot = slotListTemp[a].hasManualCtot;
-						slotList[z].showData = true;
+			addLogLine("ERROR: Unhandled exception setTOBTApi: " + (string)e.what());
+			{
+				std::lock_guard<std::mutex> lock(slotListMutex);
+				for (size_t a = 0; a < slotList.size(); a++) {
+					if (slotList[a].callsign == callsign) {
+						slotList[a].showData = true;
 					}
 				}
 			}
 		}
-
-		//Fetch cdmSts
-		std::thread t9(&CDM::getCdmServerStatus, this);
-		t9.detach();
-
-		addLogLine("COMPLETED - setTOBTApi for " + callsign);
-	}
-	catch (const std::exception& e) {
-		activeSetTsat -= 1;
-		addLogLine("ERROR: Unhandled exception setTOBTApi: " + (string)e.what());
-		{
-			std::lock_guard<std::mutex> lock(slotListMutex);
-			for (size_t a = 0; a < slotList.size(); a++) {
-				if (slotList[a].callsign == callsign) {
-					slotList[a].showData = true;
+		catch (...) {
+			activeSetTsat -= 1;
+			addLogLine("ERROR: Unhandled exception setTOBTApi");
+			{
+				std::lock_guard<std::mutex> lock(slotListMutex);
+				for (size_t a = 0; a < slotList.size(); a++) {
+					if (slotList[a].callsign == callsign) {
+						slotList[a].showData = true;
+					}
 				}
 			}
 		}
 	}
-	catch (...) {
-		activeSetTsat -= 1;
-		addLogLine("ERROR: Unhandled exception setTOBTApi");
-		{
-			std::lock_guard<std::mutex> lock(slotListMutex);
-			for (size_t a = 0; a < slotList.size(); a++) {
-				if (slotList[a].callsign == callsign) {
-					slotList[a].showData = true;
-				}
+	else {
+		std::lock_guard<std::mutex> lock(slotListMutex);
+		for (size_t a = 0; a < slotList.size(); a++) {
+			if (slotList[a].callsign == callsign) {
+				slotList[a].showData = true;
 			}
 		}
 	}
@@ -7138,62 +7200,64 @@ string CDM::getTaxiTime(string callsign) {
 }
 
 void CDM::setCdmSts(string callsign, string cdmSts) {
-	addLogLine("Called setCdmSts...");
-	activeSetStatus += 1;
-	try {
-		addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
-		CURL* curl;
-		CURLcode result = CURLE_FAILED_INIT;
-		string readBuffer;
-		long responseCode = 0;
-		curl = curl_easy_init();
-		if (curl) {
-			string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
-			string apiKeyHeader = "x-api-key: " + apikey;
-			struct curl_slist* headers = NULL;
-			headers = curl_slist_append(headers, apiKeyHeader.c_str());
-			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-			curl_easy_setopt(curl, CURLOPT_POST, 1L);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-			result = curl_easy_perform(curl);
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-			curl_easy_cleanup(curl);
-		}
+	if (serverEnabled) {
+		addLogLine("Called setCdmSts...");
+		activeSetStatus += 1;
+		try {
+			addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_POST, 1L);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				activeSetStatus -= 1;
+				setCdmStslater.push_back(callsign);
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+			}
+			else {
+				std::istringstream is(readBuffer);
+				//Get data from .txt file
+				string lineValue;
+				while (getline(is, lineValue))
+				{
+					if (lineValue != "true") {
+						setCdmStslater.push_back(callsign);
+					}
+					else {
+						std::thread t0(&CDM::getCdmServerStatus, this);
+						t0.detach();
+					}
+				}
+				activeSetStatus -= 1;
+			}
+		}
+		catch (const std::exception& e) {
 			activeSetStatus -= 1;
 			setCdmStslater.push_back(callsign);
-			addLogLine("UNABLE TO CONNECT CDM-API...");
+			addLogLine("ERROR: Unhandled exception setCdmSts: " + (string)e.what());
 		}
-		else {
-			std::istringstream is(readBuffer);
-			//Get data from .txt file
-			string lineValue;
-			while (getline(is, lineValue))
-			{
-				if (lineValue != "true") {
-					setCdmStslater.push_back(callsign);
-				}
-				else {
-					std::thread t0(&CDM::getCdmServerStatus, this);
-					t0.detach();
-				}
-			}
+		catch (...) {
 			activeSetStatus -= 1;
+			setCdmStslater.push_back(callsign);
+			addLogLine("ERROR: Unhandled exception setCdmSts");
 		}
-	}
-	catch (const std::exception& e) {
-		activeSetStatus -= 1;
-		setCdmStslater.push_back(callsign);
-		addLogLine("ERROR: Unhandled exception setCdmSts: " + (string)e.what());
-	}
-	catch (...) {
-		activeSetStatus -= 1;
-		setCdmStslater.push_back(callsign);
-		addLogLine("ERROR: Unhandled exception setCdmSts");
 	}
 }
 
@@ -7216,142 +7280,146 @@ string CDM::getCdmSts(string callsign) {
 }
 
 void CDM::getCdmServerStatus() {
-	addLogLine("Called getCdmServerStatus...");
-	try {
-		vector<vector<string>> networkStatusTemp;
-		CURL* curl;
-		CURLcode result = CURLE_FAILED_INIT;
-		std::string readBuffer;
-		long responseCode = 0;
-		curl = curl_easy_init();
-		if (curl) {
-			string url = cdmServerUrl + "/slotService/allStatus";
-			string apiKeyHeader = "x-api-key: " + apikey;
-			struct curl_slist* headers = NULL;
-			headers = curl_slist_append(headers, apiKeyHeader.c_str());
-			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-			curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-			result = curl_easy_perform(curl);
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-			curl_easy_cleanup(curl);
-		}
+	if (serverEnabled) {
+		addLogLine("Called getCdmServerStatus...");
+		try {
+			vector<vector<string>> networkStatusTemp;
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/slotService/allStatus";
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-			// handle error 404
-			addLogLine("UNABLE TO LOAD CDM-API URL...");
-		}
-		else {
-			Json::Reader reader;
-			Json::Value obj;
-			Json::FastWriter fastWriter;
-			reader.parse(readBuffer, obj);
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
 
-			networkStatusTemp.clear();
+				networkStatusTemp.clear();
 
-			const Json::Value& data = obj;
-			for (size_t i = 0; i < data.size(); i++) {
-				if (data[i].isMember("callsign") && data[i].isMember("cdmSts")) {
-					//Get callsign 
-					string callsign = fastWriter.write(data[i]["callsign"]);
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
-					callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("callsign") && data[i].isMember("cdmSts")) {
+						//Get callsign 
+						string callsign = fastWriter.write(data[i]["callsign"]);
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
 
-					//Get CTOT
-					string cdmSts = fastWriter.write(data[i]["cdmSts"]);
-					cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '"'));
-					cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
-					cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
+						//Get CTOT
+						string cdmSts = fastWriter.write(data[i]["cdmSts"]);
+						cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '"'));
+						cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
+						cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
 
-					networkStatusTemp.push_back({ callsign, cdmSts });
+						networkStatusTemp.push_back({ callsign, cdmSts });
+					}
 				}
 			}
+			networkStatus = networkStatusTemp;
+			addLogLine("COMPLETED - getCdmServerStatus");
 		}
-		networkStatus = networkStatusTemp;
-		addLogLine("COMPLETED - getCdmServerStatus");
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception getCdmServerStatus: " + (string)e.what());
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception getCdmServerStatus");
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getCdmServerStatus: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getCdmServerStatus");
+		}
 	}
 }
 
 
 void CDM::getNetworkRates() {
-	addLogLine("Called getNetworkRates...");
-	try {
-		vector<Rate> tempRate = initialRate;
-		CURL* curl;
-		CURLcode result = CURLE_FAILED_INIT;
-		std::string readBuffer;
-		long responseCode = 0;
-		curl = curl_easy_init();
-		if (curl) {
-			string url = cdmServerUrl + "/slotService/restrictions";
-			string apiKeyHeader = "x-api-key: " + apikey;
-			struct curl_slist* headers = NULL;
-			headers = curl_slist_append(headers, apiKeyHeader.c_str());
-			curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-			curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
-			result = curl_easy_perform(curl);
-			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-			curl_easy_cleanup(curl);
-		}
+	if (serverEnabled) {
+		addLogLine("Called getNetworkRates...");
+		try {
+			vector<Rate> tempRate = initialRate;
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/slotService/restrictions";
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
-			// handle error 404
-			addLogLine("UNABLE TO LOAD CDM-API URL...");
-		}
-		else {
-			Json::Reader reader;
-			Json::Value obj;
-			Json::FastWriter fastWriter;
-			reader.parse(readBuffer, obj);
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
 
-			const Json::Value& data = obj;
-			for (size_t i = 0; i < data.size(); i++) {
-				if (data[i].isMember("type") && data[i].isMember("airspace") && data[i].isMember("capacity")) {
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("type") && data[i].isMember("airspace") && data[i].isMember("capacity")) {
 
-					//Get airspace name
-					string airspace = fastWriter.write(data[i]["airspace"]);
-					airspace.erase(std::remove(airspace.begin(), airspace.end(), '"'));
-					airspace.erase(std::remove(airspace.begin(), airspace.end(), '\n'));
-					airspace.erase(std::remove(airspace.begin(), airspace.end(), '\n'));
-					bool aptFound = false;
-					for (string apt : masterAirports)
-					{
-						if (apt == airspace) {
-							aptFound = true;
+						//Get airspace name
+						string airspace = fastWriter.write(data[i]["airspace"]);
+						airspace.erase(std::remove(airspace.begin(), airspace.end(), '"'));
+						airspace.erase(std::remove(airspace.begin(), airspace.end(), '\n'));
+						airspace.erase(std::remove(airspace.begin(), airspace.end(), '\n'));
+						bool aptFound = false;
+						for (string apt : masterAirports)
+						{
+							if (apt == airspace) {
+								aptFound = true;
+							}
 						}
-					}
-					if (aptFound) {
-						//Get callsign 
-						string type = fastWriter.write(data[i]["type"]);
-						type.erase(std::remove(type.begin(), type.end(), '"'));
-						type.erase(std::remove(type.begin(), type.end(), '\n'));
-						type.erase(std::remove(type.begin(), type.end(), '\n'));
+						if (aptFound) {
+							//Get callsign 
+							string type = fastWriter.write(data[i]["type"]);
+							type.erase(std::remove(type.begin(), type.end(), '"'));
+							type.erase(std::remove(type.begin(), type.end(), '\n'));
+							type.erase(std::remove(type.begin(), type.end(), '\n'));
 
-						if (type == "DEP") {
-							//Get CTOT
-							string capacity = fastWriter.write(data[i]["capacity"]);
-							capacity.erase(std::remove(capacity.begin(), capacity.end(), '"'));
-							capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
-							capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
+							if (type == "DEP") {
+								//Get CTOT
+								string capacity = fastWriter.write(data[i]["capacity"]);
+								capacity.erase(std::remove(capacity.begin(), capacity.end(), '"'));
+								capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
+								capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
 
-							for (int i = 0; i < tempRate.size(); i++) {
-								if (tempRate[i].airport == airspace) {
-									for (int a = 0; a < tempRate[i].rates.size(); a++) {
-										tempRate[i].rates[a] = capacity;
+								for (int i = 0; i < tempRate.size(); i++) {
+									if (tempRate[i].airport == airspace) {
+										for (int a = 0; a < tempRate[i].rates.size(); a++) {
+											tempRate[i].rates[a] = capacity;
+										}
 									}
 								}
 							}
@@ -7359,14 +7427,14 @@ void CDM::getNetworkRates() {
 					}
 				}
 			}
+			rate = tempRate;
+			addLogLine("COMPLETED - getNetworkRates");
 		}
-		rate = tempRate;
-		addLogLine("COMPLETED - getNetworkRates");
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception getNetworkRates: " + (string)e.what());
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception getNetworkRates");
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getNetworkRates: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getNetworkRates");
+		}
 	}
 }
