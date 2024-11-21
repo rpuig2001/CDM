@@ -127,6 +127,7 @@ CDM includes the following times:
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank if not in use "".
+  - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
  
 ### taxizones.txt
@@ -280,6 +281,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 - ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start (time_start can be a 4 digits time (2114 - 21:14 time) or 1/2 digits minutes (5 - 5min or 10 - 10 min) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex1. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100 // Ex2. ``.cdm customdelay LEBL/24L 10`` -> All TSATs will start at now+10 min). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time).
 - ``.cdm lvo`` - Toggle lvo ON or OFF.
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
+- ``.cdm server`` - Toggle server communication ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
 - ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
@@ -360,14 +362,19 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
   - Functions:
-    - ``Send REA Msg`` -> It will be contarntly looking for a better CTOT every refreshtime when this is checked.
-    - ``Remove from REA Msg`` -> It will keep ctot and will not look for a better CTOT anymore.
     - ``Set/Remove MANUAL CTOT`` -> It creates or removes a CTOT for the user (Only CTOTs where TSAT>now+5min are allowed).
   - Colors:
     - ``color11`` -> Default.
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REA Msg is sent.
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> MANUAL/EVENT CTOT and Flow/CAD CTOT.
+   
+- Column Network Status: Shows the STS from the CDM-Network.
+  - Status/Funcions:
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
+    - ![#00c000](https://img.shields.io/badge/-00c000) ``PRIO`` -> Sets the trafic with TOP priority in case the ATC needs. Should be rarely used (Only shows in case CTOT exists).
+    - !![#BE0000](https://img.shields.io/badge/-BE0000) ``SUSP`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the server side.
+
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
   - Functions:
