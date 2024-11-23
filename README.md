@@ -373,7 +373,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Status/Funcions:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
     - ![#00c000](https://img.shields.io/badge/-00c000) ``PRIO`` -> Sets the trafic with TOP priority in case the ATC needs. Should be rarely used (Only shows in case CTOT exists).
-    - !![#BE0000](https://img.shields.io/badge/-BE0000) ``SUSP`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the server side.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``SUSP`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the server side.
 
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
