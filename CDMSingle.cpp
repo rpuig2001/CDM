@@ -2309,6 +2309,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						bool oldTSAT = false;
 						bool moreLessFive = false;
 						bool lastMinute = false;
+						bool lastMinuteTOBT = false;
 						bool notYetEOBT = false;
 						bool actualTOBT = false;
 
@@ -2403,6 +2404,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						if (hour != EOBThour) {
+							if (EOBTdifTime == 44) {
+								lastMinuteTOBT = true;
+							}
+						}
+						else {
+							if (EOBTdifTime == 4) {
+								lastMinuteTOBT = true;
+							}
+						}
+
 						//Check disply of items
 						bool showData = true;
 						if (aircraftFind) {
@@ -2450,6 +2462,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								else if (!actualTOBT) {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_GREENNOTACTIVE;
+									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+								}
+								else if (lastMinuteTOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
 								else {
@@ -3051,6 +3068,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						bool oldTSAT = false;
 						bool moreLessFive = false;
 						bool lastMinute = false;
+						bool lastMinuteTOBT = false;
 						bool notYetEOBT = false;
 						bool actualTOBT = false;
 
@@ -3121,6 +3139,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else {
 							if (EOBTdifTime >= -5) {
 								actualTOBT = true;
+							}
+						}
+
+						if (hour != EOBThour) {
+							if (EOBTdifTime == 44) {
+								lastMinuteTOBT = true;
+							}
+						}
+						else {
+							if (EOBTdifTime == 4) {
+								lastMinuteTOBT = true;
 							}
 						}
 
@@ -3219,6 +3248,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (!actualTOBT) {
 								ItemRGB = TAG_GREENNOTACTIVE;
+								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+							}
+							else if (lastMinuteTOBT) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
 							else {
