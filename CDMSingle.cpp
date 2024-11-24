@@ -4944,7 +4944,13 @@ void CDM::addTimeToList(int timeToAdd, string minTSAT) {
 			}
 		}
 
-		slotList = mySlotList;
+		for (Plane p : mySlotList) {
+			for (int d = 0; d < slotList.size(); d++) {
+				if (p.callsign == slotList[d].callsign) {
+					slotList[d] = p;
+				}
+			}
+		}
 	}
 	catch (const std::exception& e) {
 		addLogLine("ERROR: Unhandled exception addTimeToList: " + (string)e.what());
@@ -4984,7 +4990,13 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 			}
 		}
 
-		slotList = mySlotList;
+		for (Plane p : mySlotList) {
+			for (int d = 0; d < slotList.size(); d++) {
+				if (p.callsign == slotList[d].callsign) {
+					slotList[d] = p;
+				}
+			}
+		}
 	}
 	catch (const std::exception& e) {
 		addLogLine("ERROR: Unhandled exception addTimeToListForSpecificAirportAndRunway: " + (string)e.what());
@@ -6019,7 +6031,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 		else {
 			serverEnabled = true;
-			sendMessage("Server Disabled");
+			sendMessage("Server Enabled");
 		}
 		return true;
 	}
@@ -6911,8 +6923,13 @@ void CDM::getCdmServerRestricted() {
 				sendWaitingTSAT();
 				sendWaitingCdmSts();
 				sendCheckCIDLater();
-				std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
-				slotList = slotListTemp;
+				for (Plane p : slotList = slotListTemp) {
+					for (int d = 0; d < slotList.size(); d++) {
+						if (p.callsign == slotList[d].callsign) {
+							slotList[d] = p;
+						}
+					}
+				}
 			}
 			addLogLine("COMPLETED - Fetching CTOTs");
 		}
@@ -6947,6 +6964,24 @@ void CDM::sendWaitingTSAT() {
 		addLogLine("Called sendWaitingTSAT...");
 		vector<Plane> setTSATlaterTemp = setTSATlater;
 		setTSATlater.clear();
+
+		vector<Plane> alreadyProcessed;
+		bool found = false;
+
+		for (int i = setTSATlaterTemp.size() - 1; i > 0; i--) {
+			found = false;
+			for (Plane p : setTSATlaterTemp) {
+				if (p.callsign == setTSATlaterTemp[i].callsign) {
+					found = true;
+				}
+			}
+
+			if (!found) {
+				alreadyProcessed.push_back(setTSATlaterTemp[i]);
+				addLogLine("sendWaitingTSAT - " + setTSATlaterTemp[i].callsign);
+				setTOBTApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].eobt);
+			}
+		}
 
 		for (const Plane plane : setTSATlaterTemp) {
 			addLogLine("sendWaitingTSAT - " + plane.callsign);
@@ -7024,7 +7059,6 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 		try {
 			vector<Plane> slotListTemp; // Local copy of the slotList
 			{
-				std::lock_guard<std::mutex> lock(slotListMutex); // Lock the mutex
 				slotListTemp = slotList; // Copy the slotList
 			}
 
@@ -7069,13 +7103,7 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 					activeSetTsat -= 1;
 					Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
 					{
-						std::lock_guard<std::mutex> lock(slotListMutex);
 						setTSATlater.push_back(plane); // Safely modify setTSATlater
-					}
-					for (int i = 0; i < slotListTemp.size(); i++) {
-						if (slotListTemp[i].callsign == callsign) {
-							slotListTemp[i].showData = true;
-						}
 					}
 					addLogLine("UNABLE TO CONNECT CDM-API...");
 				}
@@ -7104,8 +7132,7 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 								if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
 									// Update with thread-safe access
 									{
-										std::lock_guard<std::mutex> lock(slotListMutex);
-										slotList[i] = {
+										slotListTemp[i] = {
 											apiCallsign,
 											slotListTemp[i].eobt,
 											slotList[i].tsat,
@@ -7123,7 +7150,6 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 									if (slotListTemp[i].ctot != "") {
 										// Reset CTOT
 										{
-											std::lock_guard<std::mutex> lock(slotListMutex);
 											slotListTemp[i].ctot = "";
 											slotListTemp[i].flowReason = "";
 											slotListTemp[i].hasManualCtot = false;
@@ -7139,7 +7165,6 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 						activeSetTsat -= 1;
 						Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
 						{
-							std::lock_guard<std::mutex> lock(slotListMutex);
 							setTSATlater.push_back(plane);
 						}
 					}
@@ -7149,28 +7174,22 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 				activeSetTsat -= 1;
 			}
 
-			// Update showData for slotList
-			{
-				std::lock_guard<std::mutex> lock(slotListMutex);
-				for (size_t a = 0; a < slotListTemp.size(); a++) {
-					if (slotListTemp[a].callsign == callsign) {
-						slotListTemp[a].showData = true;
-					}
-				}
-			}
-
 			// Update original slotList from slotListTemp
-			{
-				std::lock_guard<std::mutex> lock(slotListMutex);
-				for (size_t a = 0; a < slotListTemp.size(); a++) {
+			for (size_t a = 0; a < slotListTemp.size(); a++) {
+				if (slotListTemp[a].callsign == callsign) {
 					for (size_t z = 0; z < slotList.size(); z++) {
 						if (slotListTemp[a].callsign == slotList[z].callsign) {
 							slotList[z].ctot = slotListTemp[a].ctot;
 							slotList[z].flowReason = slotListTemp[a].flowReason;
 							slotList[z].hasManualCtot = slotListTemp[a].hasManualCtot;
-							slotList[z].showData = true;
 						}
 					}
+				}
+			}
+
+			for (size_t a = 0; a < slotList.size(); a++) {
+				if (slotList[a].callsign == callsign) {
+					slotList[a].showData = true;
 				}
 			}
 
@@ -7184,7 +7203,6 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 			activeSetTsat -= 1;
 			addLogLine("ERROR: Unhandled exception setTOBTApi: " + (string)e.what());
 			{
-				std::lock_guard<std::mutex> lock(slotListMutex);
 				for (size_t a = 0; a < slotList.size(); a++) {
 					if (slotList[a].callsign == callsign) {
 						slotList[a].showData = true;
@@ -7196,7 +7214,6 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 			activeSetTsat -= 1;
 			addLogLine("ERROR: Unhandled exception setTOBTApi");
 			{
-				std::lock_guard<std::mutex> lock(slotListMutex);
 				for (size_t a = 0; a < slotList.size(); a++) {
 					if (slotList[a].callsign == callsign) {
 						slotList[a].showData = true;
@@ -7205,12 +7222,10 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 			}
 		}
 	}
-	else {
-		std::lock_guard<std::mutex> lock(slotListMutex);
-		for (size_t a = 0; a < slotList.size(); a++) {
-			if (slotList[a].callsign == callsign) {
-				slotList[a].showData = true;
-			}
+
+	for (size_t a = 0; a < slotList.size(); a++) {
+		if (slotList[a].callsign == callsign) {
+			slotList[a].showData = true;
 		}
 	}
 }
