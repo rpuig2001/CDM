@@ -1206,8 +1206,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					if (slotList[i].hasManualCtot) {
 						slotList[i].hasManualCtot = false;
 						//Check API
-						slotList[i].showData = false;
-						std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].eobt);
+						std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].eobt, false);
 						t.detach();
 					}
 				}
@@ -1283,7 +1282,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				
 				if (!realMode) {
 					//Check API
-					std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "");
+					std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", false);
 					t.detach();
 				}
 			}
@@ -2204,13 +2203,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											}
 											//Check API
 											if (doRequest) {
-												for (size_t a = 0; a < slotList.size(); a++)
-												{
-													if (slotList[a].callsign == callsign) {
-														slotList[a].showData = false;
-													}
-												}
-												std::thread t(&CDM::setTOBTApi, this, callsign, EOBT);
+												string myTOBTApi = EOBT;
+												std::thread t(&CDM::setTOBTApi, this, callsign, myTOBTApi, false);
 												t.detach();
 											}
 										}
@@ -4309,6 +4303,7 @@ void CDM::backgroundProcess_recaulculate() {
 			tempSlotList.push_back(slotList[i]);
 		}
 	}
+	std::lock_guard<std::mutex> lock(slotListMutex);
 	for (Plane p : tempSlotList) {
 		for (int d = 0; d < slotList.size(); d++) {
 			if (p.callsign == slotList[d].callsign) {
@@ -4617,7 +4612,8 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						}
 						//Check API
 						if (doRequest && TSATfinal.length() >= 4) {
-							std::thread t(&CDM::setTOBTApi, this, callsign, EOBT);
+							string myTOBTApi = EOBT;
+							std::thread t(&CDM::setTOBTApi, this, callsign, myTOBTApi, false);
 							t.detach();
 						}
 					}
@@ -4943,7 +4939,7 @@ void CDM::addTimeToList(int timeToAdd, string minTSAT) {
 				}
 			}
 		}
-
+		std::lock_guard<std::mutex> lock(slotListMutex);
 		for (Plane p : mySlotList) {
 			for (int d = 0; d < slotList.size(); d++) {
 				if (p.callsign == slotList[d].callsign) {
@@ -4989,7 +4985,7 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 				}
 			}
 		}
-
+		std::lock_guard<std::mutex> lock(slotListMutex);
 		for (Plane p : mySlotList) {
 			for (int d = 0; d < slotList.size(); d++) {
 				if (p.callsign == slotList[d].callsign) {
@@ -6923,7 +6919,8 @@ void CDM::getCdmServerRestricted() {
 				sendWaitingTSAT();
 				sendWaitingCdmSts();
 				sendCheckCIDLater();
-				for (Plane p : slotList = slotListTemp) {
+				std::lock_guard<std::mutex> lock(slotListMutex);
+				for (Plane p : slotListTemp) {
 					for (int d = 0; d < slotList.size(); d++) {
 						if (p.callsign == slotList[d].callsign) {
 							slotList[d] = p;
@@ -6979,13 +6976,8 @@ void CDM::sendWaitingTSAT() {
 			if (!found) {
 				alreadyProcessed.push_back(setTSATlaterTemp[i]);
 				addLogLine("sendWaitingTSAT - " + setTSATlaterTemp[i].callsign);
-				setTOBTApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].eobt);
+				setTOBTApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].eobt, true);
 			}
-		}
-
-		for (const Plane plane : setTSATlaterTemp) {
-			addLogLine("sendWaitingTSAT - " + plane.callsign);
-			setTOBTApi(plane.callsign, plane.eobt);
 		}
 	}
 	catch (const std::exception& e) {
@@ -7052,8 +7044,15 @@ void CDM::sendCheckCIDLater() {
 	}
 }
 
-void CDM::setTOBTApi(string callsign, string tobt) {
+void CDM::setTOBTApi(string callsign, string tobt, bool tryAgain) {
 	if (serverEnabled) {
+		if (!tryAgain) {
+			for (size_t a = 0; a < slotList.size(); a++) {
+				if (slotList[a].callsign == callsign) {
+					slotList[a].showData = false;
+				}
+			}
+		}
 		addLogLine("Called setTOBTApi...");
 		activeSetTsat += 1;
 		try {
@@ -7175,6 +7174,7 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 			}
 
 			// Update original slotList from slotListTemp
+			std::lock_guard<std::mutex> lock(slotListMutex);
 			for (size_t a = 0; a < slotListTemp.size(); a++) {
 				if (slotListTemp[a].callsign == callsign) {
 					for (size_t z = 0; z < slotList.size(); z++) {
@@ -7186,7 +7186,6 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 					}
 				}
 			}
-
 			for (size_t a = 0; a < slotList.size(); a++) {
 				if (slotList[a].callsign == callsign) {
 					slotList[a].showData = true;
@@ -7194,8 +7193,8 @@ void CDM::setTOBTApi(string callsign, string tobt) {
 			}
 
 			//Fetch cdmSts
-			std::thread t9(&CDM::getCdmServerStatus, this);
-			t9.detach();
+			/*std::thread t9(&CDM::getCdmServerStatus, this);
+			t9.detach();*/
 
 			addLogLine("COMPLETED - setTOBTApi for " + callsign);
 		}
