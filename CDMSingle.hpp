@@ -119,7 +119,7 @@ public:
 
 	void sendCheckCIDLater();
 
-	void setTOBTApi(string callsign, string tobt, bool tryAgain);
+	void setTOBTApi(string callsign, string tobt, bool hideCalculation);
 
 	string getTaxiTime(string callsign);
 
@@ -145,7 +145,7 @@ public:
 
 	int GetVersion();
 
-	void createJsonVDGS(vector<Plane> slotList, string fileName, string airport);
+	void createJsonVDGS(vector<Plane> slotListValue, string fileName, string airport);
 
 	bool isNumber(string s);
 
