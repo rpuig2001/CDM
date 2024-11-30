@@ -6837,6 +6837,7 @@ bool CDM::setEvCtot(string callsign) {
 			return false;
 		}
 	}
+	return false;
 }
 
 void CDM::getCdmServerRestricted() {
