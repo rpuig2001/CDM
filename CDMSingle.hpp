@@ -24,7 +24,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.5.8.8b"
+#define MY_PLUGIN_VERSION   "2.2.5.8.9b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -234,13 +234,11 @@ public:
 
 	void backgroundProcess_recaulculate();
 
-	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string remarks, string depRwy, Rate dataRate, bool aircraftFind);
+	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind);
 
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
-
-	string setCTOTremarks(string remarks, Plane plane, CFlightPlan FlightPlan);
 
 	string getDiffTOBTTSAT(string TSAT, string TOBT);
 
@@ -251,6 +249,10 @@ public:
 	bool OnCompileCommand(const char* sCommandLine);
 
 	void OnTimer(int Count);
+
+	string getFlightStripInfo(CFlightPlan FlightPlan, int position);
+
+	void setFlightStripInfo(CFlightPlan FlightPlan, string text, int position);
 
 	bool setMasterAirport(string airport, string position);
 
