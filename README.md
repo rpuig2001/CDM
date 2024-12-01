@@ -306,8 +306,9 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
     - ``Ready TOBT`` -> Sets TOBT to the actual time.
     - ``Edit TOBT`` -> Sets TOBT to the specified time (4 digits).
   - Colors:
-    - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> 
+    - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> Before EOBT -5.
     - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> After EOBT-5.
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> Last minute of TOBT (with ASRT set or no).
 
 - Column E: It shows a letter depending on the plane timmings:
   - Functions:
