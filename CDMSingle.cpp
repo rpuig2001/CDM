@@ -5378,7 +5378,8 @@ void CDM::getEcfmpData() {
 				int id = stoi(fastWriter.write(measures[i]["id"]));
 				//Get Ident
 				string ident = fastWriter.write(measures[i]["ident"]);
-				ident.erase(std::remove(ident.begin(), ident.end(), '"'));
+				ident.erase(std::remove(ident.begin(), ident.end(), '"'), ident.end());
+				ident.erase(std::remove(ident.begin(), ident.end(), '\n'), ident.end());
 				//Get Event Id
 				string myEvent_id = fastWriter.write(measures[i]["event_id"]);
 				int event_id = -1;
@@ -5387,24 +5388,29 @@ void CDM::getEcfmpData() {
 				}
 				//Get reason
 				string reason = fastWriter.write(measures[i]["reason"]);
-				reason.erase(std::remove(reason.begin(), reason.end(), '"'));
+				reason.erase(std::remove(reason.begin(), reason.end(), '"'), reason.end());
+				reason.erase(std::remove(reason.begin(), reason.end(), '\n'), reason.end());
 				//Get valid_time
 				string timeStart = fastWriter.write(measures[i]["starttime"]);
-				timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '"'));
+				timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '"'), timeStart.end());
+				timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '\n'), timeStart.end());
 				string timeEnd = fastWriter.write(measures[i]["endtime"]);
-				timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'));
+				timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'), timeEnd.end());
+				timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '\n'), timeEnd.end());
 				string valid_time = timeStart.substr(timeStart.length() - 11, 2) + timeStart.substr(timeStart.length() - 8, 2) + "-" + timeEnd.substr(timeEnd.length() - 11, 2) + timeEnd.substr(timeEnd.length() - 8, 2);
 				string valid_date = timeStart.substr(8, 2) + "/" + timeStart.substr(5, 2);
 				//Get withdrawn_at
 				string withdrawn = fastWriter.write(measures[i]["withdrawn_at"]);
-				withdrawn.erase(std::remove(withdrawn.begin(), withdrawn.end(), '"'));
+				withdrawn.erase(std::remove(withdrawn.begin(), withdrawn.end(), '"'), withdrawn.end());
+				withdrawn.erase(std::remove(withdrawn.begin(), withdrawn.end(), '\n'), withdrawn.end());
 				bool isWithdrawn = false;
 				if (withdrawn.length() > 5) {
 					isWithdrawn = true;
 				}
 				//Get type
 				string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
-				typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
+				typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'), typeMeasure.end());
+				typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '\n'), typeMeasure.end());
 				//Get Value
 				double valueMeasure = 0;
 				if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
@@ -5425,11 +5431,13 @@ void CDM::getEcfmpData() {
 
 				for (size_t a = 0; a < measures[i]["filters"].size(); a++) {
 					string typeMeasureFilter = fastWriter.write(measures[i]["filters"][a]["type"]);
-					typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '"'));
+					typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '"'), typeMeasureFilter.end());
+					typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '\n'), typeMeasureFilter.end());
 					if (typeMeasureFilter.find("ADEP") != std::string::npos) {
 						for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
 							string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
+							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'), myApt.end());
+							myApt.erase(std::remove(myApt.begin(), myApt.end(), '\n'), myApt.end());
 							boost::to_upper(myApt);
 							ADEP.push_back(myApt);
 						}
@@ -5437,7 +5445,8 @@ void CDM::getEcfmpData() {
 					else if (typeMeasureFilter.find("ADES") != std::string::npos) {
 						for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
 							string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
+							myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'), myApt.end());
+							myApt.erase(std::remove(myApt.begin(), myApt.end(), '\n'), myApt.end());
 							boost::to_upper(myApt);
 							ADES.push_back(myApt);
 						}
