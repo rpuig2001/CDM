@@ -18,6 +18,7 @@ const int TAG_ITEM_EV_CTOT = 15;
 const int TAG_ITEM_TSAT_TOBT_DIFF = 16;
 const int NOW_TSAT_DIFF = 17;
 const int TAG_ITEM_NETWORK_STATUS = 18;
+const int TAG_ITEM_DEICE = 19;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
@@ -57,6 +58,10 @@ const int TAG_FUNC_NETWORK_STATUS_OPTIONS = 137;
 const int TAG_FUNC_NETWORK_REMOVE_STATUS = 138;
 const int TAG_FUNC_NETWORK_SET_REA = 139;
 const int TAG_FUNC_NETWORK_SET_PRIO = 140;
+const int TAG_FUNC_OPT_DEICE = 141;
+const int TAG_FUNC_DEICE_NONE = 142;
+const int TAG_FUNC_DEICE_STAND = 143;
+const int TAG_FUNC_DEICE_REMOTE = 144;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

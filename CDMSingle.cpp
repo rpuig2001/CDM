@@ -56,6 +56,12 @@ bool option_su_wait;
 string apikey;
 bool serverEnabled;
 
+int deIceTimeL;
+int deIceTimeM;
+int deIceTimeH;
+int deIceTimeJ;
+
+
 int activeSetStatus;
 int activeSetTsat;
 int activeCheckCid;
@@ -96,6 +102,7 @@ vector<string> checkCIDLater;
 vector<string> disabledCtots;
 vector<vector<string>> networkStatus;
 vector<Plane> apiQueueResponse;
+vector<vector<string>> deiceList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -187,6 +194,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemType("Network Sts", TAG_ITEM_NETWORK_STATUS);
 	RegisterTagItemFunction("Network Sts Options", TAG_FUNC_NETWORK_STATUS_OPTIONS);
 
+	//Register Tag Item "CDM-DEICE"
+	RegisterTagItemType("DE-ICE", TAG_ITEM_DEICE);
+	RegisterTagItemFunction("DE-ICE Options", TAG_FUNC_OPT_DEICE);
+
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
 	pfad.resize(pfad.size() - strlen("CDM.dll"));
@@ -239,6 +250,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//airport = getFromXml("/CDM/apt/@icao");
 	//airport = getFromXml("/CDM/apt/@icao");
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
+	string deIceLight = getFromXml("/CDM/DeIceTimes/@light");
+	string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
+	string deIceHeavy = getFromXml("/CDM/DeIceTimes/@heavy");
+	string deIceSuper = getFromXml("/CDM/DeIceTimes/@super");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
@@ -256,6 +271,23 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
 	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
+
+	deIceTimeL = 5;
+	deIceTimeM = 9;
+	deIceTimeH = 12;
+	deIceTimeJ = 15;
+	if (deIceLight != "") {
+		deIceTimeL = stoi(deIceLight);
+	}
+	if (deIceLight != "") {
+		deIceTimeM = stoi(deIceMedium);
+	}
+	if (deIceLight != "") {
+		deIceTimeH = stoi(deIceHeavy);
+	}
+	if (deIceLight != "") {
+		deIceTimeJ = stoi(deIceSuper);
+	}
 
 	option_su_wait = false;
 	if (opt_su_wait == "true") {
@@ -301,6 +333,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
+
+	apikey = "77f5dd88-da4a-4a23-90a4-296c3b5944e7";
 
 	//Init reamrksOption
 	remarksOption = false;
@@ -644,6 +678,121 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					if (slotList[i].hasManualCtot) {
 						sendMessage(slotList[i].callsign + " FM -> " + slotList[i].flowReason);
 					}
+				}
+			}
+		}
+	}
+	else if (FunctionId == TAG_FUNC_OPT_DEICE) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_OPT_DEICE");
+
+			OpenPopupList(Area, "De-Ice", 1);
+			AddPopupListElement("NONE", "", TAG_FUNC_DEICE_NONE, false, 2, false);
+			AddPopupListElement("STND", "", TAG_FUNC_DEICE_STAND, false, 2, false);
+			AddPopupListElement("REM", "", TAG_FUNC_DEICE_REMOTE, false, 2, false);
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_NONE) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_DEICE_NONE");
+
+			//Remove plane from deice list
+			for (size_t i = 0; i < deiceList.size(); i++) {
+				if (deiceList[i][0] == fp.GetCallsign()) {
+					deiceList.erase(deiceList.begin() + i);
+				}
+			}
+			//Remove plane from taxiTimesList
+			for (size_t j = 0; j < taxiTimesList.size(); j++)
+			{
+				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == fp.GetCallsign()) {
+					taxiTimesList.erase(taxiTimesList.begin() + j);
+				}
+			}
+			//Remove plane from slotlist to recalculate times
+			for (size_t i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					slotList.erase(slotList.begin() + i);
+				}
+			}
+		
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_STAND) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_DEICE_STAND");
+
+			bool found = false;
+			for (size_t i = 0; i < deiceList.size(); i++) {
+				if (deiceList[i][0] == fp.GetCallsign()) {
+					found = true;
+				}
+			}
+
+			if (found) {
+				//Remove plane from deice list
+				for (size_t i = 0; i < deiceList.size(); i++) {
+					if (deiceList[i][0] == fp.GetCallsign()) {
+						deiceList.erase(deiceList.begin() + i);
+					}
+				}
+			}
+
+			deiceList.push_back({ fp.GetCallsign(), "STND" });
+
+			//Remove plane from taxiTimesList
+			for (size_t j = 0; j < taxiTimesList.size(); j++)
+			{
+				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == fp.GetCallsign()) {
+					taxiTimesList.erase(taxiTimesList.begin() + j);
+				}
+			}
+
+			//Remove plane from slotlist to recalculate times
+			for (size_t i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					slotList.erase(slotList.begin() + i);
+				}
+			}
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_REMOTE) {
+		if (master && AtcMe) {
+			addLogLine("TRIGGER - TAG_FUNC_DEICE_REMOTE");
+
+			bool found = false;
+			for (size_t i = 0; i < deiceList.size(); i++) {
+				if (deiceList[i][0] == fp.GetCallsign()) {
+					found = true;
+				}
+			}
+
+			if (found) {
+				//Remove plane from deice list
+				for (size_t i = 0; i < deiceList.size(); i++) {
+					if (deiceList[i][0] == fp.GetCallsign()) {
+						deiceList.erase(deiceList.begin() + i);
+					}
+				}
+			}
+
+			deiceList.push_back({ fp.GetCallsign(), "REM" });
+							
+			//Remove plane from taxiTimesList
+			for (size_t j = 0; j < taxiTimesList.size(); j++)
+			{
+				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == fp.GetCallsign()) {
+					taxiTimesList.erase(taxiTimesList.begin() + j);
+				}
+			}
+
+			//Remove plane from slotlist to recalculate times
+			for (size_t i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					slotList.erase(slotList.begin() + i);
 				}
 			}
 		}
@@ -1007,6 +1156,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 							double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
 							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+							myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 							string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
 							// at the earlierst at present time + EXOT
 							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
@@ -1069,6 +1219,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 								double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
 								string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+								myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 								string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 								// at the earlierst at present time + EXOT
 								if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
@@ -1168,6 +1319,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 							double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
 							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
+							myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 							string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 							// at the earlierst at present time (now + 5min) + EXOT
 							if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
@@ -1609,6 +1761,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							sendMessage("[DEBUG MESSAGE] - " + callsign + " LAT: " + to_string(lat) + " LON: " + to_string(lon) + " DEP RWY: " + depRwy);
 						}
 						string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
+						myTaxiTime = addDeIceTime(myTaxiTime, callsign, FlightPlan.GetFlightPlanData().GetAircraftWtc());
 						taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
 						planeHasTaxiTimeAssigned = true;
 						TaxiTimePos = taxiTimesList.size() - 1;
@@ -1871,6 +2024,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
+						}
+						else if (ItemCode == TAG_ITEM_DEICE) {
+							string status = "";
+							for (vector<string> deice : deiceList) {
+								if (deice[0] == callsign) {
+									status = deice[1];
+								}
+							}
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
 						}
 					}
 					else {
@@ -2189,6 +2352,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										if (correctFlowTTOT) {
 											equalTTOT = false;
 											TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+											/* START Check stand de-ice */
+											bool standDeice = false;
+											for (vector<string> deice : deiceList) {
+												if (deice[0] == callsign) {
+													if (deice[1] == "STND") {
+														standDeice = true;
+													}
+												}
+											}
+											if (standDeice) {
+												int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc());
+												TSATfinal = calculateTime(TSATfinal, deIceTime);
+											}
+											/* END Check stand de-ice */
 											TSAT = TSATfinal.c_str();
 											TTOT = TTOTFinal.c_str();
 											bool doRequest = false;
@@ -2924,6 +3101,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
+						else if (ItemCode == TAG_ITEM_DEICE) {
+						string status = "";
+						for (vector<string> deice : deiceList) {
+							if (deice[0] == callsign) {
+								status = deice[1];
+							}
+						}
+						ItemRGB = TAG_YELLOW;
+						strcpy_s(sItemString, 16, status.c_str());
+						}
 
 						//Refresh CDM API every 30 seconds
 						int myNow = stoi(GetTimeNow());
@@ -3546,6 +3733,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
+						else if (ItemCode == TAG_ITEM_DEICE) {
+						string status = "";
+						for (vector<string> deice : deiceList) {
+							if (deice[0] == callsign) {
+								status = deice[1];
+							}
+						}
+						ItemRGB = TAG_YELLOW;
+						strcpy_s(sItemString, 16, status.c_str());
+						}
 					}
 					else
 					{
@@ -3615,6 +3812,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
+						}
+						else if (ItemCode == TAG_ITEM_DEICE) {
+							string status = "";
+							for (vector<string> deice : deiceList) {
+								if (deice[0] == callsign) {
+									status = deice[1];
+								}
+							}
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
 						}
 					}
 				}
@@ -3689,6 +3896,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						strcpy_s(sItemString, 16, status.c_str());
 					}
+				}
+				else if (ItemCode == TAG_ITEM_DEICE) {
+					string status = "";
+					for (vector<string> deice : deiceList) {
+						if (deice[0] == callsign) {
+							status = deice[1];
+						}
+					}
+					ItemRGB = TAG_YELLOW;
+					strcpy_s(sItemString, 16, status.c_str());
 				}
 			}
 
@@ -4573,6 +4790,20 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						bool doRequest = false;
 						equalTTOT = false;
 						TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+						/* START Check stand de-ice */
+						bool standDeice = false;
+						for (vector<string> deice : deiceList) {
+							if (deice[0] == callsign) {
+								if (deice[1] == "STND") {
+									standDeice = true;
+								}
+							}
+						}
+						if (standDeice) {
+							int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc());
+							TSATfinal = calculateTime(TSATfinal, deIceTime);
+						}
+						/* END Check stand de-ice */
 						string TSAT = TSATfinal.c_str();
 						string TTOT = TTOTFinal.c_str();
 						if (plane.hasManualCtot) {
@@ -5322,6 +5553,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			checkCIDLater.erase(checkCIDLater.begin() + i);
 		}
 	}
+	//Remove from deiceList
+	for (size_t i = 0; i < deiceList.size(); i++)
+	{
+		if (callsign == deiceList[i][0]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 16");
+			}
+			deiceList.erase(deiceList.begin() + i);
+		}
+	}
 	deleteFlightStrips(callsign);
 	}
 	catch (const std::exception& e) {
@@ -5852,6 +6093,43 @@ string CDM::getFromXml(string xpath)
 	else {
 		return "";
 	}
+}
+
+string CDM::addDeIceTime(string taxiTime, string callsign, char wtc) {
+	bool isDeice = false;
+
+	for (vector<string> deice : deiceList) {
+		if (deice[0] == callsign){
+			if (deice[1] == "REM" || deice[1] == "STND") {
+				isDeice = true;
+			}
+		}
+	}
+
+	if (isDeice) {
+		if (isNumber(taxiTime)) {
+			int deIceTime = getDeIceTime(wtc);
+			return to_string(stoi(taxiTime) + deIceTime);
+		}
+	}
+	return taxiTime;
+}
+
+int CDM::getDeIceTime(char wtc) {
+	if (wtc == 'L') {
+		return deIceTimeL;
+	}
+	else if (wtc == 'M') {
+		return deIceTimeM;
+	}
+	else if (wtc == 'H') {
+		return deIceTimeH;
+	}
+	else if (wtc == 'J') {
+		return deIceTimeJ;
+	}
+	
+	return deIceTimeM;
 }
 
 string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
