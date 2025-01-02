@@ -72,6 +72,10 @@ CDM includes the following times:
   
   ![image](https://github.com/user-attachments/assets/0839e1d7-9f5a-4d95-98d3-950cb1cd299d)
 
+- De-Ice
+
+  ![image](https://github.com/user-attachments/assets/f557481f-5c16-4c12-a09e-871f818bc656)
+
 
 - Ready Start-up
 
@@ -120,6 +124,7 @@ CDM includes the following times:
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
+  - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
@@ -360,6 +365,16 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
   - Colors:
     - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> RSTUP is set.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) ``RED`` -> RSUP is NOT set.
+   
+- Column De-Ice: It modifies taxi time accordingly based on acft Wtc to adjust departure sequence with de-icing.
+  - Options:
+    - NONE: No extra EXOT minutes are added.
+    - REM: For a REMOTE de-ice. De-ice minutes are added to EXOT and in case of 20 min of EXOT, there will be a diference of 20 min between TSAT and TTOT.
+    - STND: For a STAND de-ice. De-ice minutes are added between TOBT and TSAT and between TSAT and TTOT, the normal taxi time applies.
+  - Functions:
+    - ``Toggle Ready Start-up function`` -> Sets NONE/REM/STND.
+  - Colors:
+    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REM (REMOTE) or STAND de-ice selected.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
   - Functions:
