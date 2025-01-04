@@ -7,6 +7,7 @@
 #include <fstream>
 #include <vector>
 #include <map>
+#include <chrono>
 #include <regex>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
@@ -257,6 +258,12 @@ public:
 	string getFlightStripInfo(CFlightPlan FlightPlan, int position);
 
 	void setFlightStripInfo(CFlightPlan FlightPlan, string text, int position);
+
+	void refreshActions1();
+
+	void refreshActions2();
+
+	void refreshActions3();
 
 	bool setMasterAirport(string airport, string position);
 

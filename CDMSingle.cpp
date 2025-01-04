@@ -32,9 +32,10 @@ string rateString;
 string lvoRateString;
 int expiredCTOTTime;
 bool defaultRate;
-int countTime;
-int countFetchServerTime;
-int countEcfmpTime;
+time_t countTime;
+time_t countFetchServerTime;
+time_t countTfcDisconnectionTime;
+time_t countEcfmpTime;
 int countTfcDisconnection;
 int refreshTime;
 bool addTime;
@@ -55,6 +56,9 @@ string myAtcCallsign;
 bool option_su_wait;
 string apikey;
 bool serverEnabled;
+bool refresh1;
+bool refresh2;
+bool refresh3;
 
 int deIceTimeL;
 int deIceTimeM;
@@ -236,9 +240,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	removeLog();
 
-	countTime = stoi(GetTimeNow());
-	countFetchServerTime = stoi(GetTimeNow());
-	countEcfmpTime = stoi(GetTimeNow());
+	countTime = std::time(nullptr);
+	countFetchServerTime = std::time(nullptr);
+	countEcfmpTime = std::time(nullptr);
+	countTfcDisconnectionTime = std::time(nullptr);
 	//countTime = stoi(GetTimeNow()) - refreshTime;
 	addTime = false;
 
@@ -338,6 +343,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Init reamrksOption
 	remarksOption = false;
+
+	//Init refreshActions
+	refresh1 = false;
+	refresh2 = false;
+	refresh3 = false;
 
 	//Init active actions
 	activeSetStatus = 0;
@@ -900,7 +910,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 		}
 		//Update times to slaves
-		countTime = stoi(GetTimeNow()) - (refreshTime+5);
+		countTime = std::time(nullptr) - (refreshTime+5);
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_TTOT) {
@@ -1107,7 +1117,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 
 		//Update times to slaves
-		countTime = stoi(GetTimeNow()) - refreshTime;
+		countTime = std::time(nullptr) - refreshTime;
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITCDT) {
@@ -1242,7 +1252,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 										difeobttobtList.push_back(fp.GetCallsign());
 									}
 									//Update times to slaves
-									countTime = stoi(GetTimeNow()) - refreshTime;
+									countTime = std::time(nullptr) - refreshTime;
 								}
 							}
 						}
@@ -1345,7 +1355,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								difeobttobtList.push_back(fp.GetCallsign());
 							}
 							//Update times to slaves
-							countTime = stoi(GetTimeNow()) - refreshTime;
+							countTime = std::time(nullptr) - refreshTime;
 						}
 					}
 				}
@@ -1396,13 +1406,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							slotList.erase(slotList.begin() + i);
 							setFlightStripInfo(fp, editedTOBT, 0);
 							//Update times to slaves
-							countTime = stoi(GetTimeNow()) - refreshTime;
+							countTime = std::time(nullptr) - refreshTime;
 						}
 					}
 					if (!found) {
 						setFlightStripInfo(fp, editedTOBT, 0);
 						//Update times to slaves
-						countTime = stoi(GetTimeNow()) - refreshTime;
+						countTime = std::time(nullptr) - refreshTime;
 					}
 
 					//Add to not modify TOBT if EOBT changes List
@@ -1509,7 +1519,8 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
 	string tsat = getFlightStripInfo(FlightPlan, 3);
 	if (tsat != "") {
 		disconnectionList.push_back(FlightPlan.GetCallsign());
-		countTfcDisconnection = stoi(GetTimeNow());
+		countTfcDisconnection = 1;
+		countTfcDisconnectionTime = std::time(nullptr);
 	}
 	else {
 		RemoveDataFromTfc(FlightPlan.GetCallsign());
@@ -3113,11 +3124,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						//Refresh CDM API every 30 seconds
-						int myNow = stoi(GetTimeNow());
+						time_t timeNow = std::time(nullptr);
 
 						//Remove disconnected planes after 5 min disconnected
 						if (countTfcDisconnection != -1) {
-							if (myNow - countTfcDisconnection > 300) {
+							if ((timeNow - countTfcDisconnectionTime) > 300) {
+								countTfcDisconnectionTime = timeNow;
 								countTfcDisconnection = -1;
 								disconnectTfcs();
 								pos = getPlanePosition(callsign);
@@ -3127,10 +3139,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						if (myNow - countFetchServerTime > 30) {
-							countFetchServerTime = myNow;
-							addLogLine("[AUTO] - REFRESH API");
-							std::thread t(&CDM::getCdmServerRestricted, this);
+						if ((timeNow - countFetchServerTime) > 30 && !refresh3) {
+							countFetchServerTime = timeNow;
+							std::thread t(&CDM::refreshActions3, this);
 							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA");
@@ -3138,10 +3149,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						//Refresh ecfmpData every 5 min
-						if (myNow - countEcfmpTime > 300) {
-							countEcfmpTime = myNow;
-							addLogLine("[AUTO] - REFRESH ECFMP");
-							std::thread t(&CDM::getEcfmpData, this);
+						if ((timeNow - countEcfmpTime) > 300 && !refresh2) {
+							countEcfmpTime = timeNow;
+							std::thread t(&CDM::refreshActions2, this);
 							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
@@ -3149,8 +3159,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						//Refresh times every x sec
-						if (myNow - countTime > refreshTime) {
-							countTime = myNow;
+						if ((timeNow - countTime) > refreshTime && !refresh1) {
+							countTime = timeNow;
 							addLogLine("[AUTO] - REFRESH CDM INTERNAL DATA");
 							//Order list according TTOT
 							slotList = recalculateSlotList(slotList);
@@ -3159,28 +3169,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							for (size_t t = 0; t < slotList.size(); t++) {
 								PushToOtherControllers(FlightPlanSelect(slotList[t].callsign.c_str()));
 							}
-
-							std::thread t(&CDM::saveData, this);
-							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING");
 								sendMessage("[DEBUG MESSAGE] - " + to_string(slotList.size()) + " Planes in the list");
 							}
 
-							std::thread t0(&CDM::getCdmServerStatus, this);
-							t0.detach();
-
-							//Execute background process in the background
-							std::thread t1(&CDM::backgroundProcess_recaulculate, this);
-							t1.detach();
+							std::thread t(&CDM::refreshActions1, this);
+							t.detach();
 						}
 					}
 				}
 				else {
 					// Refresh FlowData every 30 seconds
-					int myNow = stoi(GetTimeNow());
-					if (myNow - countFetchServerTime > 30) {
-						countFetchServerTime = myNow;
+					time_t timeNow = std::time(nullptr);
+					if ((timeNow - countFetchServerTime) > 30) {
+						countFetchServerTime = timeNow;
 						std::thread t(&CDM::getCdmServerRestricted, this);
 						t.detach();
 						if (debugMode) {
@@ -4539,7 +4542,6 @@ void CDM::backgroundProcess_recaulculate() {
 }
 
 Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind) {
-	addLogLine("Called refreshTimes...");
 	try {
 		bool equalTTOT = true;
 		bool correctTTOT = true;
@@ -5139,7 +5141,7 @@ void CDM::toggleReaMsg(CFlightPlan fp, bool deleteIfExist)
 	}
 
 	//Update times to slaves
-	countTime = stoi(GetTimeNow()) - (refreshTime);
+	countTime = std::time(nullptr) - (refreshTime);
 }
 
 void CDM::addTimeToList(int timeToAdd, string minTSAT) {
@@ -6222,8 +6224,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm refresh", sCommandLine)) {
 		addLogLine(sCommandLine);
 		sendMessage("Refreshing Now...");
-		countTime = stoi(GetTimeNow()) - refreshTime;
-		countFetchServerTime = stoi(GetTimeNow()) - 60;
+		countTime = std::time(nullptr) - refreshTime;
+		countFetchServerTime = std::time(nullptr) - 60;
 		return true;
 	}
 
@@ -6785,6 +6787,29 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
 			FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str());
 		}
 	}
+}
+
+void CDM::refreshActions1() {
+	refresh1 = true;
+	saveData();
+	getCdmServerStatus();
+	//Execute background process in the background
+	backgroundProcess_recaulculate();
+	refresh1 = false;
+}
+
+void CDM::refreshActions2() {
+	refresh2 = true;
+	addLogLine("[AUTO] - REFRESH ECFMP");
+	getEcfmpData();
+	refresh2 = false;
+}
+
+void CDM::refreshActions3() {
+	refresh3 = true;
+	addLogLine("[AUTO] - REFRESH API");
+	getCdmServerRestricted();
+	refresh3 = false;
 }
 
 //API requests
