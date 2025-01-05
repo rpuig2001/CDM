@@ -339,6 +339,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
 
+	apikey = "77f5dd88-da4a-4a23-90a4-296c3b5944e7";
 
 	//Init reamrksOption
 	remarksOption = false;
@@ -561,7 +562,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_EOBTTOTOBT) {
 		addLogLine("TRIGGER - TAG_FUNC_EOBTTOTOBT");
-		setFlightStripInfo(fp, formatTime(fp.GetFlightPlanData().GetEstimatedDepartureTime()), 0);
+		setFlightStripInfo(fp, formatTime(fp.GetFlightPlanData().GetEstimatedDepartureTime()), 2);
 		//Remove if added to not modify TOBT if EOBT changes List
 		for (size_t i = 0; i < difeobttobtList.size(); i++) {
 			if ((string)fp.GetCallsign() == difeobttobtList[i]) {
@@ -571,8 +572,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_ADDTSAC) {
 		addLogLine("TRIGGER - TAG_FUNC_ADDTSAC");
-		string annotTSAC = getFlightStripInfo(fp, 2);
-		string completeTOBT = getFlightStripInfo(fp, 0);
+		string annotTSAC = getFlightStripInfo(fp, 1);
+		string completeTOBT = getFlightStripInfo(fp, 2);
 		if (annotTSAC.empty() && !completeTOBT.empty()) {
 			//Get Time now
 			time_t rawtime;
@@ -616,20 +617,20 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					if (slotList[a].callsign == fp.GetCallsign()) {
 						string getTSAT = slotList[a].tsat;
 						if (getTSAT.length() >= 4) {
-							setFlightStripInfo(fp, getTSAT.substr(0, 4), 2);
+							setFlightStripInfo(fp, getTSAT.substr(0, 4), 1);
 						}
 					}
 				}
 			}
 		}
 		else {
-			setFlightStripInfo(fp, "", 2);
+			setFlightStripInfo(fp, "", 1);
 		}
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITTSAC) {
 		addLogLine("TRIGGER - TAG_FUNC_EDITTSAC");
-		OpenPopupEdit(Area, TAG_FUNC_NEWTSAC, getFlightStripInfo(fp, 2).c_str());
+		OpenPopupEdit(Area, TAG_FUNC_NEWTSAC, getFlightStripInfo(fp, 1).c_str());
 	}
 
 	else if (FunctionId == TAG_FUNC_NEWTSAC) {
@@ -644,7 +645,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 				if (hasNoNumber) {
-					setFlightStripInfo(fp, editedTSAC, 2);
+					setFlightStripInfo(fp, editedTSAC, 1);
 				}
 			}
 		}
@@ -653,7 +654,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_TOGGLEASRT || FunctionId == TAG_FUNC_READYSTARTUP) {
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_READYSTARTUP");
-			string annotAsrt = getFlightStripInfo(fp, 1);
+			string annotAsrt = getFlightStripInfo(fp, 0);
 			if (annotAsrt.empty()) {
 				//Get Time now
 				time_t rawtime;
@@ -670,10 +671,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					hour = "0" + hour.substr(0, 1);
 				}
 
-				setFlightStripInfo(fp, (hour + min), 1);
+				setFlightStripInfo(fp, (hour + min), 0);
 			}
 			else {
-				setFlightStripInfo(fp, "", 1);
+				setFlightStripInfo(fp, "", 0);
 			}
 		}
 	}
@@ -955,7 +956,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			AddPopupListElement("----------------", "", -1, false, 2, false);
 
 			//TSAC OPTIONS
-			string tsacvalue = getFlightStripInfo(fp, 2);
+			string tsacvalue = getFlightStripInfo(fp, 1);
 			if (tsacvalue.empty()) {
 				AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
 			}
@@ -966,7 +967,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			AddPopupListElement("----------------", "", -1, false, 2, false);
 
 			//ASRT OPTIONS
-			string asrtvalue = getFlightStripInfo(fp, 1);
+			string asrtvalue = getFlightStripInfo(fp, 0);
 			if (asrtvalue.empty()) {
 				AddPopupListElement("Set RSTUP State", "", TAG_FUNC_READYSTARTUP, false, 2, false);
 			}
@@ -1041,7 +1042,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_OPT_TSAC");
 			OpenPopupList(Area, "TSAC Options", 1);
-			string tsacvalue = getFlightStripInfo(fp, 2);
+			string tsacvalue = getFlightStripInfo(fp, 1);
 			if (tsacvalue.empty()) {
 				AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
 			}
@@ -1068,7 +1069,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				suWaitList.push_back(fp.GetCallsign());
 			}
 
-			setFlightStripInfo(fp, formatTime(GetActualTime()), 0);
+			setFlightStripInfo(fp, formatTime(GetActualTime()), 2);
 
 			//Get Time now
 			time_t rawtime;
@@ -1085,9 +1086,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				hour = "0" + hour.substr(0, 1);
 			}
 
-			string annotAsrt = getFlightStripInfo(fp, 1);
+			string annotAsrt = getFlightStripInfo(fp, 0);
 			if (annotAsrt.empty()) {
-				setFlightStripInfo(fp, (hour + min), 1);
+				setFlightStripInfo(fp, (hour + min), 0);
 			}
 
 			//Add to not modify TOBT if EOBT changes List
@@ -1169,7 +1170,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
 							// at the earlierst at present time + EXOT
 							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
-								setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 0);
+								setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
 								for (size_t i = 0; i < slotList.size(); i++)
 								{
 									if ((string)fp.GetCallsign() == slotList[i].callsign && !slotList[i].hasManualCtot) {
@@ -1232,7 +1233,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 								// at the earlierst at present time + EXOT
 								if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
-									setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 0);
+									setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
 									for (size_t i = 0; i < slotList.size(); i++)
 									{
 										if (slotList[i].callsign == fp.GetCallsign()) {
@@ -1332,7 +1333,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 							// at the earlierst at present time (now + 5min) + EXOT
 							if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
-								setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 0);
+								setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
 								for (size_t i = 0; i < slotList.size(); i++)
 								{
 									if ((string)fp.GetCallsign() == slotList[i].callsign && !slotList[i].hasManualCtot) {
@@ -1382,13 +1383,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_EDITTOBT) {
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_EDITTOBT");
-			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, getFlightStripInfo(fp, 0).c_str());
+			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, getFlightStripInfo(fp, 2).c_str());
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NEWTOBT) {
 		addLogLine("TRIGGER - TAG_FUNC_NEWTOBT");
 		string editedTOBT = ItemString;
-		if (getFlightStripInfo(fp, 0) != editedTOBT) {
+		if (getFlightStripInfo(fp, 2) != editedTOBT) {
 			bool hasNoNumber = true;
 			if (editedTOBT.length() == 4) {
 				for (size_t i = 0; i < editedTOBT.length(); i++) {
@@ -1403,13 +1404,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						if (slotList[i].callsign == fp.GetCallsign()) {
 							found = true;
 							slotList.erase(slotList.begin() + i);
-							setFlightStripInfo(fp, editedTOBT, 0);
+							setFlightStripInfo(fp, editedTOBT, 2);
 							//Update times to slaves
 							countTime = std::time(nullptr) - refreshTime;
 						}
 					}
 					if (!found) {
-						setFlightStripInfo(fp, editedTOBT, 0);
+						setFlightStripInfo(fp, editedTOBT, 2);
 						//Update times to slaves
 						countTime = std::time(nullptr) - refreshTime;
 					}
@@ -1428,12 +1429,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 			else if (editedTOBT.empty()) {
 				setFlightStripInfo(fp, "", 0);
-				setFlightStripInfo(fp, "", 1);
+				setFlightStripInfo(fp, "", 2);
 				for (size_t i = 0; i < slotList.size(); i++) {
 					if ((string)fp.GetCallsign() == slotList[i].callsign) {
 						slotList.erase(slotList.begin() + i);
 						//Update times to slaves
 						setFlightStripInfo(fp, "", 3);
+						setFlightStripInfo(fp, "", 4);
 						PushToOtherControllers(fp);
 					}
 				}
@@ -1611,7 +1613,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			bool isValidToCalculateEventMode = false;
-			string tobt = getFlightStripInfo(FlightPlan, 0);
+			string tobt = getFlightStripInfo(FlightPlan, 2);
 
 			//If realMode is activated, then it will set TOBT from the EOBT auromatically
 			if (realMode) {
@@ -1628,7 +1630,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (disconnectionList[i] == callsign) {
 						disconnectionList.erase(disconnectionList.begin() + i);
 						if (aircraftFind) {
-							setFlightStripInfo(FlightPlan, formatTime(slotList[pos].eobt), 0);
+							setFlightStripInfo(FlightPlan, formatTime(slotList[pos].eobt), 2);
 						}
 						isValidToCalculateEventMode = true;
 					}
@@ -1821,7 +1823,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (realMode) {
 						if (tobt.length() > 0 == false) {
 							string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-							setFlightStripInfo(FlightPlan, mySetEobt, 0);
+							setFlightStripInfo(FlightPlan, mySetEobt, 2);
 						}
 					}
 
@@ -1872,7 +1874,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 
 								if (!foundInEobtTobtList) {
-									setFlightStripInfo(FlightPlan, formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()), 0);
+									setFlightStripInfo(FlightPlan, formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()), 2);
 								}
 							}
 						}
@@ -1955,7 +1957,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
 						{
-							string annotTSAC = getFlightStripInfo(FlightPlan, 2);
+							string annotTSAC = getFlightStripInfo(FlightPlan, 1);
 							if (!annotTSAC.empty()) {
 								ItemRGB = TAG_GREEN;
 								strcpy_s(sItemString, 16, "\xA4");
@@ -2410,8 +2412,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
 								//Sync TTOT
 								if (aircraftFind) {
-									setFlightStripInfo(FlightPlan, slotList[pos].tsat, 3);
-									setFlightStripInfo(FlightPlan, slotList[pos].ttot, 4);
+									if (string(TSAT) != slotList[pos].tsat || string(TTOT) != slotList[pos].ttot) {
+										setFlightStripInfo(FlightPlan, slotList[pos].tsat, 3);
+										setFlightStripInfo(FlightPlan, slotList[pos].ttot, 4);
+									}
 								}
 								else if (aircraftFind && !stsDepa) {
 									string myTSAT = TSAT;
@@ -2422,7 +2426,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 								//Set ASRT if SU_ISSET
 								if (SU_ISSET) {
-									string myASRTText = getFlightStripInfo(FlightPlan, 1);
+									string myASRTText = getFlightStripInfo(FlightPlan, 0);
 									if (myASRTText.empty()) {
 										//Get Time now
 										time_t rawtime;
@@ -2439,12 +2443,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											hour = "0" + hour.substr(0, 1);
 										}
 
-										setFlightStripInfo(FlightPlan, (hour + min), 1);
+										setFlightStripInfo(FlightPlan, (hour + min), 0);
 									}
 								}
 							}
 
-						string ASRTtext = getFlightStripInfo(FlightPlan, 1);
+						string ASRTtext = getFlightStripInfo(FlightPlan, 0);
 
 						//If oldTOBT
 						bool oldTOBT = false;
@@ -2474,7 +2478,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string getTTOT = getFlightStripInfo(FlightPlan, 4);
 							if (oldTOBT && !getTTOT.empty()) {
 								OutOfTsat.push_back(callsign + "," + EOBT);
-								setFlightStripInfo(FlightPlan, "", 1);
+								setFlightStripInfo(FlightPlan, "", 0);
 								setFlightStripInfo(FlightPlan, "", 2); //Test
 								setFlightStripInfo(FlightPlan, "", 3);
 								setFlightStripInfo(FlightPlan, "", 4);
@@ -2542,7 +2546,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						string getTTOT = getFlightStripInfo(FlightPlan, 4);
 						if (oldTSAT && !correctState && !oldTOBT && invalidateTSAT_Option && !getTTOT.empty()) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
-							setFlightStripInfo(FlightPlan, "", 1);
+							setFlightStripInfo(FlightPlan, "", 0);
 							setFlightStripInfo(FlightPlan, "", 2); //Test
 							setFlightStripInfo(FlightPlan, "", 3);
 							setFlightStripInfo(FlightPlan, "", 4);
@@ -2667,7 +2671,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							//TSAC
 							bool TSACNotTSAT = false;
-							string annotTSAC = getFlightStripInfo(FlightPlan, 2);
+							string annotTSAC = getFlightStripInfo(FlightPlan, 1);
 
 							if (!annotTSAC.empty()) {
 								string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
@@ -2706,7 +2710,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							//TSAC
 							bool TSACNotTSAT = false;
-							string annotTSAC = getFlightStripInfo(FlightPlan, 2);
+							string annotTSAC = getFlightStripInfo(FlightPlan, 1);
 
 							if (!annotTSAC.empty()) {
 								string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
@@ -2989,7 +2993,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_ASRT)
 						{
-							string ASRTtext = getFlightStripInfo(FlightPlan, 1);
+							string ASRTtext = getFlightStripInfo(FlightPlan, 0);
 							if (!ASRTtext.empty()) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								if (SU_ISSET) {
@@ -3008,7 +3012,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_READYSTARTUP)
 						{
-							string ASRTtext = getFlightStripInfo(FlightPlan, 1);
+							string ASRTtext = getFlightStripInfo(FlightPlan, 0);
 							if (!ASRTtext.empty()) {
 								ItemRGB = TAG_GREEN;
 								strcpy_s(sItemString, 16, "RSTUP");
@@ -3227,7 +3231,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 					string checkEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-					string checkTOBT = getFlightStripInfo(FlightPlan, 0);
+					string checkTOBT = getFlightStripInfo(FlightPlan, 2);
 					if (!foundIndifeobttobtList) {
 						if (checkEOBT != checkTOBT && !checkTOBT.empty()) {
 							difeobttobtList.push_back(FlightPlan.GetCallsign());
@@ -3337,7 +3341,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						// TSAC
 						bool TSACNotTSAT = false;
-						string annotTSAC = getFlightStripInfo(FlightPlan, 2);
+						string annotTSAC = getFlightStripInfo(FlightPlan, 1);
 
 						if (!annotTSAC.empty()) {
 							string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
@@ -3459,7 +3463,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
 						{
-							string annotTSAC = getFlightStripInfo(FlightPlan, 2);
+							string annotTSAC = getFlightStripInfo(FlightPlan, 1);
 							if (!annotTSAC.empty()) {
 								if (TSACNotTSAT) {
 									ItemRGB = TAG_ORANGE;
@@ -3629,7 +3633,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_ASRT)
 						{
-							string ASRTtext = getFlightStripInfo(FlightPlan, 1);
+							string ASRTtext = getFlightStripInfo(FlightPlan, 0);
 							if (!ASRTtext.empty()) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								if (SU_ISSET) {
@@ -3648,7 +3652,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_READYSTARTUP)
 						{
-							string ASRTtext = getFlightStripInfo(FlightPlan, 1);
+							string ASRTtext = getFlightStripInfo(FlightPlan, 0);
 							if (!ASRTtext.empty()) {
 								ItemRGB = TAG_GREEN;
 								strcpy_s(sItemString, 16, "RSTUP");
@@ -4943,6 +4947,7 @@ void CDM::deleteFlightStrips(string callsign)
 			setFlightStripInfo(fp, "", 1);
 			setFlightStripInfo(fp, "", 2);
 			setFlightStripInfo(fp, "", 3);
+			setFlightStripInfo(fp, "", 4);
 		}
 	}
 	catch (const std::exception& e) {
@@ -6771,7 +6776,7 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
 		// ASRT/TSAC/TOBT/TSAT/TTOT
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		if (annotation == "") {
-			annotation = "////";
+			annotation = "/////";
 		}
 		vector<string> values = split(annotation, '/');
 
