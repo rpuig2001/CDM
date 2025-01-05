@@ -5614,6 +5614,7 @@ void CDM::getEcfmpData() {
 		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD ECFMP DATA...");
+			addLogLine("UNABLE TO LOAD ECFMP DATA...");
 		}
 		else {
 			Json::Reader reader;
