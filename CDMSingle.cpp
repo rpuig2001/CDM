@@ -339,7 +339,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
 
-	apikey = "77f5dd88-da4a-4a23-90a4-296c3b5944e7";
+	
 
 	//Init reamrksOption
 	remarksOption = false;
