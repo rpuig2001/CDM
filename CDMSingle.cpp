@@ -2479,7 +2479,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (oldTOBT && !getTTOT.empty()) {
 								OutOfTsat.push_back(callsign + "," + EOBT);
 								setFlightStripInfo(FlightPlan, "", 0);
-								setFlightStripInfo(FlightPlan, "", 2); //Test
 								setFlightStripInfo(FlightPlan, "", 3);
 								setFlightStripInfo(FlightPlan, "", 4);
 								//Update CDM-API
@@ -2547,7 +2546,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (oldTSAT && !correctState && !oldTOBT && invalidateTSAT_Option && !getTTOT.empty()) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
 							setFlightStripInfo(FlightPlan, "", 0);
-							setFlightStripInfo(FlightPlan, "", 2); //Test
 							setFlightStripInfo(FlightPlan, "", 3);
 							setFlightStripInfo(FlightPlan, "", 4);
 							
