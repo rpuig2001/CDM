@@ -183,6 +183,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Register Others
 	RegisterTagItemType("Flow Message", TAG_ITEM_FLOW_MESSAGE);
 	RegisterTagItemType("TimeNow to TSAT diff", NOW_TSAT_DIFF);
+	RegisterTagItemType("TimeNow to TTOT diff", NOW_TTOT_DIFF);
+	RegisterTagItemType("TimeNow to CTOT diff", NOW_CTOT_DIFF);
 
 	// Register Tag Item "CDM-CTOT"
 	RegisterTagItemType("CTOT", TAG_ITEM_CTOT);
@@ -1980,28 +1982,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, "I");
 						}
-						else if (ItemCode == TAG_ITEM_CTOT)
-						{
-							bool inreaList = false;
-							for (string s : reaCTOTSent) {
-								if (s == callsign) {
-									inreaList = true;
-								}
-							}
-
-							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot) {
-									if (slotList[pos].ctot == "") {
-										ItemRGB = TAG_ORANGE;
-										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
-									}
-									else {
-										ItemRGB = TAG_CTOT;
-										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
-									}
-								}
-							}
-						}
 						else if (ItemCode == TAG_ITEM_EV_CTOT) {
 							bool inEvCtotsList = false;
 							string slot = "";
@@ -2842,7 +2822,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (showData) {
 								if (aircraftFind) {
-									string value = getDiffNowTSAT(slotList[pos].tsat);
+									string value = getDiffNowTime(slotList[pos].tsat);
 
 									if (SU_ISSET) {
 										ItemRGB = SU_SET_COLOR;
@@ -2878,11 +2858,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 								}
 							}
-							else
-							{
-								ItemRGB = TAG_GREY;
-								strcpy_s(sItemString, 16, "....");
-							}
 						}
 						else if (ItemCode == TAG_ITEM_TTOT)
 						{
@@ -2908,6 +2883,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							{
 								ItemRGB = TAG_GREY;
 								strcpy_s(sItemString, 16, "....");
+							}
+						}
+						else if (ItemCode == NOW_TTOT_DIFF)
+						{
+							if (showData) {
+								string value = getDiffNowTime(slotList[pos].ttot);
+								if (notYetEOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREY;
+									strcpy_s(sItemString, 16, "~");
+								}
+								else if (moreLessFive || lastMinute) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_TTOT;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+								else if (value.length() >= 4) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_TTOT;
+									strcpy_s(sItemString, 16, value.c_str());
+								}
 							}
 						}
 						else if (ItemCode == TAG_ITEM_ASAT)
@@ -3078,6 +3074,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							{
 								ItemRGB = TAG_GREY;
 								strcpy_s(sItemString, 16, "....");
+							}
+						}
+						else if (ItemCode == NOW_CTOT_DIFF)
+						{
+							if (showData) {
+								bool inreaList = false;
+								for (string s : reaCTOTSent) {
+									if (s == callsign) {
+										inreaList = true;
+									}
+								}
+
+								if (aircraftFind) {
+									if (slotList[pos].hasManualCtot) {
+										string value = getDiffNowTime(slotList[pos].ttot);
+										if (slotList[pos].ctot == "") {
+											ItemRGB = TAG_ORANGE;
+										}
+										else {
+											ItemRGB = TAG_CTOT;
+										}
+										strcpy_s(sItemString, 16, value.c_str());
+									}
+								}
 							}
 						}
 						else if (ItemCode == TAG_ITEM_EV_CTOT) {
@@ -3554,7 +3574,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (ItemCode == NOW_TSAT_DIFF)
 						{
 							if (aircraftFind) {
-								string value = getDiffNowTSAT(slotList[pos].tsat);
+								string value = getDiffNowTime(slotList[pos].tsat);
 								if (SU_ISSET) {
 									ItemRGB = SU_SET_COLOR;
 									strcpy_s(sItemString, 16, value.c_str());
@@ -3599,6 +3619,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								else if (moreLessFive || lastMinute) {
 									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+								}
+								else {
+									ItemRGB = TAG_TTOT;
+									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+								}
+							}
+						}
+						else if (ItemCode == NOW_TTOT_DIFF)
+						{
+							if (TTOTString.length() > 0) {
+								string value = getDiffNowTime(slotList[pos].ttot);
+								if (notYetEOBT) {
+									ItemRGB = TAG_GREY;
+									strcpy_s(sItemString, 16, "~");
+								}
+								else if (moreLessFive || lastMinute) {
+									ItemRGB = TAG_TTOT;
+									strcpy_s(sItemString, 16, value.c_str());
 								}
 								else {
 									ItemRGB = TAG_TTOT;
@@ -3704,6 +3742,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 						}
+						else if (ItemCode == NOW_CTOT_DIFF)
+						{
+							bool inreaList = false;
+							for (string s : reaCTOTSent) {
+								if (s == callsign) {
+									inreaList = true;
+								}
+							}
+
+							if (aircraftFind) {
+								if (slotList[pos].hasManualCtot) {
+									string value = getDiffNowTime(slotList[pos].ttot);
+									if (slotList[pos].ctot == "") {
+										ItemRGB = TAG_ORANGE;
+									}
+									else {
+										ItemRGB = TAG_CTOT;
+									}
+									strcpy_s(sItemString, 16, value.c_str());
+								}
+							}
+						}
 						else if (ItemCode == TAG_ITEM_EV_CTOT) {
 							bool inEvCtotsList = false;
 							string slot = "";
@@ -3781,6 +3841,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										ItemRGB = TAG_CTOT;
 									}
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+							}
+						}
+						else if (ItemCode == NOW_CTOT_DIFF)
+						{
+							bool inreaList = false;
+							for (string s : reaCTOTSent) {
+								if (s == callsign) {
+									inreaList = true;
+								}
+							}
+
+							if (aircraftFind) {
+								if (slotList[pos].hasManualCtot) {
+									string value = getDiffNowTime(slotList[pos].ttot);
+									if (slotList[pos].ctot == "") {
+										ItemRGB = TAG_ORANGE;
+									}
+									else {
+										ItemRGB = TAG_CTOT;
+									}
+									strcpy_s(sItemString, 16, value.c_str());
 								}
 							}
 						}
@@ -3868,6 +3950,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 				}
+				else if (ItemCode == NOW_CTOT_DIFF)
+				{
+					bool inreaList = false;
+					for (string s : reaCTOTSent) {
+						if (s == callsign) {
+							inreaList = true;
+						}
+					}
+
+					if (aircraftFind) {
+						if (slotList[pos].hasManualCtot) {
+							string value = getDiffNowTime(slotList[pos].ttot);
+							if (slotList[pos].ctot == "") {
+								ItemRGB = TAG_ORANGE;
+							}
+							else {
+								ItemRGB = TAG_CTOT;
+							}
+							strcpy_s(sItemString, 16, value.c_str());
+						}
+					}
+				}
 				else if (ItemCode == TAG_ITEM_EV_CTOT) {
 					bool inEvCtotsList = false;
 					string slot = "";
@@ -3936,6 +4040,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 						ItemRGB = TAG_CTOT;
 						strcpy_s(sItemString, 16, sr.ctot.c_str());
+					}
+				}
+			}
+			else if (ItemCode == NOW_CTOT_DIFF)
+			{
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+						string value = getDiffNowTime(sr.ctot);
+						ItemRGB = TAG_CTOT;
+						strcpy_s(sItemString, 16, value.c_str());
 					}
 				}
 			}
@@ -5612,7 +5726,7 @@ void CDM::getEcfmpData() {
 		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD ECFMP DATA...");
-			addLogLine("UNABLE TO LOAD ECFMP DATA: rc=" + responseCode);
+			addLogLine("UNABLE TO LOAD ECFMP DATA: rc=" + to_string(responseCode));
 		}
 		else {
 			Json::Reader reader;
@@ -5733,7 +5847,7 @@ void CDM::saveData() {
 
 								string str;
 								if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
-									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ttot.substr(0, 4) + "," + plane.flowReason + ",";
+									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ctot.substr(0, 4) + "," + plane.flowReason + ",";
 								} else if (plane.hasManualCtot && plane.ttot.length() >= 4){
 									str = plane.callsign + "," + plane.eobt + "," + plane.tsat + "," + plane.ttot + "," + plane.ttot.substr(0,4) + ",MAN CTOT" + ",";
 								}
@@ -6168,35 +6282,38 @@ string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
 	}
 }
 
-string CDM::getDiffNowTSAT(string TSAT) {
+string CDM::getDiffNowTime(string time) {
 	try {
 		string timeNow = GetTimeNow();
-		if (TSAT.length() < 4 || timeNow.length() < 4) {
+		if (time == "") {
+			return "";
+		}
+		if (time.length() < 4 || timeNow.length() < 4) {
 			return "0";
 		}
-		if (timeNow.substr(0, 4) == TSAT.substr(0, 4)) {
+		if (timeNow.substr(0, 4) == time.substr(0, 4)) {
 			return "0";
 		}
 
-		int tsat_hours = stoi(TSAT.substr(0, 2));
-		int tsat_minutes = stoi(TSAT.substr(2, 2));
+		int time_hours = stoi(time.substr(0, 2));
+		int time_minutes = stoi(time.substr(2, 2));
 		int timeNow_hours = stoi(timeNow.substr(0, 2));
 		int timeNow_minutes = stoi(timeNow.substr(2, 2));
 
-		int tsat_total_minutes = tsat_hours * 60 + tsat_minutes;
+		int time_total_minutes = time_hours * 60 + time_minutes;
 		int timeNow_total_minutes = timeNow_hours * 60 + timeNow_minutes;
 
-		if (TSAT > timeNow) {
-			return to_string(timeNow_total_minutes - tsat_total_minutes);
+		if (time > timeNow) {
+			return to_string(timeNow_total_minutes - time_total_minutes);
 		}
-		return "+" + to_string(timeNow_total_minutes - tsat_total_minutes);
+		return "+" + to_string(timeNow_total_minutes - time_total_minutes);
 	}
 	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception getDiffNowTSAT: " + (string)e.what());
+		addLogLine("ERROR: Unhandled exception getDiffNowTTOT: " + (string)e.what());
 		return "0";
 	}
 	catch (...) {
-		addLogLine("ERROR: Unhandled exception getDiffNowTSAT");
+		addLogLine("ERROR: Unhandled exception getDiffNowTTOT");
 		return "0";
 	}
 }

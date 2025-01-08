@@ -19,6 +19,8 @@ const int TAG_ITEM_TSAT_TOBT_DIFF = 16;
 const int NOW_TSAT_DIFF = 17;
 const int TAG_ITEM_NETWORK_STATUS = 18;
 const int TAG_ITEM_DEICE = 19;
+const int NOW_TTOT_DIFF = 20;
+const int NOW_CTOT_DIFF = 21;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
