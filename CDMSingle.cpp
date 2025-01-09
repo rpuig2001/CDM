@@ -4095,7 +4095,7 @@ bool CDM::getRateFromUrl(string url) {
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 		result = curl_easy_perform(curl);
 		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 		curl_easy_cleanup(curl);
@@ -5717,7 +5717,7 @@ void CDM::getEcfmpData() {
 			curl_easy_setopt(curl, CURLOPT_URL, flowRestrictionsUrl.c_str());
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
 			result = curl_easy_perform(curl);
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 			curl_easy_cleanup(curl);
@@ -5726,7 +5726,7 @@ void CDM::getEcfmpData() {
 		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD ECFMP DATA...");
-			addLogLine("UNABLE TO LOAD ECFMP DATA: rc=" + to_string(responseCode));
+			addLogLine("UNABLE TO LOAD ECFMP DATA: rc=" + to_string(responseCode) + " result=" + to_string(result));
 		}
 		else {
 			Json::Reader reader;
@@ -6017,7 +6017,7 @@ int CDM::GetVersion() {
 		curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+		curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 		result = curl_easy_perform(curl);
 		curl_easy_cleanup(curl);
 	}
@@ -6050,7 +6050,7 @@ bool CDM::getCtotsFromUrl(string code)
 			curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl.c_str());
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 			result = curl_easy_perform(curl);
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 			curl_easy_cleanup(curl);
@@ -6098,7 +6098,7 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 			curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 			result = curl_easy_perform(curl);
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 			curl_easy_cleanup(curl);
@@ -6956,7 +6956,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 				curl_easy_setopt(curl, CURLOPT_POST, 1L);
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 				result = curl_easy_perform(curl);
 				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 				curl_easy_cleanup(curl);
@@ -7026,7 +7026,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
 			curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 			curl_easy_setopt(curl, CURLOPT_POST, true);
 			curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+			curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 			result = curl_easy_perform(curl);
 			curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 			curl_easy_cleanup(curl);
@@ -7102,7 +7102,7 @@ bool CDM::removeAllMasterAirports(string position) {
 				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 				curl_easy_setopt(curl, CURLOPT_POST, true);
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 				result = curl_easy_perform(curl);
 				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 				curl_easy_cleanup(curl);
@@ -7163,7 +7163,7 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 				curl_easy_setopt(curl, CURLOPT_POST, true);
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 				result = curl_easy_perform(curl);
 				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 				curl_easy_cleanup(curl);
@@ -7206,7 +7206,7 @@ bool CDM::setEvCtot(string callsign) {
 				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
 				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
 				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 5);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10);
 				result = curl_easy_perform(curl);
 				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 				curl_easy_cleanup(curl);
