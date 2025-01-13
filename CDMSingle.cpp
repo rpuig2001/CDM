@@ -1686,14 +1686,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (depaFound) {
-								//Check day && Month
-								string dayMonth = GetDateMonthNow();
-								if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(ecfmpData[z].valid_date.substr(0, ecfmpData[z].valid_date.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(ecfmpData[z].valid_date.substr(ecfmpData[z].valid_date.find("/") + 1))) {
-									//Check valid time
-									int timeNow = stoi(GetActualTime());
-									if (stoi(ecfmpData[z].valid_time.substr(0, ecfmpData[z].valid_time.find("-"))) <= timeNow && stoi(ecfmpData[z].valid_time.substr(ecfmpData[z].valid_time.find("-") + 1)) >= timeNow) {
-										hasEcfmpRestriction = 1;
-										myEcfmp = ecfmpData[z];
+								bool waypointFound = false;
+								if (ecfmpData[z].waypoints.empty()) {
+									waypointFound = true;
+								}
+								for (string s : ecfmpData[z].waypoints) {
+									string item15 = FlightPlan.GetFlightPlanData().GetRoute();
+									if (item15.find(s) != string::npos) {
+										waypointFound = true;
+									}
+								}
+
+								if (waypointFound) {
+									//Check day && Month
+									string dayMonth = GetDateMonthNow();
+									if (stoi(dayMonth.substr(0, dayMonth.find("-"))) == stoi(ecfmpData[z].valid_date.substr(0, ecfmpData[z].valid_date.find("/"))) && stoi(dayMonth.substr(dayMonth.find("-") + 1)) == stoi(ecfmpData[z].valid_date.substr(ecfmpData[z].valid_date.find("/") + 1))) {
+										//Check valid time
+										int timeNow = stoi(GetActualTime());
+										if (stoi(ecfmpData[z].valid_time.substr(0, ecfmpData[z].valid_time.find("-"))) <= timeNow && stoi(ecfmpData[z].valid_time.substr(ecfmpData[z].valid_time.find("-") + 1)) >= timeNow) {
+											hasEcfmpRestriction = 1;
+											myEcfmp = ecfmpData[z];
+										}
 									}
 								}
 							}
@@ -2299,6 +2312,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											for (size_t z = 0; z < slotList.size(); z++)
 											{
 												string destFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+												string routeFound = FlightPlanSelect(slotList[z].callsign.c_str()).GetFlightPlanData().GetRoute();
 												bool validToAdd = false;
 												for (string apt : myEcfmp.ADES) {
 													if (apt.find(destFound) != string::npos) {
@@ -2314,7 +2328,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 													}
 												}
 												if (validToAdd) {
-													sameDestList.push_back(slotList[z]);
+													validToAdd = false;
+													if (myEcfmp.waypoints.empty()) {
+														validToAdd = true;
+													}
+													for (string wpt : myEcfmp.waypoints) {
+														if (routeFound.find(wpt) != string::npos) {
+															validToAdd = true;
+														}
+													}
+													if (validToAdd) {
+														sameDestList.push_back(slotList[z]);
+													}
 												}
 											}
 
@@ -3312,7 +3337,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						if (oldTSAT && !correctState) {
-							OutOfTsat.push_back(callsign + "," + EOBT);
+							bool alreadyInList = false;
+							for (size_t i = 0; i < OutOfTsat.size(); i++)
+							{
+								if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+									alreadyInList = true;
+								}
+							}
+
+							if (!alreadyInList) {
+								OutOfTsat.push_back(callsign + "," + EOBT);
+							}
 						}
 
 						string completeEOBT = (string)EOBT;
@@ -4863,6 +4898,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						for (size_t z = 0; z < planes.size(); z++)
 						{
 							string destFound = FlightPlanSelect(planes[z].callsign.c_str()).GetFlightPlanData().GetDestination();
+							string routeFound = FlightPlanSelect(planes[z].callsign.c_str()).GetFlightPlanData().GetRoute();
 							bool validToAdd = false;
 							for (string apt : myEcfmp.ADES) {
 								if (apt.find(destFound) != string::npos) {
@@ -4878,7 +4914,18 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 								}
 							}
 							if (validToAdd) {
-								sameDestList.push_back(planes[z]);
+								validToAdd = false;
+								if (myEcfmp.waypoints.empty()) {
+									validToAdd = true;
+								}
+								for (string wpt : myEcfmp.waypoints) {
+									if (routeFound.find(wpt) != string::npos) {
+										validToAdd = true;
+									}
+								}
+								if (validToAdd) {
+									sameDestList.push_back(planes[z]);
+								}
 							}
 						}
 
@@ -5618,9 +5665,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 10");
 			}
 			OutOfTsat.erase(OutOfTsat.begin() + i);
-			//Update CDM-API
-			std::thread t(&CDM::setCdmSts, this, callsign, "");
-			t.detach();
 		}
 	}
 	//Remove from setTSATlater
@@ -5784,6 +5828,7 @@ void CDM::getEcfmpData() {
 				//Get Filters
 				vector<string> ADEP;
 				vector<string> ADES;
+				vector<string> waypoints;
 
 				for (size_t a = 0; a < measures[i]["filters"].size(); a++) {
 					string typeMeasureFilter = fastWriter.write(measures[i]["filters"][a]["type"]);
@@ -5804,9 +5849,20 @@ void CDM::getEcfmpData() {
 							ADES.push_back(myApt);
 						}
 					}
+					else if (typeMeasureFilter.find("waypoint") != std::string::npos) {
+						for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
+							string waypoint = fastWriter.write(measures[i]["filters"][a]["value"][z]);
+							waypoint.erase(std::remove(waypoint.begin(), waypoint.end(), '"'));
+							boost::to_upper(waypoint);
+							if (waypoint.size() > 2) {
+								waypoint = waypoint.substr(0, waypoint.size() - 2);
+							}
+							waypoints.push_back(waypoint);
+						}
+					}
 				}
 
-				EcfmpRestriction flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES);
+				EcfmpRestriction flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure, valueMeasure, ADEP, ADES, waypoints);
 				if ((flow.type.find("minimum_departure_interval") != std::string::npos || flow.type.find("per_hour") != std::string::npos) && isWithdrawn == false) {
 					flowDataTemp.push_back(flow);
 				}
