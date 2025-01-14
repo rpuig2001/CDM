@@ -1939,6 +1939,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (correctState) {
 								ASATtext = formatTime(hour + min);
 								asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
+								t.detach();
 								ASATFound = true;
 							}
 						}
@@ -1948,6 +1950,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (!correctState) {
 								asatList.erase(asatList.begin() + ASATpos);
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
+								t.detach();
 								ASATFound = false;
 							}
 						}
@@ -2951,6 +2955,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (correctState) {
 								ASATtext = hour + min;
 								asatList.push_back(callsign + "," + ASATtext);
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
+								t.detach();
 								ASATFound = true;
 							}
 						}
@@ -2960,6 +2966,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (!correctState) {
 								asatList.erase(asatList.begin() + ASATpos);
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
+								t.detach();
 								ASATFound = false;
 							}
 						}
@@ -3065,6 +3073,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										ItemRGB = TAG_YELLOW;
 										strcpy_s(sItemString, 16, message.c_str());
 									}
+									else if (slotList[pos].hasEcfmpRestriction) {
+										ItemRGB = TAG_YELLOW;
+										string message = slotList[pos].ecfmpRestriction.ident;
+										strcpy_s(sItemString, 16, message.c_str());
+									}
 								}
 							}
 							else
@@ -3076,13 +3089,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
 							if (showData) {
-								bool inreaList = false;
-								for (string s : reaCTOTSent) {
-									if (s == callsign) {
-										inreaList = true;
-									}
-								}
-
 								if (aircraftFind) {
 									if (slotList[pos].hasManualCtot) {
 										if (slotList[pos].ctot == "") {
@@ -3091,6 +3097,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											ItemRGB = TAG_CTOT;
 										}
+										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+									}
+									else if (slotList[pos].hasEcfmpRestriction) {
+										ItemRGB = TAG_RED;
 										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 									}
 								}
@@ -3431,6 +3441,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (correctState) {
 								ASATtext = hour + min;
 								asatList.push_back(callsign + "," + ASATtext);
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
+								t.detach();
 								ASATFound = true;
 							}
 						}
@@ -3441,6 +3453,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (!correctState) {
 								if (ASATpos < asatList.size()) { // Check if ASATpos is within bounds
 									asatList.erase(asatList.begin() + ASATpos);
+									std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
+									t.detach();
 									ASATFound = false;
 								}
 							}
@@ -3754,17 +3768,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, message.c_str());
 								}
+								else if (slotList[pos].hasEcfmpRestriction) {
+									ItemRGB = TAG_YELLOW;
+									string message = slotList[pos].ecfmpRestriction.ident;
+									strcpy_s(sItemString, 16, message.c_str());
+								}
 							}
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
-							bool inreaList = false;
-							for (string s : reaCTOTSent) {
-								if (s == callsign) {
-									inreaList = true;
-								}
-							}
-
 							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
 									if (slotList[pos].ctot == "") {
@@ -3773,6 +3785,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									else {
 										ItemRGB = TAG_CTOT;
 									}
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+								else if (slotList[pos].hasEcfmpRestriction) {
+									ItemRGB = TAG_RED;
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 								}
 							}
@@ -3860,13 +3876,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
-							bool inreaList = false;
-							for (string s : reaCTOTSent) {
-								if (s == callsign) {
-									inreaList = true;
-								}
-							}
-
 							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
 									if (slotList[pos].ctot == "") {
@@ -3875,6 +3884,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									else {
 										ItemRGB = TAG_CTOT;
 									}
+									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+								}
+								else if (slotList[pos].hasEcfmpRestriction) {
+									ItemRGB = TAG_RED;
 									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 								}
 							}
@@ -3966,13 +3979,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 				else if (ItemCode == TAG_ITEM_CTOT)
 				{
-					bool inreaList = false;
-					for (string s : reaCTOTSent) {
-						if (s == callsign) {
-							inreaList = true;
-						}
-					}
-
 					if (aircraftFind) {
 						if (slotList[pos].hasManualCtot) {
 							if (slotList[pos].ctot == "") {
@@ -3981,6 +3987,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else {
 								ItemRGB = TAG_CTOT;
 							}
+							strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+						}
+						else if (slotList[pos].hasEcfmpRestriction) {
+							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
 						}
 					}
@@ -7380,7 +7390,9 @@ void CDM::getCdmServerRestricted() {
 						slotListTemp[i].hasManualCtot = false;
 					}
 					slotListTemp[i].ctot = "";
-					slotListTemp[i].flowReason = "";
+					if (!slotListTemp[i].hasEcfmpRestriction) {
+						slotListTemp[i].flowReason = "";
+					}
 				}
 
 				serverRestrictedPlanesTemp.clear();
@@ -7410,7 +7422,7 @@ void CDM::getCdmServerRestricted() {
 
 						if (ctot.size() == 4) {
 							for (size_t z = 0; z < slotListTemp.size(); z++) {
-								if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign)) {
+								if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign) && !slotListTemp[z].hasEcfmpRestriction) {
 									string taxiTime = getTaxiTime(callsign);
 									slotListTemp[z] = {
 										callsign,
@@ -7592,8 +7604,8 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 			bool createRequest = false;
 
 			for (Plane p : slotListTemp) {
-				// Do not send API request if Manual CTOT is created by user.
-				if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign) {
+				// Do not send API request if Manual CTOT is created by user or has ECFMP restriction
+				if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign && !p.hasEcfmpRestriction) {
 					createRequest = true;
 				}
 			}
