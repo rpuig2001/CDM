@@ -379,11 +379,14 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
   - Functions:
     - ``Set/Remove MANUAL CTOT`` -> It creates or removes a CTOT for the user (Only CTOTs where TSAT>now+5min are allowed).
+   
+  - Prioritize:
+    - In case of ECFMP CTOT, has priority over a CDM server restriction.
   - Colors:
     - ``color11`` -> Default.
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REA Msg is sent.
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
-    - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> MANUAL/EVENT CTOT and Flow/CAD CTOT.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> Flow/CAD CTOT.
    
 - Column Network Status: Shows the STS from the CDM-Network.
   - Status/Funcions:
