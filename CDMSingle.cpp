@@ -531,15 +531,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	AtcMe = false;
-	if (master) {
-		if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
-			AtcMe = true;
-		}
+	if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
+		AtcMe = true;
 	}
 
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
-		if (master && AtcMe) {
+		//Can be modified as non-master
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_EDITEOBT");
 			OpenPopupEdit(Area, TAG_FUNC_NEWEOBT, fp.GetFlightPlanData().GetEstimatedDepartureTime());
 		}
@@ -559,9 +558,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (hasNoNumber) {
 				fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
 				fp.GetFlightPlanData().AmendFlightPlan();
-				//Set EOBT in API
-				std::thread t(&CDM::setCdmSts, this, fp.GetCallsign(), "EOBT/" + editedEOBT);
-				t.detach();
+				if (editedEOBT.length() == 4) {
+					//Set EOBT in API
+					std::thread t(&CDM::setCdmSts, this, fp.GetCallsign(), "EOBT/" + editedEOBT);
+					t.detach();
+				}
 			}
 		}
 	}
@@ -1036,7 +1037,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_EOBT) {
-		if (master && AtcMe) {
+		//Can be modified as non-master
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_OPT_EOBT");
 			OpenPopupList(Area, "EOBT Options", 1);
 			AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
