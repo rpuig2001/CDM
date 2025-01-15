@@ -341,7 +341,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
 
-	
+	apikey = "v1HrGcLq3lqHrwgBXd2bfMIzFmxNSiWJ";
 
 	//Init reamrksOption
 	remarksOption = false;
@@ -559,6 +559,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (hasNoNumber) {
 				fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
 				fp.GetFlightPlanData().AmendFlightPlan();
+				//Set EOBT in API
+				std::thread t(&CDM::setCdmSts, this, fp.GetCallsign(), "EOBT/" + editedEOBT);
+				t.detach();
 			}
 		}
 	}
