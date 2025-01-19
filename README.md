@@ -188,24 +188,24 @@ CDM includes the following times:
 
 ## Event CTOTs
 ### How does it work?
-Used for the EVCTOT column with the following format: <callsign>,<CTOT>
+Used for the EVCTOT column with the following format: <cid>,<CTOT>
 
 Example:
 
 ```
-ETH2504,0800
-JST3,0802
-HFO184,0804
-ASY121,0806
-DTK454,0808
-QTR119,0820
-SVA247,0822
-MS47,0824
-DTK379,0828
-DHL204,0836
-QTR454,0840
-CFG1MA,0842
-UAL422,0844
+9999999,0800
+9999999,0802
+9999999,0804
+9999999,0806
+9999999,0808
+9999999,0820
+9999999,0822
+9999999,0824
+9999999,0828
+9999999,0836
+9999999,0840
+9999999,0842
+9999999,0844
 ```
 
 ## FTP files and format
