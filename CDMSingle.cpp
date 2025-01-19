@@ -2760,9 +2760,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (aircraftFind) {
 									string ShowTSAT = (string)TSAT;
 									ShowTSAT = ShowTSAT.substr(0, ShowTSAT.length() - 2);
-									if (slotList[pos].hasEcfmpRestriction) {
-										ShowTSAT += "R";
-									}
 
 									if (SU_ISSET) {
 										ItemRGB = SU_SET_COLOR;
@@ -3553,9 +3550,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (TSATString.length() > 0 && aircraftFind) {
 								TSATString = TSATString.substr(0, 4);
-								if (slotList[pos].hasEcfmpRestriction) {
-									TSATString += "R";
-								}
 								if (SU_ISSET) {
 									ItemRGB = SU_SET_COLOR;
 									strcpy_s(sItemString, 16, TSATString.c_str());
