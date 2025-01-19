@@ -5837,7 +5837,7 @@ void CDM::getEcfmpData() {
 				if (typeMeasure.find("per_hour") != std::string::npos) {
 					string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
 					if (isNumber(valueMeasureString)) {
-						valueMeasure = stoi(valueMeasureString);
+						valueMeasure = 60.0 / stoi(valueMeasureString);
 					}
 				}
 				//Get Filters
