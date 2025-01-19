@@ -384,7 +384,7 @@ https://github.com/rpuig2001/Capacity-Availability-Document-CDM
     - In case of ECFMP CTOT, has priority over a CDM server restriction.
   - Colors:
     - ``color11`` -> Default.
-    - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REA Msg is sent.
+    - ![#00c000](https://img.shields.io/badge/-00c000) `GREEN` -> CDM Server CTOT.
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> Flow/CAD CTOT.
    
