@@ -1571,6 +1571,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 
 	if (!isVfr) {
+
+		//Refresh ecfmpData every 5 min
+		time_t timeNow = std::time(nullptr);
+		if ((timeNow - countEcfmpTime) > 300 && !refresh2) {
+			countEcfmpTime = timeNow;
+			std::thread t(&CDM::refreshActions2, this);
+			t.detach();
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
+			}
+		}
+
 		bool isCDMairport = false;
 		for (string a : CDMairports)
 		{
@@ -3184,6 +3196,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						strcpy_s(sItemString, 16, status.c_str());
 						}
 
+						//Update ECFMP for Slaves
+						if (aircraftFind) {
+							string stripEcfmp = getFlightStripInfo(FlightPlan, 6);
+							if (stripEcfmp == "" && slotList[pos].hasEcfmpRestriction) {
+								setFlightStripInfo(FlightPlan, slotList[pos].ecfmpRestriction.ident, 6);
+							}
+							else if (stripEcfmp != "" && !slotList[pos].hasEcfmpRestriction) {
+								//Make ecfmp empty for slaves
+								setFlightStripInfo(FlightPlan, "", 6);
+							}
+						}
+
 						//Refresh CDM API every 30 seconds
 						time_t timeNow = std::time(nullptr);
 
@@ -3206,16 +3230,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							t.detach();
 							if (debugMode) {
 								sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA");
-							}
-						}
-
-						//Refresh ecfmpData every 5 min
-						if ((timeNow - countEcfmpTime) > 300 && !refresh2) {
-							countEcfmpTime = timeNow;
-							std::thread t(&CDM::refreshActions2, this);
-							t.detach();
-							if (debugMode) {
-								sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 							}
 						}
 
@@ -3293,26 +3307,46 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					//Update de-ice status
-					string deIce = getFlightStripInfo(FlightPlan, 5);
-					bool found = false;
-					for (int z = 0; z < deiceList.size(); z++)
-					{
-						if (deiceList[z][0] == callsign) {
-							found = true;
-							if (deIce == "") {
-								//Remove from list
-								deiceList.erase(deiceList.begin() + z);
+					if (aircraftFind) {
+						string deIce = getFlightStripInfo(FlightPlan, 5);
+						bool found = false;
+						for (int z = 0; z < deiceList.size(); z++)
+						{
+							if (deiceList[z][0] == callsign) {
+								found = true;
+								if (deIce == "") {
+									//Remove from list
+									deiceList.erase(deiceList.begin() + z);
+								}
+								else if (deIce != deiceList[z][1]) {
+									//Modify list value
+									deiceList[z] = { callsign, deIce };
+								}
 							}
-							else if (deIce != deiceList[z][1]) {
-								//Modify list value
-								deiceList[z] = { callsign, deIce };
-							}
+						}
+
+						if (!found && deIce != "") {
+							//Add to main de-ice list
+							deiceList.push_back({ callsign, deIce });
 						}
 					}
 
-					if (!found && deIce != "") {
-						//Add to main deice list
-						deiceList.push_back({ callsign, deIce });
+					//Update ECFMP from Master
+					if (aircraftFind) {
+						string ecfmpIdent = getFlightStripInfo(FlightPlan, 6);
+						if (ecfmpIdent != "") {
+							for (int y = 0; y < ecfmpData.size(); y++)
+							{
+								if (ecfmpData[y].ident == ecfmpIdent) {
+									slotList[pos].hasEcfmpRestriction = 1;
+									slotList[pos].ecfmpRestriction = ecfmpData[y];
+								}
+							}
+						}
+						else if (ecfmpIdent == "" && slotList[pos].hasEcfmpRestriction)
+						{
+							slotList[pos].hasEcfmpRestriction = 0;
+						}
 					}
 
 					bool foundIndifeobttobtList = false;
@@ -6979,7 +7013,7 @@ vector<string> split(const std::string& str, char delimiter) {
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 	if (position >= 0 && position <= 4) {
 		//   0    1   2     3   4     5       6
-		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpCtot/
+		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		vector<string> values = split(annotation, '/');
 
@@ -6993,7 +7027,7 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
 	if (position >= 0 && position <= 4) {
 		//   0    1   2     3   4     5       6
-		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpCtot/
+		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		if (annotation == "") {
 			annotation = "///////";
