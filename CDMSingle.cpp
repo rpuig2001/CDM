@@ -7915,7 +7915,17 @@ void CDM::getCdmServerStatus() {
 						cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
 						cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
 
-						networkStatusTemp.push_back({ callsign, cdmSts });
+						//Only keep sts if not affected by ecfmp restriction
+						bool hasEcfmpRestriction = false;
+						for (int i = 0; i < slotList.size(); i++)
+						{
+							if (slotList[i].callsign == callsign && slotList[i].hasEcfmpRestriction) {
+								hasEcfmpRestriction = true;
+							}
+						}
+						if (!hasEcfmpRestriction) {
+							networkStatusTemp.push_back({ callsign, cdmSts });
+						}
 					}
 				}
 			}
