@@ -716,6 +716,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					deiceList.erase(deiceList.begin() + i);
 				}
 			}
+			setFlightStripInfo(fp, "", 5);
 			//Remove plane from taxiTimesList
 			for (size_t j = 0; j < taxiTimesList.size(); j++)
 			{
@@ -754,6 +755,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 
 			deiceList.push_back({ fp.GetCallsign(), "STND" });
+			setFlightStripInfo(fp, "STND", 5);
 
 			//Remove plane from taxiTimesList
 			for (size_t j = 0; j < taxiTimesList.size(); j++)
@@ -793,6 +795,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 
 			deiceList.push_back({ fp.GetCallsign(), "REM" });
+			setFlightStripInfo(fp, "REM", 5);
 							
 			//Remove plane from taxiTimesList
 			for (size_t j = 0; j < taxiTimesList.size(); j++)
@@ -3249,6 +3252,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
+					//Remove disconnected planes after 5 min disconnected
+					if (countTfcDisconnection != -1) {
+						if ((timeNow - countTfcDisconnectionTime) > 300) {
+							countTfcDisconnectionTime = timeNow;
+							countTfcDisconnection = -1;
+							disconnectTfcs();
+							pos = getPlanePosition(callsign);
+							if (pos == -1) {
+								aircraftFind = false;
+							}
+						}
+					}
+
 					bool TSATFind = true;
 					string TSATString = getFlightStripInfo(FlightPlan, 3);
 					string TTOTString = getFlightStripInfo(FlightPlan, 4);
@@ -3274,6 +3290,29 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							Plane p(callsign, EOBT, TSATString, TTOTString, "", "", myEcfmp, hasEcfmpRestriction, hasManualCtot, true);
 							slotList.push_back(p);
 						}
+					}
+
+					//Update de-ice status
+					string deIce = getFlightStripInfo(FlightPlan, 5);
+					bool found = false;
+					for (int z = 0; z < deiceList.size(); z++)
+					{
+						if (deiceList[z][0] == callsign) {
+							found = true;
+							if (deIce == "") {
+								//Remove from list
+								deiceList.erase(deiceList.begin() + z);
+							}
+							else if (deIce != deiceList[z][1]) {
+								//Modify list value
+								deiceList[z] = { callsign, deIce };
+							}
+						}
+					}
+
+					if (!found && deIce != "") {
+						//Add to main deice list
+						deiceList.push_back({ callsign, deIce });
 					}
 
 					bool foundIndifeobttobtList = false;
@@ -6939,7 +6978,8 @@ vector<string> split(const std::string& str, char delimiter) {
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 	if (position >= 0 && position <= 4) {
-		// ASRT/TSAC/TOBT/TSAT/TTOT
+		//   0    1   2     3   4     5       6
+		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpCtot/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		vector<string> values = split(annotation, '/');
 
@@ -6952,10 +6992,11 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
 	if (position >= 0 && position <= 4) {
-		// ASRT/TSAC/TOBT/TSAT/TTOT
+		//   0    1   2     3   4     5       6
+		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpCtot/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		if (annotation == "") {
-			annotation = "/////";
+			annotation = "///////";
 		}
 		vector<string> values = split(annotation, '/');
 
