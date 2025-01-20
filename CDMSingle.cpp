@@ -3186,17 +3186,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
-						string status = "";
-						for (vector<string> deice : deiceList) {
-							if (deice[0] == callsign) {
-								status = deice[1];
+							string status = "";
+							for (vector<string> deice : deiceList) {
+								if (deice[0] == callsign) {
+									status = deice[1];
+								}
 							}
-						}
-						ItemRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 16, status.c_str());
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
 						}
 
-						//Update ECFMP for Slaves
+						//Update ECFMP to Slaves
 						if (aircraftFind) {
 							string stripEcfmp = getFlightStripInfo(FlightPlan, 6);
 							if (stripEcfmp == "" && slotList[pos].hasEcfmpRestriction) {
@@ -3205,6 +3205,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (stripEcfmp != "" && !slotList[pos].hasEcfmpRestriction) {
 								//Make ecfmp empty for slaves
 								setFlightStripInfo(FlightPlan, "", 6);
+							}
+						}
+
+						//Update Manual CTOT to Slaves
+						if (aircraftFind) {
+							string stripManualCtot = getFlightStripInfo(FlightPlan, 7);
+							if (stripManualCtot == "" && slotList[pos].hasManualCtot && slotList[pos].ctot == "") {
+								setFlightStripInfo(FlightPlan, "1", 7);
+							}
+							else if (stripManualCtot != "" && !slotList[pos].hasManualCtot) {
+								//Make ecfmp empty for slaves
+								setFlightStripInfo(FlightPlan, "", 7);
 							}
 						}
 
@@ -3348,6 +3360,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							slotList[pos].hasEcfmpRestriction = 0;
 						}
 					}
+
+					//Update Manual CTOT from Master
+					if (aircraftFind) {
+						string manualCtot = getFlightStripInfo(FlightPlan, 7);
+						if (manualCtot != "") {
+							slotList[pos].hasManualCtot = 1;
+						}
+						else if (manualCtot == "" && slotList[pos].hasManualCtot)
+						{
+							slotList[pos].hasManualCtot = 0;
+						}
+					}
+
 
 					bool foundIndifeobttobtList = false;
 					for (const string& s : difeobttobtList) {
@@ -3873,7 +3898,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot) {
+								if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
 									string value = getDiffNowTime(slotList[pos].ttot);
 									if (slotList[pos].ctot == "") {
 										ItemRGB = TAG_ORANGE;
@@ -3921,14 +3946,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
-						string status = "";
-						for (vector<string> deice : deiceList) {
-							if (deice[0] == callsign) {
-								status = deice[1];
+							string status = "";
+							for (vector<string> deice : deiceList) {
+								if (deice[0] == callsign) {
+									status = deice[1];
+								}
 							}
-						}
-						ItemRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 16, status.c_str());
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
 						}
 					}
 					else
@@ -3972,7 +3997,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot) {
+								if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
 									string value = getDiffNowTime(slotList[pos].ttot);
 									if (slotList[pos].ctot == "") {
 										ItemRGB = TAG_ORANGE;
@@ -4075,7 +4100,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 
 					if (aircraftFind) {
-						if (slotList[pos].hasManualCtot) {
+						if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
 							string value = getDiffNowTime(slotList[pos].ttot);
 							if (slotList[pos].ctot == "") {
 								ItemRGB = TAG_ORANGE;
@@ -7012,8 +7037,8 @@ vector<string> split(const std::string& str, char delimiter) {
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 	if (position >= 0 && position <= 4) {
-		//   0    1   2     3   4     5       6
-		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/
+		//   0    1   2     3   4     5       6       7
+		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		vector<string> values = split(annotation, '/');
 
@@ -7026,8 +7051,8 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
 	if (position >= 0 && position <= 4) {
-		//   0    1   2     3   4     5       6
-		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/
+		//   0    1   2     3   4     5       6       7
+		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		if (annotation == "") {
 			annotation = "///////";
