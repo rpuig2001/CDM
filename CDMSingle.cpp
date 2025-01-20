@@ -3364,7 +3364,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					//Update Manual CTOT from Master
 					if (aircraftFind) {
 						string manualCtot = getFlightStripInfo(FlightPlan, 7);
-						if (manualCtot != "") {
+						if (manualCtot != "" && !slotList[pos].hasManualCtot) {
 							slotList[pos].hasManualCtot = 1;
 						}
 						else if (manualCtot == "" && slotList[pos].hasManualCtot)
@@ -7036,7 +7036,7 @@ vector<string> split(const std::string& str, char delimiter) {
 }
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
-	if (position >= 0 && position <= 4) {
+	if (position >= 0 && position <= 7) {
 		//   0    1   2     3   4     5       6       7
 		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
@@ -7050,12 +7050,12 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 }
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
-	if (position >= 0 && position <= 4) {
+	if (position >= 0 && position <= 7) {
 		//   0    1   2     3   4     5       6       7
 		// ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/
 		string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
 		if (annotation == "") {
-			annotation = "///////";
+			annotation = "/////////";
 		}
 		vector<string> values = split(annotation, '/');
 
