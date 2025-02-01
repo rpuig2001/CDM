@@ -279,7 +279,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
 
-	if (ftpHost == "" && ftpUser == "" && ftpPassword == "") {
+	if (ftpHost == "" && ftpUser == "") {
 		ftpHost = "ftp.vatsimspain.es";
 		ftpUser = "aman_vatspa";
 		//Password defined internally
@@ -347,7 +347,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
 
-	if (ftpHost == "" && ftpUser == "" && ftpPassword == "") {
+	if (ftpPassword == "") {
 	}
 
 	//Init reamrksOption
