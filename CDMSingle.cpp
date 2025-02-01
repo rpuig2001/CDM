@@ -92,7 +92,6 @@ vector<string> CDMairports;
 vector<string> CTOTcheck;
 vector<string> finalTimesList;
 vector<string> disconnectionList;
-vector<string> difeobttobtList;
 vector<string> reaSent;
 vector<string> reaCTOTSent;
 vector<vector<string>> slotFile;
@@ -576,12 +575,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	else if (FunctionId == TAG_FUNC_EOBTTOTOBT) {
 		addLogLine("TRIGGER - TAG_FUNC_EOBTTOTOBT");
 		setFlightStripInfo(fp, formatTime(fp.GetFlightPlanData().GetEstimatedDepartureTime()), 2);
-		//Remove if added to not modify TOBT if EOBT changes List
-		for (size_t i = 0; i < difeobttobtList.size(); i++) {
-			if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-				difeobttobtList.erase(difeobttobtList.begin() + i);
-			}
-		}
 	}
 	else if (FunctionId == TAG_FUNC_ADDTSAC) {
 		addLogLine("TRIGGER - TAG_FUNC_ADDTSAC");
@@ -1107,17 +1100,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (annotAsrt.empty()) {
 				setFlightStripInfo(fp, (hour + min), 0);
 			}
-
-			//Add to not modify TOBT if EOBT changes List
-			bool foundInEobtTobtList = false;
-			for (size_t i = 0; i < difeobttobtList.size(); i++) {
-				if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-					foundInEobtTobtList = true;
-				}
-			}
-			if (!foundInEobtTobtList) {
-				difeobttobtList.push_back(fp.GetCallsign());
-			}
 		}
 
 		//Reset CTOT by CDM-Network
@@ -1194,17 +1176,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 										slotList[i].ttot = editedCDT + "00";
 									}
 								}
-
-								//Add to not modify TOBT if EOBT changes List
-								bool foundInEobtTobtList = false;
-								for (size_t i = 0; i < difeobttobtList.size(); i++) {
-									if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-										foundInEobtTobtList = true;
-									}
-								}
-								if (!foundInEobtTobtList) {
-									difeobttobtList.push_back(fp.GetCallsign());
-								}
 							}
 						}
 					}
@@ -1257,16 +1228,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 											slotList[i].hasManualCtot = true;
 											addTimeToListForSpecificAirportAndRunway(10, calculateTime(GetTimeNow(), 5), fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
 										}
-									}
-									//Add to not modify TOBT if EOBT changes List
-									bool foundInEobtTobtList = false;
-									for (size_t i = 0; i < difeobttobtList.size(); i++) {
-										if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-											foundInEobtTobtList = true;
-										}
-									}
-									if (!foundInEobtTobtList) {
-										difeobttobtList.push_back(fp.GetCallsign());
 									}
 									//Update times to slaves
 									countTime = std::time(nullptr) - refreshTime;
@@ -1361,16 +1322,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 									}
 								}
 							}
-							//Add to not modify TOBT if EOBT changes List
-							bool foundInEobtTobtList = false;
-							for (size_t i = 0; i < difeobttobtList.size(); i++) {
-								if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-									foundInEobtTobtList = true;
-								}
-							}
-							if (!foundInEobtTobtList) {
-								difeobttobtList.push_back(fp.GetCallsign());
-							}
 							//Update times to slaves
 							countTime = std::time(nullptr) - refreshTime;
 						}
@@ -1431,17 +1382,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						//Update times to slaves
 						countTime = std::time(nullptr) - refreshTime;
 					}
-
-					//Add to not modify TOBT if EOBT changes List
-					bool foundInEobtTobtList = false;
-					for (size_t i = 0; i < difeobttobtList.size(); i++) {
-						if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-							foundInEobtTobtList = true;
-						}
-					}
-					if (!foundInEobtTobtList) {
-						difeobttobtList.push_back(fp.GetCallsign());
-					}
 				}
 			}
 			else if (editedTOBT.empty()) {
@@ -1454,13 +1394,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						setFlightStripInfo(fp, "", 3);
 						setFlightStripInfo(fp, "", 4);
 						PushToOtherControllers(fp);
-					}
-				}
-
-				//Remove if added to not modify TOBT if EOBT changes List
-				for (size_t i = 0; i < difeobttobtList.size(); i++) {
-					if ((string)fp.GetCallsign() == difeobttobtList[i]) {
-						difeobttobtList.erase(difeobttobtList.begin() + i);
 					}
 				}
 				
@@ -1899,25 +1832,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else {
 								OutOfTsat.erase(OutOfTsat.begin() + i);
-							}
-						}
-					}
-
-					//Sync TOBT if different than EOBT
-					if (!SU_ISSET) {
-						if (tobt.length() > 0) {
-							string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-							if (mySetEobt != tobt) {
-								bool foundInEobtTobtList = false;
-								for (size_t i = 0; i < difeobttobtList.size(); i++) {
-									if (callsign == difeobttobtList[i]) {
-										foundInEobtTobtList = true;
-									}
-								}
-
-								if (!foundInEobtTobtList) {
-									setFlightStripInfo(FlightPlan, formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime()), 2);
-								}
 							}
 						}
 					}
@@ -3379,30 +3293,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (manualCtot == "" && slotList[pos].hasManualCtot)
 						{
 							slotList[pos].hasManualCtot = 0;
-						}
-					}
-
-
-					bool foundIndifeobttobtList = false;
-					for (const string& s : difeobttobtList) {
-						if (s == callsign) {
-							foundIndifeobttobtList = true;
-							break; // Break the loop once found
-						}
-					}
-					string checkEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-					string checkTOBT = getFlightStripInfo(FlightPlan, 2);
-					if (!foundIndifeobttobtList) {
-						if (checkEOBT != checkTOBT && !checkTOBT.empty()) {
-							difeobttobtList.push_back(FlightPlan.GetCallsign());
-						}
-					}
-					else {
-						if (checkEOBT == checkTOBT) {
-							difeobttobtList.erase(
-								remove(difeobttobtList.begin(), difeobttobtList.end(), callsign),
-								difeobttobtList.end()
-							);
 						}
 					}
 
@@ -5708,15 +5598,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			reaCTOTSent.erase(reaCTOTSent.begin() + i);
 		}
 	}
-	//Remove if added to not modify TOBT if EOBT changes List
-	for (size_t i = 0; i < difeobttobtList.size(); i++) {
-		if (callsign == difeobttobtList[i]) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 4");
-			}
-			difeobttobtList.erase(difeobttobtList.begin() + i);
-		}
-	}
 	//Remove Plane From airport List
 	for (size_t j = 0; j < planeAiportList.size(); j++)
 	{
@@ -7086,6 +6967,7 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
 void CDM::refreshActions1() {
 	refresh1 = true;
 	saveData();
+	getNetworkTobt();
 	getCdmServerStatus();
 	//Execute background process in the background
 	backgroundProcess_recaulculate();
@@ -8130,5 +8012,121 @@ void CDM::getNetworkRates() {
 		catch (...) {
 			addLogLine("ERROR: Unhandled exception getNetworkRates");
 		}
+	}
+}
+
+vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
+	vector<vector<string>> planes;
+	if (serverEnabled) {
+		addLogLine("Called getDepAirportPlanes...");
+		try {
+			vector<Rate> tempRate = initialRate;
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/slotService/depAirport?airport=" + airport;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("tobt") && data[i].isMember("callsign") && data[i].isMember("atot")) {
+
+						string callsign = fastWriter.write(data[i]["callsign"]);
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+
+						string tobt = fastWriter.write(data[i]["tobt"]);
+						tobt.erase(std::remove(tobt.begin(), tobt.end(), '"'));
+						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
+						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
+
+						string atot = fastWriter.write(data[i]["atot"]);
+						atot.erase(std::remove(atot.begin(), atot.end(), '"'));
+						atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
+						atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
+
+						if (atot == "") {
+							planes.push_back({ callsign, tobt });
+						}
+					}
+				}
+			}
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getDepAirportPlanes: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getDepAirportPlanes");
+		}
+	}
+	return planes;
+}
+
+void CDM::getNetworkTobt() {
+	if (serverEnabled) {
+		addLogLine("Called getNetworkTobt...");
+		vector<vector<string>> planes;
+		for (string airport : masterAirports)
+		{
+			vector<vector<string>> newplanes = getDepAirportPlanes(airport);
+			planes.insert(planes.end(), newplanes.begin(), newplanes.end());
+		}
+
+		vector<Plane> mySlotList = slotList;
+
+		for (vector<string> plane : planes) {
+			bool found = false;
+			for (int i = 0; i < mySlotList.size(); i++)
+			{
+				if (plane[0] == mySlotList[i].callsign) {
+					found = true;
+					if (plane[1] + "00" != mySlotList[i].eobt) {
+						CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+						string annotAsrt = getFlightStripInfo(fp, 0);
+						if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+							addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
+							int posPlane = getPlanePosition(mySlotList[i].callsign);
+							if (posPlane != -1) {
+								slotList.erase(slotList.begin() + posPlane);
+							}
+							setFlightStripInfo(fp, plane[1], 2);
+						}
+					}
+				}
+			}
+			if (!found) {
+				addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
+				setFlightStripInfo(FlightPlanSelect(plane[0].c_str()), plane[1], 2);
+			}
+		}
+		addLogLine("COMPLETED - getNetworkTobt");
+		//Update times to slaves
+		countTime = std::time(nullptr) - refreshTime;
 	}
 }

@@ -132,6 +132,10 @@ public:
 
 	void getNetworkRates();
 
+	vector<vector<string>> getDepAirportPlanes(string airport);
+
+	void getNetworkTobt();
+
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
 	void addTimeToList(int timeToAdd, string minTSAT);
