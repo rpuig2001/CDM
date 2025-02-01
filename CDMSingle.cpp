@@ -7393,7 +7393,7 @@ bool CDM::setEvCtot(string callsign) {
 			else {
 				std::istringstream is(readBuffer);
 				//Get data from .txt file
-				string cid;
+				string cid = "";
 				while (getline(is, cid))
 				{
 					if (cid.length() > 2) {
@@ -7402,12 +7402,11 @@ bool CDM::setEvCtot(string callsign) {
 								if (slotFile[i][0] == cid) {
 									addLogLine(callsign + " linked with EvCTOT " + slotFile[i][1]);
 									sendMessage(callsign + " linked with EvCTOT " + slotFile[i][1]);
-									bool found = false;
 									for (int a = 0; a < evCtots.size(); a++) {
 										if (evCtots[a].size() > 0) {
 											if (evCtots[a][0] == callsign) {
 												evCtots[a] = { callsign, slotFile[i][1] };
-												found = true;
+												activeCheckCid -= 1;
 												return true;
 											};
 										}
@@ -7416,16 +7415,9 @@ bool CDM::setEvCtot(string callsign) {
 							}
 						}
 					}
-					/*for (int a = 0; a < evCtots.size(); a++) {
-						if (evCtots[a][0] == callsign) {
-							evCtots[a] = { callsign, "" };
-							return true;
-						};
-					}*/
 				}
 				activeCheckCid -= 1;
 				if (cid == "") {
-					activeCheckCid -= 1;
 					std::lock_guard<std::mutex> vectorLock(later1Mutex);
 					checkCIDLater.push_back(callsign);
 				}
