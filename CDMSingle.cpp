@@ -8105,17 +8105,19 @@ void CDM::getNetworkTobt() {
 			for (int i = 0; i < mySlotList.size(); i++)
 			{
 				if (plane[0] == mySlotList[i].callsign) {
-					found = true;
-					if (plane[1] + "00" != mySlotList[i].eobt) {
-						CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-						string annotAsrt = getFlightStripInfo(fp, 0);
-						if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-							addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
-							int posPlane = getPlanePosition(mySlotList[i].callsign);
-							if (posPlane != -1) {
-								slotList.erase(slotList.begin() + posPlane);
+					if ((!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") || (mySlotList[i].hasManualCtot && mySlotList[i].ctot != "")) {
+						found = true;
+						if (plane[1] + "00" != mySlotList[i].eobt) {
+							CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+							string annotAsrt = getFlightStripInfo(fp, 0);
+							if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+								addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
+								int posPlane = getPlanePosition(mySlotList[i].callsign);
+								if (posPlane != -1) {
+									slotList.erase(slotList.begin() + posPlane);
+								}
+								setFlightStripInfo(fp, plane[1], 2);
 							}
-							setFlightStripInfo(fp, plane[1], 2);
 						}
 					}
 				}
