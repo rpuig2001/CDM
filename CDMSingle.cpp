@@ -319,7 +319,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	serverEnabled = true;
 	if (cdmserver == "false") {
-		serverEnabled = true;
+		serverEnabled = false;
 	}
 
 	//Invalidate FP at TSAT+6
