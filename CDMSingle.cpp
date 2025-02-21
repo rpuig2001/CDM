@@ -1397,11 +1397,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 				
-				if (!realMode) {
+				//if (!realMode) {
 					//Check API
 					std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", true);
 					t.detach();
-				}
+				//}
 			}
 		}
 	}
@@ -8101,30 +8101,38 @@ void CDM::getNetworkTobt() {
 		vector<Plane> mySlotList = slotList;
 
 		for (vector<string> plane : planes) {
-			bool found = false;
-			for (int i = 0; i < mySlotList.size(); i++)
-			{
-				if (plane[0] == mySlotList[i].callsign) {
-					if ((!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") || (mySlotList[i].hasManualCtot && mySlotList[i].ctot != "")) {
-						found = true;
-						if (plane[1] + "00" != mySlotList[i].eobt) {
-							CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-							string annotAsrt = getFlightStripInfo(fp, 0);
-							if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-								addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
-								int posPlane = getPlanePosition(mySlotList[i].callsign);
-								if (posPlane != -1) {
-									slotList.erase(slotList.begin() + posPlane);
+			if (plane[1] != "") {
+				bool found = false;
+				for (int i = 0; i < mySlotList.size(); i++)
+				{
+					if (plane[0] == mySlotList[i].callsign) {
+						if (!mySlotList[i].showData) {
+							found = true;
+						}
+						else if (((!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") || (mySlotList[i].hasManualCtot && mySlotList[i].ctot != ""))) {
+							found = true;
+							if (plane[1] + "00" != mySlotList[i].eobt) {
+								CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+								string annotAsrt = getFlightStripInfo(fp, 0);
+								if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+									addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
+									int posPlane = getPlanePosition(mySlotList[i].callsign);
+									if (posPlane != -1) {
+										slotList.erase(slotList.begin() + posPlane);
+									}
+									setFlightStripInfo(fp, plane[1], 2);
+									fp.GetFlightPlanData().SetEstimatedDepartureTime(plane[1].c_str());
 								}
-								setFlightStripInfo(fp, plane[1], 2);
 							}
 						}
 					}
 				}
-			}
-			if (!found) {
-				addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
-				setFlightStripInfo(FlightPlanSelect(plane[0].c_str()), plane[1], 2);
+				if (!found) {
+					if (plane[1] != "") {
+						addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
+						setFlightStripInfo(FlightPlanSelect(plane[0].c_str()), plane[1], 2);
+					}
+				}
 			}
 		}
 		addLogLine("COMPLETED - getNetworkTobt");
