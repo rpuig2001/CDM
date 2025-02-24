@@ -277,15 +277,6 @@ CTOT and FM will be showing in the CDM plugin if traffic is affected.
 For more information, check the CAD GitHub Repository.
 https://github.com/rpuig2001/Capacity-Availability-Document-CDM
 
-### VDGS
-Pilots can use the CDM vdgs - https://vats.im/vdgs
-### What can pilots see?
-From  there, pilots can monitor their EOBT, TOBT, TSAT, CTOT and SID.
-### What can pilots modify?
-The TOBT can be modified. It will have a direct effect to the plugin if _"PilotTobt"_ option is enabled.
-
-IMG
-
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
