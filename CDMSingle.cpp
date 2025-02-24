@@ -42,6 +42,7 @@ bool addTime;
 bool lvo;
 bool ctotCid;
 bool realMode;
+bool pilotTobt;
 bool remarksOption;
 bool invalidateTSAT_Option;
 string myTimeToAdd;
@@ -263,6 +264,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
+	string pilotTobtStr = getFromXml("/CDM/pilotTobt/@mode");
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	rateUrl = getFromXml("/CDM/Rates/@url");
@@ -312,6 +314,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		sendMessage("[DEBUG MESSAGE] - USING DEBUG MODE");
 	}
 
+	pilotTobt = false;
+	if (pilotTobtStr == "true") {
+		pilotTobt = true;
+	}
+
 	realMode = false;
 	if (realModeStr == "true") {
 		realMode = true;
@@ -346,7 +353,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
 
+	apikey = "v1HrGcLq3lqHrwgBXd2bfMIzFmxNSiWJ";
 	if (ftpPassword == "") {
+		ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
 	}
 
 	//Init reamrksOption
@@ -8089,7 +8098,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 }
 
 void CDM::getNetworkTobt() {
-	if (serverEnabled) {
+	if (serverEnabled && pilotTobt) {
 		addLogLine("Called getNetworkTobt...");
 		vector<vector<string>> planes;
 		for (string airport : masterAirports)
