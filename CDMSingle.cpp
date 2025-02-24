@@ -353,9 +353,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted();
 
-	apikey = "v1HrGcLq3lqHrwgBXd2bfMIzFmxNSiWJ";
+	//apikey = "v1HrGcLq3lqHrwgBXd2bfMIzFmxNSiWJ";
 	if (ftpPassword == "") {
-		ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
+	//	ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
 	}
 
 	//Init reamrksOption
