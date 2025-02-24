@@ -119,6 +119,7 @@ CDM includes the following times:
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").
+  - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
   - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
@@ -128,10 +129,10 @@ CDM includes the following times:
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
-  - VDGS file type: 1-TXT, 2-JSON, 3-TXT&JSON (ex. vdgsFileType type="3").
-  - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank if not in use "".
-  - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank if not in use "".
-  - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank if not in use "".
+  - VDGS file type: 0-None, 1-TXT, 2-JSON, 3-TXT&JSON (ex. vdgsFileType type="3").
+  - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use CDM server.
+  - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use CDM server.
+  - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank to use CDM server.
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
  
@@ -276,6 +277,15 @@ CTOT and FM will be showing in the CDM plugin if traffic is affected.
 ### CAD - More info
 For more information, check the CAD GitHub Repository.
 https://github.com/rpuig2001/Capacity-Availability-Document-CDM
+
+### VDGS
+Pilots can use the CDM vdgs - https://vats.im/vdgs
+### What can pilots see?
+From  there, pilots can monitor their EOBT, TOBT, TSAT, CTOT and SID.
+### What can pilots modify?
+The TOBT can be modified. It will have a direct effect to the plugin if _"PilotTobt"_ option is enabled.
+
+![image](https://github.com/user-attachments/assets/409d5241-872f-4f94-ae8f-c454cd905c48)
 
 
 ## Commands
