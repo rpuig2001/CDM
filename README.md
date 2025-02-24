@@ -285,7 +285,8 @@ From  there, pilots can monitor their EOBT, TOBT, TSAT, CTOT and SID.
 ### What can pilots modify?
 The TOBT can be modified. It will have a direct effect to the plugin if _"PilotTobt"_ option is enabled.
 
-IMG
+![image](https://github.com/user-attachments/assets/409d5241-872f-4f94-ae8f-c454cd905c48)
+
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
