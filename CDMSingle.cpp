@@ -1107,23 +1107,27 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (annotAsrt.empty()) {
 				setFlightStripInfo(fp, (hour + min), 0);
 			}
-		}
 
-		//Reset CTOT by CDM-Network
-		for (size_t i = 0; i < slotList.size(); i++)
-		{
-			if (slotList[i].callsign == fp.GetCallsign()) {
-				if (slotList[i].ctot != "") {
-					slotList[i].ctot = "";
-					slotList[i].flowReason = "";
-					slotList[i].hasManualCtot = false;
-					slotList[i].showData = true;
+			//Reset CTOT by CDM-Network
+			for (size_t i = 0; i < slotList.size(); i++)
+			{
+				if (slotList[i].callsign == fp.GetCallsign()) {
+					if (slotList[i].ctot != "") {
+						slotList[i].ctot = "";
+						slotList[i].flowReason = "";
+						slotList[i].hasManualCtot = false;
+						slotList[i].showData = true;
+					}
 				}
 			}
-		}
 
-		//Update times to slaves
-		countTime = std::time(nullptr) - refreshTime;
+			//Set REA Status
+			std::thread t(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
+			t.detach();
+
+			//Update times to slaves
+			countTime = std::time(nullptr) - refreshTime;
+		}
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITCDT) {
