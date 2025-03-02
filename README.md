@@ -319,7 +319,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - To add a TOBT while realMode is DISABLED, use the Ready TOBT Function to set the actual time as a TOBT or the Edit TOBT to set a 4 digits time.
     - If realMode is enable it will ONLY set the EOBT as TOBT when the first flightplan is recived, if the EOBT is changed the TOBT will not change automatically and you can use other functions such as the EOBT to TOBT Function to move it through. (EOBT will have a different color to say you that there's a new time sent by the pilot).
   - Functions:
-    - ``Ready TOBT`` -> Sets TOBT to the actual time.
+    - ``Ready TOBT`` -> Sets TOBT to the actual time and sends a CDM-Network REA message (for CTOT improvement).
     - ``Edit TOBT`` -> Sets TOBT to the specified time (4 digits).
   - Colors:
     - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> Before EOBT -5.
