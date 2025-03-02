@@ -112,6 +112,8 @@ public:
 
 	void getEcfmpData();
 
+	bool isCdmAirport(string airport);
+
 	void getCdmServerRestricted();
 
 	void sendWaitingTSAT();

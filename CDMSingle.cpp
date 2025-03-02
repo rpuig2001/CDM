@@ -33,6 +33,7 @@ string lvoRateString;
 int expiredCTOTTime;
 bool defaultRate;
 time_t countTime;
+time_t countTimeNonCdm;
 time_t countFetchServerTime;
 time_t countTfcDisconnectionTime;
 time_t countEcfmpTime;
@@ -243,6 +244,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	removeLog();
 
 	countTime = std::time(nullptr);
+	countTimeNonCdm = std::time(nullptr);
 	countFetchServerTime = std::time(nullptr);
 	countEcfmpTime = std::time(nullptr);
 	countTfcDisconnectionTime = std::time(nullptr);
@@ -927,6 +929,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 		//Update times to slaves
 		countTime = std::time(nullptr) - (refreshTime+5);
+		countTimeNonCdm = std::time(nullptr) - (refreshTime + 5);
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_TTOT) {
@@ -1242,6 +1245,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 									}
 									//Update times to slaves
 									countTime = std::time(nullptr) - refreshTime;
+									countTimeNonCdm = std::time(nullptr) - refreshTime;
 								}
 							}
 						}
@@ -1292,6 +1296,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (found) {
 				OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
 			}
+			else {
+				if (!isCdmAirport(fp.GetFlightPlanData().GetOrigin())) {
+					OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
+				}
+			}
 		}
 	}
 
@@ -1335,6 +1344,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							}
 							//Update times to slaves
 							countTime = std::time(nullptr) - refreshTime;
+							countTimeNonCdm = std::time(nullptr) - refreshTime;
 						}
 					}
 				}
@@ -1353,6 +1363,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						//Check API
 						std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].eobt, true);
 						t.detach();
+
+						if (!isCdmAirport(fp.GetFlightPlanData().GetOrigin())) {
+							slotList[i].ttot = "";
+						}
 					}
 				}
 			}
@@ -4076,8 +4090,56 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 		else {
+
+			bool master = false;
+			for (string apt : masterAirports)
+			{
+				if (apt == FlightPlan.GetFlightPlanData().GetOrigin()) {
+					master = true;
+				}
+			}
+
 			string EOBTstring = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 			string EOBTfinal = formatTime(EOBTstring);
+
+			int slotListPos = -1;
+			for (int i = 0; i < slotList.size(); i++) {
+				if (slotList[i].callsign == (string)FlightPlan.GetCallsign()) {
+					slotListPos = i;
+				}
+			}
+
+			if (slotListPos == -1) {
+				EcfmpRestriction myEcfmp;
+				Plane p(callsign, EOBTfinal, "", "", "", "", myEcfmp, false, false, true);
+				slotList.push_back(p);
+			}
+
+			if (master) {
+				//Sync data
+				if (slotListPos != -1) {
+					//Update TTOT to Slaves
+					if (slotList[slotListPos].ttot != getFlightStripInfo(FlightPlan, 4)) {
+						setFlightStripInfo(FlightPlan, slotList[slotListPos].ttot, 4);
+					}
+					//Update Manual CTOT to Slaves
+					if (slotList[slotListPos].hasManualCtot == true && getFlightStripInfo(FlightPlan, 7) != "1") {
+						setFlightStripInfo(FlightPlan, "1", 7);
+					}
+					else if (slotList[slotListPos].hasManualCtot == false && getFlightStripInfo(FlightPlan, 7) != "") {
+						setFlightStripInfo(FlightPlan, "", 7);
+					}
+
+					//Push to other ATCs
+					if ((timeNow - countTimeNonCdm) > refreshTime) {
+						countTimeNonCdm = timeNow;
+						addLogLine("[AUTO] - REFRESH CDM INTERNAL DATA (Non-CDM)");
+						for (size_t t = 0; t < slotList.size(); t++) {
+							PushToOtherControllers(FlightPlanSelect(slotList[t].callsign.c_str()));
+						}
+					}
+				}
+			}
 
 			if (ItemCode == TAG_ITEM_EOBT)
 			{
@@ -4086,29 +4148,74 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 			if (ItemCode == TAG_ITEM_CTOT)
 			{
-				for (ServerRestricted sr : serverRestrictedPlanes) {
-					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-						ItemRGB = TAG_CTOT;
-						strcpy_s(sItemString, 16, sr.ctot.c_str());
+				bool found = false;
+				if (slotListPos != -1) {
+					if (slotList[slotListPos].hasManualCtot) {
+						found = true;
+						if (slotList[slotListPos].ctot == "") {
+							ItemRGB = TAG_ORANGE;
+						}
+						else {
+							ItemRGB = TAG_CTOT;
+						}
+						strcpy_s(sItemString, 16, slotList[slotListPos].ttot.substr(0, 4).c_str());
+					}
+				}
+				if (!found) {
+					for (ServerRestricted sr : serverRestrictedPlanes) {
+						if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+							ItemRGB = TAG_CTOT;
+							strcpy_s(sItemString, 16, sr.ctot.c_str());
+						}
 					}
 				}
 			}
 			else if (ItemCode == NOW_CTOT_DIFF)
 			{
-				for (ServerRestricted sr : serverRestrictedPlanes) {
-					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-						string value = getDiffNowTime(sr.ctot);
-						ItemRGB = TAG_CTOT;
+				bool found = false;
+				if (slotListPos != -1) {
+					if (slotList[slotListPos].hasManualCtot) {
+						found = true;
+						string value = getDiffNowTime(slotList[slotListPos].ttot);
+						if (slotList[slotListPos].ctot == "") {
+							ItemRGB = TAG_ORANGE;
+						}
+						else {
+							ItemRGB = TAG_CTOT;
+						}
 						strcpy_s(sItemString, 16, value.c_str());
+					}
+				}
+				if (!found){
+					for (ServerRestricted sr : serverRestrictedPlanes) {
+						if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+							string value = getDiffNowTime(sr.ctot);
+							ItemRGB = TAG_CTOT;
+							strcpy_s(sItemString, 16, value.c_str());
+						}
 					}
 				}
 			}
 			if (ItemCode == TAG_ITEM_FLOW_MESSAGE)
 			{
-				for (ServerRestricted sr : serverRestrictedPlanes) {
-					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+				bool found = false;
+				if (slotListPos != -1) {
+					if (slotList[slotListPos].hasManualCtot) {
+						found = true;
+						string message = "MAN ACT";
+						if (slotList[slotListPos].ctot != "") {
+							message = slotList[slotListPos].flowReason;
+						}
 						ItemRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 50, sr.reason.c_str());
+						strcpy_s(sItemString, 16, message.c_str());
+					}
+				}
+				if (!found) {
+					for (ServerRestricted sr : serverRestrictedPlanes) {
+						if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 50, sr.reason.c_str());
+						}
 					}
 				}
 			}
@@ -5885,6 +5992,17 @@ void CDM::getEcfmpData() {
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception getEcfmpData");
 	}
+}
+
+bool CDM::isCdmAirport(string airport) {
+	bool cdmAirport = false;
+	for (string a : CDMairports)
+	{
+		if (airport == a) {
+			return true;
+		}
+	}
+	return false;
 }
 
 void CDM::saveData() {
