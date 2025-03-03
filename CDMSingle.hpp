@@ -122,7 +122,9 @@ public:
 
 	void sendCheckCIDLater();
 
-	void setTOBTApi(string callsign, string tobt, bool hideCalculation);
+	void updateCdmDataApi();
+
+	void setTSATApi(string callsign, string tobt, bool hideCalculation);
 
 	string getTaxiTime(string callsign);
 

@@ -108,6 +108,7 @@ vector<string> disabledCtots;
 vector<vector<string>> networkStatus;
 vector<Plane> apiQueueResponse;
 vector<vector<string>> deiceList;
+vector<string> setReaList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -1125,8 +1126,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			}
 
 			//Set REA Status
-			std::thread t(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
-			t.detach();
+			setReaList.push_back(fp.GetCallsign());
 
 			//Update times to slaves
 			countTime = std::time(nullptr) - refreshTime;
@@ -1361,7 +1361,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					if (slotList[i].hasManualCtot) {
 						slotList[i].hasManualCtot = false;
 						//Check API
-						std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].eobt, true);
+						std::thread t(&CDM::setTSATApi, this, slotList[i].callsign, slotList[i].tsat, true);
 						t.detach();
 
 						if (!isCdmAirport(fp.GetFlightPlanData().GetOrigin())) {
@@ -1424,7 +1424,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				
 				//if (!realMode) {
 					//Check API
-					std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", true);
+					std::thread t(&CDM::setTSATApi, this, (string)fp.GetCallsign(), "", true);
 					t.detach();
 				//}
 			}
@@ -2375,8 +2375,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											}
 											//Check API
 											if (doRequest) {
-												string myTOBTApi = EOBT;
-												std::thread t(&CDM::setTOBTApi, this, callsign, myTOBTApi, true);
+												string myTSATApi = TSAT;
+												std::thread t(&CDM::setTSATApi, this, callsign, myTSATApi, true);
 												t.detach();
 											}
 										}
@@ -5130,8 +5130,8 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						}
 						//Check API
 						if (doRequest && TSATfinal.length() >= 4) {
-							string myTOBTApi = EOBT;
-							std::thread t(&CDM::setTOBTApi, this, callsign, myTOBTApi, false);
+							string myTSATApi = TSAT;
+							std::thread t(&CDM::setTSATApi, this, callsign, myTSATApi, false);
 							t.detach();
 						}
 					}
@@ -6008,6 +6008,8 @@ bool CDM::isCdmAirport(string airport) {
 void CDM::saveData() {
 	addLogLine("Called saveData...");
 	try{
+		//Update data to cdmData API
+		updateCdmDataApi();
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
@@ -7380,7 +7382,7 @@ bool CDM::setEvCtot(string callsign) {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
+				string url = cdmServerUrl + "/slotService/cidCheck?callsign=" + callsign;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -7407,7 +7409,7 @@ bool CDM::setEvCtot(string callsign) {
 				string cid = "";
 				while (getline(is, cid))
 				{
-					if (cid.length() > 2) {
+					if (cid.length() > 4) {
 						for (int i = 0; i < slotFile.size(); i++) {
 							if (slotFile[i].size() > 1) {
 								if (slotFile[i][0] == cid) {
@@ -7616,7 +7618,7 @@ void CDM::sendWaitingTSAT() {
 			if (!found) {
 				alreadyProcessed.push_back(setTSATlaterTemp[i]);
 				addLogLine("sendWaitingTSAT - " + setTSATlaterTemp[i].callsign);
-				setTOBTApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].eobt, false);
+				setTSATApi(setTSATlaterTemp[i].callsign, setTSATlaterTemp[i].tsat, false);
 			}
 		}
 	}
@@ -7692,7 +7694,64 @@ void CDM::sendCheckCIDLater() {
 	}
 }
 
-void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
+void CDM::updateCdmDataApi() {
+	if (serverEnabled) {
+		addLogLine("Called updateCdmDataApi...");
+		try {
+			vector<Plane> slotListTemp; // Local copy of the slotList
+			{
+				slotListTemp = slotList; // Copy the slotList
+			}
+
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			string readBuffer;
+			long responseCode = 0;
+			for (Plane p : slotListTemp) {
+				string str;
+				if (p.hasManualCtot && p.ctot != "" && p.ttot.length() >= 4) {
+					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ctot.substr(0, 4) + "&reason=" + p.flowReason;
+				}
+				else if (p.hasManualCtot && p.ttot.length() >= 4) {
+					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ttot.substr(0, 4) + "&reason=MANUAL";
+				}
+				else {
+					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=&reason=";
+				}
+				result = CURLE_FAILED_INIT;
+				curl = curl_easy_init();
+				if (curl) {											
+					string url = cdmServerUrl + "/slotService/setCdmData?" + str;
+					string apiKeyHeader = "x-api-key: " + apikey;
+					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
+					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+					curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+					curl_easy_setopt(curl, CURLOPT_POST, 1L);
+					curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+					curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+					result = curl_easy_perform(curl);
+					curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+					curl_easy_cleanup(curl);
+				}
+			}
+			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				addLogLine("UNABLE TO CONNECT CDM-API...");
+			}
+			addLogLine("COMPLETED - updateCdmDataApi");
+		}
+		catch (const std::exception& e) {
+			activeSetTsat -= 1;
+			addLogLine("ERROR: Unhandled exception updateCdmDataApi: " + (string)e.what());
+		}
+		catch (...) {
+			activeSetTsat -= 1;
+			addLogLine("ERROR: Unhandled exception updateCdmDataApi");
+		}
+	}
+}
+
+void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
 	if (serverEnabled) {
 		if (hideCalculation) {
 			for (size_t a = 0; a < slotList.size(); a++) {
@@ -7701,12 +7760,17 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 				}
 			}
 		}
-		addLogLine("Called setTOBTApi...");
+		addLogLine("Called setTSATApi...");
 		activeSetTsat += 1;
 		try {
 			vector<Plane> slotListTemp; // Local copy of the slotList
 			{
 				slotListTemp = slotList; // Copy the slotList
+			}
+
+			for (int s = setReaList.size() - 1; s >= 0; s--) {
+				setCdmSts(setReaList[s], "REA");
+				setReaList.erase(setReaList.begin() + s);
 			}
 
 			addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign);
@@ -7839,11 +7903,11 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 			/*std::thread t9(&CDM::getCdmServerStatus, this);
 			t9.detach();*/
 
-			addLogLine("COMPLETED - setTOBTApi for " + callsign);
+			addLogLine("COMPLETED - setTSATApi for " + callsign);
 		}
 		catch (const std::exception& e) {
 			activeSetTsat -= 1;
-			addLogLine("ERROR: Unhandled exception setTOBTApi: " + (string)e.what());
+			addLogLine("ERROR: Unhandled exception setTSATApi: " + (string)e.what());
 			{
 				for (size_t a = 0; a < slotList.size(); a++) {
 					if (slotList[a].callsign == callsign) {
@@ -7854,7 +7918,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 		}
 		catch (...) {
 			activeSetTsat -= 1;
-			addLogLine("ERROR: Unhandled exception setTOBTApi");
+			addLogLine("ERROR: Unhandled exception setTSATApi");
 			{
 				for (size_t a = 0; a < slotList.size(); a++) {
 					if (slotList[a].callsign == callsign) {
@@ -8190,7 +8254,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
 
-						string tobt = fastWriter.write(data[i]["tobt"]);
+						string tobt = fastWriter.write(data[i]["reqTobt"]);
 						tobt.erase(std::remove(tobt.begin(), tobt.end(), '"'));
 						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
 						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
