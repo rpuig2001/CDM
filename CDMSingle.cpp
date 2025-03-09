@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "CDMSingle.hpp"
 #include "pugixml.hpp"
 #include "pugixml.cpp"
@@ -46,11 +46,13 @@ bool realMode;
 bool pilotTobt;
 bool remarksOption;
 bool invalidateTSAT_Option;
+bool sidIntervalEnabled;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
 string ctotURL;
 string cdmServerUrl;
+string sidIntervalUrl;
 int defTaxiTime;
 string flowRestrictionsUrl;
 string cdm_api;
@@ -109,6 +111,7 @@ vector<vector<string>> networkStatus;
 vector<Plane> apiQueueResponse;
 vector<vector<string>> deiceList;
 vector<string> setReaList;
+vector<sidInterval> sidIntervalList;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -273,6 +276,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rateUrl = getFromXml("/CDM/Rates/@url");
 	taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
 	ctotURL = getFromXml("/CDM/Ctot/@url");
+	sidIntervalUrl = getFromXml("/CDM/sidInterval/@url");
 	string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
@@ -287,6 +291,13 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		ftpHost = "ftp.vatsimspain.es";
 		ftpUser = "aman_vatspa";
 		//Password defined internally
+	}
+
+	//Get Values from sidInterval
+	sidIntervalEnabled = false;
+	if (sidIntervalUrl.length() > 5) {
+		sidIntervalEnabled = true;
+		getSidIntervalValuesUrl(sidIntervalUrl);
 	}
 
 	deIceTimeL = 5;
@@ -2182,6 +2193,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 								double rateHour = (double)60 / rate;
 								bool sameOrDependantRwys = false;
+								string mySid = FlightPlan.GetFlightPlanData().GetSidName();
 
 								while (equalTTOT) {
 									correctTTOT = true;
@@ -2191,6 +2203,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											string listTTOT;
 											string listCallsign = slotList[t].callsign;
 											string listDepRwy = "";
+											string listSid = FlightPlanSelect(listCallsign.c_str()).GetFlightPlanData().GetSidName();
 											bool depRwyFound = false;
 											for (size_t i = 0; i < taxiTimesList.size(); i++)
 											{
@@ -2264,6 +2277,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														TTOTFinal = calculateTime(listTTOT, 0.5);
 														correctTTOT = false;
 														alreadySetTOStd = true;
+													}
+												}
+											}
+											//Check SID Interval
+											if (correctTTOT && sidIntervalEnabled) {
+												double interval = getSidInterval(mySid, listSid, origin, depRwy);
+												if (interval > 0) {
+													bool found = false;
+													while (!found) {
+														found = true;
+														if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, interval))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, interval)))) {
+															found = false;
+															if (alreadySetTOStd) {
+																TTOTFinal = calculateTime(TTOTFinal, 0.5);
+																correctTTOT = false;
+															}
+															else {
+																TTOTFinal = calculateTime(listTTOT, 0.5);
+																correctTTOT = false;
+																alreadySetTOStd = true;
+															}
+														}
 													}
 												}
 											}
@@ -4870,6 +4905,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 
 		if (okToLook) {
 			bool sameOrDependantRwys = false;
+			string mySid = FlightPlan.GetFlightPlanData().GetSidName();
 
 			while (equalTTOT) {
 				correctTTOT = true;
@@ -4878,6 +4914,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 					string listTTOT;
 					string listCallsign = planes[t].callsign;
 					string listDepRwy = "";
+					string listSid = FlightPlanSelect(listCallsign.c_str()).GetFlightPlanData().GetSidName();
 					bool depRwyFound = false;
 					for (size_t i = 0; i < taxiTimesList.size(); i++)
 					{
@@ -5001,6 +5038,28 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 								if (stoi(calculatedTSATNow) < stoi(timeNow)) {
 									TTOTFinal = calculateTime(TTOTFinal, 0.5);
 									correctTTOT = false;
+								}
+							}
+						}
+					}
+					//Check SID Interval
+					if (correctTTOT && sidIntervalEnabled) {
+						double interval = getSidInterval(mySid, listSid, origin, depRwy);
+						if (interval > 0) {
+							bool found = false;
+							while (!found) {
+								found = true;
+								if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, interval))) && (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, interval)))) {
+									found = false;
+									if (alreadySetTOStd) {
+										TTOTFinal = calculateTime(TTOTFinal, 0.5);
+										correctTTOT = false;
+									}
+									else {
+										TTOTFinal = calculateTime(listTTOT, 0.5);
+										correctTTOT = false;
+										alreadySetTOStd = true;
+									}
 								}
 							}
 						}
@@ -5992,6 +6051,66 @@ void CDM::getEcfmpData() {
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception getEcfmpData");
 	}
+}
+
+void CDM::getSidIntervalValuesUrl(string url)
+{
+	addLogLine("Called getSidIntervalValuesUrl...");
+	CURL* curl;
+	CURLcode result;
+	string readBuffer;
+	long responseCode;
+	curl = curl_easy_init();
+	if (curl) {
+		curl_easy_setopt(curl, CURLOPT_URL, url);
+		curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+		curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+		result = curl_easy_perform(curl);
+		curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+		curl_easy_cleanup(curl);
+	}
+
+	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+		// handle error 404
+		sendMessage("UNABLE TO LOAD SidInterval URL...");
+		addLogLine("UNABLE TO LOAD SidInterval DATA: rc=" + to_string(responseCode) + " result=" + to_string(result));
+	}
+	else {
+		std::istringstream is(readBuffer);
+
+		//Get data from .txt file
+		string lineValue;
+		while (getline(is, lineValue))
+		{
+			if (!lineValue.empty()) {
+				if (lineValue.substr(0, 1) != "#") {
+					vector<string> tempList = explode(lineValue, ',');
+					if (tempList.size() == 5) {
+						sidInterval si = sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
+						sidIntervalList.push_back(si);
+					}
+				}
+			}
+		}
+	}
+	addLogLine("FINISHED getSidIntervalValuesUrl");
+}
+
+double CDM::getSidInterval(string mySid, string listSid, string depAirport, string depRwy)
+{
+	if (mySid.length() > 3 && listSid.length() > 3) {
+		//substr to get only the SID point
+		string sid1 = mySid.substr(0, mySid.length() - 2);
+		string sid2 = listSid.substr(0, listSid.length() - 2);
+		for (sidInterval si : sidIntervalList) {
+			if (si.airport == depAirport) {
+				if (((si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2)) && depRwy == si.rwy) {
+					return si.value;
+				}
+			}
+		}
+	}
+	return -1;
 }
 
 bool CDM::isCdmAirport(string airport) {

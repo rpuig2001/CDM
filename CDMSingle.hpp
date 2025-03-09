@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "EuroScopePlugIn.h"
 #include <sstream>
 #include <iostream>
@@ -18,6 +18,7 @@
 #include "Rate.h"
 #include "Plane.h"
 #include "ServerRestricted.h"
+#include "‎sidInterval.h"
 #include <mutex>
 #define CURL_STATICLIB
 #include "curl/curl.h"
@@ -111,6 +112,10 @@ public:
 	bool flightHasCtotDisabled(string callsign);
 
 	void getEcfmpData();
+
+	void getSidIntervalValuesUrl(string url);
+
+	double getSidInterval(string mySid, string listSid, string depAirport, string depRwy);
 
 	bool isCdmAirport(string airport);
 
