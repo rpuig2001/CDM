@@ -299,8 +299,12 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Get Values from sidInterval
 	sidIntervalEnabled = false;
 	if (sidIntervalUrl.length() > 5) {
+		addLogLine("sidInterval - ENABLED");
 		sidIntervalEnabled = true;
 		getSidIntervalValuesUrl(sidIntervalUrl);
+	}
+	else {
+		addLogLine("sidInterval - DISABLED");
 	}
 
 	deIceTimeL = 5;
