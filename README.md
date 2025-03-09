@@ -126,6 +126,7 @@ CDM includes the following times:
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
+  - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
@@ -209,6 +210,21 @@ Example:
 9999999,0840
 9999999,0842
 9999999,0844
+```
+
+## Sid Interval
+### How does it work?
+Used to seperate planes based on departure SID Ponint. Format: <ICAO_Airport>,<dep_rwy>,<SID1>,<SID2>,<seperation_minutes>
+
+Notes:
+- SID are sid points. For sid LARPA4Q, "LARPA" is used as SID, and "4Q" should not be included.
+- Seperation minutes are decimals, so a decimal or non-decimal value can be set. 1.0, 7 and 15.2 are possible values.
+
+Example:
+
+```
+LEPA,24R,ESPOR,BAVER,10
+LEPA,24R,BAVER,EPAMA,15.5
 ```
 
 ## FTP files and format
@@ -321,7 +337,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - To add a TOBT while realMode is DISABLED, use the Ready TOBT Function to set the actual time as a TOBT or the Edit TOBT to set a 4 digits time.
     - If realMode is enable it will ONLY set the EOBT as TOBT when the first flightplan is recived, if the EOBT is changed the TOBT will not change automatically and you can use other functions such as the EOBT to TOBT Function to move it through. (EOBT will have a different color to say you that there's a new time sent by the pilot).
   - Functions:
-    - ``Ready TOBT`` -> Sets TOBT to the actual time.
+    - ``Ready TOBT`` -> Sets TOBT to the actual time and sends a CDM-Network REA message (for CTOT improvement).
     - ``Edit TOBT`` -> Sets TOBT to the specified time (4 digits).
   - Colors:
     - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> Before EOBT -5.

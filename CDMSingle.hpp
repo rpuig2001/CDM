@@ -1,4 +1,4 @@
-#pragma once
+﻿#pragma once
 #include "EuroScopePlugIn.h"
 #include <sstream>
 #include <iostream>
@@ -18,6 +18,7 @@
 #include "Rate.h"
 #include "Plane.h"
 #include "ServerRestricted.h"
+#include "‎sidInterval.h"
 #include <mutex>
 #define CURL_STATICLIB
 #include "curl/curl.h"
@@ -25,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.5.2"
+#define MY_PLUGIN_VERSION   "2.2.5.3"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -112,6 +113,12 @@ public:
 
 	void getEcfmpData();
 
+	void getSidIntervalValuesUrl(string url);
+
+	double getSidInterval(string mySid, string listSid, string depAirport, string depRwy);
+
+	bool isCdmAirport(string airport);
+
 	void getCdmServerRestricted();
 
 	void sendWaitingTSAT();
@@ -120,7 +127,9 @@ public:
 
 	void sendCheckCIDLater();
 
-	void setTOBTApi(string callsign, string tobt, bool hideCalculation);
+	void updateCdmDataApi();
+
+	void setTSATApi(string callsign, string tobt, bool hideCalculation);
 
 	string getTaxiTime(string callsign);
 
