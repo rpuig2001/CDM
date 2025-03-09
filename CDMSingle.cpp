@@ -155,6 +155,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemFunction("EOBT to TOBT", TAG_FUNC_EOBTTOTOBT);
 	RegisterTagItemFunction("TOBT Options", TAG_FUNC_OPT_TOBT);
 
+	//Register Tag Item "CDM-E/TOBT"
+	RegisterTagItemType("E/TOBT", TAG_ITEM_ETOBT);
+
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
 	RegisterTagItemType("TSAT/TOBT-DIFF", TAG_ITEM_TSAT_TOBT_DIFF);
@@ -1946,6 +1949,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_GREENNOTACTIVE;
 							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 						}
+						else if (ItemCode == TAG_ITEM_ETOBT)
+						{
+							string ShowEOBT = (string)EOBT;
+							ItemRGB = TAG_GREENNOTACTIVE;
+							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
 						else if (ItemCode == TAG_ITEM_TSAC)
 						{
 							ItemRGB = TAG_GREEN;
@@ -2641,6 +2650,41 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
 						}
 						else if (ItemCode == TAG_ITEM_TOBT)
+						{
+							string ShowEOBT = (string)EOBT;
+							if (showData) {
+								if (SU_ISSET) {
+									ItemRGB = SU_SET_COLOR;
+									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+								}
+								else if (notYetEOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREENNOTACTIVE;
+									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+								}
+								else if (!actualTOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREENNOTACTIVE;
+									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+								}
+								else if (lastMinuteTOBT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+								}
+								else {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+								}
+							}
+							else
+							{
+								ItemRGB = TAG_RED;
+								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+							}
+						}
+						else if (ItemCode == TAG_ITEM_ETOBT)
 						{
 							string ShowEOBT = (string)EOBT;
 							if (showData) {
@@ -3570,6 +3614,31 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_ETOBT)
+						{
+							string ShowEOBT = (string)EOBT;
+							if (SU_ISSET) {
+								ItemRGB = SU_SET_COLOR;
+								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+							}
+							else if (notYetEOBT) {
+								ItemRGB = TAG_GREY;
+								strcpy_s(sItemString, 16, "~");
+							}
+							else if (!actualTOBT) {
+								ItemRGB = TAG_GREENNOTACTIVE;
+								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+							}
+							else if (lastMinuteTOBT) {
+								//*pColorCode = TAG_COLOR_RGB_DEFINED;
+								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+							}
+							else {
+								ItemRGB = TAG_GREEN;
+								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+							}
+						}
 						else if (ItemCode == TAG_ITEM_TSAC)
 						{
 							if (TSACNotTSAT) {
@@ -3928,6 +3997,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_GREY;
 							strcpy_s(sItemString, 16, "----");
 						}
+						else if (ItemCode == TAG_ITEM_ETOBT)
+						{
+							ItemRGB = TAG_GREY;
+							strcpy_s(sItemString, 16, "----");
+						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
 							if (aircraftFind) {
@@ -4027,6 +4101,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					strcpy_s(sItemString, 16, EOBTfinal.c_str());
 				}
 				else if (ItemCode == TAG_ITEM_TOBT)
+				{
+					ItemRGB = TAG_GREY;
+					strcpy_s(sItemString, 16, "----");
+				}
+				else if (ItemCode == TAG_ITEM_ETOBT)
 				{
 					ItemRGB = TAG_GREY;
 					strcpy_s(sItemString, 16, "----");
@@ -4177,6 +4256,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			if (ItemCode == TAG_ITEM_EOBT)
+			{
+				ItemRGB = TAG_EOBT;
+				strcpy_s(sItemString, 16, EOBTfinal.c_str());
+			}
+			if (ItemCode == TAG_ITEM_ETOBT)
 			{
 				ItemRGB = TAG_EOBT;
 				strcpy_s(sItemString, 16, EOBTfinal.c_str());
