@@ -126,6 +126,7 @@ CDM includes the following times:
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
+  - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
