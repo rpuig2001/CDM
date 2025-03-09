@@ -211,6 +211,21 @@ Example:
 9999999,0844
 ```
 
+## Sid Interval
+### How does it work?
+Used to seperate planes based on departure SID Ponint. Format: <ICAO_Airport>,<dep_rwy>,<SID1>,<SID2>,<seperation_minutes>
+
+Notes:
+- SID are sid points. For sid LARPA4Q, "LARPA" is used as SID, and "4Q" should not be included.
+- Seperation minutes are decimals, so a decimal or non-decimal value can be set. 1.0, 7 and 15.2 are possible values.
+
+Example:
+
+```
+LEPA,24R,ESPOR,BAVER,10
+LEPA,24R,BAVER,EPAMA,15.5
+```
+
 ## FTP files and format
 ### Files
 Every airport will have a different txt file (ex. LEBL airport: CDM_data_LEBL.txt)
