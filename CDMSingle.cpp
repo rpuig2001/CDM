@@ -44,6 +44,7 @@ bool lvo;
 bool ctotCid;
 bool realMode;
 bool pilotTobt;
+bool atotEnabled;
 bool remarksOption;
 bool invalidateTSAT_Option;
 bool sidIntervalEnabled;
@@ -112,6 +113,7 @@ vector<Plane> apiQueueResponse;
 vector<vector<string>> deiceList;
 vector<string> setReaList;
 vector<sidInterval> sidIntervalList;
+vector<string> atotSet;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -274,6 +276,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
 	string pilotTobtStr = getFromXml("/CDM/pilotTobt/@mode");
+	string autSetAtot = getFromXml("/CDM/autoAtot/@mode");
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	rateUrl = getFromXml("/CDM/Rates/@url");
@@ -338,6 +341,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	pilotTobt = false;
 	if (pilotTobtStr == "true") {
 		pilotTobt = true;
+	}
+
+	atotEnabled = false;
+	if (autSetAtot == "true") {
+		atotEnabled = true;
 	}
 
 	realMode = false;
@@ -1842,6 +1850,26 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (tobt.length() > 0 == false) {
 							string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							setFlightStripInfo(FlightPlan, mySetEobt, 2);
+						}
+					}
+
+					//Atot check
+					if (atotEnabled) {
+						if ((string)FlightPlan.GetGroundState() == "DEPA") {
+							bool atotFound = false;
+							for (size_t i = 0; i < atotSet.size(); i++)
+							{
+								if (callsign == atotSet[i]) {
+									atotFound = true;
+								}
+							}
+							if (!atotFound) {
+								atotSet.push_back(callsign);
+								//set TTOT to now
+								if (aircraftFind) {
+									slotList[pos].ttot = GetTimeNow();
+								}
+							}
 						}
 					}
 
@@ -5987,6 +6015,17 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			deiceList.erase(deiceList.begin() + i);
 		}
 	}
+	//Remove from atotSet
+	for (size_t i = 0; i < atotSet.size(); i++)
+	{
+		if (callsign == atotSet[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 17");
+			}
+			atotSet.erase(atotSet.begin() + i);
+		}
+	}
+
 	deleteFlightStrips(callsign);
 	}
 	catch (const std::exception& e) {
