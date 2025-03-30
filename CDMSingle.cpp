@@ -37,6 +37,7 @@ time_t countTimeNonCdm;
 time_t countFetchServerTime;
 time_t countTfcDisconnectionTime;
 time_t countEcfmpTime;
+time_t countNetworkTobt;
 int countTfcDisconnection;
 int refreshTime;
 bool addTime;
@@ -256,6 +257,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	countTimeNonCdm = std::time(nullptr);
 	countFetchServerTime = std::time(nullptr);
 	countEcfmpTime = std::time(nullptr);
+	countNetworkTobt = std::time(nullptr);
 	countTfcDisconnectionTime = std::time(nullptr);
 	//countTime = stoi(GetTimeNow()) - refreshTime;
 	addTime = false;
@@ -1570,6 +1572,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		if ((timeNow - countEcfmpTime) > 300 && !refresh2) {
 			countEcfmpTime = timeNow;
 			std::thread t(&CDM::refreshActions2, this);
+			t.detach();
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
+			}
+		}
+		//Refresh ecfmpData every <refreshTime> min
+		if ((timeNow - countNetworkTobt) > refreshTime) {
+			countNetworkTobt = timeNow;
+			std::thread t(&CDM::getNetworkTobt, this);
 			t.detach();
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
@@ -7344,7 +7355,6 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
 void CDM::refreshActions1() {
 	refresh1 = true;
 	saveData();
-	getNetworkTobt();
 	getCdmServerStatus();
 	//Execute background process in the background
 	backgroundProcess_recaulculate();
