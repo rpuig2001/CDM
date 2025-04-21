@@ -3014,7 +3014,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, value.c_str());
 								}
-								else if (value.length() >= 4) {
+								else {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, value.c_str());
@@ -3844,8 +3844,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == NOW_TTOT_DIFF)
 						{
-							if (TTOTString.length() > 0) {
-								string value = getDiffNowTime(slotList[pos].ttot);
+							if (TTOTString.length() >= 4) {
+								string value = getDiffNowTime(TTOTString.substr(0,4));
 								if (notYetEOBT) {
 									ItemRGB = TAG_GREY;
 									strcpy_s(sItemString, 16, "~");
@@ -3856,7 +3856,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else {
 									ItemRGB = TAG_TTOT;
-									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+									strcpy_s(sItemString, 16, value.c_str());
 								}
 							}
 						}
