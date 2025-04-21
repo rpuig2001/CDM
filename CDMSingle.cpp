@@ -6,6 +6,7 @@
 #include "Delay.h"
 #include "EcfmpRestriction.h"
 #include <mutex>
+#include "SFTP.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -37,6 +38,7 @@ time_t countTimeNonCdm;
 time_t countFetchServerTime;
 time_t countTfcDisconnectionTime;
 time_t countEcfmpTime;
+time_t countNetworkTobt;
 int countTfcDisconnection;
 int refreshTime;
 bool addTime;
@@ -44,6 +46,7 @@ bool lvo;
 bool ctotCid;
 bool realMode;
 bool pilotTobt;
+bool atotEnabled;
 bool remarksOption;
 bool invalidateTSAT_Option;
 bool sidIntervalEnabled;
@@ -112,6 +115,7 @@ vector<Plane> apiQueueResponse;
 vector<vector<string>> deiceList;
 vector<string> setReaList;
 vector<sidInterval> sidIntervalList;
+vector<string> atotSet;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -254,6 +258,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	countTimeNonCdm = std::time(nullptr);
 	countFetchServerTime = std::time(nullptr);
 	countEcfmpTime = std::time(nullptr);
+	countNetworkTobt = std::time(nullptr);
 	countTfcDisconnectionTime = std::time(nullptr);
 	//countTime = stoi(GetTimeNow()) - refreshTime;
 	addTime = false;
@@ -274,6 +279,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
 	string pilotTobtStr = getFromXml("/CDM/pilotTobt/@mode");
+	string autSetAtot = getFromXml("/CDM/autoAtot/@mode");
 	rateString = getFromXml("/CDM/rate/@ops");
 	lvoRateString = getFromXml("/CDM/rateLvo/@ops");
 	rateUrl = getFromXml("/CDM/Rates/@url");
@@ -338,6 +344,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	pilotTobt = false;
 	if (pilotTobtStr == "true") {
 		pilotTobt = true;
+	}
+
+	atotEnabled = false;
+	if (autSetAtot == "true") {
+		atotEnabled = true;
 	}
 
 	realMode = false;
@@ -1567,6 +1578,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 			}
 		}
+		//Refresh ecfmpData every <refreshTime> min
+		if ((timeNow - countNetworkTobt) > refreshTime) {
+			countNetworkTobt = timeNow;
+			std::thread t(&CDM::getNetworkTobt, this);
+			t.detach();
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
+			}
+		}
 
 		bool isCDMairport = false;
 		for (string a : CDMairports)
@@ -1842,6 +1862,26 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (tobt.length() > 0 == false) {
 							string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							setFlightStripInfo(FlightPlan, mySetEobt, 2);
+						}
+					}
+
+					//Atot check
+					if (atotEnabled) {
+						if ((string)FlightPlan.GetGroundState() == "DEPA") {
+							bool atotFound = false;
+							for (size_t i = 0; i < atotSet.size(); i++)
+							{
+								if (callsign == atotSet[i]) {
+									atotFound = true;
+								}
+							}
+							if (!atotFound) {
+								atotSet.push_back(callsign);
+								//set TTOT to now
+								if (aircraftFind) {
+									slotList[pos].ttot = GetTimeNow();
+								}
+							}
 						}
 					}
 
@@ -2974,7 +3014,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, value.c_str());
 								}
-								else if (value.length() >= 4) {
+								else {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_TTOT;
 									strcpy_s(sItemString, 16, value.c_str());
@@ -3804,8 +3844,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == NOW_TTOT_DIFF)
 						{
-							if (TTOTString.length() > 0) {
-								string value = getDiffNowTime(slotList[pos].ttot);
+							if (TTOTString.length() >= 4) {
+								string value = getDiffNowTime(TTOTString.substr(0,4));
 								if (notYetEOBT) {
 									ItemRGB = TAG_GREY;
 									strcpy_s(sItemString, 16, "~");
@@ -3816,7 +3856,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else {
 									ItemRGB = TAG_TTOT;
-									strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
+									strcpy_s(sItemString, 16, value.c_str());
 								}
 							}
 						}
@@ -5987,6 +6027,17 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			deiceList.erase(deiceList.begin() + i);
 		}
 	}
+	//Remove from atotSet
+	for (size_t i = 0; i < atotSet.size(); i++)
+	{
+		if (callsign == atotSet[i]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 17");
+			}
+			atotSet.erase(atotSet.begin() + i);
+		}
+	}
+
 	deleteFlightStrips(callsign);
 	}
 	catch (const std::exception& e) {
@@ -6364,20 +6415,10 @@ bool CDM::isNumber(string s)
 
 void CDM::upload(string fileName, string airport, string type)
 {
-	addLogLine("Called upload...");
-	try {
-		string saveName = "/CDM_data_" + airport + type;
-		HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-		HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
-		FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
-		InternetCloseHandle(hFtpSession);
-		InternetCloseHandle(hInternet);
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception upload: " + (string)e.what());
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception upload");
+	string saveName = "/CDM_data_" + airport + type;
+	int response = UploadFileFTPS(ftpHost, ftpUser, ftpPassword, fileName, saveName);
+	if (response != 0) {
+		sendMessage("FTP error: " + response);
 	}
 }
 
@@ -6855,6 +6896,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			addLogLine(sCommandLine);
 			string line = sCommandLine;
 			string apt = line.substr(line.find("/") - 4, 4);
+			boost::to_upper(apt);
 			string rwy = "";
 			if (line.substr(line.find("/") + 3, 1) == " ") {
 				rwy = line.substr(line.find("/") + 1, 2);
@@ -7305,7 +7347,6 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
 void CDM::refreshActions1() {
 	refresh1 = true;
 	saveData();
-	getNetworkTobt();
 	getCdmServerStatus();
 	//Execute background process in the background
 	backgroundProcess_recaulculate();
