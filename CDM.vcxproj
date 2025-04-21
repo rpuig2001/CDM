@@ -20,6 +20,7 @@
     <ClInclude Include="Plane.h" />
     <ClInclude Include="Rate.h" />
     <ClInclude Include="ServerRestricted.h" />
+    <ClInclude Include="SFTP.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
     <ClInclude Include="‎sidInterval.h" />
@@ -30,6 +31,7 @@
     <ClCompile Include="json_reader.cpp" />
     <ClCompile Include="json_value.cpp" />
     <ClCompile Include="json_writer.cpp" />
+    <ClCompile Include="SFTP.cpp" />
     <ClCompile Include="stdafx.cpp">
       <PrecompiledHeader Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">Create</PrecompiledHeader>
     </ClCompile>

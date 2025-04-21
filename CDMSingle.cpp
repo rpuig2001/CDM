@@ -6,6 +6,7 @@
 #include "Delay.h"
 #include "EcfmpRestriction.h"
 #include <mutex>
+#include "SFTP.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -6414,20 +6415,10 @@ bool CDM::isNumber(string s)
 
 void CDM::upload(string fileName, string airport, string type)
 {
-	addLogLine("Called upload...");
-	try {
-		string saveName = "/CDM_data_" + airport + type;
-		HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
-		HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
-		FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
-		InternetCloseHandle(hFtpSession);
-		InternetCloseHandle(hInternet);
-	}
-	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception upload: " + (string)e.what());
-	}
-	catch (...) {
-		addLogLine("ERROR: Unhandled exception upload");
+	string saveName = "/CDM_data_" + airport + type;
+	int response = UploadFileFTPS(ftpHost, ftpUser, ftpPassword, fileName, saveName);
+	if (response != 0) {
+		sendMessage("FTP error: " + response);
 	}
 }
 
