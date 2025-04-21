@@ -6905,6 +6905,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 			addLogLine(sCommandLine);
 			string line = sCommandLine;
 			string apt = line.substr(line.find("/") - 4, 4);
+			boost::to_upper(apt);
 			string rwy = "";
 			if (line.substr(line.find("/") + 3, 1) == " ") {
 				rwy = line.substr(line.find("/") + 1, 2);
