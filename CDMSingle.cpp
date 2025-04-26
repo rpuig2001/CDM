@@ -8550,7 +8550,8 @@ void CDM::getNetworkTobt() {
 						if (!mySlotList[i].showData) {
 							found = true;
 						}
-						else if (((!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") || (mySlotList[i].hasManualCtot && mySlotList[i].ctot != ""))) {
+						//Check if not manual CTOT assigned
+						else if (!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") {
 							found = true;
 							if (plane[1] + "00" != mySlotList[i].eobt) {
 								CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
