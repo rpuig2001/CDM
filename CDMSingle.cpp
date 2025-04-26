@@ -1263,7 +1263,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 								string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 								// at the earlierst at present time + EXOT
-								if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
+								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
 									setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
 									for (size_t i = 0; i < slotList.size(); i++)
 									{
