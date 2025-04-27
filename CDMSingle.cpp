@@ -1265,6 +1265,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								// at the earlierst at present time + EXOT
 								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
 									setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
+									setFlightStripInfo(fp, "1", 7);
 									for (size_t i = 0; i < slotList.size(); i++)
 									{
 										if (slotList[i].callsign == fp.GetCallsign()) {
@@ -1326,9 +1327,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
 			}
 			else {
-				if (!isCdmAirport(fp.GetFlightPlanData().GetOrigin())) {
-					OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
-				}
+				OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
 			}
 		}
 	}
@@ -1358,9 +1357,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
 							myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 							string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
-							// at the earlierst at present time (now + 5min) + EXOT
-							if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
+							// at the earlierst at present time + EXOT
+							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
 								setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
+								setFlightStripInfo(fp, "1", 7);
 								for (size_t i = 0; i < slotList.size(); i++)
 								{
 									if ((string)fp.GetCallsign() == slotList[i].callsign && !slotList[i].hasManualCtot) {
@@ -1664,9 +1664,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			bool hasManualCtot = false;
 			if (aircraftFind) {
-				if (slotList[pos].hasManualCtot) {
+				if (slotList[pos].hasManualCtot || getFlightStripInfo(FlightPlan, 7) == "1") {
 					hasManualCtot = true;
 				}
+			}
+			else if (getFlightStripInfo(FlightPlan, 7) == "1") {
+				hasManualCtot = true;
 			}
 
 			//It'll calculate pilot's times after pressing READY TOBT Function
