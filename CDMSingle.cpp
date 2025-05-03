@@ -63,6 +63,7 @@ string myAtcCallsign;
 bool option_su_wait;
 string apikey;
 bool serverEnabled;
+bool sftpConnection;
 bool refresh1;
 bool refresh2;
 bool refresh3;
@@ -293,6 +294,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
+	string sftpConnectionString = getFromXml("/CDM/sftpConnection/@mode");
 	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
 
@@ -359,6 +361,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	serverEnabled = true;
 	if (cdmserver == "false") {
 		serverEnabled = false;
+	}
+
+	sftpConnection = true;
+	if (sftpConnectionString == "false") {
+		sftpConnection = false;
 	}
 
 	//Invalidate FP at TSAT+6
@@ -6418,10 +6425,40 @@ bool CDM::isNumber(string s)
 
 void CDM::upload(string fileName, string airport, string type)
 {
+	if (sftpConnection) {
+		uploadSftp(fileName, airport, type);
+	}
+	else {
+		uploadFtp(fileName, airport, type);
+	}
+}
+
+void CDM::uploadSftp(string fileName, string airport, string type)
+{
+	addLogLine("Called uploadSftp...");
 	string saveName = "/CDM_data_" + airport + type;
 	int response = UploadFileFTPS(ftpHost, ftpUser, ftpPassword, fileName, saveName);
 	if (response != 0) {
 		sendMessage("FTP error: " + response);
+	}
+}
+
+void CDM::uploadFtp(string fileName, string airport, string type)
+{
+	addLogLine("Called uploadFtp...");
+	try {
+		string saveName = "/CDM_data_" + airport + type;
+		HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+		HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
+		FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
+		InternetCloseHandle(hFtpSession);
+		InternetCloseHandle(hInternet);
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception upload: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception upload");
 	}
 }
 
