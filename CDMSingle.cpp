@@ -1,4 +1,4 @@
-﻿#include "stdafx.h"
+#include "stdafx.h"
 #include "CDMSingle.hpp"
 #include "pugixml.hpp"
 #include "pugixml.cpp"
@@ -7455,7 +7455,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 								return true;
 							}
 							catch (const std::system_error& e) {
-								addLogLine("Exception in setMasterAirport()");
+								addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
 							}
 						}
 					}
