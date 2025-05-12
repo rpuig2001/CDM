@@ -23,7 +23,7 @@
     <ClInclude Include="SFTP.h" />
     <ClInclude Include="stdafx.h" />
     <ClInclude Include="targetver.h" />
-    <ClInclude Include="‎sidInterval.h" />
+    <ClInclude Include="sidInterval.h" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="CDMSingle.cpp" />
