@@ -1,4 +1,4 @@
-#include "stdafx.h"
+﻿#include "stdafx.h"
 #include "CDMSingle.hpp"
 #include "pugixml.hpp"
 #include "pugixml.cpp"
@@ -6206,9 +6206,9 @@ void CDM::getSidIntervalValuesUrl(string url)
 {
 	addLogLine("Called getSidIntervalValuesUrl...");
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
