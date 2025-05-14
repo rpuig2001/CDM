@@ -6206,9 +6206,9 @@ void CDM::getSidIntervalValuesUrl(string url)
 {
 	addLogLine("Called getSidIntervalValuesUrl...");
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -7455,7 +7455,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 								return true;
 							}
 							catch (const std::system_error& e) {
-								addLogLine("Exception in setMasterAirport()");
+								addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
 							}
 						}
 					}
