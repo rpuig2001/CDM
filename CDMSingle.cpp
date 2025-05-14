@@ -7315,6 +7315,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		return true;
 	}
+	return false;
 }
 
 void CDM::OnTimer(int Counter) {
