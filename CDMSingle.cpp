@@ -2721,7 +2721,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
-								else if (lastMinuteTOBT) {
+								else if (lastMinuteTOBT && ASRTtext == "") {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -2756,7 +2756,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
-								else if (lastMinuteTOBT) {
+								else if (lastMinuteTOBT && ASRTtext == "") {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3557,6 +3557,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						//ASRT
+						string ASRTtext = getFlightStripInfo(FlightPlan, 0);
+
 						// TSAC
 						bool TSACNotTSAT = false;
 						string annotTSAC = getFlightStripInfo(FlightPlan, 1);
@@ -3658,7 +3661,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_GREENNOTACTIVE;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
-							else if (lastMinuteTOBT) {
+							else if (lastMinuteTOBT && ASRTtext == "") {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3683,7 +3686,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_GREENNOTACTIVE;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
-							else if (lastMinuteTOBT) {
+							else if (lastMinuteTOBT && ASRTtext == "") {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
