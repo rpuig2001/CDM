@@ -63,6 +63,7 @@ string myAtcCallsign;
 bool option_su_wait;
 string apikey;
 bool serverEnabled;
+bool sftpConnection;
 bool refresh1;
 bool refresh2;
 bool refresh3;
@@ -293,6 +294,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ftpHost = getFromXml("/CDM/ftpHost/@host");
 	ftpUser = getFromXml("/CDM/ftpUser/@user");
 	ftpPassword = getFromXml("/CDM/ftpPassword/@password");
+	string sftpConnectionString = getFromXml("/CDM/sftpConnection/@mode");
 	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
 
@@ -359,6 +361,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	serverEnabled = true;
 	if (cdmserver == "false") {
 		serverEnabled = false;
+	}
+
+	sftpConnection = true;
+	if (sftpConnectionString == "false") {
+		sftpConnection = false;
 	}
 
 	//Invalidate FP at TSAT+6
@@ -1263,8 +1270,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 								string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 								// at the earlierst at present time + EXOT
-								if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
+								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
 									setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
+									setFlightStripInfo(fp, "1", 7);
 									for (size_t i = 0; i < slotList.size(); i++)
 									{
 										if (slotList[i].callsign == fp.GetCallsign()) {
@@ -1326,9 +1334,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
 			}
 			else {
-				if (!isCdmAirport(fp.GetFlightPlanData().GetOrigin())) {
-					OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
-				}
+				OpenPopupEdit(Area, TAG_FUNC_MODIFYMANCTOT, "");
 			}
 		}
 	}
@@ -1358,9 +1364,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
 							myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
 							string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
-							// at the earlierst at present time (now + 5min) + EXOT
-							if (stoi(calculatedTOBT) > stoi(calculateTime(GetTimeNow(), 5))) {
+							// at the earlierst at present time + EXOT
+							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
 								setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
+								setFlightStripInfo(fp, "1", 7);
 								for (size_t i = 0; i < slotList.size(); i++)
 								{
 									if ((string)fp.GetCallsign() == slotList[i].callsign && !slotList[i].hasManualCtot) {
@@ -1664,9 +1671,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			bool hasManualCtot = false;
 			if (aircraftFind) {
-				if (slotList[pos].hasManualCtot) {
+				if (slotList[pos].hasManualCtot || getFlightStripInfo(FlightPlan, 7) == "1") {
 					hasManualCtot = true;
 				}
+			}
+			else if (getFlightStripInfo(FlightPlan, 7) == "1") {
+				hasManualCtot = true;
 			}
 
 			//It'll calculate pilot's times after pressing READY TOBT Function
@@ -2711,7 +2721,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
-								else if (lastMinuteTOBT) {
+								else if (lastMinuteTOBT && ASRTtext == "") {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -2746,7 +2756,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
-								else if (lastMinuteTOBT) {
+								else if (lastMinuteTOBT && ASRTtext == "") {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3547,6 +3557,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						//ASRT
+						string ASRTtext = getFlightStripInfo(FlightPlan, 0);
+
 						// TSAC
 						bool TSACNotTSAT = false;
 						string annotTSAC = getFlightStripInfo(FlightPlan, 1);
@@ -3648,7 +3661,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_GREENNOTACTIVE;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
-							else if (lastMinuteTOBT) {
+							else if (lastMinuteTOBT && ASRTtext == "") {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3673,7 +3686,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_GREENNOTACTIVE;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
-							else if (lastMinuteTOBT) {
+							else if (lastMinuteTOBT && ASRTtext == "") {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -6196,9 +6209,9 @@ void CDM::getSidIntervalValuesUrl(string url)
 {
 	addLogLine("Called getSidIntervalValuesUrl...");
 	CURL* curl;
-	CURLcode result;
+	CURLcode result = CURLE_FAILED_INIT;
 	string readBuffer;
-	long responseCode;
+	long responseCode = 0;
 	curl = curl_easy_init();
 	if (curl) {
 		curl_easy_setopt(curl, CURLOPT_URL, url);
@@ -6415,10 +6428,40 @@ bool CDM::isNumber(string s)
 
 void CDM::upload(string fileName, string airport, string type)
 {
+	if (sftpConnection) {
+		uploadSftp(fileName, airport, type);
+	}
+	else {
+		uploadFtp(fileName, airport, type);
+	}
+}
+
+void CDM::uploadSftp(string fileName, string airport, string type)
+{
+	addLogLine("Called uploadSftp...");
 	string saveName = "/CDM_data_" + airport + type;
 	int response = UploadFileFTPS(ftpHost, ftpUser, ftpPassword, fileName, saveName);
 	if (response != 0) {
 		sendMessage("FTP error: " + response);
+	}
+}
+
+void CDM::uploadFtp(string fileName, string airport, string type)
+{
+	addLogLine("Called uploadFtp...");
+	try {
+		string saveName = "/CDM_data_" + airport + type;
+		HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+		HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(), ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
+		FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
+		InternetCloseHandle(hFtpSession);
+		InternetCloseHandle(hInternet);
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception upload: " + (string)e.what());
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception upload");
 	}
 }
 
@@ -7275,6 +7318,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 
 		return true;
 	}
+	return false;
 }
 
 void CDM::OnTimer(int Counter) {
@@ -7415,7 +7459,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 								return true;
 							}
 							catch (const std::system_error& e) {
-								addLogLine("Exception in setMasterAirport()");
+								addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
 							}
 						}
 					}

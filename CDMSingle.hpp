@@ -18,7 +18,7 @@
 #include "Rate.h"
 #include "Plane.h"
 #include "ServerRestricted.h"
-#include "‎sidInterval.h"
+#include "sidInterval.h"
 #include <mutex>
 #define CURL_STATICLIB
 #include "curl/curl.h"
@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.6"
+#define MY_PLUGIN_VERSION   "2.2.7"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -163,7 +163,11 @@ public:
 
 	bool isNumber(string s);
 
+	void uploadSftp(string fileName, string airport, string type);
+
 	void upload(string fileName, string airport, string type);
+
+	void uploadFtp(string fileName, string airport, string type);
 
 	void addLogLine(string text);
 
