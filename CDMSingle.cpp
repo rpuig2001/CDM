@@ -8088,7 +8088,7 @@ void CDM::setTSATApi(string callsign, string tsat, bool hideCalculation) {
 				curl = curl_easy_init();
 
 				if (curl) {
-					string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=&tsat=" + tsat + "&cdmSts=" + cdmSts;
+					string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=9999&tsat=" + tsat + "&cdmSts=" + cdmSts;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
