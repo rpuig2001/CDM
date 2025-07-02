@@ -8068,11 +8068,16 @@ void CDM::setTSATApi(string callsign, string tsat, bool hideCalculation) {
 			addLogLine("Call - Set TSAT (" + tsat + ") for " + callsign);
 			bool createRequest = false;
 
-			for (Plane p : slotListTemp) {
-				// Do not send API request if Manual CTOT is created by user or has ECFMP restriction
-				if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign && !p.hasEcfmpRestriction) {
-					createRequest = true;
+			if (tsat != "") {
+				for (Plane p : slotListTemp) {
+					// Do not send API request if Manual CTOT is created by user or has ECFMP restriction
+					if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign && !p.hasEcfmpRestriction) {
+						createRequest = true;
+					}
 				}
+			}
+			else {
+				createRequest = true;
 			}
 
 			if (createRequest) {
