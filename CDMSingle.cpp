@@ -8043,7 +8043,7 @@ void CDM::updateCdmDataApi() {
 	}
 }
 
-void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
+void CDM::setTSATApi(string callsign, string tsat, bool hideCalculation) {
 	if (serverEnabled) {
 		if (hideCalculation) {
 			for (size_t a = 0; a < slotList.size(); a++) {
@@ -8065,7 +8065,7 @@ void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
 				setReaList.erase(setReaList.begin() + s);
 			}
 
-			addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign);
+			addLogLine("Call - Set TSAT (" + tsat + ") for " + callsign);
 			bool createRequest = false;
 
 			for (Plane p : slotListTemp) {
@@ -8076,7 +8076,7 @@ void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
 			}
 
 			if (createRequest) {
-				tobt = (tobt.length() >= 4) ? tobt.substr(0, 4) : "";
+				tsat = (tsat.length() >= 4) ? tsat.substr(0, 4) : "";
 
 				string cdmSts = getCdmSts(callsign);
 				string taxiTime = getTaxiTime(callsign);
@@ -8088,7 +8088,7 @@ void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
 				curl = curl_easy_init();
 
 				if (curl) {
-					string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt + "&cdmSts=" + cdmSts;
+					string url = cdmServerUrl + "/slotService/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=&tsat=" + tsat + "&cdmSts=" + cdmSts;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -8104,7 +8104,7 @@ void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
 
 				if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
 					activeSetTsat -= 1;
-					Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
+					Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 					{
 						std::lock_guard<std::mutex> vectorLock(later2Mutex);
 						setTSATlater.push_back(plane); // Safely modify setTSATlater
@@ -8167,7 +8167,7 @@ void CDM::setTSATApi(string callsign, string tobt, bool hideCalculation) {
 					}
 					else {
 						activeSetTsat -= 1;
-						Plane plane(callsign, tobt, "", "", "", "", EcfmpRestriction(), false, false, false);
+						Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 						{
 							std::lock_guard<std::mutex> vectorLock(later2Mutex);
 							setTSATlater.push_back(plane);
@@ -8539,7 +8539,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 
 				const Json::Value& data = obj;
 				for (size_t i = 0; i < data.size(); i++) {
-					if (data[i].isMember("tobt") && data[i].isMember("callsign") && data[i].isMember("atot")) {
+					if (data[i].isMember("reqTobt") && data[i].isMember("callsign") && data[i].isMember("atot")) {
 
 						string callsign = fastWriter.write(data[i]["callsign"]);
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
