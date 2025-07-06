@@ -315,6 +315,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		addLogLine("sidInterval - DISABLED");
 	}
 
+	//min 10 seconds Refresh Time
+	if (refreshTime < 10) {
+		refreshTime = 10;
+	}
+
 	deIceTimeL = 5;
 	deIceTimeM = 9;
 	deIceTimeH = 12;
