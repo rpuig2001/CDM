@@ -4452,7 +4452,7 @@ bool CDM::getRateFromUrl(string url) {
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 		// handle error 404
 		addLogLine("UNABLE TO LOAD TaxiZones URL...");
 	}
@@ -6140,7 +6140,7 @@ void CDM::getEcfmpData() {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD ECFMP DATA...");
 			addLogLine("UNABLE TO LOAD ECFMP DATA: rc=" + to_string(responseCode) + " result=" + to_string(result));
@@ -6271,7 +6271,7 @@ void CDM::getSidIntervalValuesUrl(string url)
 		curl_easy_cleanup(curl);
 	}
 
-	if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+	if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 		// handle error 404
 		sendMessage("UNABLE TO LOAD SidInterval URL...");
 		addLogLine("UNABLE TO LOAD SidInterval DATA: rc=" + to_string(responseCode) + " result=" + to_string(result));
@@ -6586,7 +6586,7 @@ bool CDM::getCtotsFromUrl(string code)
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
 		}
@@ -6634,7 +6634,7 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 			// handle error 404
 			sendMessage("UNABLE TO LOAD TaxiZones URL...");
 		}
@@ -7566,7 +7566,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
 			curl_easy_cleanup(curl);
 		}
 
-		if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+		if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 			addLogLine("UNABLE TO CONNECT CDM-API...");
 			for (int a = 0; a < masterAirports.size(); a++)
 			{
@@ -7642,7 +7642,7 @@ bool CDM::removeAllMasterAirports(string position) {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
 			else {
@@ -7703,7 +7703,7 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
 			else {
@@ -7746,7 +7746,7 @@ bool CDM::setEvCtot(string callsign) {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				activeCheckCid -= 1;
 				std::lock_guard<std::mutex> vectorLock(later1Mutex);
 				checkCIDLater.push_back(callsign);
@@ -7833,7 +7833,7 @@ void CDM::getCdmServerRestricted() {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				// handle error 404
 				addLogLine("UNABLE TO LOAD CDM-API URL...");
 			}
@@ -8084,7 +8084,7 @@ void CDM::updateCdmDataApi() {
 					curl_easy_cleanup(curl);
 				}
 			}
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
 			addLogLine("COMPLETED - updateCdmDataApi");
@@ -8164,7 +8164,7 @@ void CDM::setTSATApi(string callsign, string tsat, bool hideCalculation) {
 					curl_easy_cleanup(curl);
 				}
 
-				if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 					activeSetTsat -= 1;
 					Plane plane(callsign, "", tsat, "", "", "", EcfmpRestriction(), false, false, false);
 					{
@@ -8335,7 +8335,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				activeSetStatus -= 1;
 				std::lock_guard<std::mutex> vectorLock(later3Mutex);
 				setCdmStslater.push_back(callsign);
@@ -8418,7 +8418,7 @@ void CDM::getCdmServerStatus() {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				// handle error 404
 				addLogLine("UNABLE TO LOAD CDM-API URL...");
 			}
@@ -8498,7 +8498,7 @@ void CDM::getNetworkRates() {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				// handle error 404
 				addLogLine("UNABLE TO LOAD CDM-API URL...");
 			}
@@ -8589,7 +8589,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 				curl_easy_cleanup(curl);
 			}
 
-			if (responseCode == 404 || responseCode == 401 || CURLE_OK != result) {
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				// handle error 404
 				addLogLine("UNABLE TO LOAD CDM-API URL...");
 			}
