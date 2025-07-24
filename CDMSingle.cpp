@@ -5582,21 +5582,15 @@ string CDM::formatTime(string timeString) {
 
 string CDM::calculateTime(string timeString, double minsToAdd) {
 	try {
-		if (timeString.length() <= 0) {
-			timeString = "0000" + timeString;
+		if (timeString.length() < 4 || timeString.length() == 5) {
+			timeString = "000000";
 		}
-		else if (timeString.length() <= 1) {
-			timeString = "000" + timeString;
-		}
-		else if (timeString.length() <= 2) {
-			timeString = "00" + timeString;
-		}
-		else if (timeString.length() <= 3) {
-			timeString = "0" + timeString;
+		else if (timeString.length() == 4) {
+			timeString = timeString + "00";
 		}
 		int hours = stoi(timeString.substr(0, 2));
 		int mins = stoi(timeString.substr(2, 2));
-		int sec = stoi(timeString.substr(4, timeString.length() - 1));
+		int sec = stoi(timeString.substr(4, 2));
 
 		int movTime = minsToAdd * 60;
 		while (movTime > 0) {
@@ -5832,21 +5826,15 @@ vector<Plane> CDM::cleanUpSlotListVector(vector<Plane> mySlotList) {
 
 string CDM::calculateLessTime(string timeString, double minsToAdd) {
 	try{
-	if (timeString.length() <= 0) {
-		timeString = "0000" + timeString;
+	if (timeString.length() < 4 || timeString.length() == 5) {
+		timeString = "000000";
 	}
-	else if (timeString.length() <= 1) {
-		timeString = "000" + timeString;
-	}
-	else if (timeString.length() <= 2) {
-		timeString = "00" + timeString;
-	}
-	else if (timeString.length() <= 3) {
-		timeString = "0" + timeString;
+	else if (timeString.length() == 4) {
+		timeString = timeString + "00";
 	}
 	int hours = stoi(timeString.substr(0, 2));
 	int mins = stoi(timeString.substr(2, 2));
-	int sec = stoi(timeString.substr(4, timeString.length() - 1));
+	int sec = stoi(timeString.substr(4, 2));
 
 	int movTime = minsToAdd * 60;
 	while (movTime > 0) {
