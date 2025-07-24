@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.0"
+#define MY_PLUGIN_VERSION   "2.2.8.1"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -127,7 +127,7 @@ public:
 
 	void sendCheckCIDLater();
 
-	void updateCdmDataApi();
+	void updateCdmDataApi(Plane p);
 
 	void setTSATApi(string callsign, string tobt, bool hideCalculation);
 

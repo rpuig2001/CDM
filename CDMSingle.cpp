@@ -6329,7 +6329,7 @@ void CDM::saveData() {
 	addLogLine("Called saveData...");
 	try{
 		//Update data to cdmData API
-		updateCdmDataApi();
+		//updateCdmDataApi();
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
@@ -8043,20 +8043,14 @@ void CDM::sendCheckCIDLater() {
 	}
 }
 
-void CDM::updateCdmDataApi() {
+void CDM::updateCdmDataApi(Plane p) {
 	if (serverEnabled) {
 		addLogLine("Called updateCdmDataApi...");
 		try {
-			vector<Plane> slotListTemp; // Local copy of the slotList
-			{
-				slotListTemp = slotList; // Copy the slotList
-			}
-
 			CURL* curl;
 			CURLcode result = CURLE_FAILED_INIT;
 			string readBuffer;
 			long responseCode = 0;
-			for (Plane p : slotListTemp) {
 				string str;
 				if (p.hasManualCtot && p.ctot != "" && p.ttot.length() >= 4) {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ctot.substr(0, 4) + "&reason=" + p.flowReason;
@@ -8083,7 +8077,6 @@ void CDM::updateCdmDataApi() {
 					curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 					curl_easy_cleanup(curl);
 				}
-			}
 			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
@@ -8223,6 +8216,7 @@ void CDM::setTSATApi(string callsign, string tsat, bool hideCalculation) {
 										}
 									}
 								}
+								updateCdmDataApi(slotListTemp[i]);
 							}
 						}
 						activeSetTsat -= 1;
