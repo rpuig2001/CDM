@@ -50,6 +50,7 @@ bool atotEnabled;
 bool remarksOption;
 bool invalidateTSAT_Option;
 bool sidIntervalEnabled;
+bool readyToUpdateList;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
@@ -85,6 +86,7 @@ string ftpPassword;
 string vdgsFileType;
 
 vector<Plane> slotList;
+vector<Plane> slotListToUpdate;
 vector<EcfmpRestriction> ecfmpData;
 vector<Plane> apiCtots;
 vector<string> asatList;
@@ -3342,6 +3344,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						//Check readyToUpdateList;
+						if (readyToUpdateList && !refresh1) {
+							addLogLine("[AUTO] - Updating slotList with latest update...");
+							for (Plane p : slotListToUpdate) {
+								for (int d = 0; d < slotList.size(); d++) {
+									if (p.callsign == slotList[d].callsign && p.eobt == slotList[d].eobt) {
+										slotList[d] = p;
+									}
+								}
+							}
+							addLogLine("[AUTO] - SlotList list updated succesfully");
+							slotListToUpdate.clear();
+							readyToUpdateList = false;
+						}
+
 						//Refresh times every x sec
 						if ((timeNow - countTime) > refreshTime && !refresh1) {
 							countTime = timeNow;
@@ -4817,7 +4834,7 @@ void CDM::RemoveMasterAirports() {
 	}
 }
 
-void CDM::backgroundProcess_recaulculate() {
+vector<Plane> CDM::backgroundProcess_recaulculate() {
 	addLogLine("Called backgroundProcess_recaulculate...");
 	try{
 		vector<Plane> tempSlotList;
@@ -5001,19 +5018,8 @@ void CDM::backgroundProcess_recaulculate() {
 		}
 	}
 
-	for (Plane p : tempSlotList) {
-		for (int d = 0; d < slotList.size(); d++) {
-			if (p.callsign == slotList[d].callsign) {
-				slotList[d] = p;
-			}
-		}
-	}
-
-	//Check rates
-	std::thread t7(&CDM::getNetworkRates, this);
-	t7.detach();
-
 	addLogLine("[AUTO] - Finished CDM recalculation process");
+	return tempSlotList;
 	}
 	catch (const std::exception& e) {
 		addLogLine("ERROR: Unhandled exception backgroundProcess_recaulculate: " + (string)e.what());
@@ -5021,6 +5027,7 @@ void CDM::backgroundProcess_recaulculate() {
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception backgroundProcess_recaulculate");
 	}
+	return slotList;
 }
 
 Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind) {
@@ -7435,10 +7442,15 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
 
 void CDM::refreshActions1() {
 	refresh1 = true;
+	readyToUpdateList = false;
 	saveData();
 	getCdmServerStatus();
 	//Execute background process in the background
-	backgroundProcess_recaulculate();
+	slotListToUpdate = backgroundProcess_recaulculate();
+	//Check rates
+	std::thread t7(&CDM::getNetworkRates, this);
+	t7.detach();
+	readyToUpdateList = true;
 	refresh1 = false;
 }
 

@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.3"
+#define MY_PLUGIN_VERSION   "2.2.8.4b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -250,7 +250,7 @@ public:
 
 	void RemoveMasterAirports();
 
-	void backgroundProcess_recaulculate();
+	vector<Plane> backgroundProcess_recaulculate();
 
 	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind);
 
