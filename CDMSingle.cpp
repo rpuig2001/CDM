@@ -7876,6 +7876,10 @@ void CDM::getCdmServerRestricted() {
 						if (ctot.size() == 4) {
 							for (size_t z = 0; z < slotListTemp.size(); z++) {
 								if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign) && !slotListTemp[z].hasEcfmpRestriction) {
+									bool update = false;
+									if (slotListTemp[z].ctot != ctot) {
+										update = true;
+									}
 									slotListTemp[z] = {
 										callsign,
 										slotListTemp[z].eobt,
@@ -7888,6 +7892,9 @@ void CDM::getCdmServerRestricted() {
 										true,
 										true
 									};
+									if (update) {
+										updateCdmDataApi(slotListTemp[i]);
+									}
 								}
 							}
 						}
