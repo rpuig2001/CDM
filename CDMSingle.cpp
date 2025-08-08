@@ -6323,7 +6323,7 @@ void CDM::saveData() {
 	try{
 		for (Plane plane : slotList) {
 			for (Plane planeSaved : slotListSaved) {
-				if (plane.ctot != planeSaved.ctot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
+				if (plane.ctot != planeSaved.ctot || plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
 					updateCdmDataApi(planeSaved);
 				}
 			}
