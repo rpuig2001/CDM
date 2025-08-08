@@ -82,6 +82,7 @@ string vdgsFileType;
 
 vector<Plane> slotList;
 vector<Plane> slotListToUpdate;
+vector<Plane> slotListSaved;
 vector<EcfmpRestriction> ecfmpData;
 vector<Plane> apiCtots;
 vector<string> asatList;
@@ -6320,8 +6321,14 @@ bool CDM::isCdmAirport(string airport) {
 void CDM::saveData() {
 	addLogLine("Called saveData...");
 	try{
-		//Update data to cdmData API
-		//updateCdmDataApi();
+		for (Plane plane : slotList) {
+			for (Plane planeSaved : slotListSaved) {
+				if (plane.ctot != planeSaved.ctot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
+					updateCdmDataApi(planeSaved);
+				}
+			}
+		}
+		slotListSaved = slotList;
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
 			for (string airport : masterAirports) {
@@ -6335,6 +6342,11 @@ void CDM::saveData() {
 					string fileName = dfad + "_" + airport + ".txt";
 					myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
 					for (Plane plane : slotList) {
+						for (Plane planeSaved : slotListSaved) {
+							if (plane.ctot != planeSaved.ctot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
+								updateCdmDataApi(planeSaved);
+							}
+						}
 						if (myfile.is_open())
 						{
 							CFlightPlan fp = FlightPlanSelect(plane.callsign.c_str());
@@ -7876,10 +7888,6 @@ void CDM::getCdmServerRestricted() {
 						if (ctot.size() == 4) {
 							for (size_t z = 0; z < slotListTemp.size(); z++) {
 								if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign) && !slotListTemp[z].hasEcfmpRestriction) {
-									bool update = false;
-									if (slotListTemp[z].ctot != ctot) {
-										update = true;
-									}
 									slotListTemp[z] = {
 										callsign,
 										slotListTemp[z].eobt,
@@ -7892,9 +7900,6 @@ void CDM::getCdmServerRestricted() {
 										true,
 										true
 									};
-									if (update) {
-										updateCdmDataApi(slotListTemp[i]);
-									}
 								}
 							}
 						}
@@ -8204,7 +8209,6 @@ void CDM::setTSATApi(string callsign, string tsat, bool hideCalculation) {
 										}
 									}
 								}
-								updateCdmDataApi(slotListTemp[i]);
 							}
 						}
 						activeSetTsat -= 1;
