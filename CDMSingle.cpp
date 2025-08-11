@@ -8652,7 +8652,6 @@ void CDM::getNetworkTobt() {
 									slotList.erase(slotList.begin() + posPlane);
 								}*/
 								setFlightStripInfo(fp, plane[1], 2);
-								sendMessage("CDM", "TOBT for " + plane[0] + " has been set to " + plane[1]);
 								setCdmSts(plane[0], "REQTOBT/NULL");
 							}
 						}
@@ -8666,7 +8665,6 @@ void CDM::getNetworkTobt() {
 							continue;
 						}
 						setFlightStripInfo(fp, plane[1], 2);
-						sendMessage("CDM", "TOBT for " + plane[0] + " has been set to " + plane[1]);
 						setCdmSts(plane[0], "REQTOBT/NULL");
 					}
 				}
