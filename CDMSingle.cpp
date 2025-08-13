@@ -114,6 +114,7 @@ vector<Plane> apiQueueResponse;
 vector<vector<string>> deiceList;
 vector<sidInterval> sidIntervalList;
 vector<string> atotSet;
+vector<vector<string>> reqTobtTypes;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -213,6 +214,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Register Tag Item "CDM-DEICE"
 	RegisterTagItemType("DE-ICE", TAG_ITEM_DEICE);
 	RegisterTagItemFunction("DE-ICE Options", TAG_FUNC_OPT_DEICE);
+
+	//Register Tag Item "REQTOBT-TYPE"
+	RegisterTagItemType("TOBT-SET-BY", TAG_ITEM_TOBT_SETBY);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -1156,6 +1160,20 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						setFlightStripInfo(fp, (hour + min), 0);
 					}
 
+					//Update TOBT-setBy
+					bool found = false;
+					for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
+						if (reqTobtTypes[a][0] == fp.GetCallsign()) {
+							found = true;
+							if (reqTobtTypes[a][1] != "ATC") {
+								reqTobtTypes[a][1] = "ATC";
+							}
+						}
+					}
+					if (!found) {
+						reqTobtTypes.push_back({ fp.GetCallsign(), "ATC" });
+					}
+
 					//Set REA Status
 					std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
 					t99.detach();
@@ -1420,6 +1438,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		try {
 			addLogLine("TRIGGER - TAG_FUNC_NEWTOBT");
 			string editedTOBT = ItemString;
+			string setBy = "NONE";
 			if (getFlightStripInfo(fp, 2) != editedTOBT) {
 				bool hasNoNumber = true;
 				if (editedTOBT.length() == 4) {
@@ -1441,6 +1460,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						if (!found) {
 							setFlightStripInfo(fp, editedTOBT, 2);
 						}
+						setBy = "ATC";
 					}
 				}
 				else if (editedTOBT.empty()) {
@@ -1458,9 +1478,27 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 					//if (!realMode) {
 						//Check API
+					setBy = "";
+
 					std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", true);
 					t.detach();
 					//}
+				}
+
+				//Update TOBT-setBy
+				if (setBy != "NONE") {
+					bool found = false;
+					for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
+						if (reqTobtTypes[a][0] == fp.GetCallsign()) {
+							found = true;
+							if (reqTobtTypes[a][1] != "ATC") {
+								reqTobtTypes[a][1] = "ATC";
+							}
+						}
+					}
+					if (!found) {
+						reqTobtTypes.push_back({ fp.GetCallsign(), "ATC" });
+					}
 				}
 			}
 		}
@@ -2088,6 +2126,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
+						}
+						else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
+							string status = "";
+							for (vector<string> reqTobtType : reqTobtTypes) {
+								if (reqTobtType[0] == callsign) {
+									status = reqTobtType[1];
+								}
+							}
+							ItemRGB = TAG_GREEN;
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 					}
@@ -3292,6 +3340,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_YELLOW;
 							strcpy_s(sItemString, 16, status.c_str());
 						}
+						else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
+							string status = "";
+							for (vector<string> reqTobtType : reqTobtTypes) {
+								if (reqTobtType[0] == callsign) {
+									status = reqTobtType[1];
+								}
+							}
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, status.c_str());
+							}
 
 						//Update ECFMP to Slaves
 						if (aircraftFind) {
@@ -4072,6 +4130,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_YELLOW;
 							strcpy_s(sItemString, 16, status.c_str());
 						}
+						else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
+							string status = "";
+							for (vector<string> reqTobtType : reqTobtTypes) {
+								if (reqTobtType[0] == callsign) {
+									status = reqTobtType[1];
+								}
+							}
+							ItemRGB = TAG_GREEN;
+							strcpy_s(sItemString, 16, status.c_str());
+						}
 					}
 					else
 					{
@@ -4174,6 +4242,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 							}
 							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
+						}
+						else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
+							string status = "";
+							for (vector<string> reqTobtType : reqTobtTypes) {
+								if (reqTobtType[0] == callsign) {
+									status = reqTobtType[1];
+								}
+							}
+							ItemRGB = TAG_GREEN;
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 					}
@@ -4282,6 +4360,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 					ItemRGB = TAG_YELLOW;
+					strcpy_s(sItemString, 16, status.c_str());
+				}
+				else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
+					string status = "";
+					for (vector<string> reqTobtType : reqTobtTypes) {
+						if (reqTobtType[0] == callsign) {
+							status = reqTobtType[1];
+						}
+					}
+					ItemRGB = TAG_GREEN;
 					strcpy_s(sItemString, 16, status.c_str());
 				}
 			}
@@ -6090,6 +6178,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 17");
 			}
 			atotSet.erase(atotSet.begin() + i);
+		}
+	}
+	//Remove from reqTobtTypes
+	for (size_t i = 0; i < reqTobtTypes.size(); i++)
+	{
+		if (callsign == reqTobtTypes[i][0]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 18");
+			}
+			reqTobtTypes.erase(reqTobtTypes.begin() + i);
 		}
 	}
 
@@ -8582,7 +8680,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 
 				const Json::Value& data = obj;
 				for (size_t i = 0; i < data.size(); i++) {
-					if (data[i].isMember("cdmData") && data[i]["cdmData"].isMember("reqTobt") && data[i].isMember("callsign") && data[i].isMember("atot")) {
+					if (data[i].isMember("cdmData") && data[i]["cdmData"].isMember("reqTobt") && data[i]["cdmData"].isMember("reqTobtType") && data[i].isMember("callsign") && data[i].isMember("atot")) {
 
 						string callsign = fastWriter.write(data[i]["callsign"]);
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
@@ -8594,13 +8692,18 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
 						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
 
+						string type = fastWriter.write(data[i]["cdmData"]["reqTobtType"]);
+						type.erase(std::remove(type.begin(), type.end(), '"'));
+						type.erase(std::remove(type.begin(), type.end(), '\n'));
+						type.erase(std::remove(type.begin(), type.end(), '\n'));
+
 						string atot = fastWriter.write(data[i]["atot"]);
 						atot.erase(std::remove(atot.begin(), atot.end(), '"'));
 						atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
 						atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
 
 						if (atot == "") {
-							planes.push_back({ callsign, tobt });
+							planes.push_back({ callsign, tobt, type });
 						}
 					}
 				}
@@ -8629,43 +8732,66 @@ void CDM::getNetworkTobt() {
 		vector<Plane> mySlotList = slotList;
 
 		for (vector<string> plane : planes) {
-			if (plane[1] != "") {
-				bool found = false;
-				for (int i = 0; i < mySlotList.size(); i++)
-				{
-					if (plane[0] == mySlotList[i].callsign) {
-						if (!mySlotList[i].showData) {
-							found = true;
-						}
-						//Check if not manual CTOT assigned
-						else if (!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") {
-							found = true;
-							CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-							if (!fp.IsValid()) {
-								continue;
+			bool updated = false;
+			if (plane.size() == 3) {
+				if (plane[1] != "" && plane[0] != "") {
+					bool found = false;
+					for (int i = 0; i < mySlotList.size(); i++)
+					{
+						if (plane[0] == mySlotList[i].callsign) {
+							if (!mySlotList[i].showData) {
+								found = true;
 							}
-							string annotAsrt = getFlightStripInfo(fp, 0);
-							if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-								addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
-								/*int posPlane = getPlanePosition(mySlotList[i].callsign);
-								if (posPlane != -1) {
-									slotList.erase(slotList.begin() + posPlane);
-								}*/
-								setFlightStripInfo(fp, plane[1], 2);
-								setCdmSts(plane[0], "REQTOBT/NULL");
+							//Check if not manual CTOT assigned
+							else if (!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") {
+								found = true;
+								CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
+								if (!fp.IsValid()) {
+									continue;
+								}
+								string annotAsrt = getFlightStripInfo(fp, 0);
+								if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+									addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
+									/*int posPlane = getPlanePosition(mySlotList[i].callsign);
+									if (posPlane != -1) {
+										slotList.erase(slotList.begin() + posPlane);
+									}*/
+									setFlightStripInfo(fp, plane[1], 2);
+									setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+									updated = true;
+								}
 							}
 						}
 					}
-				}
-				if (!found) {
-					if (plane[1] != "") {
-						addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
-						CFlightPlan fp = FlightPlanSelect(plane[0].c_str());
-						if (!fp.IsValid()) {
-							continue;
+					if (!found) {
+						if (plane[1] != "") {
+							addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
+							CFlightPlan fp = FlightPlanSelect(plane[0].c_str());
+							if (!fp.IsValid()) {
+								continue;
+							}
+							setFlightStripInfo(fp, plane[1], 2);
+							setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+							updated = true;
 						}
-						setFlightStripInfo(fp, plane[1], 2);
-						setCdmSts(plane[0], "REQTOBT/NULL");
+					}
+
+					if (plane[2] != "" && plane[0] != "") {
+						bool found = false;
+						for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
+							if (reqTobtTypes[a][0] == plane[0]) {
+								found = true;
+								if (plane[2] == "") {
+									reqTobtTypes.erase(reqTobtTypes.begin() + a);
+								}
+								else if (reqTobtTypes[a][1] != plane[2] && updated) {
+									reqTobtTypes[a][1] = plane[2];
+								}
+							}
+						}
+						if (!found && updated) {
+							reqTobtTypes.push_back({ plane[0], plane[2] });
+						}
 					}
 				}
 			}
