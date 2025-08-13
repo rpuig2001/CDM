@@ -1491,13 +1491,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
 						if (reqTobtTypes[a][0] == fp.GetCallsign()) {
 							found = true;
-							if (reqTobtTypes[a][1] != "ATC") {
-								reqTobtTypes[a][1] = "ATC";
+							if (reqTobtTypes[a][1] != setBy) {
+								reqTobtTypes[a][1] = setBy;
 							}
 						}
 					}
 					if (!found) {
-						reqTobtTypes.push_back({ fp.GetCallsign(), "ATC" });
+						reqTobtTypes.push_back({ fp.GetCallsign(), setBy });
 					}
 				}
 			}
