@@ -78,6 +78,9 @@ CDM includes the following times:
 
   ![image](https://github.com/user-attachments/assets/f557481f-5c16-4c12-a09e-871f818bc656)
 
+- TOBT Set-By
+
+  <img width="422" height="96" alt="image" src="https://github.com/user-attachments/assets/61560e26-0302-409f-9f3a-1988402567ae" />
 
 - Ready Start-up
 
@@ -406,6 +409,12 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - ``Toggle Ready Start-up function`` -> Sets NONE/REM/STND.
   - Colors:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> REM (REMOTE) or STAND de-ice selected.
+
+- Column TOBT-SET-BY: It shows who set the TOBT, PILOT or ATC. In case no modifications done TOBT == EOBT, then nothing is displayed.
+  - Functions:
+    - NO FUNCTIONS.
+  - Colors:
+    - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> Default.
 
 - Column CTOT: It shows aircraft's CTOT which can be added, modified, removed or reloaded.
   - Functions:
