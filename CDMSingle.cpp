@@ -7842,7 +7842,7 @@ bool CDM::setEvCtot(string callsign) {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/slotService/cidCheck?callsign=" + callsign;
+				string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -7925,7 +7925,7 @@ void CDM::getCdmServerRestricted() {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/slotService/restricted";
+				string url = cdmServerUrl + "/etfms/restricted";
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -8165,7 +8165,7 @@ void CDM::updateCdmDataApi(Plane p) {
 				result = CURLE_FAILED_INIT;
 				curl = curl_easy_init();
 				if (curl) {											
-					string url = cdmServerUrl + "/slotService/setCdmData?" + str;
+					string url = cdmServerUrl + "/ifps/setCdmData?" + str;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -8407,7 +8407,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/slotService/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
+				string url = cdmServerUrl + "/ifps/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -8486,7 +8486,7 @@ void CDM::getCdmServerStatus() {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/slotService/allStatus";
+				string url = cdmServerUrl + "/ifps/allStatus";
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -8566,7 +8566,7 @@ void CDM::getNetworkRates() {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/slotService/restrictions";
+				string url = cdmServerUrl + "/etfms/restrictions";
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -8657,7 +8657,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/slotService/depAirport?airport=" + airport;
+				string url = cdmServerUrl + "/ifps/depAirport?airport=" + airport;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
