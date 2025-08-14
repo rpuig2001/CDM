@@ -1449,18 +1449,22 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 
 					if (hasNoNumber) {
-						bool found = false;
-						for (size_t i = 0; i < slotList.size(); i++)
-						{
-							if (slotList[i].callsign == fp.GetCallsign()) {
-								found = true;
+						int hours = stoi(editedTOBT.substr(0, 2));
+						int minutes = stoi(editedTOBT.substr(2, 2));
+						if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+							bool found = false;
+							for (size_t i = 0; i < slotList.size(); i++)
+							{
+								if (slotList[i].callsign == fp.GetCallsign()) {
+									found = true;
+									setFlightStripInfo(fp, editedTOBT, 2);
+								}
+							}
+							if (!found) {
 								setFlightStripInfo(fp, editedTOBT, 2);
 							}
+							setBy = "ATC";
 						}
-						if (!found) {
-							setFlightStripInfo(fp, editedTOBT, 2);
-						}
-						setBy = "ATC";
 					}
 				}
 				else if (editedTOBT.empty()) {
