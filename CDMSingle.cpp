@@ -3408,7 +3408,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							addLogLine("[AUTO] - Updating slotList with latest update...");
 							for (Plane p : slotListToUpdate) {
 								for (int d = 0; d < slotList.size(); d++) {
-									if (p.callsign == slotList[d].callsign && p.eobt == slotList[d].eobt) {
+									if (p.callsign == slotList[d].callsign && p.eobt == slotList[d].eobt && p.ctot == slotList[d].ctot) {
+										p.showData = slotList[d].showData;
 										slotList[d] = p;
 									}
 								}
