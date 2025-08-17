@@ -2740,6 +2740,41 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						//ASAT
+						bool ASATFound = false;
+						bool ASATPlusFiveLessTen = false;
+						int ASATpos = 0;
+						string ASATtext = " ";
+						for (size_t x = 0; x < asatList.size(); x++)
+						{
+							string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
+							if (actualListCallsign == callsign) {
+								ASATFound = true;
+								ASATpos = x;
+							}
+						}
+
+						if (!ASATFound) {
+							if (correctState) {
+								ASATtext = hour + min;
+								asatList.push_back(callsign + "," + ASATtext);
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
+								t.detach();
+								ASATFound = true;
+							}
+						}
+						else {
+							if (correctState) {
+								ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
+							}
+							else if (!correctState) {
+								asatList.erase(asatList.begin() + ASATpos);
+								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
+								t.detach();
+								ASATFound = false;
+							}
+						}
+
 						//Check disply of items
 						bool showData = true;
 						if (aircraftFind) {
@@ -3101,65 +3136,29 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_ASAT)
 						{
-						//ASAT
-						bool ASATFound = false;
-						bool ASATPlusFiveLessTen = false;
-						int ASATpos = 0;
-						string ASATtext = " ";
-						for (size_t x = 0; x < asatList.size(); x++)
-						{
-							string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
-							if (actualListCallsign == callsign) {
-								ASATFound = true;
-								ASATpos = x;
-							}
-						}
-
-						if (!ASATFound) {
-							if (correctState) {
-								ASATtext = hour + min;
-								asatList.push_back(callsign + "," + ASATtext);
-								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
-								t.detach();
-								ASATFound = true;
-							}
-						}
-						else {
-							if (correctState) {
-								ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
-							}
-							else if (!correctState) {
-								asatList.erase(asatList.begin() + ASATpos);
-								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
-								t.detach();
-								ASATFound = false;
-							}
-						}
-
-						if (ASATFound) {
-							string ASATHour = ASATtext.substr(0, 2);
-							string ASATMin = ASATtext.substr(2, 2);
-							if (hour != "00") {
-								if (ASATHour == "00") {
-									ASATHour = "24";
-								}
-							}
-
-							int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
-							if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
-								if (hour == ASATHour) {
-									if (ASATDifTIme >= 5) {
-										ASATPlusFiveLessTen = true;
+							if (ASATFound) {
+								string ASATHour = ASATtext.substr(0, 2);
+								string ASATMin = ASATtext.substr(2, 2);
+								if (hour != "00") {
+									if (ASATHour == "00") {
+										ASATHour = "24";
 									}
 								}
-								else {
-									if (ASATDifTIme >= 45) {
-										ASATPlusFiveLessTen = true;
+
+								int ASATDifTIme = GetdifferenceTime(hour, min, ASATHour, ASATMin);
+								if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "") {
+									if (hour == ASATHour) {
+										if (ASATDifTIme >= 5) {
+											ASATPlusFiveLessTen = true;
+										}
+									}
+									else {
+										if (ASATDifTIme >= 45) {
+											ASATPlusFiveLessTen = true;
+										}
 									}
 								}
 							}
-						}
-
 							if (ASATFound) {
 								if ((string)FlightPlan.GetGroundState() == "" || (string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP") {
 									if (ASATPlusFiveLessTen) {
@@ -3693,8 +3692,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (correctState) {
 								ASATtext = hour + min;
 								asatList.push_back(callsign + "," + ASATtext);
-								std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
-								t.detach();
 								ASATFound = true;
 							}
 						}
@@ -3705,8 +3702,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (!correctState) {
 								if (ASATpos < asatList.size()) { // Check if ASATpos is within bounds
 									asatList.erase(asatList.begin() + ASATpos);
-									std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
-									t.detach();
 									ASATFound = false;
 								}
 							}
