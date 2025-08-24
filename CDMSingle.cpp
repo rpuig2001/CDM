@@ -111,10 +111,13 @@ vector<string> checkCIDLater;
 vector<string> disabledCtots;
 vector<vector<string>> networkStatus;
 vector<Plane> apiQueueResponse;
+std::mutex apiQueueResponseMutex;
 vector<vector<string>> deiceList;
 vector<sidInterval> sidIntervalList;
 vector<string> atotSet;
 vector<vector<string>> reqTobtTypes;
+vector<vector<string>> reqTobtTypesQueue;
+std::mutex reqTobtTypesQueueMutex;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -1669,14 +1672,45 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			int taxiTime = defTaxiTime;
 
 			//Check if update in the queue
-			for (Plane p : apiQueueResponse) {
-				for (int t = 0; t < slotList.size(); t++) {
-					if (p.callsign == slotList[t].callsign) {
-						slotList[t] = p;
+			std::vector<Plane> localPlaneQueue;
+			{
+				std::lock_guard<std::mutex> lock(apiQueueResponseMutex);
+				localPlaneQueue.swap(apiQueueResponse);
+				apiQueueResponse.clear();
+			}
+
+			if (!localPlaneQueue.empty()) {
+				for (const Plane p : localPlaneQueue) {
+					for (int t = 0; t < slotList.size(); t++) {
+						if (p.callsign == slotList[t].callsign) {
+							slotList[t] = p;
+						}
 					}
 				}
 			}
-			apiQueueResponse.clear();
+
+			//Check if update in the queue
+			std::vector<vector<string>> localTobtTypesQueue;
+			{
+				std::lock_guard<std::mutex> lock(reqTobtTypesQueueMutex);
+				localTobtTypesQueue.swap(reqTobtTypesQueue);				
+				reqTobtTypesQueue.clear();
+			}
+
+			if (!localTobtTypesQueue.empty()) {
+				for (vector<string> s : localTobtTypesQueue) {
+					for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
+						if (reqTobtTypes[a][0] == s[0]) {
+							if (s[1] == "") {
+								reqTobtTypes.erase(reqTobtTypes.begin() + a);
+							}
+							else if (reqTobtTypes[a][1] != s[1]) {
+								reqTobtTypes[a][1] = s[1];
+							}
+						}
+					}
+				}
+			}
 
 			if (ctotCid) {
 				bool evCtotFound = false;
@@ -8007,14 +8041,21 @@ void CDM::getCdmServerRestricted() {
 				sendWaitingTOBT();
 				sendWaitingCdmSts();
 				sendCheckCIDLater();
+				std::vector<Plane> toAdd;
 				for (Plane p : slotListTemp) {
 					for (int d = 0; d < slotList.size(); d++) {
 						if (p.callsign == slotList[d].callsign) {
 							if (slotList[d].ctot != p.ctot || slotList[d].flowReason != p.flowReason || slotList[d].hasManualCtot != p.hasManualCtot) {
-								apiQueueResponse.push_back(p);
+								{
+									toAdd.push_back(p);
+								}
 							}
 						}
 					}
+				}
+				if (!toAdd.empty()) {
+					std::lock_guard<std::mutex> lock(apiQueueResponseMutex);
+					apiQueueResponse.insert(apiQueueResponse.end(), toAdd.begin(), toAdd.end());
 				}
 			}
 			addLogLine("COMPLETED - Fetching CTOTs");
@@ -8325,15 +8366,21 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 			}
 
 			// Add to queue
+			std::vector<Plane> toAdd;
 			for (Plane p : slotListTemp) {
 				for (int d = 0; d < slotList.size(); d++) {
 					if (p.callsign == slotList[d].callsign) {
 						if (slotList[d].ctot != p.ctot || slotList[d].flowReason != p.flowReason || slotList[d].hasManualCtot != p.hasManualCtot) {
 							p.showData = true;
-							apiQueueResponse.push_back(p);
+							toAdd.push_back(p);
 						}
 					}
 				}
+			}
+
+			if (!toAdd.empty()) {
+				std::lock_guard<std::mutex> lock(apiQueueResponseMutex);
+				apiQueueResponse.insert(apiQueueResponse.end(), toAdd.begin(), toAdd.end());
 			}
 
 			//Fetch cdmSts
@@ -8730,6 +8777,7 @@ void CDM::getNetworkTobt() {
 		}
 
 		vector<Plane> mySlotList = slotList;
+		std::vector<vector<string>> toAdd;
 
 		for (vector<string> plane : planes) {
 			bool updated = false;
@@ -8776,25 +8824,16 @@ void CDM::getNetworkTobt() {
 						}
 					}
 
-					if (plane[2] != "" && plane[0] != "") {
-						bool found = false;
-						for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
-							if (reqTobtTypes[a][0] == plane[0]) {
-								found = true;
-								if (plane[2] == "") {
-									reqTobtTypes.erase(reqTobtTypes.begin() + a);
-								}
-								else if (reqTobtTypes[a][1] != plane[2] && updated) {
-									reqTobtTypes[a][1] = plane[2];
-								}
-							}
-						}
-						if (!found && updated) {
-							reqTobtTypes.push_back({ plane[0], plane[2] });
-						}
+					if (plane[0] != "") {
+						toAdd.push_back({ plane[0], plane[2]});
 					}
 				}
 			}
+		}
+
+		if (!toAdd.empty()) {
+			std::lock_guard<std::mutex> lock(reqTobtTypesQueueMutex);
+			reqTobtTypesQueue.insert(reqTobtTypesQueue.end(), toAdd.begin(), toAdd.end());
 		}
 		addLogLine("COMPLETED - getNetworkTobt");
 		//Update times to slaves
