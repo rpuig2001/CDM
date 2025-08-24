@@ -1698,15 +1698,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 
 			if (!localTobtTypesQueue.empty()) {
+				bool found = false;
 				for (vector<string> s : localTobtTypesQueue) {
+					found = false;
 					for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
 						if (reqTobtTypes[a][0] == s[0]) {
-							if (s[1] == "") {
-								reqTobtTypes.erase(reqTobtTypes.begin() + a);
-							}
-							else if (reqTobtTypes[a][1] != s[1]) {
+							found = true;
+							if (reqTobtTypes[a][1] != s[1] && s[1] != "") {
 								reqTobtTypes[a][1] = s[1];
 							}
+						}
+					}
+					if (!found) {
+						if (s[1] != "") {
+							reqTobtTypes.push_back(s);
 						}
 					}
 				}
