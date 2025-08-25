@@ -69,11 +69,6 @@ int deIceTimeM;
 int deIceTimeH;
 int deIceTimeJ;
 
-
-int activeSetStatus;
-int activeSetTsat;
-int activeCheckCid;
-
 //Ftp data
 string ftpHost;
 string ftpUser;
@@ -118,6 +113,9 @@ vector<string> atotSet;
 vector<vector<string>> reqTobtTypes;
 vector<vector<string>> reqTobtTypesQueue;
 std::mutex reqTobtTypesQueueMutex;
+std::mutex later1Mutex;
+std::mutex later2Mutex;
+std::mutex later3Mutex;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -411,11 +409,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refresh1 = false;
 	refresh2 = false;
 	refresh3 = false;
-
-	//Init active actions
-	activeSetStatus = 0;
-	activeSetTsat = 0;
-	activeCheckCid = 0;
 
 	//Initialize with empty callsign
 	myAtcCallsign = "";
@@ -6150,13 +6143,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 		}
 	}
 	//Remove from setTOBTlater
-	for (size_t i = 0; i < setTOBTlater.size(); i++)
 	{
-		if (callsign == setTOBTlater[i].callsign) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 11");
+		std::lock_guard<std::mutex> lock(later1Mutex);
+		for (size_t i = 0; i < setTOBTlater.size(); i++)
+		{
+			if (callsign == setTOBTlater[i].callsign) {
+				if (debugMode) {
+					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 11");
+				}
+				setTOBTlater.erase(setTOBTlater.begin() + i);
 			}
-			setTOBTlater.erase(setTOBTlater.begin() + i);
 		}
 	}
 	//Remove from suWaitList
@@ -6170,13 +6166,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 		}
 	}
 	//Remove from setCdmStslater
-	for (size_t i = 0; i < setCdmStslater.size(); i++)
 	{
-		if (callsign == setCdmStslater[i]) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 13");
+		std::lock_guard<std::mutex> lock(later2Mutex);
+		for (size_t i = 0; i < setCdmStslater.size(); i++)
+		{
+			if (callsign == setCdmStslater[i]) {
+				if (debugMode) {
+					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 13");
+				}
+				setCdmStslater.erase(setCdmStslater.begin() + i);
 			}
-			setCdmStslater.erase(setCdmStslater.begin() + i);
 		}
 	}
 	//Remove from disabledCtots
@@ -6190,15 +6189,19 @@ void CDM::RemoveDataFromTfc(string callsign) {
 		}
 	}
 	//Remove from checkCIDLater
-	for (size_t i = 0; i < checkCIDLater.size(); i++)
 	{
-		if (callsign == checkCIDLater[i]) {
-			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 15");
+		std::lock_guard<std::mutex> lock(later3Mutex);
+		for (size_t i = 0; i < checkCIDLater.size(); i++)
+		{
+			if (callsign == checkCIDLater[i]) {
+				if (debugMode) {
+					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 15");
+				}
+				checkCIDLater.erase(checkCIDLater.begin() + i);
 			}
-			checkCIDLater.erase(checkCIDLater.begin() + i);
 		}
 	}
+	
 	//Remove from deiceList
 	for (size_t i = 0; i < deiceList.size(); i++)
 	{
@@ -7868,7 +7871,6 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 bool CDM::setEvCtot(string callsign) {
 	if (serverEnabled) {
 		addLogLine("Called setEvCtot...");
-		activeCheckCid += 1;
 		try {
 			addLogLine("Call - Set Event CTOT for " + callsign);
 			CURL* curl;
@@ -7893,7 +7895,7 @@ bool CDM::setEvCtot(string callsign) {
 			}
 
 			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-				activeCheckCid -= 1;
+				std::lock_guard<std::mutex> lock(later3Mutex);
 				checkCIDLater.push_back(callsign);
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
@@ -7913,7 +7915,6 @@ bool CDM::setEvCtot(string callsign) {
 										if (evCtots[a].size() > 0) {
 											if (evCtots[a][0] == callsign) {
 												evCtots[a] = { callsign, slotFile[i][1] };
-												activeCheckCid -= 1;
 												return true;
 											};
 										}
@@ -7923,21 +7924,21 @@ bool CDM::setEvCtot(string callsign) {
 						}
 					}
 				}
-				activeCheckCid -= 1;
 				if (cid == "") {
+					std::lock_guard<std::mutex> lock(later3Mutex);
 					checkCIDLater.push_back(callsign);
 				}
 			}
 			return false;
 		}
 		catch (const std::exception& e) {
-			activeCheckCid -= 1;
+			std::lock_guard<std::mutex> lock(later3Mutex);
 			checkCIDLater.push_back(callsign);
 			addLogLine("ERROR: Unhandled exception setEvCtot: " + (string)e.what());
 			return false;
 		}
 		catch (...) {
-			activeCheckCid -= 1;
+			std::lock_guard<std::mutex> lock(later3Mutex);
 			checkCIDLater.push_back(callsign);
 			addLogLine("ERROR: Unhandled exception setEvCtot");
 			return false;
@@ -8076,26 +8077,11 @@ void CDM::getCdmServerRestricted() {
 
 void CDM::sendWaitingTOBT() {
 	try {
-		bool activeTask = true;
-		int counter = 0;
-		while (activeTask) {
-			if (activeSetTsat > 0) {
-				std::this_thread::sleep_for(std::chrono::milliseconds(100));
-			}
-			else {
-				activeTask = false;
-			}
-			if (counter > 500) {
-				activeSetTsat = 0;
-				activeTask = false;
-				addLogLine("sendWaitingTOBT - restarting activeTask...");
-			}
-			counter++;
-		}
 		vector<Plane> setTOBTlaterTemp;
 		{
 			addLogLine("Call sendWaitingTOBT - " + to_string(setTOBTlater.size()));
 			addLogLine("Called sendWaitingTOBT...");
+			std::lock_guard<std::mutex> lock(later1Mutex);
 			setTOBTlaterTemp = setTOBTlater;
 			setTOBTlater.clear();
 		}
@@ -8103,7 +8089,7 @@ void CDM::sendWaitingTOBT() {
 		vector<Plane> alreadyProcessed;
 		bool found = false;
 
-		for (int i = setTOBTlaterTemp.size() - 1; i > 0; i--) {
+		for (int i = 0; i < setTOBTlaterTemp.size(); i++) {
 			found = false;
 			for (Plane p : alreadyProcessed) {
 				if (p.callsign == setTOBTlaterTemp[i].callsign) {
@@ -8127,27 +8113,13 @@ void CDM::sendWaitingTOBT() {
 }
 
 void CDM::sendWaitingCdmSts() {
-	bool activeTask = true;
-	int counter = 0;
-	while (activeTask) {
-		if (activeSetStatus > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-		else {
-			activeTask = false;
-		}
-
-		if (counter > 500) {
-			activeSetStatus = 0;
-			activeTask = false;
-			addLogLine("sendWaitingCdmSts - restarting activeTask...");
-		}
-		counter++;
+	vector<string> callsignsToProcess;
+	{
+		addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmStslater.size()));
+		std::lock_guard<std::mutex> lock(later2Mutex);
+		callsignsToProcess = setCdmStslater;
+		setCdmStslater.clear();
 	}
-
-	addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmStslater.size()));
-	vector<string> callsignsToProcess = setCdmStslater;
-	setCdmStslater.clear();
 
 	for (const string& callsign : callsignsToProcess) {
 		string cdmSts = getCdmSts(callsign);
@@ -8157,25 +8129,10 @@ void CDM::sendWaitingCdmSts() {
 }
 
 void CDM::sendCheckCIDLater() {
-	bool activeTask = true;
-	int counter = 0;
-	while (activeTask) {
-		if (activeCheckCid > 0) {
-			std::this_thread::sleep_for(std::chrono::milliseconds(100));
-		}
-		else {
-			activeTask = false;
-		}
-		if (counter > 500) {
-			activeCheckCid = 0;
-			activeTask = false;
-			addLogLine("sendCheckCIDLater - restarting activeTask...");
-		}
-		counter++;
-	}
 	vector<string> callsignsToProcess;
 	{
 		addLogLine("Call sendCheckCIDLater - " + to_string(checkCIDLater.size()));
+		std::lock_guard<std::mutex> lock(later3Mutex);
 		callsignsToProcess = checkCIDLater;
 		checkCIDLater.clear();
 	}
@@ -8226,11 +8183,9 @@ void CDM::updateCdmDataApi(Plane p) {
 			addLogLine("COMPLETED - updateCdmDataApi");
 		}
 		catch (const std::exception& e) {
-			activeSetTsat -= 1;
 			addLogLine("ERROR: Unhandled exception updateCdmDataApi: " + (string)e.what());
 		}
 		catch (...) {
-			activeSetTsat -= 1;
 			addLogLine("ERROR: Unhandled exception updateCdmDataApi");
 		}
 	}
@@ -8246,7 +8201,6 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 			}
 		}
 		addLogLine("Called setTOBTApi...");
-		activeSetTsat += 1;
 		try {
 			vector<Plane> slotListTemp; // Local copy of the slotList
 			{
@@ -8281,6 +8235,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 				curl = curl_easy_init();
 
 				if (curl) {
+					addLogLine("Requesting TOBT (" + tobt + ") for " + callsign);
 					string url = cdmServerUrl + "/ifps/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt + "&cdmSts=" + cdmSts;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
@@ -8296,9 +8251,9 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 				}
 
 				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-					activeSetTsat -= 1;
 					Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false);
 					{
+						std::lock_guard<std::mutex> lock(later1Mutex);
 						setTOBTlater.push_back(plane); // Safely modify setTOBTlater
 					}
 					addLogLine("UNABLE TO CONNECT CDM-API...");
@@ -8308,7 +8263,6 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 					Json::Value obj;
 					Json::FastWriter fastWriter;
 					reader.parse(readBuffer, obj);
-
 					if (!obj.isNull() && obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
 						string apiCallsign = fastWriter.write(obj["callsign"]);
 						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
@@ -8355,19 +8309,15 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 								}
 							}
 						}
-						activeSetTsat -= 1;
 					}
 					else {
-						activeSetTsat -= 1;
 						Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false);
 						{
+							std::lock_guard<std::mutex> lock(later1Mutex);
 							setTOBTlater.push_back(plane);
 						}
 					}
 				}
-			}
-			else {
-				activeSetTsat -= 1;
 			}
 
 			// Add to queue
@@ -8395,7 +8345,6 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 			addLogLine("COMPLETED - setTOBTApi for " + callsign);
 		}
 		catch (const std::exception& e) {
-			activeSetTsat -= 1;
 			addLogLine("ERROR: Unhandled exception setTOBTApi: " + (string)e.what());
 			{
 				for (size_t a = 0; a < slotList.size(); a++) {
@@ -8406,7 +8355,6 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 			}
 		}
 		catch (...) {
-			activeSetTsat -= 1;
 			addLogLine("ERROR: Unhandled exception setTOBTApi");
 			{
 				for (size_t a = 0; a < slotList.size(); a++) {
@@ -8446,7 +8394,6 @@ string CDM::getTaxiTime(string callsign) {
 void CDM::setCdmSts(string callsign, string cdmSts) {
 	if (serverEnabled) {
 		addLogLine("Called setCdmSts...");
-		activeSetStatus += 1;
 		try {
 			addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
 			CURL* curl;
@@ -8471,7 +8418,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 			}
 
 			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-				activeSetStatus -= 1;
+				std::lock_guard<std::mutex> lock(later2Mutex);
 				setCdmStslater.push_back(callsign);
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
@@ -8482,6 +8429,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 				while (getline(is, lineValue))
 				{
 					if (lineValue != "true") {
+						std::lock_guard<std::mutex> lock(later2Mutex);
 						setCdmStslater.push_back(callsign);
 					}
 					else {
@@ -8489,16 +8437,15 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 						t0.detach();
 					}
 				}
-				activeSetStatus -= 1;
 			}
 		}
 		catch (const std::exception& e) {
-			activeSetStatus -= 1;
+			std::lock_guard<std::mutex> lock(later2Mutex);
 			setCdmStslater.push_back(callsign);
 			addLogLine("ERROR: Unhandled exception setCdmSts: " + (string)e.what());
 		}
 		catch (...) {
-			activeSetStatus -= 1;;
+			std::lock_guard<std::mutex> lock(later2Mutex);
 			setCdmStslater.push_back(callsign);
 			addLogLine("ERROR: Unhandled exception setCdmSts");
 		}
