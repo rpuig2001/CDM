@@ -8215,6 +8215,14 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 					// Do not send API request if Manual CTOT is created by user or has ECFMP restriction
 					if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign && !p.hasEcfmpRestriction) {
 						createRequest = true;
+
+						//Only create request if TOBT is manually triggered (or initially triggered), to avoid update set TSAT when syncing from CTOT
+						if (p.ctot != "" && hideCalculation) {
+							createRequest = true;
+						}
+						else {
+							createRequest = false;
+						}
 					}
 				}
 			}
