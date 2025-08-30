@@ -5502,8 +5502,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						//Check API
 						if (doRequest && TSATfinal.length() >= 4) {
 							string myTSATApi = TSAT;
-							std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, false);
-							t.detach();
+							setTOBTApi(callsign, myTSATApi, false);
 						}
 					}
 				}
@@ -7597,8 +7596,7 @@ void CDM::refreshActions1() {
 	//Execute background process in the background
 	slotListToUpdate = backgroundProcess_recaulculate();
 	//Check rates
-	std::thread t7(&CDM::getNetworkRates, this);
-	t7.detach();
+	getNetworkRates();
 	readyToUpdateList = true;
 	refresh1 = false;
 }
@@ -8216,8 +8214,8 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 					if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign && !p.hasEcfmpRestriction) {
 						createRequest = true;
 
-						//Only create request if TOBT is manually triggered (or initially triggered), to avoid update set TSAT when syncing from CTOT
-						if (p.ctot != "" && hideCalculation) {
+						//Only create request if TOBT is manually triggered (or initially triggered or when no ctot), to avoid update set TSAT when syncing from CTOT
+						if ((p.ctot != "" && hideCalculation) || p.ctot == "") {
 							createRequest = true;
 						}
 						else {
@@ -8334,17 +8332,22 @@ void CDM::setTOBTApi(string callsign, string tobt, bool hideCalculation) {
 				for (int d = 0; d < slotList.size(); d++) {
 					if (p.callsign == slotList[d].callsign) {
 						if (slotList[d].ctot != p.ctot || slotList[d].flowReason != p.flowReason || slotList[d].hasManualCtot != p.hasManualCtot) {
-							p.showData = true;
-							toAdd.push_back(p);
+							//p.showData = true;
+							//toAdd.push_back(p);
+							slotList[d].ctot = p.ctot;
+							slotList[d].flowReason = p.flowReason;
+							slotList[d].hasManualCtot = p.hasManualCtot;
+							slotList[d].showData = true;
+
 						}
 					}
 				}
 			}
 
-			if (!toAdd.empty()) {
+			/*if (!toAdd.empty()) {
 				std::lock_guard<std::mutex> lock(apiQueueResponseMutex);
 				apiQueueResponse.insert(apiQueueResponse.end(), toAdd.begin(), toAdd.end());
-			}
+			}*/
 
 			//Fetch cdmSts
 			/*std::thread t9(&CDM::getCdmServerStatus, this);
@@ -8441,8 +8444,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 						setCdmStslater.push_back(callsign);
 					}
 					else {
-						std::thread t0(&CDM::getCdmServerStatus, this);
-						t0.detach();
+						getCdmServerStatus();
 					}
 				}
 			}
