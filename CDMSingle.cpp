@@ -6140,6 +6140,9 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 10");
 			}
 			OutOfTsat.erase(OutOfTsat.begin() + i);
+			//Update CDM-API
+			std::thread t(&CDM::setCdmSts, this, callsign, "");
+			t.detach();
 		}
 	}
 	//Remove from setTOBTlater
