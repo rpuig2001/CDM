@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.14"
+#define MY_PLUGIN_VERSION   "2.2.8.15"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -119,7 +119,7 @@ public:
 
 	bool isCdmAirport(string airport);
 
-	void getCdmServerRestricted();
+	void getCdmServerRestricted(vector<Plane> slotListTemp);
 
 	void sendWaitingTOBT();
 
@@ -129,7 +129,7 @@ public:
 
 	void updateCdmDataApi(Plane p);
 
-	void setTOBTApi(string callsign, string tobt, bool hideCalculation);
+	void setTOBTApi(string callsign, string tobt, bool triggeredByUser);
 
 	string getTaxiTime(string callsign);
 
