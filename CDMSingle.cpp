@@ -3312,13 +3312,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (showData) {
 								if (aircraftFind) {
 									if (slotList[pos].hasManualCtot) {
+										string value = "";
 										if (slotList[pos].ctot == "") {
+											value = slotList[pos].ttot.substr(0, 4);
 											ItemRGB = TAG_ORANGE;
 										}
 										else {
+											value = slotList[pos].ctot;
 											ItemRGB = TAG_CTOT;
 										}
-										strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+										strcpy_s(sItemString, 16, value.c_str());
 									}
 									else if (slotList[pos].hasEcfmpRestriction) {
 										ItemRGB = TAG_RED;
@@ -4107,13 +4110,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
+									string value = "";
 									if (slotList[pos].ctot == "") {
+										value = slotList[pos].ttot.substr(0, 4);
 										ItemRGB = TAG_ORANGE;
 									}
 									else {
+										value = slotList[pos].ctot;
 										ItemRGB = TAG_CTOT;
 									}
-									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+									strcpy_s(sItemString, 16, value.c_str());
 								}
 								else if (slotList[pos].hasEcfmpRestriction) {
 									ItemRGB = TAG_RED;
@@ -4221,13 +4227,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (aircraftFind) {
 								if (slotList[pos].hasManualCtot) {
+									string value = "";
 									if (slotList[pos].ctot == "") {
+										value = slotList[pos].ttot.substr(0, 4);
 										ItemRGB = TAG_ORANGE;
 									}
 									else {
+										value = slotList[pos].ctot;
 										ItemRGB = TAG_CTOT;
 									}
-									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+									strcpy_s(sItemString, 16, value.c_str());
 								}
 								else if (slotList[pos].hasEcfmpRestriction) {
 									ItemRGB = TAG_RED;
@@ -4339,13 +4348,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				{
 					if (aircraftFind) {
 						if (slotList[pos].hasManualCtot) {
+							string value = "";
 							if (slotList[pos].ctot == "") {
+								value = slotList[pos].ttot.substr(0, 4);
 								ItemRGB = TAG_ORANGE;
 							}
 							else {
+								value = slotList[pos].ctot;
 								ItemRGB = TAG_CTOT;
 							}
-							strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
+							strcpy_s(sItemString, 16, value.c_str());
 						}
 						else if (slotList[pos].hasEcfmpRestriction) {
 							ItemRGB = TAG_RED;
@@ -4440,6 +4452,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		}
 		else {
 
+			//Check if update in the queue
+			std::vector<Plane> localPlaneQueue;
+			{
+				std::lock_guard<std::mutex> lock(apiQueueResponseMutex);
+				localPlaneQueue.swap(apiQueueResponse);
+				apiQueueResponse.clear();
+			}
+
+			if (!localPlaneQueue.empty()) {
+				for (const Plane p : localPlaneQueue) {
+					for (int t = 0; t < slotList.size(); t++) {
+						if (p.callsign == slotList[t].callsign) {
+							slotList[t] = p;
+						}
+					}
+				}
+			}
+
 			bool master = false;
 			for (string apt : masterAirports)
 			{
@@ -4507,13 +4537,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (slotListPos != -1) {
 					if (slotList[slotListPos].hasManualCtot) {
 						found = true;
+						string value = "";
 						if (slotList[slotListPos].ctot == "") {
+							value = slotList[slotListPos].ttot.substr(0, 4);
 							ItemRGB = TAG_ORANGE;
 						}
 						else {
+							value = slotList[slotListPos].ctot;
 							ItemRGB = TAG_CTOT;
 						}
-						strcpy_s(sItemString, 16, slotList[slotListPos].ttot.substr(0, 4).c_str());
+						strcpy_s(sItemString, 16, value.c_str());
 					}
 				}
 				if (!found) {
@@ -8335,7 +8368,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 										slotListTemp[i] = {
 											apiCallsign,
 											slotListTemp[i].eobt,
-											slotListTemp[i].tsat,
+											calculateLessTime(ctot, stod(getTaxiTime(apiCallsign))),
 											slotListTemp[i].ttot,
 											ctot,
 											reason,
