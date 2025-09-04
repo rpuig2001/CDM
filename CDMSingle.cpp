@@ -6487,14 +6487,39 @@ bool CDM::isCdmAirport(string airport) {
 
 void CDM::saveData() {
 	addLogLine("Called saveData...");
-	try{
+	try {
+		bool updated = false;
+		bool found = false;
 		for (Plane plane : slotList) {
+			found = false;
 			for (Plane planeSaved : slotListSaved) {
 				if (plane.callsign == planeSaved.callsign) {
+					found = true;
 					if (plane.ctot != planeSaved.ctot || plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
-						updateCdmDataApi(planeSaved);
+						updateCdmDataApi(plane);
+						updated = true;
 					}
 				}
+			}
+			if (!found) {
+				//Plane is new in the slotList (not found int he latest slotListSaved)
+				updated = true;
+				updateCdmDataApi(plane);
+			}
+		}
+
+		//Set empty times as the plane is not anymore in the slotList
+		for (Plane planeSaved : slotListSaved) {
+			found = false;
+			for (Plane plane : slotList) {
+				if (plane.callsign == planeSaved.callsign) {
+					found = true;
+					break;
+				}
+			}
+			if (!found) {
+				Plane myPlane(planeSaved.callsign, "", "", "", "", "", EcfmpRestriction(), false, false, false);
+				updateCdmDataApi(myPlane);
 			}
 		}
 		slotListSaved = slotList;
