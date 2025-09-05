@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.17"
+#define MY_PLUGIN_VERSION   "2.2.8.18"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -144,6 +144,10 @@ public:
 	vector<vector<string>> getDepAirportPlanes(string airport);
 
 	void getNetworkTobt();
+
+	vector<vector<string>> getAirportPlanesCdmDataSection(string airport);
+
+	void copyServerSavedData(string airport);
 
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 

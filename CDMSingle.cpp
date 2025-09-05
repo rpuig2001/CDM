@@ -7565,6 +7565,37 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 	}
 
+	if (startsWith(".cdm recover", sCommandLine))
+	{
+		try {
+			addLogLine(sCommandLine);
+			string line = sCommandLine; boost::to_upper(line);
+			vector<string> lineAirports = explode(line, ' ');
+
+			if (lineAirports.size() > 2) {
+				string ATC_Position = ControllerMyself().GetCallsign();
+				for (size_t i = 2; i < lineAirports.size(); i++) {
+					string addedAirport = lineAirports[i];
+					std::thread t(&CDM::removeAllMasterAirportsByAirport, this, addedAirport);
+					t.detach();
+					copyServerSavedData(addedAirport);
+				}
+			}
+			else {
+				sendMessage("NO AIRPORT SET");
+			}
+			return true;
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception .cdm recover: " + (string)e.what());
+			return true;
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception .cdm recover");
+			return true;
+		}
+	}
+
 	if (startsWith(".cdm data", sCommandLine))
 	{
 		addLogLine(sCommandLine);
@@ -8857,6 +8888,131 @@ void CDM::getNetworkTobt() {
 			reqTobtTypesQueue.insert(reqTobtTypesQueue.end(), toAdd.begin(), toAdd.end());
 		}
 		addLogLine("COMPLETED - getNetworkTobt");
+		//Update times to slaves
+		countTime = std::time(nullptr) - refreshTime;
+	}
+}
+
+vector<vector<string>> CDM::getAirportPlanesCdmDataSection(string airport) {
+	vector<vector<string>> planes;
+	if (serverEnabled) {
+		addLogLine("Called getAirportPlanesCdmDataSection...");
+		try {
+			vector<Rate> tempRate = initialRate;
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/ifps/depAirport?airport=" + airport;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("cdmData") && data[i]["cdmData"].isMember("tobt") && data[i]["cdmData"].isMember("tsat") && data[i]["cdmData"].isMember("ttot")) {
+
+						string callsign = fastWriter.write(data[i]["callsign"]);
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+
+						string tobt = fastWriter.write(data[i]["cdmData"]["tobt"]);
+						tobt.erase(std::remove(tobt.begin(), tobt.end(), '"'));
+						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
+						tobt.erase(std::remove(tobt.begin(), tobt.end(), '\n'));
+
+						string tsat = fastWriter.write(data[i]["cdmData"]["tsat"]);
+						tsat.erase(std::remove(tsat.begin(), tsat.end(), '"'));
+						tsat.erase(std::remove(tsat.begin(), tsat.end(), '\n'));
+						tsat.erase(std::remove(tsat.begin(), tsat.end(), '\n'));
+
+						string ttot = fastWriter.write(data[i]["cdmData"]["ttot"]);
+						ttot.erase(std::remove(ttot.begin(), ttot.end(), '"'));
+						ttot.erase(std::remove(ttot.begin(), ttot.end(), '\n'));
+						ttot.erase(std::remove(ttot.begin(), ttot.end(), '\n'));
+
+						if (ttot != "" && tobt != "" && tsat != "") {
+							planes.push_back({ callsign, tobt, tsat, ttot });
+						}
+					}
+				}
+			}
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getDepAirportPlanes: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getDepAirportPlanes");
+		}
+	}
+	return planes;
+}
+
+void CDM::copyServerSavedData(string airport) {
+	if (serverEnabled) {
+		addLogLine("Called copyServerSavedData...");
+		for (string apt : masterAirports)
+		{
+			if (apt == airport) {
+				sendMessage("Airport: " + airport + ". is already MASTER. Sync not possible.");
+				return;
+			}
+		}
+
+		/* [callisgn, tobt, tsat, ttot] */
+		vector<vector<string>> newplanes = getAirportPlanesCdmDataSection(airport);
+
+		vector<Plane> mySlotList = slotList;
+		std::vector<vector<string>> toAdd;
+
+		for (vector<string> newplane : newplanes) {
+			bool updated = false;
+			CFlightPlan fp = FlightPlanSelect(newplane[0].c_str());
+			if (!fp.IsValid()) {
+				continue;
+			}
+			for (Plane plane : slotList) {
+				if (plane.callsign == newplane[0]) {
+					updated = true;
+					plane.eobt = newplane[1];
+					plane.tsat = newplane[2];
+					plane.ttot = newplane[3];
+					setFlightStripInfo(fp, formatTime(plane.eobt), 2);
+					setFlightStripInfo(fp, plane.tsat, 3);
+					setFlightStripInfo(fp, plane.ttot, 4);
+				}
+			}
+			if (!updated) {
+				Plane plane = Plane(newplane[0], newplane[1], newplane[2], newplane[3], "", "", EcfmpRestriction(), false, false, false);
+				setFlightStripInfo(fp, formatTime(plane.eobt), 2);
+				setFlightStripInfo(fp, plane.tsat, 3);
+				setFlightStripInfo(fp, plane.ttot, 4);
+			}
+		}
+		addLogLine("COMPLETED - copyServerSavedData");
 		//Update times to slaves
 		countTime = std::time(nullptr) - refreshTime;
 	}
