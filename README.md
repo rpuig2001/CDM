@@ -324,6 +324,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
 - ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
+- ``.cdm recover`` - In case of of CTD, it tries to recover the latest time status backed up in the server. Example: ``.cdm recover LEBL``.
 - ``.cdm help`` - Sends a message with the available commands.
 
 ## Functions and colors:
