@@ -101,6 +101,7 @@ vector<Delay> delayList;
 vector<ServerRestricted> serverRestrictedPlanes;
 vector<Plane> setTOBTlater;
 vector<string> setCdmStslater;
+vector<Plane> setCdmDatalater;
 vector<string> suWaitList;
 vector<string> checkCIDLater;
 vector<string> disabledCtots;
@@ -116,6 +117,7 @@ std::mutex reqTobtTypesQueueMutex;
 std::mutex later1Mutex;
 std::mutex later2Mutex;
 std::mutex later3Mutex;
+std::mutex later4Mutex;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -6240,12 +6242,25 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			}
 		}
 	}
+	//Remove from setCdmDatalater
+	{
+		std::lock_guard<std::mutex> lock(later4Mutex);
+		for (size_t i = 0; i < setCdmDatalater.size(); i++)
+		{
+			if (callsign == setCdmDatalater[i].callsign) {
+				if (debugMode) {
+					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 14");
+				}
+				setCdmDatalater.erase(setCdmDatalater.begin() + i);
+			}
+		}
+	}
 	//Remove from disabledCtots
 	for (size_t i = 0; i < disabledCtots.size(); i++)
 	{
 		if (callsign == disabledCtots[i]) {
 			if (debugMode) {
-				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 14");
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 15");
 			}
 			disabledCtots.erase(disabledCtots.begin() + i);
 		}
@@ -6257,7 +6272,7 @@ void CDM::RemoveDataFromTfc(string callsign) {
 		{
 			if (callsign == checkCIDLater[i]) {
 				if (debugMode) {
-					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 15");
+					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 16");
 				}
 				checkCIDLater.erase(checkCIDLater.begin() + i);
 			}
@@ -8244,6 +8259,21 @@ void CDM::sendWaitingCdmSts() {
 	}
 }
 
+void CDM::sendWaitingCdmData() {
+	vector<Plane> callsignsToProcess;
+	{
+		addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmDatalater.size()));
+		std::lock_guard<std::mutex> lock(later4Mutex);
+		callsignsToProcess = setCdmDatalater;
+		setCdmDatalater.clear();
+	}
+
+	for (const Plane& plane : callsignsToProcess) {
+		addLogLine("sendWaitingCdmData - " + plane.callsign);
+		updateCdmDataApi(plane);
+	}
+}
+
 void CDM::sendCheckCIDLater() {
 	vector<string> callsignsToProcess;
 	{
@@ -8259,14 +8289,14 @@ void CDM::sendCheckCIDLater() {
 	}
 }
 
-void CDM::updateCdmDataApi(Plane p) {
-	if (serverEnabled) {
-		addLogLine("Called updateCdmDataApi...");
-		try {
-			CURL* curl;
-			CURLcode result = CURLE_FAILED_INIT;
-			string readBuffer;
-			long responseCode = 0;
+	void CDM::updateCdmDataApi(Plane p) {
+		if (serverEnabled) {
+			addLogLine("Called updateCdmDataApi...");
+			try {
+				CURL* curl;
+				CURLcode result = CURLE_FAILED_INIT;
+				string readBuffer;
+				long responseCode = 0;
 				string str;
 				if (p.hasManualCtot && p.ctot != "" && p.ttot.length() >= 4) {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ctot.substr(0, 4) + "&reason=" + p.flowReason;
@@ -8293,19 +8323,44 @@ void CDM::updateCdmDataApi(Plane p) {
 					curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
 					curl_easy_cleanup(curl);
 				}
-			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-				addLogLine("UNABLE TO CONNECT CDM-API...");
+
+				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+					std::lock_guard<std::mutex> lock(later4Mutex);
+					setCdmDatalater.push_back(p);
+					addLogLine("UNABLE TO CONNECT CDM-API...");
+				}
+				else {
+					std::istringstream is(readBuffer);
+					//Get data from .txt file
+					string lineValue;
+					while (getline(is, lineValue))
+					{
+						if (lineValue != "true") {
+							std::lock_guard<std::mutex> lock(later4Mutex);
+							setCdmDatalater.push_back(p);
+						}
+						else {
+							getCdmServerStatus();
+						}
+					}
+				}
+				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+					addLogLine("UNABLE TO CONNECT CDM-API...");
+				}
+				addLogLine("COMPLETED - updateCdmDataApi");
 			}
-			addLogLine("COMPLETED - updateCdmDataApi");
-		}
-		catch (const std::exception& e) {
-			addLogLine("ERROR: Unhandled exception updateCdmDataApi: " + (string)e.what());
-		}
-		catch (...) {
-			addLogLine("ERROR: Unhandled exception updateCdmDataApi");
+			catch (const std::exception& e) {
+				std::lock_guard<std::mutex> lock(later4Mutex);
+				setCdmDatalater.push_back(p);
+				addLogLine("ERROR: Unhandled exception updateCdmDataApi: " + (string)e.what());
+			}
+			catch (...) {
+				std::lock_guard<std::mutex> lock(later4Mutex);
+				setCdmDatalater.push_back(p);
+				addLogLine("ERROR: Unhandled exception updateCdmDataApi");
+			}
 		}
 	}
-}
 
 void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 		addLogLine("Called setTOBTApi...");
@@ -8534,9 +8589,6 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 					if (lineValue != "true") {
 						std::lock_guard<std::mutex> lock(later2Mutex);
 						setCdmStslater.push_back(callsign);
-					}
-					else {
-						getCdmServerStatus();
 					}
 				}
 			}
