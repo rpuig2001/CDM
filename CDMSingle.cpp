@@ -2173,6 +2173,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								else if (status == "SUSP") {
 									ItemRGB = TAG_RED;
 								}
+								else if (status == "COMPLY") {
+									ItemRGB = TAG_GREEN;
+								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
@@ -3395,6 +3398,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (status == "SUSP") {
 								ItemRGB = TAG_RED;
 							}
+							else if (status == "COMPLY") {
+								ItemRGB = TAG_GREEN;
+							}
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
@@ -4185,6 +4191,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (status == "SUSP") {
 								ItemRGB = TAG_RED;
 							}
+							else if (status == "COMPLY") {
+								ItemRGB = TAG_GREEN;
+							}
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
@@ -4301,6 +4310,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else if (status == "SUSP") {
 									ItemRGB = TAG_RED;
+								}
+								else if (status == "COMPLY") {
+									ItemRGB = TAG_GREEN;
 								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
@@ -4422,6 +4434,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (status == "SUSP") {
 							ItemRGB = TAG_RED;
+						}
+						else if (status == "COMPLY") {
+							ItemRGB = TAG_GREEN;
 						}
 						strcpy_s(sItemString, 16, status.c_str());
 					}
