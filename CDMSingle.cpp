@@ -5606,7 +5606,7 @@ void CDM::PushToOtherControllers(CFlightPlan fp) {
 		if (c.IsController()) {
 			callsign = c.GetCallsign();
 			if (callsign.size() > 3) {
-				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos || callsign.find("OBS") != string::npos) {
+				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos) {
 					fp.PushFlightStrip(c.GetCallsign());
 				}
 			}
@@ -8191,6 +8191,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 				sendWaitingTOBT();
 				sendWaitingCdmSts();
 				sendCheckCIDLater();
+				sendWaitingCdmData();
 				std::vector<Plane> toAdd;
 				for (Plane p : slotListTemp) {
 					for (int d = 0; d < initialslotListTemp.size(); d++) {
