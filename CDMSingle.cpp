@@ -6572,21 +6572,6 @@ void CDM::saveData() {
 				updateCdmDataApi(plane);
 			}
 		}
-
-		//Set empty times as the plane is not anymore in the slotList
-		for (Plane planeSaved : slotListSaved) {
-			found = false;
-			for (Plane plane : slotList) {
-				if (plane.callsign == planeSaved.callsign) {
-					found = true;
-					break;
-				}
-			}
-			if (!found) {
-				Plane myPlane(planeSaved.callsign, "", "", "", "", "", EcfmpRestriction(), false, false, false);
-				updateCdmDataApi(myPlane);
-			}
-		}
 		slotListSaved = slotList;
 	if (!ftpHost.empty()) {
 		if (!slotList.empty()) {
@@ -8354,9 +8339,6 @@ void CDM::sendCheckCIDLater() {
 						if (lineValue != "true") {
 							std::lock_guard<std::mutex> lock(later4Mutex);
 							setCdmDatalater.push_back(p);
-						}
-						else {
-							getCdmServerStatus();
 						}
 					}
 				}
