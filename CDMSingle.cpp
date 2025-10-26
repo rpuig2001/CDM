@@ -896,13 +896,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 			if (status == "") {
 				OpenPopupList(Area, "CDM-Network", 1);
-				if (status != "PRIO") {
-					AddPopupListElement("PRIO", "", TAG_FUNC_NETWORK_SET_PRIO, false, 2, false);
-				}
 				if (status != "REA" && hasCtot) {
 					AddPopupListElement("REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
 				}
-			} else if (status == "REA" || status == "PRIO") {
+			} else if (status == "REA") {
 				OpenPopupList(Area, "CDM-Network", 1);
 				AddPopupListElement("Remove CDM-Network Sts", "", TAG_FUNC_NETWORK_REMOVE_STATUS, false, 2, false);
 			}
@@ -912,13 +909,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_REA");
 			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
-			t3.detach();
-		}
-	}
-	else if (FunctionId == TAG_FUNC_NETWORK_SET_PRIO) {
-		if (master && AtcMe) {
-			addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_PRIO");
-			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "PRIO");
 			t3.detach();
 		}
 	}
@@ -2167,9 +2157,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (status == "REA") {
 									ItemRGB = TAG_YELLOW;
 								}
-								else if (status == "PRIO") {
-									ItemRGB = TAG_ORANGE;
-								}
 								else if (status == "SUSP") {
 									ItemRGB = TAG_RED;
 								}
@@ -3392,9 +3379,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (status == "REA") {
 								ItemRGB = TAG_YELLOW;
 							}
-							else if (status == "PRIO") {
-								ItemRGB = TAG_ORANGE;
-							}
 							else if (status == "SUSP") {
 								ItemRGB = TAG_RED;
 							}
@@ -4185,9 +4169,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (status == "REA") {
 								ItemRGB = TAG_YELLOW;
 							}
-							else if (status == "PRIO") {
-								ItemRGB = TAG_ORANGE;
-							}
 							else if (status == "SUSP") {
 								ItemRGB = TAG_RED;
 							}
@@ -4304,9 +4285,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_YELLOW;
 								if (status == "REA") {
 									ItemRGB = TAG_YELLOW;
-								}
-								else if (status == "PRIO") {
-									ItemRGB = TAG_ORANGE;
 								}
 								else if (status == "SUSP") {
 									ItemRGB = TAG_RED;
@@ -4428,9 +4406,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						ItemRGB = TAG_YELLOW;
 						if (status == "REA") {
 							ItemRGB = TAG_YELLOW;
-						}
-						else if (status == "PRIO") {
-							ItemRGB = TAG_ORANGE;
 						}
 						else if (status == "SUSP") {
 							ItemRGB = TAG_RED;
@@ -8352,13 +8327,11 @@ void CDM::sendCheckCIDLater() {
 					while (getline(is, lineValue))
 					{
 						if (lineValue != "true") {
+							addLogLine("setCdmData RESPONSE: " + lineValue);
 							std::lock_guard<std::mutex> lock(later4Mutex);
 							setCdmDatalater.push_back(p);
 						}
 					}
-				}
-				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-					addLogLine("UNABLE TO CONNECT CDM-API...");
 				}
 				addLogLine("COMPLETED - updateCdmDataApi");
 			}
