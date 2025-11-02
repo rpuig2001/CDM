@@ -3501,8 +3501,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					time_t timeNow = std::time(nullptr);
 					if ((timeNow - countFetchServerTime) > 30) {
 						countFetchServerTime = timeNow;
-						std::thread t(&CDM::getCdmServerRestricted, this, slotList);
-						t.detach();
+						std::thread t1(&CDM::getCdmServerRestricted, this, slotList);
+						t1.detach();
+						std::thread t2(&CDM::getCdmServerStatus, this);
+						t2.detach();
 						if (debugMode) {
 							sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 						}
