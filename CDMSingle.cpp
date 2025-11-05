@@ -31,6 +31,7 @@ bool defaultRate;
 time_t countTime;
 time_t countTimeNonCdm;
 time_t countFetchServerTime;
+time_t countRefreshActions4Time;
 time_t countTfcDisconnectionTime;
 time_t countEcfmpTime;
 time_t countNetworkTobt;
@@ -63,6 +64,7 @@ bool sftpConnection;
 bool refresh1;
 bool refresh2;
 bool refresh3;
+bool refresh4;
 
 int deIceTimeL;
 int deIceTimeM;
@@ -262,6 +264,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	countTime = std::time(nullptr);
 	countTimeNonCdm = std::time(nullptr);
 	countFetchServerTime = std::time(nullptr);
+	countRefreshActions4Time = std::time(nullptr);
 	countEcfmpTime = std::time(nullptr);
 	countNetworkTobt = std::time(nullptr);
 	countTfcDisconnectionTime = std::time(nullptr);
@@ -413,6 +416,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refresh1 = false;
 	refresh2 = false;
 	refresh3 = false;
+	refresh4 = false;
 
 	//Initialize with empty callsign
 	myAtcCallsign = "";
@@ -1646,6 +1650,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			t.detach();
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
+			}
+		}
+		if ((timeNow - countFetchServerTime) > 30 && !refresh3) {
+			countFetchServerTime = timeNow;
+			std::thread t(&CDM::refreshActions3, this);
+			t.detach();
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA 1");
+			}
+		}
+		if ((timeNow - countRefreshActions4Time) > 10 && !refresh4) {
+			countRefreshActions4Time = timeNow;
+			std::thread t(&CDM::refreshActions4, this);
+			t.detach();
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA 2");
 			}
 		}
 
@@ -3449,15 +3469,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
-						if ((timeNow - countFetchServerTime) > 30 && !refresh3) {
-							countFetchServerTime = timeNow;
-							std::thread t(&CDM::refreshActions3, this);
-							t.detach();
-							if (debugMode) {
-								sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA");
-							}
-						}
-
 						//Check readyToUpdateList;
 						if (readyToUpdateList && !refresh1) {
 							addLogLine("[AUTO] - Updating slotList with latest update...");
@@ -3497,19 +3508,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 				else {
-					// Refresh FlowData every 30 seconds
-					time_t timeNow = std::time(nullptr);
-					if ((timeNow - countFetchServerTime) > 30) {
-						countFetchServerTime = timeNow;
-						std::thread t1(&CDM::getCdmServerRestricted, this, slotList);
-						t1.detach();
-						std::thread t2(&CDM::getCdmServerStatus, this);
-						t2.detach();
-						if (debugMode) {
-							sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
-						}
-					}
-
 					//Remove disconnected planes after 5 min disconnected
 					if (countTfcDisconnection != -1) {
 						if ((timeNow - countTfcDisconnectionTime) > 300) {
@@ -7797,7 +7795,6 @@ void CDM::refreshActions1() {
 	refresh1 = true;
 	readyToUpdateList = false;
 	saveData();
-	getCdmServerStatus();
 	//Execute background process in the background
 	slotListToUpdate = backgroundProcess_recaulculate();
 	//Check rates
@@ -7815,9 +7812,16 @@ void CDM::refreshActions2() {
 
 void CDM::refreshActions3() {
 	refresh3 = true;
-	addLogLine("[AUTO] - REFRESH API");
+	addLogLine("[AUTO] - REFRESH API 1");
 	getCdmServerRestricted(slotList);
 	refresh3 = false;
+}
+
+void CDM::refreshActions4() {
+	refresh4 = true;
+	addLogLine("[AUTO] - REFRESH API 2");
+	getCdmServerStatus();
+	refresh4 = false;
 }
 
 //API requests

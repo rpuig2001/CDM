@@ -288,6 +288,8 @@ public:
 
 	void refreshActions3();
 
+	void refreshActions4();
+
 	bool setMasterAirport(string airport, string position);
 
 	bool removeMasterAirport(string airport, string position);
