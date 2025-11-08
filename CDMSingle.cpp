@@ -8971,7 +8971,7 @@ void CDM::getNetworkTobt() {
 								found = true;
 							}
 							//Check if not manual CTOT assigned
-							else if (!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") {
+							else if ((!mySlotList[i].hasManualCtot && mySlotList[i].ctot == "") || (mySlotList[i].hasManualCtot && mySlotList[i].ctot != "")) {
 								found = true;
 								CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
 								if (!fp.IsValid()) {
