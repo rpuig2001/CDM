@@ -65,6 +65,8 @@ const int TAG_FUNC_DEICE_NONE = 142;
 const int TAG_FUNC_DEICE_STAND = 143;
 const int TAG_FUNC_DEICE_REMOTE = 144;
 const int TAG_ITEM_TOBT_SETBY = 145;
+const int TAG_FUNC_CUSTOMTTOT = 146;
+const int TAG_FUNC_EDITFIRSTTOT = 147;
 
 inline static bool startsWith(const char* pre, const char* str)
 {
