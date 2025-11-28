@@ -127,6 +127,7 @@ CDM includes the following times:
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
   - Auto ATOT to enable/disable automatic update TTOT when "DEPA" sts is set (**DISABLED:** autoAtot mode="false" and **ENABLED:** autoAtot mode="true").
   - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
+  - Invalidate flight at tobt will invalidate flights at TOBT+5 (ex. invalidateAtTobt mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
@@ -317,7 +318,8 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - ``.cdm master {airport}`` - Become the master of the selected airport.
 - ``.cdm slave {airport}`` - Turn back to slave of the selected airport.
 - ``.cdm refreshtime {seconds}`` - It changes the refresh rate time in seconds (Default 30, MAX 99 Seconds).
-- ``.cdm customdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start (time_start can be a 4 digits time (2114 - 21:14 time) or 1/2 digits minutes (5 - 5min or 10 - 10 min) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. (Ex1. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100 // Ex2. ``.cdm customdelay LEBL/24L 10`` -> All TSATs will start at now+10 min). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time).
+- ``.cdm startupdelay {airport}/{runway} {time_start}`` - Moves all TSATs for selected airport and runway from the starting at the time_start (time_start can be a 4 digits time (2114 - 21:14 time) or 1/2 digits minutes (5 - 5min or 10 - 10 min) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. After applying, all previous insterted delays for the same runway are removed. (Ex1. ``.cdm customdelay LEBL/24L 1100`` -> All TSATs from LEBL rwy 24L will start at 1100 // Ex2. ``.cdm customdelay LEBL/24L 10`` -> All TSATs will start at now+10 min). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time).
+- ``.cdm departuredelay {airport}/{runway} {time_start}`` - Moves all TTOTs for selected airport and runway from the starting at the time_start (time_start can be a 4 digits time (2114 - 21:14 time) or 1/2 digits minutes (5 - 5min or 10 - 10 min) - WAIT SOME SECONDS TO UPDATE AFTER APPLIED. After applying, all previous insterted delays for the same runway are removed. (Ex1. ``.cdm customdelay LEBL/24L 1100`` -> All TTOTs from LEBL rwy 24L will start at 1100 // Ex2. ``.cdm customdelay LEBL/24L 10`` -> All TTOTs will start at now+10 min). To remove the "restriction" use -> ".cdm customdelay LEBL/24L 9999" (using 9999 as time).
 - ``.cdm lvo`` - Toggle lvo ON or OFF.
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm server`` - Toggle server communication ON or OFF.
@@ -336,6 +338,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - ``Edit EOBT`` -> Sets EOBT to the specified time (4 digits).
   - Colors:
     - ``color8`` -> Default.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``RED`` -> FlightPlan SUSPENDED.
 
 - Column TOBT: If realMode is disabled, TOBT will calculate TSAT and TTOT from the TOBT time. To delete it simple edit the time and press enter deleting the content.
   - NOTES:
