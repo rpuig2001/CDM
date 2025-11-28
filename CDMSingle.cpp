@@ -170,12 +170,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
 	RegisterTagItemType("TSAT/TOBT-DIFF", TAG_ITEM_TSAT_TOBT_DIFF);
-	RegisterTagItemFunction("TSAT Delay", TAG_FUNC_CUSTOMTSAT);
 
 	// Register Tag Item "CDM-TTOT"
 	RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
 	RegisterTagItemFunction("TTOT Options", TAG_FUNC_OPT_TTOT);
-	RegisterTagItemFunction("TTOT Delay", TAG_FUNC_CUSTOMTTOT);
 
 	// Register Tag Item "CDM-TSAC"
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
@@ -412,9 +410,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server Fetch restricted
 	getCdmServerRestricted(slotList);
 
-	apikey = "v1HrGcLq3lqHrwgBXd2bfMIzFmxNSiWJ";
+	apikey = "test";
 	if (ftpPassword == "") {
-		ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
+		ftpPassword = "test";
 	}
 
 	//Init reamrksOption
@@ -1531,114 +1529,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	else if (FunctionId == TAG_FUNC_CUSTOMTSAT) {
-		addLogLine("TRIGGER - TAG_FUNC_CUSTOMTSAT");
-		if (_stricmp(fp.GetFlightPlanData().GetDepartureRwy(), "") == 0) return;
-		if (master)
-			OpenPopupEdit(Area, TAG_FUNC_EDITFIRSTTSAT, "");
-	}
-
-	else if (FunctionId == TAG_FUNC_EDITFIRSTTSAT) {
-		addLogLine("TRIGGER - TAG_FUNC_EDITFIRSTTSAT");
-		string rwy = fp.GetFlightPlanData().GetDepartureRwy();
-		string apt = fp.GetFlightPlanData().GetOrigin();
-		string myTime = ItemString;
-
-		//use myTime 9999 to remove delay for APT/RWY config
-		if (myTime == "9999") {
-			for (size_t i = 0; i < delayList.size(); i++) {
-				if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
-					sendMessage("REMOVING TSAT DELAY " + apt + "/" + rwy);
-					delayList.erase(delayList.begin() + i);
-				}
-			}
-		}
-		else {
-			try {
-				Delay d = Delay(apt, rwy, myTime, "tsat");
-
-				//Get Time now
-				time_t rawtime;
-				struct tm ptm;
-				time(&rawtime);
-				gmtime_s(&ptm, &rawtime);
-				string hour = to_string(ptm.tm_hour % 24);
-				string min = to_string(ptm.tm_min);
-
-				int difTime = difftime(stoi(d.time), stoi(hour + min));
-
-				if (difTime > 0) {
-					sendMessage("Adding TSAT DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
-					delayList.push_back(d);
-					//Update times to slaves
-					countTime = std::time(nullptr) - refreshTime;
-					//addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
-				}
-				else {
-					sendMessage("TSAT DELAY NOT ADDED. Time must be in the future");
-				}
-			}
-			catch (...)
-			{
-				sendMessage("TSAT DELAY NOT ADDED. An error occured. Check time format.");
-			}
-		}
-	}
-
-	else if (FunctionId == TAG_FUNC_CUSTOMTTOT) {
-		addLogLine("TRIGGER - TAG_FUNC_CUSTOMTTOT");
-		if (_stricmp(fp.GetFlightPlanData().GetDepartureRwy(), "") == 0) return;
-		if (master)
-			OpenPopupEdit(Area, TAG_FUNC_EDITFIRSTTOT, "");
-	}
-
-	else if (FunctionId == TAG_FUNC_EDITFIRSTTOT) {
-		addLogLine("TRIGGER - TAG_FUNC_EDITFIRSTTOT");
-		string rwy = fp.GetFlightPlanData().GetDepartureRwy();
-		string apt = fp.GetFlightPlanData().GetOrigin();
-		string myTime = ItemString;
-
-		//use myTime 9999 to remove delay for APT/RWY config
-		if (myTime == "9999") {
-			for (size_t i = 0; i < delayList.size(); i++) {
-				if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
-					sendMessage("REMOVING TTOT DELAY " + apt + "/" + rwy);
-					delayList.erase(delayList.begin() + i);
-				}
-			}
-		}
-		else {
-			try {
-				Delay d = Delay(apt, rwy, myTime, "ttot");
-
-				//Get Time now
-				time_t rawtime;
-				struct tm ptm;
-				time(&rawtime);
-				gmtime_s(&ptm, &rawtime);
-				string hour = to_string(ptm.tm_hour % 24);
-				string min = to_string(ptm.tm_min);
-
-				int difTime = difftime(stoi(d.time), stoi(hour + min));
-
-				if (difTime > 0) {
-					sendMessage("Adding TTOT DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
-					delayList.push_back(d);
-					//Update times to slaves
-					countTime = std::time(nullptr) - refreshTime;
-					//addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
-				}
-				else {
-					sendMessage("TTOT DELAY NOT ADDED. Time must be in the future");
-				}
-			}
-			catch (...)
-			{
-				sendMessage("TTOT DELAY NOT ADDED. An error occured. Check time format.");
-			}
-		}
-	}
-
 	}
 	catch (const std::exception& e) {
 		addLogLine("ERROR: Unhandled exception OnFunctionCall: " + (string)e.what());
@@ -2320,23 +2210,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									string myTimeToAddTemp_DELAY = "";
 									for (Delay d : delayList) {
 										if (d.airport == origin && d.rwy == depRwy) {
-											tempAddTime_DELAY_TTOT = false;
-											tempAddTime_DELAY_TSAT = false;
 											if (d.type == "ttot") {
 												tempAddTime_DELAY_TTOT = true;
+												myTimeToAddTemp_DELAY = d.time + "00";
+												break;
 											}
 											else if (d.type == "tsat") {
 												tempAddTime_DELAY_TSAT = true;
+												myTimeToAddTemp_DELAY = d.time + "00";
+												break;
 											}
-											myTimeToAddTemp_DELAY = d.time + "00";
 										}
 									}
 
 									if (addTime || tempAddTime_DELAY_TSAT || tempAddTime_DELAY_TTOT) {
 										//USE DELAY GIVEN TIMES OTHERWISE USE THE DEFAULT DELAY FUNC
-										if (tempAddTime_DELAY_TSAT) {
-											string timeToAddHour = myTimeToAddTemp_DELAY.substr(0, 2);
-											string timeToAddMin = myTimeToAddTemp_DELAY.substr(2, 2);
+										if (tempAddTime_DELAY_TSAT || tempAddTime_DELAY_TTOT) {
+											string timeToUse = myTimeToAddTemp_DELAY;
+											if (tempAddTime_DELAY_TTOT) {
+												timeToUse = calculateLessTime(myTimeToAddTemp_DELAY, taxiTime);
+											}
+											string timeToAddHour = timeToUse.substr(0, 2);
+											string timeToAddMin = timeToUse.substr(2, 2);
 											if (hour != "00") {
 												if (timeToAddHour == "00") {
 													timeToAddHour = "24";
@@ -2365,40 +2260,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											}
 
 											if (!fixTime) {
-												TSATfinal = myTimeToAddTemp_DELAY;
-												TTOTFinal = calculateTime(myTimeToAddTemp_DELAY, taxiTime);
-											}
-										}
-										else if (tempAddTime_DELAY_TTOT) {
-											string timeToAddHour = myTimeToAddTemp_DELAY.substr(0, 2);
-											string timeToAddMin = myTimeToAddTemp_DELAY.substr(2, 2);
-											if (hour != "00") {
-												if (timeToAddHour == "00") {
-													timeToAddHour = "24";
-												}
-											}
-											string myTTOTHour = TTOTFinal.substr(0, 2);
-											string myTTOTMin = TTOTFinal.substr(2, 2);
-											if (hour != "00") {
-												if (myTTOTHour == "00") {
-													myTTOTHour = "24";
-												}
-											}
-											int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTTOTHour, myTTOTMin);
-											bool fixTime = true;
-											if (hour != timeToAddHour) {
-												if (difTime > 40) {
-													fixTime = false;
-												}
-											}
-											else {
-												if (difTime > 0) {
-													fixTime = false;
-												}
-											}
-											if (!fixTime) {
-												TTOTFinal = myTimeToAddTemp_DELAY;
-												TSATfinal = calculateLessTime(myTimeToAddTemp_DELAY, taxiTime);
+												TSATfinal = timeToUse;
+												TTOTFinal = calculateTime(timeToUse, taxiTime);
 											}
 										}
 										else {
@@ -3017,7 +2880,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
-								else if (lastMinuteTOBT && ASRTtext == "") {
+								else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3052,7 +2915,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREENNOTACTIVE;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
-								else if (lastMinuteTOBT && ASRTtext == "") {
+								else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_YELLOW;
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3935,7 +3798,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_GREENNOTACTIVE;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
-							else if (lastMinuteTOBT && ASRTtext == "") {
+							else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -3960,7 +3823,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_GREENNOTACTIVE;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
-							else if (lastMinuteTOBT && ASRTtext == "") {
+							else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
 								ItemRGB = TAG_YELLOW;
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
@@ -5332,24 +5195,29 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 				string myTimeToAddTemp_DELAY = "";
 				for (Delay d : delayList) {
 					if (d.airport == myFlightPlan.GetFlightPlanData().GetOrigin() && d.rwy == myFlightPlan.GetFlightPlanData().GetDepartureRwy()) {
-						tempAddTime_DELAY_TTOT = false;
-						tempAddTime_DELAY_TSAT = false;
 						if (d.type == "ttot") {
 							tempAddTime_DELAY_TTOT = true;
+							myTimeToAddTemp_DELAY = d.time + "00";
+							break;
 						}
 						else if (d.type == "tsat") {
 							tempAddTime_DELAY_TSAT = true;
+							myTimeToAddTemp_DELAY = d.time + "00";
+							break;
 						}
-						myTimeToAddTemp_DELAY = d.time + "00";
 					}
 				}
 
 				myTSAT = myEOBT;
 				myTTOT = calculateTime(myEOBT, myTTime);
 				if (addTime || tempAddTime_DELAY_TSAT || tempAddTime_DELAY_TTOT) {
-					if (tempAddTime_DELAY_TSAT) {
-						string timeToAddHour = myTimeToAddTemp_DELAY.substr(0, 2);
-						string timeToAddMin = myTimeToAddTemp_DELAY.substr(2, 2);
+					if (tempAddTime_DELAY_TSAT || tempAddTime_DELAY_TTOT) {
+						string timeToUse = myTimeToAddTemp_DELAY;
+						if (tempAddTime_DELAY_TTOT) {
+							timeToUse = calculateLessTime(myTimeToAddTemp_DELAY, myTTime);
+						}
+						string timeToAddHour = timeToUse.substr(0, 2);
+						string timeToAddMin = timeToUse.substr(2, 2);
 						if (hour != "00") {
 							if (timeToAddHour == "00") {
 								timeToAddHour = "24";
@@ -5378,40 +5246,8 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 						}
 
 						if (!fixTime) {
-							myTSAT = myTimeToAddTemp_DELAY;
-							myTTOT = calculateTime(myTimeToAddTemp_DELAY, myTTime);
-						}
-					}
-					else if (tempAddTime_DELAY_TTOT) {
-						string timeToAddHour = myTimeToAddTemp_DELAY.substr(0, 2);
-						string timeToAddMin = myTimeToAddTemp_DELAY.substr(2, 2);
-						if (hour != "00") {
-							if (timeToAddHour == "00") {
-								timeToAddHour = "24";
-							}
-						}
-						string myTTOTHour = myTTOT.substr(0, 2);
-						string myTTOTMin = myTTOT.substr(2, 2);
-						if (hour != "00") {
-							if (myTTOTHour == "00") {
-								myTTOTHour = "24";
-							}
-						}
-						int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTTOTHour, myTTOTMin);
-						bool fixTime = true;
-						if (hour != timeToAddHour) {
-							if (difTime > 40) {
-								fixTime = false;
-							}
-						}
-						else {
-							if (difTime > 0) {
-								fixTime = false;
-							}
-						}
-						if (!fixTime) {
-							myTTOT = myTimeToAddTemp_DELAY;
-							myTTOT = calculateLessTime(myTimeToAddTemp_DELAY, myTTime);
+							myTSAT = timeToUse;
+							myTTOT = calculateTime(timeToUse, myTTime);
 						}
 					}
 					else {
@@ -7539,7 +7375,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 				//use myTime 9999 to remove delay for APT/RWY config
 				if (myTime == "9999") {
 					for (size_t i = 0; i < delayList.size(); i++) {
-						if (delayList[i].airport == apt && delayList[i].rwy == rwy && delayList[i].type == "tsat") {
+						if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
 							sendMessage("REMOVING START-UP DELAY " + apt + "/" + rwy);
 							delayList.erase(delayList.begin() + i);
 						}
@@ -7559,6 +7395,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 					int difTime = difftime(stoi(d.time), stoi(hour + min));
 
 					if (difTime > 0) {
+						// Remove existing delay for the same airport and runway
+						for (size_t i = 0; i < delayList.size(); i++) {
+							if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
+								delayList.erase(delayList.begin() + i);
+							}
+						}
 						sendMessage("Adding START-UP DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 						delayList.push_back(d);
 						//Update times to slaves
@@ -7627,7 +7469,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 				//use myTime 9999 to remove delay for APT/RWY config
 				if (myTime == "9999") {
 					for (size_t i = 0; i < delayList.size(); i++) {
-						if (delayList[i].airport == apt && delayList[i].rwy == rwy && delayList[i].type == "tsat") {
+						if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
 							sendMessage("REMOVING DEPARTURE DELAY " + apt + "/" + rwy);
 							delayList.erase(delayList.begin() + i);
 						}
@@ -7647,6 +7489,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 					int difTime = difftime(stoi(d.time), stoi(hour + min));
 
 					if (difTime > 0) {
+						// Remove existing delay for the same airport and runway
+						for (size_t i = 0; i < delayList.size(); i++) {
+							if (delayList[i].airport == apt && delayList[i].rwy == rwy) {
+								delayList.erase(delayList.begin() + i);
+							}
+						}
 						sendMessage("Adding DEPARTURE DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 						delayList.push_back(d);
 						//Update times to slaves
