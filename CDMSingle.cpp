@@ -5153,7 +5153,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 			if (!aicraftInFinalTimesList) {
 				CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
 				if (!myFlightPlan.IsValid()) {
-					addLogLine("ERROR: Flightplan not valid for " + myCallsign);
 					continue;
 				}
 
