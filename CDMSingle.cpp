@@ -5150,6 +5150,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 					aicraftInFinalTimesList = true;
 				}
 			}
+
 			if (!aicraftInFinalTimesList) {
 				CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
 				if (!myFlightPlan.IsValid()) {
