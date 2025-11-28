@@ -1563,7 +1563,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				if (difTime > 0) {
 					sendMessage("Adding TSAT DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 					delayList.push_back(d);
-					addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+					//Update times to slaves
+					countTime = std::time(nullptr) - refreshTime;
+					//addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
 				}
 				else {
 					sendMessage("TSAT DELAY NOT ADDED. Time must be in the future");
@@ -1615,7 +1617,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				if (difTime > 0) {
 					sendMessage("Adding TTOT DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 					delayList.push_back(d);
-					addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+					//Update times to slaves
+					countTime = std::time(nullptr) - refreshTime;
+					//addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
 				}
 				else {
 					sendMessage("TTOT DELAY NOT ADDED. Time must be in the future");
@@ -2161,6 +2165,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string myeobt = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 							string ShowEOBT = formatTime(myeobt);
 							ItemRGB = TAG_EOBT;
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									if (networkStatus[i][1] == "SUSP") {
+										ItemRGB = TAG_RED;
+									}
+									break;
+								}
+							}
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
 						}
 						else if (ItemCode == TAG_ITEM_TOBT)
@@ -2301,6 +2313,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									string myTimeToAddTemp_DELAY = "";
 									for (Delay d : delayList) {
 										if (d.airport == origin && d.rwy == depRwy) {
+											tempAddTime_DELAY_TTOT = false;
+											tempAddTime_DELAY_TSAT = false;
 											if (d.type == "ttot") {
 												tempAddTime_DELAY_TTOT = true;
 											}
@@ -2966,6 +2980,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 								if (mySetEobt != tobt) {
 									ItemRGB = TAG_ORANGE;
+								}
+							}
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									if (networkStatus[i][1] == "SUSP") {
+										ItemRGB = TAG_RED;
+									}
+									break;
 								}
 							}
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
@@ -3881,6 +3903,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (ItemCode == TAG_ITEM_EOBT) {
 							string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							ItemRGB = TAG_EOBT;
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									if (networkStatus[i][1] == "SUSP") {
+										ItemRGB = TAG_RED;
+									}
+									break;
+								}
+							}
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
 						}
 						else if (ItemCode == TAG_ITEM_TOBT)
@@ -4313,6 +4343,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							ItemRGB = TAG_EOBT;
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									if (networkStatus[i][1] == "SUSP") {
+										ItemRGB = TAG_RED;
+									}
+									break;
+								}
+							}
 							strcpy_s(sItemString, 16, ShowEOBT.c_str());
 						}
 						else if (ItemCode == TAG_ITEM_TOBT)
@@ -4467,6 +4505,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (ItemCode == TAG_ITEM_EOBT)
 				{
 					ItemRGB = TAG_EOBT;
+					for (size_t i = 0; i < networkStatus.size(); i++) {
+						if (networkStatus[i][0] == callsign) {
+							if (networkStatus[i][1] == "SUSP") {
+								ItemRGB = TAG_RED;
+							}
+							break;
+						}
+					}
 					strcpy_s(sItemString, 16, EOBTfinal.c_str());
 				}
 				else if (ItemCode == TAG_ITEM_TOBT)
@@ -4692,6 +4738,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			if (ItemCode == TAG_ITEM_EOBT)
 			{
 				ItemRGB = TAG_EOBT;
+				for (size_t i = 0; i < networkStatus.size(); i++) {
+					if (networkStatus[i][0] == callsign) {
+						if (networkStatus[i][1] == "SUSP") {
+							ItemRGB = TAG_RED;
+						}
+						break;
+					}
+				}
 				strcpy_s(sItemString, 16, EOBTfinal.c_str());
 			}
 			if (ItemCode == TAG_ITEM_ETOBT)
@@ -5271,6 +5325,8 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 				string myTimeToAddTemp_DELAY = "";
 				for (Delay d : delayList) {
 					if (d.airport == myFlightPlan.GetFlightPlanData().GetOrigin() && d.rwy == myFlightPlan.GetFlightPlanData().GetDepartureRwy()) {
+						tempAddTime_DELAY_TTOT = false;
+						tempAddTime_DELAY_TSAT = false;
 						if (d.type == "ttot") {
 							tempAddTime_DELAY_TTOT = true;
 						}
@@ -7356,7 +7412,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm help", sCommandLine))
 	{
 		addLogLine(sCommandLine);
-		sendMessage("CDM Commands: .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm customdelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm server - .cdm remarks - .cdm rate - .cdm help");
+		sendMessage("CDM Commands: .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm startupdelay {icao}/{rwy} {start_time} - .cdm departuredelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm server - .cdm remarks - .cdm rate - .cdm help");
 		return true;
 	}
 
@@ -7498,7 +7554,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 					if (difTime > 0) {
 						sendMessage("Adding START-UP DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 						delayList.push_back(d);
-						addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+						//Update times to slaves
+						countTime = std::time(nullptr) - refreshTime;
+						//addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
 					}
 					else {
 						sendMessage("START-UP DELAY NOT ADDED. Time must be in the future");
@@ -7584,7 +7642,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 					if (difTime > 0) {
 						sendMessage("Adding DEPARTURE DELAY for " + apt + " rwy: " + rwy + " from time: " + myTime + "z.");
 						delayList.push_back(d);
-						addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
+						//Update times to slaves
+						countTime = std::time(nullptr) - refreshTime;
+						//addTimeToListForSpecificAirportAndRunway(difTime, GetTimeNow(), d.airport, d.rwy);
 					}
 					else {
 						sendMessage("DEPARTURE DELAY NOT ADDED. Time must be in the future");
