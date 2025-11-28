@@ -45,6 +45,7 @@ bool pilotTobt;
 bool atotEnabled;
 bool remarksOption;
 bool invalidateTSAT_Option;
+bool invalidateTOBT_Option;
 bool sidIntervalEnabled;
 bool readyToUpdateList;
 string myTimeToAdd;
@@ -296,6 +297,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	ctotURL = getFromXml("/CDM/Ctot/@url");
 	sidIntervalUrl = getFromXml("/CDM/sidInterval/@url");
 	string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
+	string invalidateTOBT_OptionStr = getFromXml("/CDM/invalidateAtTobt/@mode");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	vdgsFileType = getFromXml("/CDM/vdgsFileType/@type");
@@ -385,6 +387,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	invalidateTSAT_Option = true;
 	if (invalidateTSAT_OptionStr == "false") {
 		invalidateTSAT_Option = false;
+	}
+
+	invalidateTOBT_Option = true;
+	if (invalidateTOBT_OptionStr == "false") {
+		invalidateTOBT_Option = false;
 	}
 
 	//Flow Data
@@ -2795,7 +2802,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							string getTTOT = getFlightStripInfo(FlightPlan, 4);
-							if (oldTOBT && !getTTOT.empty()) {
+							if (oldTOBT && !getTTOT.empty() && invalidateTOBT_Option) {
 								OutOfTsat.push_back(callsign + "," + EOBT);
 								setFlightStripInfo(FlightPlan, "", 0);
 								setFlightStripInfo(FlightPlan, "", 3);
