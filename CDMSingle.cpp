@@ -147,6 +147,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	loadingMessage += MY_PLUGIN_VERSION;
 	loadingMessage += " loaded.";
 	sendMessage(loadingMessage);
+	addLogLine(loadingMessage);
 
 	// Register Tag Item "CDM-OPTIONS"
 	RegisterTagItemType("Options", TAG_ITEM_OPTIONS);
