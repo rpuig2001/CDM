@@ -290,11 +290,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
 	string deIceHeavy = getFromXml("/CDM/DeIceTimes/@heavy");
 	string deIceSuper = getFromXml("/CDM/DeIceTimes/@super");
-	string deIceRem1 = getFromXml("/CDM/DeIceRem/@taxi1");
-	string deIceRem2 = getFromXml("/CDM/DeIceRem/@taxi2");
-	string deIceRem3 = getFromXml("/CDM/DeIceRem/@taxi3");
-	string deIceRem4 = getFromXml("/CDM/DeIceRem/@taxi4");
-	string deIceRem5 = getFromXml("/CDM/DeIceRem/@taxi5");
+	string deIceRem1 = getFromXml("/CDM/DeIceRemTaxi/@rem1");
+	string deIceRem2 = getFromXml("/CDM/DeIceRemTaxi/@rem2");
+	string deIceRem3 = getFromXml("/CDM/DeIceRemTaxi/@rem3");
+	string deIceRem4 = getFromXml("/CDM/DeIceRemTaxi/@rem4");
+	string deIceRem5 = getFromXml("/CDM/DeIceRemTaxi/@rem5");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
