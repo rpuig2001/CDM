@@ -134,7 +134,7 @@ CDM includes the following times:
   - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
-  - [OPTIONAL] DeIce Remote Additional Taxi Time definition (ex. "<DeIceRem rem1="3" rem2="5" rem3="2" rem4="0" rem5="0"/>") If no defined, extra 0 minutes are used.
+  - [OPTIONAL] DeIce Remote Additional Taxi Time definition (ex. "<DeIceRemTaxi rem1="3" rem2="5" rem3="2" rem4="0" rem5="0"/>") If no defined, extra 0 minutes are used.
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
