@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.21"
+#define MY_PLUGIN_VERSION   "2.2.8.22"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -106,6 +106,8 @@ public:
 	void multithread(void(CDM::* f)());
 
 	bool checkIsNumber(string str);
+
+	void setDeice(string remText, CFlightPlan fp);
 
 	string getCidByCallsign(string callsign);
 
@@ -266,7 +268,7 @@ public:
 
 	string addDeIceTime(string taxiTime, string callsign, char wtc);
 
-	int getDeIceTime(char wtc);
+	int getDeIceTime(char wtc, int remNum);
 
 	string getDiffTOBTTSAT(string TSAT, string TOBT);
 

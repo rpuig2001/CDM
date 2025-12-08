@@ -61,8 +61,12 @@ const int TAG_FUNC_NETWORK_SET_REA = 139;
 const int TAG_FUNC_OPT_DEICE = 141;
 const int TAG_FUNC_DEICE_NONE = 142;
 const int TAG_FUNC_DEICE_STAND = 143;
-const int TAG_FUNC_DEICE_REMOTE = 144;
 const int TAG_ITEM_TOBT_SETBY = 145;
+const int TAG_FUNC_DEICE_REMOTE1 = 146;
+const int TAG_FUNC_DEICE_REMOTE2 = 147;
+const int TAG_FUNC_DEICE_REMOTE3 = 148;
+const int TAG_FUNC_DEICE_REMOTE4 = 149;
+const int TAG_FUNC_DEICE_REMOTE5 = 150;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

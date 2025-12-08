@@ -72,6 +72,12 @@ int deIceTimeM;
 int deIceTimeH;
 int deIceTimeJ;
 
+int deIceTaxiRem1;
+int deIceTaxiRem2;
+int deIceTaxiRem3;
+int deIceTaxiRem4;
+int deIceTaxiRem5;
+
 //Ftp data
 string ftpHost;
 string ftpUser;
@@ -284,6 +290,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
 	string deIceHeavy = getFromXml("/CDM/DeIceTimes/@heavy");
 	string deIceSuper = getFromXml("/CDM/DeIceTimes/@super");
+	string deIceRem1 = getFromXml("/CDM/DeIceRem/@taxi1");
+	string deIceRem2 = getFromXml("/CDM/DeIceRem/@taxi2");
+	string deIceRem3 = getFromXml("/CDM/DeIceRem/@taxi3");
+	string deIceRem4 = getFromXml("/CDM/DeIceRem/@taxi4");
+	string deIceRem5 = getFromXml("/CDM/DeIceRem/@taxi5");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
@@ -345,6 +356,28 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	if (deIceLight != "") {
 		deIceTimeJ = stoi(deIceSuper);
 	}
+
+	deIceTaxiRem1 = 0;
+	deIceTaxiRem2 = 0;
+	deIceTaxiRem3 = 0;
+	deIceTaxiRem4 = 0;
+	deIceTaxiRem5 = 0;
+	if (deIceRem1 != "") {
+		deIceTaxiRem1 = stoi(deIceRem1);
+	}
+	if (deIceRem2 != "") {
+		deIceTaxiRem2 = stoi(deIceRem2);
+	}
+	if (deIceRem3 != "") {
+		deIceTaxiRem3 = stoi(deIceRem3);
+	}
+	if (deIceRem4 != "") {
+		deIceTaxiRem4 = stoi(deIceRem4);
+	}
+	if (deIceRem5 != "") {
+		deIceTaxiRem5 = stoi(deIceRem5);
+	}
+
 
 	option_su_wait = false;
 	if (opt_su_wait == "true") {
@@ -771,7 +804,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			OpenPopupList(Area, "De-Ice", 1);
 			AddPopupListElement("NONE", "", TAG_FUNC_DEICE_NONE, false, 2, false);
 			AddPopupListElement("STND", "", TAG_FUNC_DEICE_STAND, false, 2, false);
-			AddPopupListElement("REM", "", TAG_FUNC_DEICE_REMOTE, false, 2, false);
+			AddPopupListElement("REM1", "", TAG_FUNC_DEICE_REMOTE1, false, 2, false);
+			AddPopupListElement("REM2", "", TAG_FUNC_DEICE_REMOTE2, false, 2, false);
+			AddPopupListElement("REM3", "", TAG_FUNC_DEICE_REMOTE3, false, 2, false);
+			AddPopupListElement("REM4", "", TAG_FUNC_DEICE_REMOTE4, false, 2, false);
+			AddPopupListElement("REM5", "", TAG_FUNC_DEICE_REMOTE5, false, 2, false);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_NONE) {
@@ -804,82 +841,32 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_STAND) {
 		if (master && AtcMe) {
-			addLogLine("TRIGGER - TAG_FUNC_DEICE_STAND");
-
-			bool found = false;
-			for (size_t i = 0; i < deiceList.size(); i++) {
-				if (deiceList[i][0] == fp.GetCallsign()) {
-					found = true;
-				}
-			}
-
-			if (found) {
-				//Remove plane from deice list
-				for (size_t i = 0; i < deiceList.size(); i++) {
-					if (deiceList[i][0] == fp.GetCallsign()) {
-						deiceList.erase(deiceList.begin() + i);
-					}
-				}
-			}
-
-			deiceList.push_back({ fp.GetCallsign(), "STND" });
-			setFlightStripInfo(fp, "STND", 5);
-
-			//Remove plane from taxiTimesList
-			for (size_t j = 0; j < taxiTimesList.size(); j++)
-			{
-				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == fp.GetCallsign()) {
-					taxiTimesList.erase(taxiTimesList.begin() + j);
-				}
-			}
-
-			//Remove plane from slotlist to recalculate times
-			for (size_t i = 0; i < slotList.size(); i++)
-			{
-				if (slotList[i].callsign == fp.GetCallsign()) {
-					slotList.erase(slotList.begin() + i);
-				}
-			}
+			setDeice("STND", fp);
 		}
 	}
-	else if (FunctionId == TAG_FUNC_DEICE_REMOTE) {
+	else if (FunctionId == TAG_FUNC_DEICE_REMOTE1) {
 		if (master && AtcMe) {
-			addLogLine("TRIGGER - TAG_FUNC_DEICE_REMOTE");
-
-			bool found = false;
-			for (size_t i = 0; i < deiceList.size(); i++) {
-				if (deiceList[i][0] == fp.GetCallsign()) {
-					found = true;
-				}
-			}
-
-			if (found) {
-				//Remove plane from deice list
-				for (size_t i = 0; i < deiceList.size(); i++) {
-					if (deiceList[i][0] == fp.GetCallsign()) {
-						deiceList.erase(deiceList.begin() + i);
-					}
-				}
-			}
-
-			deiceList.push_back({ fp.GetCallsign(), "REM" });
-			setFlightStripInfo(fp, "REM", 5);
-							
-			//Remove plane from taxiTimesList
-			for (size_t j = 0; j < taxiTimesList.size(); j++)
-			{
-				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == fp.GetCallsign()) {
-					taxiTimesList.erase(taxiTimesList.begin() + j);
-				}
-			}
-
-			//Remove plane from slotlist to recalculate times
-			for (size_t i = 0; i < slotList.size(); i++)
-			{
-				if (slotList[i].callsign == fp.GetCallsign()) {
-					slotList.erase(slotList.begin() + i);
-				}
-			}
+			setDeice("REM1", fp);
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_REMOTE2) {
+		if (master && AtcMe) {
+			setDeice("REM2", fp);
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_REMOTE3) {
+		if (master && AtcMe) {
+			setDeice("REM3", fp);
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_REMOTE4) {
+		if (master && AtcMe) {
+			setDeice("REM4", fp);
+		}
+	}
+	else if (FunctionId == TAG_FUNC_DEICE_REMOTE5) {
+		if (master && AtcMe) {
+			setDeice("REM5", fp);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_STATUS_OPTIONS) {
@@ -2556,7 +2543,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											if (standDeice) {
-												int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc());
+												int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc(), 0);
 												TSATfinal = calculateTime(TSATfinal, deIceTime);
 											}
 											/* END Check stand de-ice */
@@ -5621,7 +5608,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 							}
 						}
 						if (standDeice) {
-							int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc());
+							int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc(), 0);
 							TSATfinal = calculateTime(TSATfinal, deIceTime);
 						}
 						/* END Check stand de-ice */
@@ -6197,6 +6184,45 @@ bool CDM::checkIsNumber(string str) {
 	}
 }
 
+void CDM::setDeice(string remText, CFlightPlan fp) {
+	addLogLine("TRIGGER - TAG_FUNC_DEICE_" +  remText);
+
+	bool found = false;
+	for (size_t i = 0; i < deiceList.size(); i++) {
+		if (deiceList[i][0] == fp.GetCallsign()) {
+			found = true;
+		}
+	}
+
+	if (found) {
+		//Remove plane from deice list
+		for (size_t i = 0; i < deiceList.size(); i++) {
+			if (deiceList[i][0] == fp.GetCallsign()) {
+				deiceList.erase(deiceList.begin() + i);
+			}
+		}
+	}
+
+	deiceList.push_back({ fp.GetCallsign(), remText });
+	setFlightStripInfo(fp, remText, 5);
+
+	//Remove plane from taxiTimesList
+	for (size_t j = 0; j < taxiTimesList.size(); j++)
+	{
+		if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == fp.GetCallsign()) {
+			taxiTimesList.erase(taxiTimesList.begin() + j);
+		}
+	}
+
+	//Remove plane from slotlist to recalculate times
+	for (size_t i = 0; i < slotList.size(); i++)
+	{
+		if (slotList[i].callsign == fp.GetCallsign()) {
+			slotList.erase(slotList.begin() + i);
+		}
+	}
+}
+
 void CDM::disconnectTfcs() {
 	addLogLine("Called disconnectTfcs...");
 	try{
@@ -6642,7 +6668,8 @@ void CDM::saveData() {
 	try {
 		bool updated = false;
 		bool found = false;
-		for (Plane plane : slotList) {
+		vector<Plane> mySlotList = slotList;
+		for (Plane plane : mySlotList) {
 			found = false;
 			for (Plane planeSaved : slotListSaved) {
 				if (plane.callsign == planeSaved.callsign) {
@@ -6663,7 +6690,7 @@ void CDM::saveData() {
 		//Set empty times as the plane is not anymore in the slotList
 		for (Plane planeSaved : slotListSaved) {
 			found = false;
-			for (Plane plane : slotList) {
+			for (Plane plane : mySlotList) {
 				if (plane.callsign == planeSaved.callsign) {
 					found = true;
 					break;
@@ -6676,18 +6703,18 @@ void CDM::saveData() {
 		}
 		slotListSaved = slotList;
 	if (!ftpHost.empty()) {
-		if (!slotList.empty()) {
+		if (!mySlotList.empty()) {
 			for (string airport : masterAirports) {
 				//Type2 -> https://fs.nool.ee/MSFS/VDGS/Specs/DATALINK.txt
 				if (vdgsFileType == "2" || vdgsFileType == "3") {
 					string fileName = dfad + "_" + airport + ".json";
-					createJsonVDGS(slotList, fileName, airport);
+					createJsonVDGS(mySlotList, fileName, airport);
 				}
 				if (vdgsFileType == "1" || vdgsFileType == "3") {
 					ofstream myfile;
 					string fileName = dfad + "_" + airport + ".txt";
 					myfile.open(fileName, std::ofstream::out | std::ofstream::trunc);
-					for (Plane plane : slotList) {
+					for (Plane plane : mySlotList) {
 						if (myfile.is_open())
 						{
 							CFlightPlan fp = FlightPlanSelect(plane.callsign.c_str());
@@ -7093,10 +7120,15 @@ string CDM::getFromXml(string xpath)
 
 string CDM::addDeIceTime(string taxiTime, string callsign, char wtc) {
 	bool isDeice = false;
+	int remNum = 0;
 
 	for (vector<string> deice : deiceList) {
-		if (deice[0] == callsign){
-			if (deice[1] == "REM" || deice[1] == "STND") {
+		if (deice[0] == callsign) {
+			if (deice[1].find("REM") != std::string::npos && deice[1].length() == 4) {
+				remNum = stoi(deice[1].substr(3, 1));
+				isDeice = true;
+			}
+			else if (deice[1] == "STND") {
 				isDeice = true;
 			}
 		}
@@ -7104,24 +7136,44 @@ string CDM::addDeIceTime(string taxiTime, string callsign, char wtc) {
 
 	if (isDeice) {
 		if (isNumber(taxiTime)) {
-			int deIceTime = getDeIceTime(wtc);
+			int deIceTime = getDeIceTime(wtc, remNum);
 			return to_string(stoi(taxiTime) + deIceTime);
 		}
 	}
 	return taxiTime;
 }
 
-int CDM::getDeIceTime(char wtc) {
+int CDM::getDeIceTime(char wtc, int remNum) {
 	if (wtc == 'L') {
+		if (remNum == 1) return deIceTimeL + deIceTaxiRem1;
+		if (remNum == 2) return deIceTimeL + deIceTaxiRem2;
+		if (remNum == 3) return deIceTimeL + deIceTaxiRem3;
+		if (remNum == 4) return deIceTimeL + deIceTaxiRem4;
+		if (remNum == 5) return deIceTimeL + deIceTaxiRem5;
 		return deIceTimeL;
 	}
 	else if (wtc == 'M') {
+		if (remNum == 1) return deIceTimeM + deIceTaxiRem1;
+		if (remNum == 2) return deIceTimeM + deIceTaxiRem2;
+		if (remNum == 3) return deIceTimeM + deIceTaxiRem3;
+		if (remNum == 4) return deIceTimeM + deIceTaxiRem4;
+		if (remNum == 5) return deIceTimeM + deIceTaxiRem5;
 		return deIceTimeM;
 	}
 	else if (wtc == 'H') {
+		if (remNum == 1) return deIceTimeH + deIceTaxiRem1;
+		if (remNum == 2) return deIceTimeH + deIceTaxiRem2;
+		if (remNum == 3) return deIceTimeH + deIceTaxiRem3;
+		if (remNum == 4) return deIceTimeH + deIceTaxiRem4;
+		if (remNum == 5) return deIceTimeH + deIceTaxiRem5;
 		return deIceTimeH;
 	}
 	else if (wtc == 'J') {
+		if (remNum == 1) return deIceTimeJ + deIceTaxiRem1;
+		if (remNum == 2) return deIceTimeJ + deIceTaxiRem2;
+		if (remNum == 3) return deIceTimeJ + deIceTaxiRem3;
+		if (remNum == 4) return deIceTimeJ + deIceTaxiRem4;
+		if (remNum == 5) return deIceTimeJ + deIceTaxiRem5;
 		return deIceTimeJ;
 	}
 	
