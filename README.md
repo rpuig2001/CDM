@@ -134,6 +134,7 @@ CDM includes the following times:
   - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
+  - [OPTIONAL] DeIce Remote Additional Taxi Time definition (ex. "<DeIceRem rem1="3" rem2="5" rem3="2" rem4="0" rem5="0"/>") If no defined, extra 0 minutes are used.
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
@@ -407,7 +408,8 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - Column De-Ice: It modifies taxi time accordingly based on acft Wtc to adjust departure sequence with de-icing.
   - Options:
     - NONE: No extra EXOT minutes are added.
-    - REM: For a REMOTE de-ice. De-ice minutes are added to EXOT and in case of 20 min of EXOT, there will be a diference of 20 min between TSAT and TTOT.
+    - REMx: For a REMOTE de-ice. De-ice minutes are added to EXOT and in case of 20 min of EXOT, there will be a diference of 20 min between TSAT and TTOT.
+    Each REM area (REM1, REM2, REM3, REM4 and REM5) is configured with extra miutes allowing configured extra taxi time until reached the De-Ice Pad.
     - STND: For a STAND de-ice. De-ice minutes are added between TOBT and TSAT and between TSAT and TTOT, the normal taxi time applies.
   - Functions:
     - ``Toggle Ready Start-up function`` -> Sets NONE/REM/STND.
