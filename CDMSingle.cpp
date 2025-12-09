@@ -8588,10 +8588,8 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 
 			if (tobt != "") {
 				for (Plane p : slotListTemp) {
-					// Do not send API request if Manual CTOT is created by user or has ECFMP restriction
-					if ((p.hasManualCtot == false || (p.hasManualCtot && p.ctot != "")) && p.callsign == callsign && !p.hasEcfmpRestriction) {
+					if (p.callsign == callsign) {
 						createRequest = true;
-
 						//Only create request if TOBT is manually triggered (or initially triggered or when no ctot), to avoid update set TSAT when syncing from CTOT
 						if ((p.ctot != "" && triggeredByUser) || p.ctot == "") {
 							createRequest = true;
