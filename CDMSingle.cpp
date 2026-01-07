@@ -115,7 +115,7 @@ vector<vector<string>> evCtots;
 vector<Delay> delayList;
 vector<ServerRestricted> serverRestrictedPlanes;
 vector<Plane> setTOBTlater;
-vector<string> setCdmStslater;
+vector<string[]> setCdmStslater;
 vector<Plane> setCdmDatalater;
 vector<string> suWaitList;
 vector<string> checkCIDLater;
@@ -6333,7 +6333,7 @@ void CDM::RemoveDataFromTfc(string callsign) {
 		std::lock_guard<std::mutex> lock(later2Mutex);
 		for (size_t i = 0; i < setCdmStslater.size(); i++)
 		{
-			if (callsign == setCdmStslater[i]) {
+			if (callsign == setCdmStslater[i][0]) {
 				if (debugMode) {
 					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 13");
 				}
@@ -8433,7 +8433,7 @@ void CDM::sendWaitingTOBT() {
 }
 
 void CDM::sendWaitingCdmSts() {
-	vector<string> callsignsToProcess;
+	vector<string[]> callsignsToProcess;
 	{
 		addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmStslater.size()));
 		std::lock_guard<std::mutex> lock(later2Mutex);
@@ -8441,10 +8441,9 @@ void CDM::sendWaitingCdmSts() {
 		setCdmStslater.clear();
 	}
 
-	for (const string& callsign : callsignsToProcess) {
-		string cdmSts = getCdmSts(callsign);
-		addLogLine("sendWaitingCdmSts - " + callsign);
-		setCdmSts(callsign, cdmSts);
+	for (int i = 0; i < callsignsToProcess.size(); i++) {
+		addLogLine("sendWaitingCdmSts - " + callsignsToProcess[i][0]);
+		setCdmSts(callsignsToProcess[i][0], callsignsToProcess[i][1]);
 	}
 }
 
@@ -8575,10 +8574,10 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 				createRequest = true;
 			}
 
+			if (isFligthSusp(callsign)) createRequest = false;
+
 			if (createRequest) {
 				tobt = (tobt.length() >= 4) ? tobt.substr(0, 4) : "";
-
-				string cdmSts = getCdmSts(callsign);
 				string taxiTime = getTaxiTime(callsign);
 
 				CURL* curl;
@@ -8589,7 +8588,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 
 				if (curl) {
 					addLogLine("Requesting TOBT (" + tobt + ") for " + callsign);
-					string url = cdmServerUrl + "/ifps/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt + "&cdmSts=" + cdmSts;
+					string url = cdmServerUrl + "/ifps/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -8759,7 +8758,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 
 			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
 				std::lock_guard<std::mutex> lock(later2Mutex);
-				setCdmStslater.push_back(callsign);
+				setCdmStslater.push_back({ callsign, cdmSts });
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
 			else {
@@ -8770,26 +8769,26 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 				{
 					if (lineValue != "true") {
 						std::lock_guard<std::mutex> lock(later2Mutex);
-						setCdmStslater.push_back(callsign);
+						setCdmStslater.push_back({ callsign, cdmSts });
 					}
 				}
 			}
 		}
 		catch (const std::exception& e) {
 			std::lock_guard<std::mutex> lock(later2Mutex);
-			setCdmStslater.push_back(callsign);
+			setCdmStslater.push_back({ callsign, cdmSts });
 			addLogLine("ERROR: Unhandled exception setCdmSts: " + (string)e.what());
 		}
 		catch (...) {
 			std::lock_guard<std::mutex> lock(later2Mutex);
-			setCdmStslater.push_back(callsign);
+			setCdmStslater.push_back({ callsign, cdmSts });
 			addLogLine("ERROR: Unhandled exception setCdmSts");
 		}
 	}
 }
 
-string CDM::getCdmSts(string callsign) {
-	addLogLine("Call - getCdmSts");
+bool CDM::isFligthSusp(string callsign) {
+	addLogLine("Call - isFligthSusp");
 	bool outOfTsat = false;
 	for (size_t i = 0; i < OutOfTsat.size(); i++)
 	{
@@ -8799,11 +8798,11 @@ string CDM::getCdmSts(string callsign) {
 	}
 
 	if (outOfTsat) {
-		addLogLine("getCdmSts: SUSP");
-		return "SUSP";
+		addLogLine("isFligthSusp: SUSP");
+		return true;
 	}
-	addLogLine("getCdmSts: ");
-	return "";
+	addLogLine("isFligthSusp: ");
+	return false;
 }
 
 void CDM::getCdmServerStatus() {
