@@ -867,27 +867,27 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE1) {
 		if (master && AtcMe) {
-			setDeice("REM1", fp);
+			setDeice(deIceTaxiRem1Name, fp);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE2) {
 		if (master && AtcMe) {
-			setDeice("REM2", fp);
+			setDeice(deIceTaxiRem2Name, fp);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE3) {
 		if (master && AtcMe) {
-			setDeice("REM3", fp);
+			setDeice(deIceTaxiRem3Name, fp);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE4) {
 		if (master && AtcMe) {
-			setDeice("REM4", fp);
+			setDeice(deIceTaxiRem4Name , fp);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE5) {
 		if (master && AtcMe) {
-			setDeice("REM5", fp);
+			setDeice(deIceTaxiRem5Name, fp);
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_STATUS_OPTIONS) {
@@ -4085,77 +4085,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 						else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
-							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot) {
-									string message = "MAN ACT";
-									if (slotList[pos].ctot != "") {
-										message = slotList[pos].flowReason;
-									}
+							for (ServerRestricted sr : serverRestrictedPlanes) {
+								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 									ItemRGB = TAG_YELLOW;
-									strcpy_s(sItemString, 16, message.c_str());
-								}
-								else if (slotList[pos].hasEcfmpRestriction) {
-									ItemRGB = TAG_YELLOW;
-									string message = slotList[pos].ecfmpRestriction.ident;
-									strcpy_s(sItemString, 16, message.c_str());
-								}
-							}
-							else {
-								for (ServerRestricted sr : serverRestrictedPlanes) {
-									if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-										ItemRGB = TAG_YELLOW;
-										strcpy_s(sItemString, 50, sr.reason.c_str());
-									}
+									strcpy_s(sItemString, 50, sr.reason.c_str());
 								}
 							}
 						}
 						else if (ItemCode == TAG_ITEM_CTOT)
 						{
-							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot) {
-									string value = "";
-									if (slotList[pos].ctot == "") {
-										value = slotList[pos].ttot.substr(0, 4);
-										ItemRGB = TAG_ORANGE;
-									}
-									else {
-										value = slotList[pos].ctot;
-										ItemRGB = TAG_CTOT;
-									}
-									strcpy_s(sItemString, 16, value.c_str());
-								}
-								else if (slotList[pos].hasEcfmpRestriction) {
-									ItemRGB = TAG_RED;
-									strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
-								}
-							}
-							else {
-								for (ServerRestricted sr : serverRestrictedPlanes) {
-									if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-										ItemRGB = TAG_CTOT;
-										strcpy_s(sItemString, 16, sr.ctot.c_str());
-									}
+							for (ServerRestricted sr : serverRestrictedPlanes) {
+								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+									ItemRGB = TAG_CTOT;
+									strcpy_s(sItemString, 16, sr.ctot.c_str());
 								}
 							}
 						}
 						else if (ItemCode == NOW_CTOT_DIFF)
 						{
-							bool inreaList = false;
-							for (string s : reaCTOTSent) {
-								if (s == callsign) {
-									inreaList = true;
-								}
-							}
-
-							if (aircraftFind) {
-								if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
-									string value = getDiffNowTime(slotList[pos].ttot);
-									if (slotList[pos].ctot == "") {
-										ItemRGB = TAG_ORANGE;
-									}
-									else {
-										ItemRGB = TAG_CTOT;
-									}
+							for (ServerRestricted sr : serverRestrictedPlanes) {
+								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+									ItemRGB = TAG_CTOT;
+									string value = getDiffNowTime(sr.ctot);
 									strcpy_s(sItemString, 16, value.c_str());
 								}
 							}
@@ -4614,6 +4565,53 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
+			//Get Time NOW
+			time_t rawtime;
+			struct tm ptm;
+			time(&rawtime);
+			gmtime_s(&ptm, &rawtime);
+			string hour = to_string(ptm.tm_hour % 24);
+			string min = to_string(ptm.tm_min);
+
+			//Set/Remove AOBT automaically base on state
+			bool ASATFound = false;
+			int ASATpos = 0;
+			bool correctState = false;
+			string ASATtext = " ";
+			for (size_t x = 0; x < asatList.size(); x++)
+			{
+				string actualListCallsign = asatList[x].substr(0, asatList[x].find(","));
+				if (actualListCallsign == callsign) {
+					ASATFound = true;
+					ASATpos = x;
+				}
+			}
+
+			if ((string)FlightPlan.GetGroundState() == "STUP" || (string)FlightPlan.GetGroundState() == "ST-UP" || (string)FlightPlan.GetGroundState() == "PUSH" || (string)FlightPlan.GetGroundState() == "TAXI" || (string)FlightPlan.GetGroundState() == "DEPA") {
+				correctState = true;
+			}
+
+			if (!ASATFound) {
+				if (correctState) {
+					ASATtext = formatTime(hour + min);
+					asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
+					std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
+					t.detach();
+					ASATFound = true;
+				}
+			}
+			else {
+				if (correctState) {
+					ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
+				}
+				else if (!correctState) {
+					asatList.erase(asatList.begin() + ASATpos);
+					std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
+					t.detach();
+					ASATFound = false;
+				}
+			}
+
 			if (ItemCode == TAG_ITEM_EOBT)
 			{
 				ItemRGB = TAG_EOBT;
@@ -4634,77 +4632,29 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 			if (ItemCode == TAG_ITEM_CTOT)
 			{
-				bool found = false;
-				if (slotListPos != -1) {
-					if (slotList[slotListPos].hasManualCtot) {
-						found = true;
-						string value = "";
-						if (slotList[slotListPos].ctot == "") {
-							value = slotList[slotListPos].ttot.substr(0, 4);
-							ItemRGB = TAG_ORANGE;
-						}
-						else {
-							value = slotList[slotListPos].ctot;
-							ItemRGB = TAG_CTOT;
-						}
-						strcpy_s(sItemString, 16, value.c_str());
-					}
-				}
-				if (!found) {
-					for (ServerRestricted sr : serverRestrictedPlanes) {
-						if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-							ItemRGB = TAG_CTOT;
-							strcpy_s(sItemString, 16, sr.ctot.c_str());
-						}
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+						ItemRGB = TAG_CTOT;
+						strcpy_s(sItemString, 16, sr.ctot.c_str());
 					}
 				}
 			}
 			else if (ItemCode == NOW_CTOT_DIFF)
 			{
-				bool found = false;
-				if (slotListPos != -1) {
-					if (slotList[slotListPos].hasManualCtot) {
-						found = true;
-						string value = getDiffNowTime(slotList[slotListPos].ttot);
-						if (slotList[slotListPos].ctot == "") {
-							ItemRGB = TAG_ORANGE;
-						}
-						else {
-							ItemRGB = TAG_CTOT;
-						}
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
+						string value = getDiffNowTime(sr.ctot);
+						ItemRGB = TAG_CTOT;
 						strcpy_s(sItemString, 16, value.c_str());
-					}
-				}
-				if (!found){
-					for (ServerRestricted sr : serverRestrictedPlanes) {
-						if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-							string value = getDiffNowTime(sr.ctot);
-							ItemRGB = TAG_CTOT;
-							strcpy_s(sItemString, 16, value.c_str());
-						}
 					}
 				}
 			}
 			if (ItemCode == TAG_ITEM_FLOW_MESSAGE)
 			{
-				bool found = false;
-				if (slotListPos != -1) {
-					if (slotList[slotListPos].hasManualCtot) {
-						found = true;
-						string message = "MAN ACT";
-						if (slotList[slotListPos].ctot != "") {
-							message = slotList[slotListPos].flowReason;
-						}
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 						ItemRGB = TAG_YELLOW;
-						strcpy_s(sItemString, 16, message.c_str());
-					}
-				}
-				if (!found) {
-					for (ServerRestricted sr : serverRestrictedPlanes) {
-						if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-							ItemRGB = TAG_YELLOW;
-							strcpy_s(sItemString, 50, sr.reason.c_str());
-						}
+						strcpy_s(sItemString, 50, sr.reason.c_str());
 					}
 				}
 			}
