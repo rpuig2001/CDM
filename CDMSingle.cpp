@@ -916,25 +916,25 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			if (status == "") {
 				OpenPopupList(Area, "CDM-Network", 1);
 				if (status != "REA" && hasCtot) {
-					AddPopupListElement("REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
+					AddPopupListElement("Set REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
 				}
 			} else if (status == "REA") {
 				OpenPopupList(Area, "CDM-Network", 1);
-				AddPopupListElement("Remove CDM-Network Sts", "", TAG_FUNC_NETWORK_REMOVE_STATUS, false, 2, false);
+				AddPopupListElement("Remove REA", "", TAG_FUNC_NETWORK_REMOVE_REA, false, 2, false);
 			}
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_SET_REA) {
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_REA");
-			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
+			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
 			t3.detach();
 		}
 	}
-	else if (FunctionId == TAG_FUNC_NETWORK_REMOVE_STATUS) {
+	else if (FunctionId == TAG_FUNC_NETWORK_REMOVE_REA) {
 		if (master && AtcMe) {
-			addLogLine("TRIGGER - TAG_FUNC_NETWORK_REMOVE_STATUS");
-			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "");
+			addLogLine("TRIGGER - TAG_FUNC_NETWORK_REMOVE_REA");
+			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/0");
 			t3.detach();
 		}
 	}
@@ -1184,7 +1184,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 
 					//Set REA Status
-					std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA");
+					std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
 					t99.detach();
 				}
 			}
@@ -1991,8 +1991,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 					for (size_t i = 0; i < OutOfTsat.size(); i++)
 					{
+						bool networkSuspended = false;
 						if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-							if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",") + 1, 4)) {
+							for (size_t i = 0; i < networkStatus.size(); i++) {
+								if (networkStatus[i][0] == callsign) {
+									if (networkStatus[i][1].find("FLS") != string::npos && networkStatus[i][1].find("CDM") == string::npos) {
+										networkSuspended = true;
+									}
+								}
+							}
+
+							if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",") + 1, 4) || networkSuspended) {
 								stillOutOfTsat = true;
 								stillOutOfTsatPos = i;
 							}
@@ -2073,7 +2082,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_EOBT;
 							for (size_t i = 0; i < networkStatus.size(); i++) {
 								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1] == "SUSP") {
+									if (networkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -2149,8 +2158,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (status == "REA") {
 									ItemRGB = TAG_YELLOW;
 								}
-								else if (status == "SUSP") {
+								else if (status.find("FLS") != string::npos) {
 									ItemRGB = TAG_RED;
+									status = GetTimedStatus(status);
 								}
 								else if (status == "COMPLY") {
 									ItemRGB = TAG_GREEN;
@@ -2752,6 +2762,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							t.detach();
 						}
 
+						//If suspended by network Status, mark it as Invalid (I)
+						for (size_t i = 0; i < networkStatus.size(); i++) {
+							if (networkStatus[i][0] == callsign) {
+								//Check for any FLS status (except "FLS-CDM")
+								if (networkStatus[i][1].find("FLS") != string::npos && networkStatus[i][1].find("CDM") == string::npos) {
+									OutOfTsat.push_back(callsign + "," + EOBT);
+									setFlightStripInfo(FlightPlan, "", 0);
+									setFlightStripInfo(FlightPlan, "", 3);
+									setFlightStripInfo(FlightPlan, "", 4);
+								}
+							}
+							//Do NOT Update CDM-API (As we are SUSP because of network status)
+						}
+
 						//EOBT
 						string completeEOBT = (string)EOBT;
 						string EOBThour = completeEOBT.substr(completeEOBT.length() - 6, 2);
@@ -2863,7 +2887,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							for (size_t i = 0; i < networkStatus.size(); i++) {
 								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1] == "SUSP") {
+									if (networkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -3392,8 +3416,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (status == "REA") {
 								ItemRGB = TAG_YELLOW;
 							}
-							else if (status == "SUSP") {
+							else if (status.find("FLS") != string::npos) {
 								ItemRGB = TAG_RED;
+								status = GetTimedStatus(status);
 							}
 							else if (status == "COMPLY") {
 								ItemRGB = TAG_GREEN;
@@ -3784,7 +3809,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_EOBT;
 							for (size_t i = 0; i < networkStatus.size(); i++) {
 								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1] == "SUSP") {
+									if (networkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -4137,8 +4162,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (status == "REA") {
 								ItemRGB = TAG_YELLOW;
 							}
-							else if (status == "SUSP") {
+							else if (status.find("FLS") != string::npos) {
 								ItemRGB = TAG_RED;
+								status = GetTimedStatus(status);
 							}
 							else if (status == "COMPLY") {
 								ItemRGB = TAG_GREEN;
@@ -4175,7 +4201,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_EOBT;
 							for (size_t i = 0; i < networkStatus.size(); i++) {
 								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1] == "SUSP") {
+									if (networkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -4295,8 +4321,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (status == "REA") {
 									ItemRGB = TAG_YELLOW;
 								}
-								else if (status == "SUSP") {
+								else if (status.find("FLS") != string::npos) {
 									ItemRGB = TAG_RED;
+									status = GetTimedStatus(status);
 								}
 								else if (status == "COMPLY") {
 									ItemRGB = TAG_GREEN;
@@ -4337,7 +4364,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					ItemRGB = TAG_EOBT;
 					for (size_t i = 0; i < networkStatus.size(); i++) {
 						if (networkStatus[i][0] == callsign) {
-							if (networkStatus[i][1] == "SUSP") {
+							if (networkStatus[i][1].find("FLS") != string::npos) {
 								ItemRGB = TAG_RED;
 							}
 							break;
@@ -4457,8 +4484,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (status == "REA") {
 							ItemRGB = TAG_YELLOW;
 						}
-						else if (status == "SUSP") {
+						else if (status.find("FLS") != string::npos) {
 							ItemRGB = TAG_RED;
+							status = GetTimedStatus(status);
 						}
 						else if (status == "COMPLY") {
 							ItemRGB = TAG_GREEN;
@@ -4617,7 +4645,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				ItemRGB = TAG_EOBT;
 				for (size_t i = 0; i < networkStatus.size(); i++) {
 					if (networkStatus[i][0] == callsign) {
-						if (networkStatus[i][1] == "SUSP") {
+						if (networkStatus[i][1].find("FLS") != string::npos) {
 							ItemRGB = TAG_RED;
 						}
 						break;
@@ -7213,6 +7241,31 @@ string CDM::getDiffNowTime(string time) {
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception getDiffNowTTOT");
 		return "0";
+	}
+}
+
+string CDM::GetTimedStatus(string status)
+{
+	// If no '-' exists, return as-is
+	size_t dashPos = status.find('-');
+	if (dashPos == std::string::npos) {
+		return status;
+	}
+
+	static auto startTime = std::chrono::steady_clock::now();
+
+	auto now = std::chrono::steady_clock::now();
+	auto elapsedSeconds =
+		std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+
+	// 0–1 = first part, 2–3 = second part, repeat
+	bool firstPart = ((elapsedSeconds / 2) % 2) == 0;
+
+	if (firstPart) {
+		return status.substr(0, dashPos);
+	}
+	else {
+		return status.substr(dashPos + 1);
 	}
 }
 

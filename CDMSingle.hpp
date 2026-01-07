@@ -274,6 +274,8 @@ public:
 
 	string getDiffNowTime(string time);
 
+	string GetTimedStatus(const string status);
+
 	void addVatcanCtotToEvCTOT(string line);
 
 	bool OnCompileCommand(const char* sCommandLine);
