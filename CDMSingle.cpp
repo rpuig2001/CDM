@@ -78,6 +78,12 @@ int deIceTaxiRem3;
 int deIceTaxiRem4;
 int deIceTaxiRem5;
 
+string deIceTaxiRem1Name = "";
+string deIceTaxiRem2Name = "";
+string deIceTaxiRem3Name = "";
+string deIceTaxiRem4Name = "";
+string deIceTaxiRem5Name = "";
+
 //Ftp data
 string ftpHost;
 string ftpUser;
@@ -290,6 +296,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
 	string deIceHeavy = getFromXml("/CDM/DeIceTimes/@heavy");
 	string deIceSuper = getFromXml("/CDM/DeIceTimes/@super");
+	deIceTaxiRem1Name = getFromXml("/CDM/DeIceRemTaxi/@rem1Name");
+	deIceTaxiRem2Name = getFromXml("/CDM/DeIceRemTaxi/@rem2Name");
+	deIceTaxiRem3Name = getFromXml("/CDM/DeIceRemTaxi/@rem3Name");
+	deIceTaxiRem4Name = getFromXml("/CDM/DeIceRemTaxi/@rem4Name");
+	deIceTaxiRem5Name = getFromXml("/CDM/DeIceRemTaxi/@rem5Name");
 	string deIceRem1 = getFromXml("/CDM/DeIceRemTaxi/@rem1");
 	string deIceRem2 = getFromXml("/CDM/DeIceRemTaxi/@rem2");
 	string deIceRem3 = getFromXml("/CDM/DeIceRemTaxi/@rem3");
@@ -804,11 +815,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			OpenPopupList(Area, "De-Ice", 1);
 			AddPopupListElement("NONE", "", TAG_FUNC_DEICE_NONE, false, 2, false);
 			AddPopupListElement("STND", "", TAG_FUNC_DEICE_STAND, false, 2, false);
-			AddPopupListElement("REM1", "", TAG_FUNC_DEICE_REMOTE1, false, 2, false);
-			AddPopupListElement("REM2", "", TAG_FUNC_DEICE_REMOTE2, false, 2, false);
-			AddPopupListElement("REM3", "", TAG_FUNC_DEICE_REMOTE3, false, 2, false);
-			AddPopupListElement("REM4", "", TAG_FUNC_DEICE_REMOTE4, false, 2, false);
-			AddPopupListElement("REM5", "", TAG_FUNC_DEICE_REMOTE5, false, 2, false);
+			if (deIceTaxiRem1Name != "") {
+				AddPopupListElement(deIceTaxiRem1Name.c_str(), "", TAG_FUNC_DEICE_REMOTE1, false, 2, false);
+			}
+			if (deIceTaxiRem2Name != "") {
+				AddPopupListElement(deIceTaxiRem2Name.c_str(), "", TAG_FUNC_DEICE_REMOTE2, false, 2, false);
+			}
+			if (deIceTaxiRem3Name != "") {
+				AddPopupListElement(deIceTaxiRem3Name.c_str(), "", TAG_FUNC_DEICE_REMOTE3, false, 2, false);
+			}
+			if (deIceTaxiRem4Name != "") {
+				AddPopupListElement(deIceTaxiRem4Name.c_str(), "", TAG_FUNC_DEICE_REMOTE4, false, 2, false);
+			}
+			if (deIceTaxiRem5Name != "") {
+				AddPopupListElement(deIceTaxiRem5Name.c_str(), "", TAG_FUNC_DEICE_REMOTE5, false, 2, false);
+			}
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_NONE) {
@@ -2720,7 +2741,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						string getTTOT = getFlightStripInfo(FlightPlan, 4);
-						if (oldTSAT && !correctState && !oldTOBT && invalidateTSAT_Option && !getTTOT.empty()) {
+						if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) && invalidateTSAT_Option && !getTTOT.empty()) {
 							OutOfTsat.push_back(callsign + "," + EOBT);
 							setFlightStripInfo(FlightPlan, "", 0);
 							setFlightStripInfo(FlightPlan, "", 3);
