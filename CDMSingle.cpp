@@ -115,7 +115,7 @@ vector<vector<string>> evCtots;
 vector<Delay> delayList;
 vector<ServerRestricted> serverRestrictedPlanes;
 vector<Plane> setTOBTlater;
-vector<string[]> setCdmStslater;
+vector<vector<string>> setCdmStslater;
 vector<Plane> setCdmDatalater;
 vector<string> suWaitList;
 vector<string> checkCIDLater;
@@ -8433,7 +8433,7 @@ void CDM::sendWaitingTOBT() {
 }
 
 void CDM::sendWaitingCdmSts() {
-	vector<string[]> callsignsToProcess;
+	vector<vector<string>> callsignsToProcess;
 	{
 		addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmStslater.size()));
 		std::lock_guard<std::mutex> lock(later2Mutex);
