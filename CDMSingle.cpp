@@ -2007,9 +2007,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else {
 								OutOfTsat.erase(OutOfTsat.begin() + i);
-								//Update CDM-API
-								std::thread t(&CDM::setCdmSts, this, callsign, "");
-								t.detach();
 							}
 						}
 					}
@@ -3552,7 +3549,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								slotList.erase(slotList.begin() + pos);
 							}
 						}
-						else if (TSATString != slotList[pos].tsat) {
+						else if (TSATString != slotList[pos].tsat || TTOTString != slotList[pos].ttot) {
 							if (pos < slotList.size()) { // Check if pos is within bounds
 								slotList[pos].tsat = TSATString;
 								slotList[pos].ttot = TTOTString;
@@ -4562,7 +4559,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			if (slotListPos == -1) {
 				EcfmpRestriction myEcfmp;
-				Plane p(callsign, EOBTfinal, "", "", "", "", myEcfmp, false, false, true);
+				Plane p(callsign, EOBTfinal, EOBTfinal, EOBTfinal, "", "", myEcfmp, false, false, true);
 				slotList.push_back(p);
 			}
 
@@ -8641,7 +8638,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 
 				if (curl) {
 					addLogLine("Requesting TOBT (" + tobt + ") for " + callsign);
-					string url = cdmServerUrl + "/ifps/cdm?callsign=" + callsign + "&taxi=" + taxiTime + "&tobt=" + tobt;
+					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=TOBT/" + tobt + "/" + taxiTime;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -8668,7 +8665,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 					Json::Value obj;
 					Json::FastWriter fastWriter;
 					reader.parse(readBuffer, obj);
-					if (!obj.isNull() && obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
+					if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
 						string apiCallsign = fastWriter.write(obj["callsign"]);
 						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
 						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
@@ -8787,14 +8784,14 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 	if (serverEnabled) {
 		addLogLine("Called setCdmSts...");
 		try {
-			addLogLine("Call - Set CDM Sts (" + cdmSts + ") for " + callsign);
+			addLogLine("Call - Set DPI:" + cdmSts + " - for " + callsign);
 			CURL* curl;
 			CURLcode result = CURLE_FAILED_INIT;
 			string readBuffer;
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/ifps/setCdmStatus?callsign=" + callsign + "&cdmSts=" + cdmSts;
+				string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=" + cdmSts;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -8822,10 +8819,15 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 				{
 					if (lineValue != "true") {
 						std::lock_guard<std::mutex> lock(later2Mutex);
+						addLogLine("setCdmSts: true not received. Retrying later... Received: " + lineValue);
 						setCdmStslater.push_back({ callsign, cdmSts });
 					}
 				}
 			}
+			std::thread t59(&CDM::getCdmServerStatus, this);
+			t59.detach();
+
+			addLogLine("COMPLETED setCdmSts...");
 		}
 		catch (const std::exception& e) {
 			std::lock_guard<std::mutex> lock(later2Mutex);
@@ -8851,10 +8853,10 @@ bool CDM::isFligthSusp(string callsign) {
 	}
 
 	if (outOfTsat) {
-		addLogLine("isFligthSusp: SUSP");
+		addLogLine("Flight is SUSP");
 		return true;
 	}
-	addLogLine("isFligthSusp: ");
+	addLogLine("Flight not SUSP: ");
 	return false;
 }
 
