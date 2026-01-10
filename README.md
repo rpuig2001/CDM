@@ -426,19 +426,16 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
   - Functions:
     - ``Set/Remove MANUAL CTOT`` -> It creates or removes a CTOT for the user (Only CTOTs where TSAT>now+5min are allowed).
    
-  - Prioritize:
-    - In case of ECFMP CTOT, has priority over a CDM server restriction.
   - Colors:
     - ``color11`` -> Default.
-    - ![#00c000](https://img.shields.io/badge/-00c000) `GREEN` -> CDM Server CTOT.
+    - ![#00c000](https://img.shields.io/badge/-00c000) `GREEN` -> ATFCM System CTOT.
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> Flow/CAD CTOT.
    
 - Column Network Status: Shows the STS from the CDM-Network.
   - Status/Funcions:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
-    - ![#00c000](https://img.shields.io/badge/-00c000) ``PRIO`` -> Sets the trafic with TOP priority in case the ATC needs. Should be rarely used (Only shows in case CTOT exists).
-    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``SUSP`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the server side.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``FLS`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the ATFCM System side: https://github.com/rpuig2001/CDM/wiki/CDM-Server-%E2%80%90-(IFPS)-Process-of-the-flight-Path#atfcm-status
 
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
