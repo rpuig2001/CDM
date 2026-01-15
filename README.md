@@ -134,14 +134,14 @@ CDM includes the following times:
   - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
-  - [OPTIONAL] DeIce Remote Additional Taxi Time definition (ex. "<DeIceRemTaxi rem1="3" rem2="5" rem3="2" rem4="0" rem5="0"/>") If no defined, extra 0 minutes are used.
+  - [OPTIONAL] DeIce Remote Additional Taxi Time and name definition (ex. "<DeIceRemTaxi rem1Name= "REM1" rem1="10" rem2Name= "REM2" rem2="10" rem3Name= "REM3" rem3="10" rem4Name= "REM4" rem4="10" rem5Name= "REM5" rem5="10"/>") If not defined, extra 0 minutes are used. In case of empty remXName, the option will be disabled in the popup menu of Euroscope (Example: By setting rem2Name= "", rem2 will not be available in Euroscope).
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
   - VDGS file type: 0-None, 1-TXT, 2-JSON, 3-TXT&JSON (ex. vdgsFileType type="3").
-  - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use CDM server.
-  - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use CDM server.
-  - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank to use CDM server.
+  - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use ATFCM System.
+  - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use ATFCM System.
+  - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank to use ATFCM System.
   - FTP/SFTP connection (sftpConnection mode="true" or sftpConnection mode="false"). By default, SFTP connection is used ("true": SFTP / "false": FTP).
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
@@ -426,19 +426,16 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
   - Functions:
     - ``Set/Remove MANUAL CTOT`` -> It creates or removes a CTOT for the user (Only CTOTs where TSAT>now+5min are allowed).
    
-  - Prioritize:
-    - In case of ECFMP CTOT, has priority over a CDM server restriction.
   - Colors:
     - ``color11`` -> Default.
-    - ![#00c000](https://img.shields.io/badge/-00c000) `GREEN` -> CDM Server CTOT.
+    - ![#00c000](https://img.shields.io/badge/-00c000) `GREEN` -> ATFCM System CTOT.
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> Flow/CAD CTOT.
    
 - Column Network Status: Shows the STS from the CDM-Network.
   - Status/Funcions:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
-    - ![#00c000](https://img.shields.io/badge/-00c000) ``PRIO`` -> Sets the trafic with TOP priority in case the ATC needs. Should be rarely used (Only shows in case CTOT exists).
-    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``SUSP`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the server side.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``FLS`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the ATFCM System side: https://github.com/rpuig2001/CDM/wiki/CDM-Server-%E2%80%90-(IFPS)-Process-of-the-flight-Path#atfcm-status
 
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
