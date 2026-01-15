@@ -891,7 +891,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_STATUS_OPTIONS) {
-		if (master && AtcMe) {
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_NETWORK_STATUS_OPTIONS");
 
 			//Get actual status
@@ -925,14 +925,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_SET_REA) {
-		if (master && AtcMe) {
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_REA");
 			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
 			t3.detach();
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_REMOVE_REA) {
-		if (master && AtcMe) {
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_NETWORK_REMOVE_REA");
 			std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/0");
 			t3.detach();
