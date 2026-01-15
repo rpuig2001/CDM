@@ -4683,6 +4683,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 				}
 			}
+			else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
+				string status = "";
+				for (size_t i = 0; i < networkStatus.size(); i++) {
+					if (networkStatus[i][0] == callsign) {
+						status = networkStatus[i][1];
+					}
+				}
+				if (status != "") {
+					ItemRGB = TAG_YELLOW;
+					if (status == "REA") {
+						ItemRGB = TAG_YELLOW;
+					}
+					else if (status.find("FLS") != string::npos) {
+						ItemRGB = TAG_RED;
+						status = GetTimedStatus(status);
+					}
+					else if (status == "COMPLY") {
+						ItemRGB = TAG_GREEN;
+					}
+					strcpy_s(sItemString, 16, status.c_str());
+				}
+			}
 			if (ItemRGB != 0xFFFFFFFF)
 			{
 				*pColorCode = TAG_COLOR_RGB_DEFINED;
