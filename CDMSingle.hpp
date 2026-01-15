@@ -67,7 +67,7 @@ public:
 
 	string EobtPlusTime(string EOBT, int time);
 
-	string getTaxiTime(double lat, double lon, string origin, string depRwy);
+	string getTaxiTime(double lat, double lon, string origin, string depRwy, int deIceTime, string callsign);
 
 	string GetActualTime();
 
@@ -107,7 +107,7 @@ public:
 
 	bool checkIsNumber(string str);
 
-	void setDeice(string remText, CFlightPlan fp);
+	void setDeice(string remText, CFlightPlan fp, string index);
 
 	string getCidByCallsign(string callsign);
 
@@ -266,7 +266,9 @@ public:
 
 	string getFromXml(string xpath);
 
-	string addDeIceTime(string taxiTime, string callsign, char wtc);
+	int getDeIceId(string callsign);
+
+	int addDeIceTime(string callsign, char wtc);
 
 	int getDeIceTime(char wtc, int remNum);
 
@@ -281,6 +283,8 @@ public:
 	bool OnCompileCommand(const char* sCommandLine);
 
 	void OnTimer(int Count);
+
+	vector<string> splitString(const std::string& str, char delimiter);
 
 	string getFlightStripInfo(CFlightPlan FlightPlan, int position);
 

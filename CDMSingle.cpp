@@ -862,32 +862,32 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_STAND) {
 		if (master && AtcMe) {
-			setDeice("STND", fp);
+			setDeice("STND", fp, "STND");
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE1) {
 		if (master && AtcMe) {
-			setDeice(deIceTaxiRem1Name, fp);
+			setDeice(deIceTaxiRem1Name, fp, "REM1");
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE2) {
 		if (master && AtcMe) {
-			setDeice(deIceTaxiRem2Name, fp);
+			setDeice(deIceTaxiRem2Name, fp, "REM2");
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE3) {
 		if (master && AtcMe) {
-			setDeice(deIceTaxiRem3Name, fp);
+			setDeice(deIceTaxiRem3Name, fp, "REM3");
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE4) {
 		if (master && AtcMe) {
-			setDeice(deIceTaxiRem4Name , fp);
+			setDeice(deIceTaxiRem4Name , fp, "REM4");
 		}
 	}
 	else if (FunctionId == TAG_FUNC_DEICE_REMOTE5) {
 		if (master && AtcMe) {
-			setDeice(deIceTaxiRem5Name, fp);
+			setDeice(deIceTaxiRem5Name, fp, "REM5");
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NETWORK_STATUS_OPTIONS) {
@@ -1242,8 +1242,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
 							double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 							double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
-							myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
+							int deIceTime = addDeIceTime(callsign, fp.GetFlightPlanData().GetAircraftWtc());
+							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy, deIceTime, callsign);
 							string calculatedTOBT = calculateLessTime(editedCDT + "00", stod(myTaxiTime));
 							// at the earlierst at present time + EXOT
 							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
@@ -1294,8 +1294,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 							if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
 								double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 								double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-								string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
-								myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
+								int deIceTime = addDeIceTime(callsign, fp.GetFlightPlanData().GetAircraftWtc());
+								string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy, deIceTime, callsign);
 								string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 								// at the earlierst at present time + EXOT
 								if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
@@ -1389,8 +1389,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
 							double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
 							double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy);
-							myTaxiTime = addDeIceTime(myTaxiTime, callsign, fp.GetFlightPlanData().GetAircraftWtc());
+							int deIceTime = addDeIceTime(callsign, fp.GetFlightPlanData().GetAircraftWtc());
+							string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(), depRwy, deIceTime, callsign);
 							string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
 							// at the earlierst at present time + EXOT
 							if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
@@ -1893,8 +1893,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (debugMode) {
 							sendMessage("[DEBUG MESSAGE] - " + callsign + " LAT: " + to_string(lat) + " LON: " + to_string(lon) + " DEP RWY: " + depRwy);
 						}
-						string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy);
-						myTaxiTime = addDeIceTime(myTaxiTime, callsign, FlightPlan.GetFlightPlanData().GetAircraftWtc());
+						int deIceTime = addDeIceTime(callsign, FlightPlan.GetFlightPlanData().GetAircraftWtc());
+						string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy, deIceTime, callsign);
 						taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
 						planeHasTaxiTimeAssigned = true;
 						TaxiTimePos = taxiTimesList.size() - 1;
@@ -5756,7 +5756,17 @@ void CDM::deleteFlightStrips(string callsign)
 	}
 }
 
-string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
+vector<string> split(const std::string& s, char delimiter) {
+	std::vector<std::string> tokens;
+	std::stringstream ss(s);
+	std::string item;
+	while (std::getline(ss, item, delimiter)) {
+		tokens.push_back(item);
+	}
+	return tokens;
+}
+
+string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, int deIceTime, string callsign) {
 	string line, TxtOrigin, TxtDepRwy, TxtTime;
 	CPosition p1, p2, p3, p4;
 	smatch match;
@@ -5765,7 +5775,7 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 	{
 		for (size_t t = 0; t < TxtTimesVector.size(); t++)
 		{
-			if (regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)", regex::icase)))
+			if (regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)", regex::icase)))
 			{
 				if (origin != match[1])
 					continue;
@@ -5781,8 +5791,26 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy) {
 				double LatArea[] = { p1.m_Latitude,p2.m_Latitude,p3.m_Latitude,p4.m_Latitude };
 				double LonArea[] = { p1.m_Longitude,p2.m_Longitude,p3.m_Longitude,p4.m_Longitude };
 
-				if (inPoly(4, LatArea, LonArea, lat, lon) % 2 != 0)
+				int remId = getDeIceId(callsign);
+
+				vector<string> times;
+				if (match.size() > 12 && match[12].matched && match[12].length() > 0) {
+					times = splitString(match[12], ',');
+				}
+
+				if (inPoly(4, LatArea, LonArea, lat, lon) % 2 != 0) {
+					if (isNumber(match[11])) {
+						// Check for REM pad times only if present and index is valid
+						if (remId > 0 && times.size() >= remId) {
+							if (isNumber(times[remId - 1])) {
+								return to_string(stoi(match[11]) + deIceTime + stoi(times[remId - 1]));
+							}
+						}
+						// Else, just use taxi time + deIceTime
+						return to_string(stoi(match[11]) + deIceTime);
+					}
 					return match[11];
+				}
 			}
 		}
 	}
@@ -6180,7 +6208,7 @@ bool CDM::checkIsNumber(string str) {
 	}
 }
 
-void CDM::setDeice(string remText, CFlightPlan fp) {
+void CDM::setDeice(string remText, CFlightPlan fp, string index) {
 	addLogLine("TRIGGER - TAG_FUNC_DEICE_" +  remText);
 
 	bool found = false;
@@ -6199,7 +6227,7 @@ void CDM::setDeice(string remText, CFlightPlan fp) {
 		}
 	}
 
-	deiceList.push_back({ fp.GetCallsign(), remText });
+	deiceList.push_back({ fp.GetCallsign(), remText, index });
 	setFlightStripInfo(fp, remText, 5);
 
 	//Remove plane from taxiTimesList
@@ -7114,29 +7142,28 @@ string CDM::getFromXml(string xpath)
 	}
 }
 
-string CDM::addDeIceTime(string taxiTime, string callsign, char wtc) {
-	bool isDeice = false;
-	int remNum = 0;
-
+int CDM::getDeIceId(string callsign) {
 	for (vector<string> deice : deiceList) {
 		if (deice[0] == callsign) {
-			if (deice[1].find("REM") != std::string::npos && deice[1].length() == 4) {
-				remNum = stoi(deice[1].substr(3, 1));
-				isDeice = true;
+			if (deice[2].find("REM") != std::string::npos && deice[1].length() == 4) {
+				return stoi(deice[2].substr(3, 1));
 			}
 			else if (deice[1] == "STND") {
-				isDeice = true;
+				return 0;
 			}
 		}
 	}
+	return -1;
+}
 
-	if (isDeice) {
-		if (isNumber(taxiTime)) {
-			int deIceTime = getDeIceTime(wtc, remNum);
-			return to_string(stoi(taxiTime) + deIceTime);
-		}
+int CDM::addDeIceTime(string callsign, char wtc) {
+	bool isDeice = false;
+	int remNum = getDeIceId(callsign);
+
+	if (remNum >= 0) {
+		return getDeIceTime(wtc, remNum);
 	}
-	return taxiTime;
+	return 0;
 }
 
 int CDM::getDeIceTime(char wtc, int remNum) {
@@ -7900,7 +7927,7 @@ void CDM::OnTimer(int Counter) {
 	}
 }
 
-vector<string> split(const std::string& str, char delimiter) {
+vector<string> CDM::splitString(const std::string& str, char delimiter) {
 	std::vector<std::string> tokens;
 	std::istringstream stream(str);
 	std::string token;
