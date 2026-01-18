@@ -2162,6 +2162,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								else if (status == "COMPLY") {
 									ItemRGB = TAG_GREEN;
 								}
+								else if (status == "AIRB") {
+									ItemRGB = TAG_RED;
+								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
@@ -3420,6 +3423,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (status == "COMPLY") {
 								ItemRGB = TAG_GREEN;
 							}
+							else if (status == "AIRB") {
+								ItemRGB = TAG_RED;
+							}
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
@@ -4166,6 +4172,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else if (status == "COMPLY") {
 								ItemRGB = TAG_GREEN;
 							}
+							else if (status == "AIRB") {
+								ItemRGB = TAG_RED;
+							}
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
@@ -4324,6 +4333,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else if (status == "COMPLY") {
 									ItemRGB = TAG_GREEN;
+								}
+								else if (status == "AIRB") {
+									ItemRGB = TAG_RED;
 								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
@@ -4487,6 +4499,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (status == "COMPLY") {
 							ItemRGB = TAG_GREEN;
+						}
+						else if (status == "AIRB") {
+							ItemRGB = TAG_RED;
 						}
 						strcpy_s(sItemString, 16, status.c_str());
 					}
@@ -4701,6 +4716,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else if (status == "COMPLY") {
 						ItemRGB = TAG_GREEN;
+					}
+					else if (status == "AIRB") {
+						ItemRGB = TAG_RED;
 					}
 					strcpy_s(sItemString, 16, status.c_str());
 				}
@@ -5825,7 +5843,7 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 						// Check for REM pad times only if present and index is valid
 						if (remId > 0 && times.size() >= remId) {
 							if (isNumber(times[remId - 1])) {
-								return to_string(stoi(match[11]) + deIceTime + stoi(times[remId - 1]));
+								return to_string(deIceTime + stoi(times[remId - 1]));
 							}
 						}
 						// Else, just use taxi time + deIceTime
@@ -7167,7 +7185,7 @@ string CDM::getFromXml(string xpath)
 int CDM::getDeIceId(string callsign) {
 	for (vector<string> deice : deiceList) {
 		if (deice[0] == callsign) {
-			if (deice[2].find("REM") != std::string::npos && deice[1].length() == 4) {
+			if (deice[2].find("REM") != std::string::npos && deice[2].length() == 4) {
 				return stoi(deice[2].substr(3, 1));
 			}
 			else if (deice[1] == "STND") {
