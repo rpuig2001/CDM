@@ -1188,6 +1188,32 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					t99.detach();
 				}
 			}
+			else if (AtcMe) {
+				addLogLine("TRIGGER - TAG_FUNC_READYTOBT_SLAVE");
+				if (getFlightStripInfo(fp, 2) != formatTime(GetActualTime())) {
+
+					setFlightStripInfo(fp, formatTime(GetActualTime()), 2);
+
+					//Get Time now
+					time_t rawtime;
+					struct tm ptm;
+					time(&rawtime);
+					gmtime_s(&ptm, &rawtime);
+					string hour = to_string(ptm.tm_hour % 24);
+					string min = to_string(ptm.tm_min);
+
+					if (stoi(min) < 10) {
+						min = "0" + min;
+					}
+					if (stoi(hour) < 10) {
+						hour = "0" + hour.substr(0, 1);
+					}
+
+					//Set REQ TOBT
+					std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REQTOBT/" + hour + min + "/ATC");
+					t99.detach();
+				}
+			}
 		}
 		catch (const std::exception& ex) {
 			addLogLine(string("EXCEPTION in TAG_FUNC_READYTOBT: ") + ex.what());
@@ -1445,7 +1471,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITTOBT) {
-		if (master && AtcMe) {
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_EDITTOBT");
 			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, getFlightStripInfo(fp, 2).c_str());
 		}
@@ -1465,25 +1491,31 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 
 					if (hasNoNumber) {
-						int hours = stoi(editedTOBT.substr(0, 2));
-						int minutes = stoi(editedTOBT.substr(2, 2));
-						if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
-							bool found = false;
-							for (size_t i = 0; i < slotList.size(); i++)
-							{
-								if (slotList[i].callsign == fp.GetCallsign()) {
-									found = true;
+						if (!master) {
+							//Set REQ TOBT
+							std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REQTOBT/" + editedTOBT + "/ATC");
+							t99.detach();
+						} else {
+							int hours = stoi(editedTOBT.substr(0, 2));
+							int minutes = stoi(editedTOBT.substr(2, 2));
+							if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+								bool found = false;
+								for (size_t i = 0; i < slotList.size(); i++)
+								{
+									if (slotList[i].callsign == fp.GetCallsign()) {
+										found = true;
+										setFlightStripInfo(fp, editedTOBT, 2);
+									}
+								}
+								if (!found) {
 									setFlightStripInfo(fp, editedTOBT, 2);
 								}
+								setBy = "ATC";
 							}
-							if (!found) {
-								setFlightStripInfo(fp, editedTOBT, 2);
-							}
-							setBy = "ATC";
 						}
 					}
 				}
-				else if (editedTOBT.empty()) {
+				else if (editedTOBT.empty() && master && AtcMe) {
 					setFlightStripInfo(fp, "", 0);
 					setFlightStripInfo(fp, "", 2);
 					for (size_t i = 0; i < slotList.size(); i++) {
@@ -1514,7 +1546,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 
 				//Update TOBT-setBy
-				if (setBy != "NONE") {
+				if (setBy != "NONE" && master && AtcMe) {
 					bool found = false;
 					for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
 						if (reqTobtTypes[a][0] == fp.GetCallsign()) {
