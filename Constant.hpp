@@ -67,6 +67,7 @@ const int TAG_FUNC_DEICE_REMOTE2 = 147;
 const int TAG_FUNC_DEICE_REMOTE3 = 148;
 const int TAG_FUNC_DEICE_REMOTE4 = 149;
 const int TAG_FUNC_DEICE_REMOTE5 = 150;
+const int TAG_FUNC_NEW_MASTER_AIRPORT = 151;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

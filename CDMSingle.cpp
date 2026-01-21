@@ -6,6 +6,7 @@
 #include "Delay.h"
 #include "EcfmpRestriction.h"
 #include "SFTP.h"
+#include "CDMScreen.h"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -48,6 +49,7 @@ bool invalidateTSAT_Option;
 bool invalidateTOBT_Option;
 bool sidIntervalEnabled;
 bool readyToUpdateList;
+string lastAddedIcao;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
@@ -66,6 +68,8 @@ bool refresh1;
 bool refresh2;
 bool refresh3;
 bool refresh4;
+
+CDMScreen* cs;
 
 int deIceTimeL;
 int deIceTimeM;
@@ -591,6 +595,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	}
 }
 
+CRadarScreen* CDM::OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated) {
+	cs = new CDMScreen(this);
+	return cs;
+}
+
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
 CDM::~CDM()
 {
@@ -633,6 +642,15 @@ void CDM::OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan)
 //
 void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area) {
 	try{
+		if (FunctionId == TAG_FUNC_NEW_MASTER_AIRPORT && ItemString && strlen(ItemString) > 0) {
+			std::string airport_icao = ItemString;
+			if (airport_icao != lastAddedIcao) {
+				addMasterAirport(airport_icao);
+				lastAddedIcao = airport_icao;
+			}
+		}
+
+	//FP Required functions
 	CFlightPlan fp = FlightPlanSelectASEL();
 	if (!fp.IsValid()) {
 		return;
@@ -650,6 +668,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
 		AtcMe = true;
 	}
+	
 
 	if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
@@ -5742,19 +5761,19 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 /*
 * Mehod to push FlightStrip Data to other controllers (old Amend)
 */
-void CDM::PushToOtherControllers(CFlightPlan fp) {
-	string callsign = "";
-	for (CController c = ControllerSelectFirst(); c.IsValid(); c = ControllerSelectNext(c)) {
-		if (c.IsController()) {
-			callsign = c.GetCallsign();
-			if (callsign.size() > 3) {
-				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos) {
-					fp.PushFlightStrip(c.GetCallsign());
-				}
-			}
-		}
-		else if (callsign.find("OBS") != string::npos) {
-			fp.PushFlightStrip(c.GetCallsign());
+void CDM::PushToOtherControllers(CFlightPlan fp)
+{
+	for (CController c = ControllerSelectFirst(); c.IsValid(); c = ControllerSelectNext(c))
+	{
+		std::string callsign = c.GetCallsign();
+
+		if (callsign.find("DEL") != std::string::npos ||
+			callsign.find("GND") != std::string::npos ||
+			callsign.find("TWR") != std::string::npos ||
+			callsign.find("APP") != std::string::npos ||
+			callsign.find("OBS") != std::string::npos)
+		{
+			fp.PushFlightStrip(callsign.c_str());
 		}
 	}
 }
@@ -8128,6 +8147,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 								masterAirports.push_back(airport);
 								sendMessage("Successfully set master airport " + airport);
 								addLogLine("Successfully set master airport " + airport);
+								lastAddedIcao = "";
 								return true;
 							}
 							catch (const std::system_error& e) {
@@ -8142,10 +8162,12 @@ bool CDM::setMasterAirport(string airport, string position) {
 		}
 		catch (const std::exception& e) {
 			addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
+			lastAddedIcao = "";
 			return false;
 		}
 		catch (...) {
 			addLogLine("ERROR: Unhandled exception setMasterAirport");
+			lastAddedIcao = "";
 			return false;
 		}
 	}
@@ -8154,6 +8176,8 @@ bool CDM::setMasterAirport(string airport, string position) {
 		sendMessage("Successfully set master airport (Locally only) " + airport);
 		addLogLine("Successfully set master airport (Locally only) " + airport);
 	}
+
+	lastAddedIcao = "";
 	return false;
 }
 
@@ -9405,4 +9429,80 @@ void CDM::copyServerSavedData(string airport) {
 		//Update times to slaves
 		countTime = std::time(nullptr) - refreshTime;
 	}
+}
+
+bool CDM::addMasterAirport(string icao)
+{
+	try {
+		if (icao.length() == 4) {
+			string ATC_Position = ControllerMyself().GetCallsign();
+			bool found = false;
+			for (string apt : masterAirports)
+			{
+				if (apt == icao) {
+					found = true;
+				}
+			}
+			if (!found) {
+				std::thread t(&CDM::setMasterAirport, this, icao, ATC_Position);
+				t.detach();
+			}
+		}
+		else {
+			sendMessage("NO AIRPORT SET");
+		}
+		return true;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception .cdm master: " + (string)e.what());
+		return true;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception .cdm master");
+		return true;
+	}
+}
+
+bool CDM::clearMasterAirport(string icao)
+{
+	try {
+		if (icao.length() == 4) {
+			string ATC_Position = ControllerMyself().GetCallsign();
+			bool found = false;
+			int a = 0;
+			for (string apt : masterAirports)
+			{
+				if (apt == icao) {
+					std::thread t(&CDM::removeMasterAirport, this, icao, ATC_Position);
+					t.detach();
+					found = true;
+				}
+				a++;
+			}
+			if (!found) {
+				sendMessage("AIRPORT " + icao + " NOT FOUND");
+			}
+		}
+		else {
+			sendMessage("NO AIRPORT SET");
+		}
+
+		return true;
+	}
+	catch (const std::exception& e) {
+		addLogLine("ERROR: Unhandled exception .cdm slave: " + (string)e.what());
+		return true;
+	}
+	catch (...) {
+		addLogLine("ERROR: Unhandled exception .cdm slave");
+		return true;
+	}
+}
+
+vector<string> CDM::getCDMAirports() {
+	return CDMairports;
+}
+
+vector<string> CDM::getMasterAirports() {
+	return masterAirports;
 }

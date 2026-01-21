@@ -55,6 +55,9 @@ public:
 		COLORREF* pRGB,
 		double* pFontSize);
 
+	vector<string> getMasterAirports();
+	vector<string> getCDMAirports();
+
 	bool getRateFromUrl(string url);
 
 	bool getRate();
@@ -152,6 +155,10 @@ public:
 	vector<vector<string>> getAirportPlanesCdmDataSection(string airport);
 
 	void copyServerSavedData(string airport);
+
+	bool addMasterAirport(string icao);
+
+	bool clearMasterAirport(string icao);
 
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
@@ -307,6 +314,8 @@ public:
 	void removeAllMasterAirportsByAirport(string airport);
 
 	bool setEvCtot(string callsign);
+
+	CRadarScreen* OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
 
 	int FuncBuffer;
 

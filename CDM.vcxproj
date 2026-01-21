@@ -11,6 +11,7 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CDMScreen.h" />
     <ClInclude Include="CDMSingle.hpp" />
     <ClInclude Include="Constant.hpp" />
     <ClInclude Include="Delay.h" />
@@ -26,6 +27,7 @@
     <ClInclude Include="sidInterval.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="CDMScreen.cpp" />
     <ClCompile Include="CDMSingle.cpp" />
     <ClCompile Include="CDM.cpp" />
     <ClCompile Include="json_reader.cpp" />
@@ -120,7 +122,7 @@
       <OptimizeReferences>true</OptimizeReferences>
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <EnableUAC>false</EnableUAC>
-      <AdditionalDependencies>Normaliz.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;advapi32.lib;EuroScopePlugInDll.lib;Libs\include\curl\x32 Release\lib\libcurl_a.lib</AdditionalDependencies>
+      <AdditionalDependencies>Normaliz.lib;Ws2_32.lib;Wldap32.lib;Crypt32.lib;advapi32.lib;EuroScopePlugInDll.lib;Libs\include\curl\x32 Release\lib\libcurl_a.lib;gdiplus.lib</AdditionalDependencies>
       <AdditionalLibraryDirectories>C:\Users\rpuig\Documents\GitHub\CDM\Libs;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
