@@ -9,7 +9,6 @@
 
 #define PANEL_WIDTH 290
 #define PANEL_HEADER_HEIGHT 15
-#define PANEL_HEIGHT 90
 #define BTN_WIDTH 42
 #define BTN_HEIGHT 24
 #define BTN_GAP_X 5
@@ -32,10 +31,19 @@ void DrawRoundedRect(HDC hDC, RECT rect, COLORREF fill, COLORREF border = RGB(50
     DeleteObject(rgn);
 }
 
+// Helper to calculate panel height based on airports count
+int CDMScreen::CalculatePanelHeight(int airportCount) const {
+    int displayCount = min(airportCount, MAX_AIRPORTS_DISPLAYED);
+    int totalBtns = displayCount + 1; // plus button
+    int rows = (totalBtns + PER_ROW - 1) / PER_ROW;
+    int btnsAreaHeight = rows * BTN_HEIGHT + (rows - 1) * BTN_GAP_Y;
+    return PANEL_HEADER_HEIGHT + 7 + btnsAreaHeight + 7;
+}
+
 CDMScreen::CDMScreen(CDM* pCDM)
     : cdm(pCDM), panelPosition({ 40, 560 }), minimized(false)
 {
-    masterAirportPanelRect = RECT{ panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH, panelPosition.y + PANEL_HEIGHT };
+    masterAirportPanelRect = RECT{ panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH, panelPosition.y + PANEL_HEADER_HEIGHT };
     for (int i = 0; i < MAX_AIRPORTS_DISPLAYED; ++i) {
         masterAirportBtnRects[i] = { 0,0,0,0 };
     }
@@ -74,38 +82,10 @@ void CDMScreen::OnAsrContentLoaded(bool Loaded) {
 }
 
 void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
-    masterAirportPanelRect = RECT{
-        panelPosition.x,
-        panelPosition.y,
-        panelPosition.x + PANEL_WIDTH,
-        panelPosition.y + (minimized ? PANEL_HEADER_HEIGHT : PANEL_HEIGHT)
-    };
-
-    RECT headerRect = masterAirportPanelRect;
-    headerRect.bottom = headerRect.top + PANEL_HEADER_HEIGHT;
-    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_HEADER", headerRect, true, NULL);
-
-    DrawRoundedRect(hDC, masterAirportPanelRect, RGB(90, 90, 105));
-    DrawRoundedRect(hDC, headerRect, RGB(65, 65, 120));
-    SetBkMode(hDC, TRANSPARENT);
-    SetTextColor(hDC, RGB(245, 245, 255));
-    DrawTextA(hDC, "CDM Airport Panel", -1, &headerRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-
-    // Minimize button
-    minBtnRect = headerRect;
-    minBtnRect.left = minBtnRect.right - 25; // was 32
-    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_MINIMIZE", minBtnRect, true, NULL);
-    DrawRoundedRect(hDC, minBtnRect, minimized ? RGB(160, 160, 160) : RGB(200, 200, 200), RGB(100, 100, 120));
-    SetTextColor(hDC, RGB(50, 50, 80));
-    DrawTextA(hDC, "_", -1, &minBtnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
-
-    if (minimized) return;
-
     std::vector<std::string> cdmAirports = cdm->getCDMAirports();
     std::vector<std::string> masterAirports = cdm->getMasterAirports();
     std::vector<std::string> airports = cdmAirports;
 
-    // Add masterAirports that are NOT in cdmAirports:
     for (const auto& mapt : masterAirports) {
         if (std::find(airports.begin(), airports.end(), mapt) == airports.end()) {
             airports.push_back(mapt);
@@ -113,6 +93,46 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
     }
 
     cached_airports = airports;
+
+    int fullPanelHeight = CalculatePanelHeight(static_cast<int>(airports.size()));
+
+    masterAirportPanelRect = RECT{
+        panelPosition.x,
+        panelPosition.y,
+        panelPosition.x + PANEL_WIDTH,
+        panelPosition.y + (minimized ? PANEL_HEADER_HEIGHT : fullPanelHeight)
+    };
+
+    RECT headerRect = {
+        panelPosition.x,
+        panelPosition.y,
+        panelPosition.x + PANEL_WIDTH,
+        panelPosition.y + PANEL_HEADER_HEIGHT
+    };
+
+    minBtnRect = headerRect;
+    minBtnRect.left = minBtnRect.right - 25;
+
+    if (minimized) {
+        AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_MINIMIZE", minBtnRect, true, NULL);
+        DrawRoundedRect(hDC, minBtnRect, RGB(160, 160, 160), RGB(100, 100, 120));
+        SetBkMode(hDC, TRANSPARENT);
+        SetTextColor(hDC, RGB(50, 50, 80));
+        DrawTextA(hDC, "_", -1, &minBtnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+        return;
+    }
+
+    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_HEADER", headerRect, true, NULL);
+    DrawRoundedRect(hDC, masterAirportPanelRect, RGB(90, 90, 105));
+    DrawRoundedRect(hDC, headerRect, RGB(65, 65, 120));
+    SetBkMode(hDC, TRANSPARENT);
+    SetTextColor(hDC, RGB(245, 245, 255));
+    DrawTextA(hDC, "CDM Airport Panel", -1, &headerRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_MINIMIZE", minBtnRect, true, NULL);
+    DrawRoundedRect(hDC, minBtnRect, RGB(200, 200, 200), RGB(100, 100, 120));
+    SetTextColor(hDC, RGB(50, 50, 80));
+    DrawTextA(hDC, "_", -1, &minBtnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 
     int xStart = masterAirportPanelRect.left + 7;
     int yStart = masterAirportPanelRect.top + PANEL_HEADER_HEIGHT + 7;
@@ -130,7 +150,7 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, btnId.c_str(), btnRect, true, NULL);
 
         bool isMaster = std::find(masterAirports.begin(), masterAirports.end(), airports[i]) != masterAirports.end();
-        COLORREF colFill = isMaster ? RGB(0, 160, 0) : RGB(220, 0, 0); // Green for master, red for non
+        COLORREF colFill = isMaster ? RGB(0, 160, 0) : RGB(220, 0, 0);
         DrawRoundedRect(hDC, btnRect, colFill, RGB(30, 30, 30));
         SetBkMode(hDC, TRANSPARENT);
         SetTextColor(hDC, RGB(255, 255, 255));
@@ -140,6 +160,7 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         masterAirportBtnRects[i] = { 0,0,0,0 };
     }
 
+    // Calculate position for plus button based on amount of airports
     int plusIndex = std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED);
     int col = plusIndex % PER_ROW;
     int row = plusIndex / PER_ROW;
@@ -191,6 +212,11 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
 void CDMScreen::OnMoveScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, bool Released) {
     if (strcmp(sObjectId, "APTBTN_HEADER") == 0) {
         panelPosition.x = Area.left;
+        panelPosition.y = Area.top;
+        RequestRefresh();
+    }
+    if (strcmp(sObjectId, "APTBTN_MINIMIZE") == 0) {
+        panelPosition.x = Area.left - PANEL_WIDTH + 25;
         panelPosition.y = Area.top;
         RequestRefresh();
     }

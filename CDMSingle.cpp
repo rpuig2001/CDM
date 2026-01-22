@@ -4825,6 +4825,13 @@ bool CDM::getRateFromUrl(string url) {
 		string lineValue;
 		while (getline(is, lineValue))
 		{
+			auto firstNonSpace = lineValue.find_first_not_of(" \t\r\n");
+			if (firstNonSpace == std::string::npos)
+				continue;
+
+			if (lineValue[firstNonSpace] == '#')
+				continue;
+
 			vector<string> data = explode(lineValue, ':');
 			if (data.size() == 9) {
 				string myRateDataAirport = data[0];
