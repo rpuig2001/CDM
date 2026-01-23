@@ -462,6 +462,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	apikey = "test";
 	if (ftpPassword == "") {
 		ftpPassword = "test";
+		ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
 	}
 
 	//Init reamrksOption
@@ -644,9 +645,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	try{
 		if (FunctionId == TAG_FUNC_NEW_MASTER_AIRPORT && ItemString && strlen(ItemString) > 0) {
 			std::string airport_icao = ItemString;
-			if (airport_icao != lastAddedIcao) {
-				addMasterAirport(airport_icao);
+			if (lastAddedIcao.empty()) {
 				lastAddedIcao = airport_icao;
+				addMasterAirport(airport_icao);
 			}
 		}
 

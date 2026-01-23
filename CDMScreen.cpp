@@ -4,6 +4,8 @@
 #include <vector>
 #include <string>
 #include <algorithm>
+#include <chrono>
+#include <map>
 
 #define RADARSCR_OBJECT_CUSTOM 1000
 
@@ -45,11 +47,12 @@ CDMScreen::CDMScreen(CDM* pCDM)
 {
     masterAirportPanelRect = RECT{ panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH, panelPosition.y + PANEL_HEADER_HEIGHT };
     for (int i = 0; i < MAX_AIRPORTS_DISPLAYED; ++i) {
-        masterAirportBtnRects[i] = { 0,0,0,0 };
+        masterAirportBtnRects[i] = { 0, 0, 0, 0 };
     }
-    plusBtnRect = { 0,0,0,0 };
-    minBtnRect = { 0,0,0,0 };
+    plusBtnRect = { 0, 0, 0, 0 };
+    minBtnRect = { 0, 0, 0, 0 };
     cached_airports.clear();
+    pendingMasterChanges.clear();
 }
 
 CDMScreen::~CDMScreen()
@@ -79,6 +82,42 @@ void CDMScreen::OnAsrContentLoaded(bool Loaded) {
     if (savedMin) {
         minimized = (std::string(savedMin) == "1");
     }
+}
+
+// Called every refresh cycle or timer tick to update pending indications
+void CDMScreen::CheckPendingMasterChanges() {
+    auto now = std::chrono::steady_clock::now();
+    std::vector<std::string> toRemove;
+
+    for (auto& kv : pendingMasterChanges) {
+        const std::string& apt = kv.first;
+        PendingMasterChange& pending = kv.second;
+
+        // Timeout reached
+        auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - pending.startTime).count();
+        if (elapsed > 15) {
+            toRemove.push_back(apt);
+            continue;
+        }
+
+        // Check if the master airport state has changed
+        auto currentMasters = cdm->getMasterAirports();
+        bool nowPresent = std::find(currentMasters.begin(), currentMasters.end(), apt) != currentMasters.end();
+
+        if ((pending.adding && nowPresent) || (!pending.adding && !nowPresent)) {
+            // Change completed, remove from pending
+            toRemove.push_back(apt);
+        }
+    }
+
+    for (const auto& apt : toRemove) {
+        pendingMasterChanges.erase(apt);
+    }
+}
+
+void CDMScreen::MarkAirportPending(const std::string& icao, bool adding) {
+    pendingMasterChanges[icao] = PendingMasterChange{ std::chrono::steady_clock::now(), adding };
+    RequestRefresh();
 }
 
 void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
@@ -149,18 +188,24 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         std::string btnId = "APTBTN_" + airports[i];
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, btnId.c_str(), btnRect, true, NULL);
 
-        bool isMaster = std::find(masterAirports.begin(), masterAirports.end(), airports[i]) != masterAirports.end();
-        COLORREF colFill = isMaster ? RGB(0, 160, 0) : RGB(220, 0, 0);
+        COLORREF colFill;
+        if (pendingMasterChanges.find(airports[i]) != pendingMasterChanges.end()) {
+            colFill = RGB(255, 200, 30); // waiting indication
+        }
+        else {
+            bool isMaster = std::find(masterAirports.begin(), masterAirports.end(), airports[i]) != masterAirports.end();
+            colFill = isMaster ? RGB(0, 160, 0) : RGB(220, 0, 0);
+        }
         DrawRoundedRect(hDC, btnRect, colFill, RGB(30, 30, 30));
         SetBkMode(hDC, TRANSPARENT);
         SetTextColor(hDC, RGB(255, 255, 255));
         DrawTextA(hDC, airports[i].c_str(), -1, &btnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
     }
     for (size_t i = airports.size(); i < MAX_AIRPORTS_DISPLAYED; ++i) {
-        masterAirportBtnRects[i] = { 0,0,0,0 };
+        masterAirportBtnRects[i] = { 0, 0, 0, 0 };
     }
 
-    // Calculate position for plus button based on amount of airports
+    // Plus button
     int plusIndex = std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED);
     int col = plusIndex % PER_ROW;
     int row = plusIndex / PER_ROW;
@@ -180,6 +225,7 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
         return;
     }
 
+    CheckPendingMasterChanges();
     DrawMasterAirportPanel(hDC);
 }
 
@@ -187,9 +233,11 @@ void CDMScreen::ToggleMasterAirport(const std::string& icao) {
     std::vector<std::string> masterAirports = cdm->getMasterAirports();
     if (std::find(masterAirports.begin(), masterAirports.end(), icao) != masterAirports.end()) {
         cdm->clearMasterAirport(icao);
+        MarkAirportPending(icao, false);
     }
     else {
         cdm->addMasterAirport(icao);
+        MarkAirportPending(icao, true);
     }
 }
 
@@ -204,6 +252,13 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
     }
     if (strncmp(sObjectId, "APTBTN_", 7) == 0) {
         std::string apt = std::string(sObjectId + 7);
+
+        // ----- Block clicks if pending -----
+        if (pendingMasterChanges.find(apt) != pendingMasterChanges.end()) {
+            // Change in progress; ignore click
+            return;
+        }
+
         ToggleMasterAirport(apt);
         return;
     }
