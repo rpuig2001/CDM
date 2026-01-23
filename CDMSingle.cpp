@@ -462,7 +462,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	apikey = "test";
 	if (ftpPassword == "") {
 		ftpPassword = "test";
-		ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
 	}
 
 	//Init reamrksOption
