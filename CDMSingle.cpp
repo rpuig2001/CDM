@@ -5873,7 +5873,10 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 	{
 		for (size_t t = 0; t < TxtTimesVector.size(); t++)
 		{
-			if (regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)", regex::icase)))
+			if (
+				regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)", regex::icase)) ||
+				regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)", regex::icase))
+			)
 			{
 				if (origin != match[1])
 					continue;
@@ -5904,10 +5907,8 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 								return to_string(deIceTime + stoi(times[remId - 1]));
 							}
 						}
-						// Else, just use taxi time + deIceTime
-						return to_string(stoi(match[11]) + deIceTime);
 					}
-					return match[11];
+					return to_string(stoi(match[11]) + deIceTime);
 				}
 			}
 		}
