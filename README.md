@@ -147,7 +147,14 @@ CDM includes the following times:
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
  
 ### taxizones.txt
-  - You can define a zone with an specific taxiTime with the following specifications ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI`` ex:``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0`` if no taxizone defined, the default taxi time is set to 15 min.
+  - You can define a zone with an specific taxiTime with the following specifications:
+  -  With de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI``.
+  -  With no de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``.
+
+  ex:
+  - ith de-ice taxi definitions: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0``.
+  - With no de-ice taxi definitions: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``.
+  - If no taxizone defined, the default taxi time is set to 15 min.
   - REMx_TAXI defines the taxi time from stand to runway passing over de-ice X pad (TAXITIME is not used for De-Ice pads when REMx_TAXI is defined).
 
 ### rate.txt
