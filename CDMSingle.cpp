@@ -5873,10 +5873,11 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 	{
 		for (size_t t = 0; t < TxtTimesVector.size(); t++)
 		{
+			line = TxtTimesVector[t];
 			if (
 				regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)", regex::icase)) ||
 				regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)", regex::icase))
-			)
+				)
 			{
 				if (origin != match[1])
 					continue;
@@ -5900,15 +5901,15 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 				}
 
 				if (inPoly(4, LatArea, LonArea, lat, lon) % 2 != 0) {
-					if (isNumber(match[11])) {
-						// Check for REM pad times only if present and index is valid
-						if (remId > 0 && times.size() >= remId) {
-							if (isNumber(times[remId - 1])) {
-								return to_string(deIceTime + stoi(times[remId - 1]));
-							}
+					if (remId > 0 && times.size() >= remId) {
+						if (isNumber(times[remId - 1])) {
+							return to_string(deIceTime + stoi(times[remId - 1]));
+						}
+						else {
+							addLogLine("ERROR: Non-numeric REM time in line: " + line);
 						}
 					}
-					return to_string(stoi(match[11]) + deIceTime);
+					return to_string((isNumber(match[11]) ? stoi(match[11]) : defTaxiTime) + deIceTime);
 				}
 			}
 		}
