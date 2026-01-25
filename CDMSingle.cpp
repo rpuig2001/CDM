@@ -7344,27 +7344,23 @@ string CDM::getDiffNowTime(string time) {
 
 string CDM::GetTimedStatus(string status)
 {
-	// If no '-' exists, return as-is
 	size_t dashPos = status.find('-');
-	if (dashPos == std::string::npos) {
+	if (dashPos == string::npos)
 		return status;
-	}
 
-	static auto startTime = std::chrono::steady_clock::now();
-
+	// Use current time only (no static state)
 	auto now = std::chrono::steady_clock::now();
-	auto elapsedSeconds =
-		std::chrono::duration_cast<std::chrono::seconds>(now - startTime).count();
+	auto seconds =
+		std::chrono::duration_cast<std::chrono::seconds>(
+			now.time_since_epoch()
+		).count();
 
-	// 0–1 = first part, 2–3 = second part, repeat
-	bool firstPart = ((elapsedSeconds / 2) % 2) == 0;
+	// Toggle every 2 seconds
+	bool firstPart = ((seconds / 2) % 2) == 0;
 
-	if (firstPart) {
-		return status.substr(0, dashPos);
-	}
-	else {
-		return status.substr(dashPos + 1);
-	}
+	return firstPart
+		? status.substr(0, dashPos)
+		: status.substr(dashPos + 1);
 }
 
 void CDM::addVatcanCtotToEvCTOT(string line) {
