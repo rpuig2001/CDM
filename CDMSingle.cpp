@@ -6798,7 +6798,7 @@ void CDM::saveData() {
 			for (Plane planeSaved : slotListSaved) {
 				if (plane.callsign == planeSaved.callsign && plane.isCdmAirport) {
 					found = true;
-					if (plane.ctot != planeSaved.ctot || plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
+					if (plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
 						updateCdmDataApi(plane);
 						updated = true;
 					}
