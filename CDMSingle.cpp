@@ -1726,6 +1726,61 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 			}
 
+			// Get Taxi times
+			int TaxiTimePos = 0;
+			bool planeHasTaxiTimeAssigned = false;
+			for (size_t j = 0; j < taxiTimesList.size(); j++)
+			{
+				if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
+					planeHasTaxiTimeAssigned = true;
+					TaxiTimePos = j;
+				}
+			}
+
+			// Check if runway changed
+			if (aircraftFind && (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)) {
+				if (planeHasTaxiTimeAssigned) {
+					if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
+						if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
+							planeHasTaxiTimeAssigned = false;
+							taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+							slotList.erase(slotList.begin() + pos);
+							aircraftFind = false;
+						}
+					}
+					else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
+						if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
+							planeHasTaxiTimeAssigned = false;
+							taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
+						}
+					}
+				}
+			}
+
+			if (!planeHasTaxiTimeAssigned) {
+				if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+					double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+					double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+					if (debugMode) {
+						sendMessage("[DEBUG MESSAGE] - " + callsign + " LAT: " + to_string(lat) + " LON: " + to_string(lon) + " DEP RWY: " + depRwy);
+					}
+					int deIceTime = addDeIceTime(callsign, FlightPlan.GetFlightPlanData().GetAircraftWtc());
+					string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy, deIceTime, callsign);
+					taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
+					planeHasTaxiTimeAssigned = true;
+					TaxiTimePos = taxiTimesList.size() - 1;
+				}
+			}
+
+			if (planeHasTaxiTimeAssigned) {
+				if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
+					taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
+				}
+				else {
+					taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
+				}
+			}
+
 			//Check if update in the queue
 			std::vector<vector<string>> localTobtTypesQueue;
 			{
@@ -1904,61 +1959,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					stsDepa = true;
 					setFlightStripInfo(FlightPlan, "", 3);
 					setFlightStripInfo(FlightPlan, "", 4);
-				}
-
-				// Get Taxi times
-				int TaxiTimePos = 0;
-				bool planeHasTaxiTimeAssigned = false;
-				for (size_t j = 0; j < taxiTimesList.size(); j++)
-				{
-					if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
-						planeHasTaxiTimeAssigned = true;
-						TaxiTimePos = j;
-					}
-				}
-
-				// Check if runway changed
-				if (aircraftFind && (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF)) {
-					if (planeHasTaxiTimeAssigned) {
-						if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 3, 1) == ",") {
-							if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 2)) {
-								planeHasTaxiTimeAssigned = false;
-								taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-								slotList.erase(slotList.begin() + pos);
-								aircraftFind = false;
-							}
-						}
-						else if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 4, 1) == ",") {
-							if (depRwy != taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].find(",") + 1, 3)) {
-								planeHasTaxiTimeAssigned = false;
-								taxiTimesList.erase(taxiTimesList.begin() + TaxiTimePos);
-							}
-						}
-					}
-				}
-
-				if (!planeHasTaxiTimeAssigned) {
-					if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
-						double lat = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
-						double lon = RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-						if (debugMode) {
-							sendMessage("[DEBUG MESSAGE] - " + callsign + " LAT: " + to_string(lat) + " LON: " + to_string(lon) + " DEP RWY: " + depRwy);
-						}
-						int deIceTime = addDeIceTime(callsign, FlightPlan.GetFlightPlanData().GetAircraftWtc());
-						string myTaxiTime = getTaxiTime(lat, lon, origin, depRwy, deIceTime, callsign);
-						taxiTimesList.push_back(callsign + "," + depRwy + "," + myTaxiTime);
-						planeHasTaxiTimeAssigned = true;
-						TaxiTimePos = taxiTimesList.size() - 1;
-					}
-				}
-
-				if (planeHasTaxiTimeAssigned) {
-					if (taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 1) == ",") {
-						taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 1, 1));
-					}
-					else {
-						taxiTime = stoi(taxiTimesList[TaxiTimePos].substr(taxiTimesList[TaxiTimePos].length() - 2, 2));
-					}
 				}
 
 				//Get airport
@@ -9278,6 +9278,8 @@ void CDM::getNetworkTobt() {
 									}*/
 									setFlightStripInfo(fp, plane[1], 2);
 									setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+									//Trigger TOBT update to update TAXI TIME
+									setTOBTApi(plane[0], plane[1], true);
 									updated = true;
 								}
 							}
@@ -9292,6 +9294,8 @@ void CDM::getNetworkTobt() {
 							}
 							setFlightStripInfo(fp, plane[1], 2);
 							setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+							//Trigger TOBT update to update TAXI TIME
+							setTOBTApi(plane[0], plane[1], true);
 							updated = true;
 						}
 					}
