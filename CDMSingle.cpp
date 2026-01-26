@@ -2634,7 +2634,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											bool doRequest = false;
 											if (aircraftFind) {
 												if (TTOT != slotList[pos].ttot) {
-													Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot, slotList[pos].flowReason, myEcfmp, hasEcfmpRestriction, hasManualCtot, true);
+													Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot, slotList[pos].flowReason, myEcfmp, hasEcfmpRestriction, hasManualCtot, true, true);
 													doRequest = true;
 													slotList[pos] = p;
 													setFlightStripInfo(FlightPlan, p.tsat, 3);
@@ -2642,7 +2642,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											else {
-												Plane p(callsign, EOBT, TSAT, TTOT, "", "", myEcfmp, hasEcfmpRestriction, hasManualCtot, true);
+												Plane p(callsign, EOBT, TSAT, TTOT, "", "", myEcfmp, hasEcfmpRestriction, hasManualCtot, true, true);
 												doRequest = true;
 												slotList.push_back(p);
 												pos = getPlanePosition(callsign);
@@ -3615,7 +3615,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else {
 						if (TSATFind) {
-							Plane p(callsign, EOBT, TSATString, TTOTString, "", "", myEcfmp, hasEcfmpRestriction, hasManualCtot, true);
+							Plane p(callsign, EOBT, TSATString, TTOTString, "", "", myEcfmp, hasEcfmpRestriction, hasManualCtot, true, true);
 							slotList.push_back(p);
 						}
 					}
@@ -4625,7 +4625,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 			if (slotListPos == -1) {
 				EcfmpRestriction myEcfmp;
-				Plane p(callsign, EOBTfinal, EOBTfinal, EOBTfinal, "", "", myEcfmp, false, false, true);
+				Plane p(callsign, EOBTfinal, EOBTfinal, EOBTfinal, "", "", myEcfmp, false, false, true, false);
 				slotList.push_back(p);
 			}
 
@@ -5711,7 +5711,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						if (plane.hasManualCtot) {
 							if (aircraftFind) {
 								if (TTOT != plane.ttot && TTOT.length() >= 4) {
-									Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
+									Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true, true);
 									plane = p;
 									doRequest = true;
 									setFlightStripInfo(FlightPlan, p.tsat, 3);
@@ -5719,7 +5719,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 								}
 							}
 							else if (TTOT.length() >= 4) {
-								Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
+								Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true, true);
 								plane = p;
 								setFlightStripInfo(FlightPlan, p.tsat, 3);
 								setFlightStripInfo(FlightPlan, p.ttot, 4);
@@ -5728,7 +5728,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						else {
 							if (aircraftFind) {
 								if (TTOT != plane.ttot && TTOT.length() >= 4) {
-									Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
+									Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true, true);
 									plane = p;
 									doRequest = true;
 									setFlightStripInfo(FlightPlan, p.tsat, 3);
@@ -5736,7 +5736,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 								}
 							}
 							else if (TTOT.length() >= 4) {
-								Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true);
+								Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction, plane.hasManualCtot, true, true);
 								plane = p;
 								setFlightStripInfo(FlightPlan, p.tsat, 3);
 								setFlightStripInfo(FlightPlan, p.ttot, 4);
@@ -6796,7 +6796,7 @@ void CDM::saveData() {
 		for (Plane plane : mySlotList) {
 			found = false;
 			for (Plane planeSaved : slotListSaved) {
-				if (plane.callsign == planeSaved.callsign) {
+				if (plane.callsign == planeSaved.callsign && plane.isCdmAirport) {
 					found = true;
 					if (plane.ctot != planeSaved.ctot || plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
 						updateCdmDataApi(plane);
@@ -6821,7 +6821,7 @@ void CDM::saveData() {
 				}
 			}
 			if (!found) {
-				Plane myPlane(planeSaved.callsign, "", "", "", "", "", EcfmpRestriction(), false, false, false);
+				Plane myPlane(planeSaved.callsign, "", "", "", "", "", EcfmpRestriction(), false, false, false, true);
 				updateCdmDataApi(myPlane);
 			}
 		}
@@ -8531,6 +8531,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 										slotListTemp[z].ecfmpRestriction,
 										slotListTemp[z].hasEcfmpRestriction,
 										true,
+										true,
 										true
 									};
 								}
@@ -8781,7 +8782,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 				}
 
 				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-					Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false);
+					Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false, true);
 					{
 						std::lock_guard<std::mutex> lock(later1Mutex);
 						setTOBTlater.push_back(plane); // Safely modify setTOBTlater
@@ -8822,6 +8823,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 											slotListTemp[i].ecfmpRestriction,
 											slotListTemp[i].hasEcfmpRestriction,
 											true,
+											true,
 											true
 										};
 									}
@@ -8841,7 +8843,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 						}
 					}
 					else {
-						Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false);
+						Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false, true);
 						{
 							std::lock_guard<std::mutex> lock(later1Mutex);
 							setTOBTlater.push_back(plane);
@@ -9424,7 +9426,7 @@ void CDM::copyServerSavedData(string airport) {
 				}
 			}
 			if (!updated) {
-				Plane plane = Plane(newplane[0], newplane[1], newplane[2], newplane[3], "", "", EcfmpRestriction(), false, false, false);
+				Plane plane = Plane(newplane[0], newplane[1], newplane[2], newplane[3], "", "", EcfmpRestriction(), false, false, false, true);
 				setFlightStripInfo(fp, formatTime(plane.eobt), 2);
 				setFlightStripInfo(fp, plane.tsat, 3);
 				setFlightStripInfo(fp, plane.ttot, 4);

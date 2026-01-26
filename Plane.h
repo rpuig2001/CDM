@@ -16,8 +16,9 @@ public:
 	bool hasEcfmpRestriction;
 	bool hasManualCtot;
 	bool showData;
+	bool isCdmAirport;
 
-	Plane(string mycallsign, string myeobt, string mytsat, string myttot, string myctot, string myFlowReason, EcfmpRestriction myEcfmpRestriction, bool myHasEcfmpRestriction, bool myHasManualCtot, bool myShowData) :
-		callsign(mycallsign), eobt(myeobt), tsat(mytsat), ttot(myttot), ctot(myctot), flowReason(myFlowReason), ecfmpRestriction(myEcfmpRestriction), hasEcfmpRestriction(myHasEcfmpRestriction), hasManualCtot(myHasManualCtot), showData(myShowData) { }
+	Plane(string mycallsign, string myeobt, string mytsat, string myttot, string myctot, string myFlowReason, EcfmpRestriction myEcfmpRestriction, bool myHasEcfmpRestriction, bool myHasManualCtot, bool myShowData, bool myIsCdmAirport) :
+		callsign(mycallsign), eobt(myeobt), tsat(mytsat), ttot(myttot), ctot(myctot), flowReason(myFlowReason), ecfmpRestriction(myEcfmpRestriction), hasEcfmpRestriction(myHasEcfmpRestriction), hasManualCtot(myHasManualCtot), showData(myShowData), isCdmAirport(myIsCdmAirport) { }
 	Plane() {};
 };
