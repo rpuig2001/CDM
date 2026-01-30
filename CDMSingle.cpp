@@ -5233,6 +5233,9 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 				}
 			}
 
+			//Do not calculate if has CTOT
+			//if (slotList[i].hasManualCtot && slotList[i].ctot != "") aicraftInFinalTimesList = false;
+
 			if (!aicraftInFinalTimesList) {
 				CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
 				if (!myFlightPlan.IsValid()) {
@@ -6166,45 +6169,31 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 	}
 }
 
-vector<Plane> CDM::recalculateSlotList(vector<Plane> mySlotList) {
+std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList)
+{
 	addLogLine("Called recalculateSlotList...");
+
 	try {
-		int slotListLength = mySlotList.size();
-		bool ordered = false;
-		string value1 = "", value2 = "";
-		bool swap = false;
-		while (!ordered) {
-			ordered = true;
-			for (int i = 0; i < slotListLength; i++) {
-				if (i < slotListLength - 1) {
-					swap = false;
-					value1 = mySlotList[i].ttot;
-					value2 = mySlotList[i + 1].ttot;
-					if (stoi(value1) > stoi(value2)) {
-						if (mySlotList[i].hasManualCtot && mySlotList[i + 1].hasManualCtot) {
-							swap = true;
-						}
-						else if (!mySlotList[i].hasManualCtot && !mySlotList[i + 1].hasManualCtot) {
-							swap = true;
-						}
-					}
-					//swap if previous no ctot and after has ctot. Otherwise, calculation maks same TTOT...
-					else if (stoi(value1) == stoi(value2) && !mySlotList[i].hasManualCtot && mySlotList[i + 1].hasManualCtot) {
-						swap = true;
-					}
-					if (swap) {
-						ordered = false;
-						Plane saved1 = mySlotList[i];
-						Plane saved2 = mySlotList[i + 1];
-						mySlotList[i] = saved2;
-						mySlotList[i + 1] = saved1;
-					}
+		std::sort(mySlotList.begin(), mySlotList.end(),
+			[](const Plane& a, const Plane& b)
+			{
+				// 1. Manual CTOT first
+				if (a.hasManualCtot != b.hasManualCtot)
+					return a.hasManualCtot > b.hasManualCtot;
+
+				// 2. Both manual CTOT AND both CTOTs present → order by CTOT
+				if (a.hasManualCtot && b.hasManualCtot &&
+					!a.ctot.empty() && !b.ctot.empty())
+				{
+					return std::stoi(a.ctot) < std::stoi(b.ctot);
 				}
-			}
-		}
+
+				// 3. Fallback → order by TTOT
+				return std::stoi(a.ttot) < std::stoi(b.ttot);
+			});
 	}
 	catch (const std::exception& e) {
-		addLogLine("ERROR: Unhandled exception recalculateSlotList: " + (string)e.what());
+		addLogLine("ERROR: Unhandled exception recalculateSlotList: " + std::string(e.what()));
 	}
 	catch (...) {
 		addLogLine("ERROR: Unhandled exception recalculateSlotList");
