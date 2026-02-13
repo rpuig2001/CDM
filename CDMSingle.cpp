@@ -69,6 +69,8 @@ bool refresh2;
 bool refresh3;
 bool refresh4;
 
+bool showPanel;
+
 CDMScreen* cs;
 
 int deIceTimeL;
@@ -472,6 +474,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refresh2 = false;
 	refresh3 = false;
 	refresh4 = false;
+
+	showPanel = true;
 
 	//Initialize with empty callsign
 	myAtcCallsign = "";
@@ -7382,6 +7386,10 @@ void CDM::addVatcanCtotToEvCTOT(string line) {
 	slotFile.push_back({ line.substr(0,line.find(",")), line.substr(line.find(",")+1, 4)});
 }
 
+bool CDM::getPanelStatus() {
+	return showPanel;
+}
+
 vector<string> CDM::explode(std::string const& s, char delim)
 {
 	std::vector<std::string> result;
@@ -7441,7 +7449,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	if (startsWith(".cdm help", sCommandLine))
 	{
 		addLogLine(sCommandLine);
-		sendMessage("CDM Commands: .cdm ctot - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm startupdelay {icao}/{rwy} {start_time} - .cdm departuredelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm server - .cdm remarks - .cdm rate - .cdm help");
+		sendMessage("CDM Commands: .cdm ctot - .cdm panel - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime {seconds} - .cdm startupdelay {icao}/{rwy} {start_time} - .cdm departuredelay {icao}/{rwy} {start_time} - .cdm lvo - .cdm realmode - .cdm server - .cdm remarks - .cdm rate - .cdm help");
 		return true;
 	}
 
@@ -7455,6 +7463,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			realMode = true;
 			sendMessage("Real Mode set to ON");
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm panel", sCommandLine))
+	{
+		addLogLine(sCommandLine);
+		if (showPanel) {
+			showPanel = false;
+		}
+		else {
+			showPanel = true;
 		}
 		return true;
 	}

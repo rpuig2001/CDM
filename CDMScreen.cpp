@@ -225,6 +225,10 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
         return;
     }
 
+    if (!cdm || !cdm->getPanelStatus()) {
+        return;
+    }
+
     CheckPendingMasterChanges();
     DrawMasterAirportPanel(hDC);
 }
