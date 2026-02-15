@@ -110,6 +110,7 @@ vector<Rate> rate;
 vector<Rate> initialRate;
 vector<string> planeAiportList;
 vector<string> masterAirports;
+vector<vector<string>> serverMasterAirports;
 vector<string> CDMairports;
 vector<string> CTOTcheck;
 vector<string> finalTimesList;
@@ -462,6 +463,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	getCdmServerRestricted(slotList);
 
 	apikey = "test";
+	getCdmServerMasterAirports();
+
 	if (ftpPassword == "") {
 		ftpPassword = "test";
 	}
@@ -8106,6 +8109,7 @@ void CDM::refreshActions3() {
 	refresh3 = true;
 	addLogLine("[AUTO] - REFRESH API 1");
 	getCdmServerRestricted(slotList);
+	getCdmServerMasterAirports();
 	refresh3 = false;
 }
 
@@ -9078,6 +9082,76 @@ void CDM::getCdmServerStatus() {
 	}
 }
 
+void CDM::getCdmServerMasterAirports() {
+	if (serverEnabled) {
+		addLogLine("Called getCdmServerMasterAirports...");
+		try {
+			vector<vector<string>> serverMasterAirportsTemp;
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/airport";
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+				serverMasterAirportsTemp.clear();
+
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("icao") && data[i].isMember("position")) {
+						//Get callsign 
+						string icao = fastWriter.write(data[i]["icao"]);
+						icao.erase(std::remove(icao.begin(), icao.end(), '"'));
+						icao.erase(std::remove(icao.begin(), icao.end(), '\n'));
+						icao.erase(std::remove(icao.begin(), icao.end(), '\n'));
+
+						//Get CTOT
+						string position = fastWriter.write(data[i]["position"]);
+						position.erase(std::remove(position.begin(), position.end(), '"'));
+						position.erase(std::remove(position.begin(), position.end(), '\n'));
+						position.erase(std::remove(position.begin(), position.end(), '\n'));
+
+						//Only keep sts if not affected by ecfmp restriction
+						serverMasterAirportsTemp.push_back({ icao, position });
+					}
+				}
+			}
+			serverMasterAirports = serverMasterAirportsTemp;
+			addLogLine("COMPLETED - getCdmServerMasterAirports");
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getCdmServerMasterAirports: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getCdmServerMasterAirports");
+		}
+	}
+}
+
 
 void CDM::getNetworkRates() {
 	if (serverEnabled) {
@@ -9471,6 +9545,9 @@ bool CDM::addMasterAirport(string icao)
 		else {
 			sendMessage("NO AIRPORT SET");
 		}
+		//Update server master list
+		std::thread t99(&CDM::getCdmServerMasterAirports, this);
+		t99.detach();
 		return true;
 	}
 	catch (const std::exception& e) {
@@ -9506,7 +9583,9 @@ bool CDM::clearMasterAirport(string icao)
 		else {
 			sendMessage("NO AIRPORT SET");
 		}
-
+		//Update server master list
+		std::thread t99(&CDM::getCdmServerMasterAirports, this);
+		t99.detach();
 		return true;
 	}
 	catch (const std::exception& e) {
@@ -9525,4 +9604,8 @@ vector<string> CDM::getCDMAirports() {
 
 vector<string> CDM::getMasterAirports() {
 	return masterAirports;
+}
+
+vector<vector<string>> CDM::getServerMasterAirports() {
+	return serverMasterAirports;
 }

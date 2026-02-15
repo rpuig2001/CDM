@@ -26,7 +26,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.24"
+#define MY_PLUGIN_VERSION   "2.2.8.24.1"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -56,6 +56,7 @@ public:
 		double* pFontSize);
 
 	vector<string> getMasterAirports();
+	vector<vector<string>> getServerMasterAirports();
 	vector<string> getCDMAirports();
 
 	bool getRateFromUrl(string url);
@@ -145,6 +146,8 @@ public:
 	bool isFligthSusp(string callsign);
 
 	void getCdmServerStatus();
+
+	void getCdmServerMasterAirports();
 
 	void getNetworkRates();
 

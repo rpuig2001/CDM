@@ -33,6 +33,87 @@ void DrawRoundedRect(HDC hDC, RECT rect, COLORREF fill, COLORREF border = RGB(50
     DeleteObject(rgn);
 }
 
+static COLORREF DimColor(COLORREF c, float factor)
+{
+    BYTE r = (BYTE)(GetRValue(c) * factor);
+    BYTE g = (BYTE)(GetGValue(c) * factor);
+    BYTE b = (BYTE)(GetBValue(c) * factor);
+    return RGB(r, g, b);
+}
+
+static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF color)
+{
+    if (!hDC || !text || !*text)
+        return;
+
+    int oldBkMode = SetBkMode(hDC, TRANSPARENT);
+
+    // Dim brightness (adjust factor here)
+    COLORREF dimmed = DimColor(color, 0.75f);
+    COLORREF oldClr = SetTextColor(hDC, dimmed);
+
+    int oldAlign = GetTextAlign(hDC);
+    int oldGm = SetGraphicsMode(hDC, GM_COMPATIBLE);
+
+    LOGFONTW lf{};
+    lf.lfHeight = -6;
+    lf.lfWeight = FW_NORMAL;
+    lf.lfCharSet = DEFAULT_CHARSET;
+    lf.lfQuality = NONANTIALIASED_QUALITY;
+    lstrcpyW(lf.lfFaceName, L"Small Fonts");
+
+    HFONT hFont = CreateFontIndirectW(&lf);
+    HFONT oldFont = (HFONT)SelectObject(hDC, hFont);
+
+    std::wstring wtext;
+    int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, -1, nullptr, 0);
+    UINT usedCP = CP_UTF8;
+
+    if (wlen <= 0)
+    {
+        usedCP = CP_ACP;
+        wlen = MultiByteToWideChar(CP_ACP, 0, text, -1, nullptr, 0);
+    }
+
+    if (wlen > 0)
+    {
+        wtext.resize((size_t)wlen);
+        MultiByteToWideChar(usedCP,
+            (usedCP == CP_UTF8) ? MB_ERR_INVALID_CHARS : 0,
+            text,
+            -1,
+            &wtext[0],
+            wlen);
+
+        if (!wtext.empty() && wtext.back() == L'\0')
+            wtext.pop_back();
+    }
+
+    if (!wtext.empty())
+    {
+        SIZE sz{};
+        GetTextExtentPoint32W(hDC, wtext.c_str(), (int)wtext.length(), &sz);
+
+        int x = rect.left + ((rect.right - rect.left) - sz.cx) / 2;
+        int y = rect.top + ((rect.bottom - rect.top) - sz.cy) / 2;
+
+        SetTextAlign(hDC, TA_LEFT | TA_TOP);
+
+        ExtTextOutW(hDC, x, y, ETO_CLIPPED, &rect,
+            wtext.c_str(),
+            (UINT)wtext.length(),
+            nullptr);
+    }
+
+    SelectObject(hDC, oldFont);
+    DeleteObject(hFont);
+
+    SetTextAlign(hDC, oldAlign);
+    SetGraphicsMode(hDC, oldGm);
+    SetTextColor(hDC, oldClr);
+    SetBkMode(hDC, oldBkMode);
+}
+
 // Helper to calculate panel height based on airports count
 int CDMScreen::CalculatePanelHeight(int airportCount) const {
     int displayCount = min(airportCount, MAX_AIRPORTS_DISPLAYED);
@@ -102,6 +183,7 @@ void CDMScreen::CheckPendingMasterChanges() {
 
         // Check if the master airport state has changed
         auto currentMasters = cdm->getMasterAirports();
+        auto allMasters = cdm->getServerMasterAirports();
         bool nowPresent = std::find(currentMasters.begin(), currentMasters.end(), apt) != currentMasters.end();
 
         if ((pending.adding && nowPresent) || (!pending.adding && !nowPresent)) {
@@ -132,6 +214,9 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
     }
 
     cached_airports = airports;
+
+    // Cache server masters once (vector<vector<string>>: entry[0] is ICAO, entry[1] (if exists) is position/name)
+    auto allMasters = cdm->getServerMasterAirports();
 
     int fullPanelHeight = CalculatePanelHeight(static_cast<int>(airports.size()));
 
@@ -177,8 +262,8 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
     int yStart = masterAirportPanelRect.top + PANEL_HEADER_HEIGHT + 7;
 
     for (size_t i = 0; i < airports.size() && i < MAX_AIRPORTS_DISPLAYED; ++i) {
-        int col = i % PER_ROW;
-        int row = i / PER_ROW;
+        int col = static_cast<int>(i % PER_ROW);
+        int row = static_cast<int>(i / PER_ROW);
         int x = xStart + col * (BTN_WIDTH + BTN_GAP_X);
         int y = yStart + row * (BTN_HEIGHT + BTN_GAP_Y);
 
@@ -189,24 +274,87 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, btnId.c_str(), btnRect, true, NULL);
 
         COLORREF colFill;
+
+        // For purple buttons we also display the server "position" (entry[1]) under ICAO
+        bool showServerPos = false;
+        std::string serverPosText;
+
+        // Priority:
+        // 1) pending (yellow)
+        // 2) current master (green) - has priority over server master
+        // 3) server master but not current (purple) + show position text
+        // 4) not a master (red)
         if (pendingMasterChanges.find(airports[i]) != pendingMasterChanges.end()) {
             colFill = RGB(255, 200, 30); // waiting indication
         }
         else {
-            bool isMaster = std::find(masterAirports.begin(), masterAirports.end(), airports[i]) != masterAirports.end();
-            colFill = isMaster ? RGB(0, 160, 0) : RGB(220, 0, 0);
+            const bool isCurrentMaster =
+                (std::find(masterAirports.begin(), masterAirports.end(), airports[i]) != masterAirports.end());
+
+            bool isServerMaster = false;
+            for (const auto& entry : allMasters) {
+                if (!entry.empty() && entry[0] == airports[i]) {
+                    isServerMaster = true;
+                    // position/name stored alongside ICAO; in your format [[icao, position]]
+                    if (entry.size() >= 2) {
+                        serverPosText = entry[1];
+                    }
+                    showServerPos = !serverPosText.empty();
+                    break;
+                }
+            }
+
+            if (isCurrentMaster) {
+                colFill = RGB(0, 160, 0); // green
+                showServerPos = false;    // currentMasters has priority; don't show server position
+            }
+            else if (isServerMaster) {
+                colFill = RGB(160, 0, 160); // purple
+            }
+            else {
+                colFill = RGB(220, 0, 0); // red
+            }
         }
+
         DrawRoundedRect(hDC, btnRect, colFill, RGB(30, 30, 30));
+
+        // Text layout:
+        // - Normal buttons: center ICAO (existing behavior)
+        // - Purple buttons with position: ICAO on top, small position underneath
         SetBkMode(hDC, TRANSPARENT);
         SetTextColor(hDC, RGB(255, 255, 255));
-        DrawTextA(hDC, airports[i].c_str(), -1, &btnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
+
+        if (showServerPos) {
+            // Split the button vertically into two areas:
+            // top: ICAO, bottom: small position text
+            RECT topRect = btnRect;
+            RECT botRect = btnRect;
+
+            // Allocate a bit more height to ICAO; keep small but readable position line
+            int h = (btnRect.bottom - btnRect.top);
+            int split = btnRect.top + (h * 3) / 5;
+
+            topRect.bottom = split;
+            botRect.top = split - 1;
+            topRect.top += 2;
+
+            // ICAO (standard font via DrawTextA)
+            DrawTextA(hDC, airports[i].c_str(), -1, &topRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+            // Position (small, higher quality font rendering)
+            DrawSmallTextQuality(hDC, serverPosText.c_str(), botRect, RGB(255, 255, 255));
+        }
+        else {
+            DrawTextA(hDC, airports[i].c_str(), -1, &btnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+        }
     }
+
     for (size_t i = airports.size(); i < MAX_AIRPORTS_DISPLAYED; ++i) {
         masterAirportBtnRects[i] = { 0, 0, 0, 0 };
     }
 
     // Plus button
-    int plusIndex = std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED);
+    int plusIndex = static_cast<int>(std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED));
     int col = plusIndex % PER_ROW;
     int row = plusIndex / PER_ROW;
     int x = xStart + col * (BTN_WIDTH + BTN_GAP_X);

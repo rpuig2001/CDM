@@ -35,6 +35,7 @@ public:
     void ToggleMasterAirport(const std::string& icao);
     void OnClickScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, int Button);
     void OnMoveScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, bool Released);
+    void OnMouseMove(POINT Pt);
     static constexpr int MAX_AIRPORTS_DISPLAYED = 9999;
     int CalculatePanelHeight(int airportCount) const;
     void CheckPendingMasterChanges();
