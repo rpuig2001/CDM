@@ -336,6 +336,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
 - ``.cdm recover`` - In case of of CTD, it tries to recover the latest time status backed up in the server. Example: ``.cdm recover LEBL``.
+- ``.cdm panel`` - Show or hide the CDM Airport Panel.
 - ``.cdm help`` - Sends a message with the available commands.
 
 ## Functions and colors:
@@ -451,3 +452,12 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - ``Add Event CTOT as MAN CTOT`` -> Set the CTOT of the tfc as a Manual CTOT (For events such as CTL or CTP) - (CTOT will only be set when CTOTs where TSAT>now+5min).
   - Colors:
     - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> Default.
+   
+
+## CDM Panel colors:
+<img width="303" height="92" alt="image" src="https://github.com/user-attachments/assets/56606872-791d-46bc-97f1-d98d929dd9de" />
+
+- Red: No master set.
+- Purple: Master set by another ATC.
+- Yellow: Enabling/Disabling Master.
+- Green: Master Airport set by me.
