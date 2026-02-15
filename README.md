@@ -452,3 +452,11 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - ``Add Event CTOT as MAN CTOT`` -> Set the CTOT of the tfc as a Manual CTOT (For events such as CTL or CTP) - (CTOT will only be set when CTOTs where TSAT>now+5min).
   - Colors:
     - ![#00c000](https://img.shields.io/badge/-00c000) ``GREEN`` -> Default.
+   
+
+## CDM Panel colors:
+<img width="302" height="90" alt="image" src="https://github.com/user-attachments/assets/d66288bb-89e4-4fb8-bfca-d9a8725d73fa" />
+- Red: No master set.
+- Purple: Master set by another ATC.
+- Yellow: Enabling/Disabling Master.
+- Green: Master Airport set by me.
