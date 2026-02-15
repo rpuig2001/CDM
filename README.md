@@ -455,7 +455,8 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
    
 
 ## CDM Panel colors:
-<img width="302" height="90" alt="image" src="https://github.com/user-attachments/assets/d66288bb-89e4-4fb8-bfca-d9a8725d73fa" />
+<img width="303" height="92" alt="image" src="https://github.com/user-attachments/assets/56606872-791d-46bc-97f1-d98d929dd9de" />
+
 - Red: No master set.
 - Purple: Master set by another ATC.
 - Yellow: Enabling/Disabling Master.
