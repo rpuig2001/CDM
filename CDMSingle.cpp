@@ -128,6 +128,7 @@ vector<string> suWaitList;
 vector<string> checkCIDLater;
 vector<string> disabledCtots;
 vector<vector<string>> networkStatus;
+vector<vector<string>> onTimeStatus;
 vector<Plane> apiQueueResponse;
 std::mutex apiQueueResponseMutex;
 vector<vector<string>> deiceList;
@@ -242,6 +243,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Register Tag Item "REQTOBT-TYPE"
 	RegisterTagItemType("TOBT-SET-BY", TAG_ITEM_TOBT_SETBY);
+
+	// Register Tag Item "ON_TIME_STATUS"
+	RegisterTagItemType("On Time Sts", TAG_ITEM_ON_TIME_STATUS);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -456,14 +460,19 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	std::thread t0(&CDM::getCdmServerStatus, this);
 	t0.detach();
 
+	std::thread t63(&CDM::getCdmServerOnTime, this);
+	t63.detach();
+
 	//CDM-Server
 	cdmServerUrl = "https://cdm-server-production.up.railway.app";
 
 	//CDM-Server Fetch restricted
-	getCdmServerRestricted(slotList);
+	std::thread t34(&CDM::getCdmServerRestricted, this, slotList);
+	t34.detach();
 
 	apikey = "test";
-	getCdmServerMasterAirports();
+	std::thread t75(&CDM::getCdmServerMasterAirports, this);
+	t75.detach();
 
 	if (ftpPassword == "") {
 		ftpPassword = "test";
@@ -2226,6 +2235,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
+							string status = "";
+							for (size_t i = 0; i < onTimeStatus.size(); i++) {
+								if (onTimeStatus[i][0] == callsign) {
+									status = onTimeStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status.find("+") != string::npos) {
+									ItemRGB = TAG_RED;
+								}
+								else if (status.find("-") != string::npos) {
+									ItemRGB = TAG_GREEN;
+								}
+								else {
+									status = "";
+								}
+								strcpy_s(sItemString, 16, status.c_str());
+							}
+						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -3487,6 +3517,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
+						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
+							string status = "";
+							for (size_t i = 0; i < onTimeStatus.size(); i++) {
+								if (onTimeStatus[i][0] == callsign) {
+									status = onTimeStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status.find("+") != string::npos) {
+									ItemRGB = TAG_RED;
+								}
+								else if (status.find("-") != string::npos) {
+									ItemRGB = TAG_GREEN;
+								}
+								else {
+									status = "";
+								}
+								strcpy_s(sItemString, 16, status.c_str());
+							}
+						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -4236,6 +4287,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
+						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
+							string status = "";
+							for (size_t i = 0; i < onTimeStatus.size(); i++) {
+								if (onTimeStatus[i][0] == callsign) {
+									status = onTimeStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status.find("+") != string::npos) {
+									ItemRGB = TAG_RED;
+								}
+								else if (status.find("-") != string::npos) {
+									ItemRGB = TAG_GREEN;
+								}
+								else {
+									status = "";
+								}
+								strcpy_s(sItemString, 16, status.c_str());
+							}
+							}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -4398,6 +4470,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
+							string status = "";
+							for (size_t i = 0; i < onTimeStatus.size(); i++) {
+								if (onTimeStatus[i][0] == callsign) {
+									status = onTimeStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status.find("+") != string::npos) {
+									ItemRGB = TAG_RED;
+								}
+								else if (status.find("-") != string::npos) {
+									ItemRGB = TAG_GREEN;
+								}
+								else {
+									status = "";
+								}
+								strcpy_s(sItemString, 16, status.c_str());
+							}
+							}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -4564,6 +4657,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						strcpy_s(sItemString, 16, status.c_str());
 					}
 				}
+				else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
+					string status = "";
+					for (size_t i = 0; i < onTimeStatus.size(); i++) {
+						if (onTimeStatus[i][0] == callsign) {
+							status = onTimeStatus[i][1];
+						}
+					}
+					if (status != "") {
+						ItemRGB = TAG_YELLOW;
+						if (status.find("+") != string::npos) {
+							ItemRGB = TAG_RED;
+						}
+						else if (status.find("-") != string::npos) {
+							ItemRGB = TAG_GREEN;
+						}
+						else {
+							status = "";
+						}
+						strcpy_s(sItemString, 16, status.c_str());
+					}
+					}
 				else if (ItemCode == TAG_ITEM_DEICE) {
 					string status = "";
 					for (vector<string> deice : deiceList) {
@@ -4777,6 +4891,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					else if (status == "AIRB") {
 						ItemRGB = TAG_RED;
+					}
+					strcpy_s(sItemString, 16, status.c_str());
+				}
+			}
+			else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
+				string status = "";
+				for (size_t i = 0; i < onTimeStatus.size(); i++) {
+					if (onTimeStatus[i][0] == callsign) {
+						status = onTimeStatus[i][1];
+					}
+				}
+				if (status != "") {
+					ItemRGB = TAG_YELLOW;
+					if (status.find("+") != string::npos) {
+						ItemRGB = TAG_RED;
+					}
+					else if (status.find("-") != string::npos) {
+						ItemRGB = TAG_GREEN;
+					}
+					else {
+						status = "";
 					}
 					strcpy_s(sItemString, 16, status.c_str());
 				}
@@ -8110,6 +8245,7 @@ void CDM::refreshActions3() {
 	addLogLine("[AUTO] - REFRESH API 1");
 	getCdmServerRestricted(slotList);
 	getCdmServerMasterAirports();
+	getCdmServerOnTime();
 	refresh3 = false;
 }
 
@@ -9071,6 +9207,85 @@ void CDM::getCdmServerStatus() {
 				}
 			}
 			networkStatus = networkStatusTemp;
+			addLogLine("COMPLETED - getCdmServerStatus");
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getCdmServerStatus: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getCdmServerStatus");
+		}
+	}
+}
+
+void CDM::getCdmServerOnTime() {
+	if (serverEnabled) {
+		addLogLine("Called getCdmServerOnTime...");
+		try {
+			vector<vector<string>> onTimeStatusTemp;
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/ifps/allOnTime";
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+				onTimeStatusTemp.clear();
+
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("callsign") && data[i].isMember("onTime")) {
+						//Get callsign 
+						string callsign = fastWriter.write(data[i]["callsign"]);
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+						callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+
+						//Get CTOT
+						string onTime = fastWriter.write(data[i]["onTime"]);
+						onTime.erase(std::remove(onTime.begin(), onTime.end(), '"'));
+						onTime.erase(std::remove(onTime.begin(), onTime.end(), '\n'));
+						onTime.erase(std::remove(onTime.begin(), onTime.end(), '\n'));
+
+						//Only keep sts if not affected by ecfmp restriction
+						bool hasEcfmpRestriction = false;
+						for (int i = 0; i < slotList.size(); i++)
+						{
+							if (slotList[i].callsign == callsign && slotList[i].hasEcfmpRestriction) {
+								hasEcfmpRestriction = true;
+							}
+						}
+						if (!hasEcfmpRestriction) {
+							onTimeStatusTemp.push_back({ callsign, onTime });
+						}
+					}
+				}
+			}
+			onTimeStatus = onTimeStatusTemp;
 			addLogLine("COMPLETED - getCdmServerStatus");
 		}
 		catch (const std::exception& e) {

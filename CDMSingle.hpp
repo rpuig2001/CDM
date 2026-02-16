@@ -147,6 +147,8 @@ public:
 
 	void getCdmServerStatus();
 
+	void getCdmServerOnTime();
+
 	void getCdmServerMasterAirports();
 
 	void getNetworkRates();
