@@ -2166,6 +2166,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_GREENNOTACTIVE;
 							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 						}
+						else if (ItemCode == TAG_ITEM_TSAT)
+						{
+							if (aircraftFind) {
+								string ShowTSAT = (string)TSAT;
+								ShowTSAT = ShowTSAT.substr(0, ShowTSAT.length() - 2);
+								ItemRGB = TAG_RED;
+								strcpy_s(sItemString, 16, ShowTSAT.c_str());
+							}
+						}
 						else if (ItemCode == TAG_ITEM_TSAC)
 						{
 							ItemRGB = TAG_GREEN;
