@@ -44,7 +44,6 @@ class CDM :
 public:
 	CDM();
 	virtual ~CDM();
-
 	//Define OnGetTagItem function
 	void OnGetTagItem(CFlightPlan FlightPlan,
 		CRadarTarget RadarTarget,
@@ -57,7 +56,12 @@ public:
 
 	vector<string> getMasterAirports();
 	vector<vector<string>> getServerMasterAirports();
+	bool sendAtfcmPrivateMessageToPilot(vector<string> flight);
 	vector<string> getCDMAirports();
+
+	string getFilterFlightsText();
+
+	vector<vector<string>> returnRelevantFlights();
 
 	bool getRateFromUrl(string url);
 
@@ -164,6 +168,8 @@ public:
 	bool addMasterAirport(string icao);
 
 	bool clearMasterAirport(string icao);
+
+	void getCdmServerRelevantFlights();
 
 	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
@@ -293,6 +299,8 @@ public:
 	void addVatcanCtotToEvCTOT(string line);
 
 	bool getPanelStatus();
+
+	bool getAtfcmList();
 
 	bool OnCompileCommand(const char* sCommandLine);
 

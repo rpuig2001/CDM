@@ -68,8 +68,10 @@ bool refresh1;
 bool refresh2;
 bool refresh3;
 bool refresh4;
+string flightsFilterText;
 
 bool showPanel;
+bool showAtfcmList;
 
 CDMScreen* cs;
 
@@ -136,6 +138,7 @@ vector<sidInterval> sidIntervalList;
 vector<string> atotSet;
 vector<vector<string>> reqTobtTypes;
 vector<vector<string>> reqTobtTypesQueue;
+vector<vector<string>> relevantFlights;
 std::mutex reqTobtTypesQueueMutex;
 std::mutex later1Mutex;
 std::mutex later2Mutex;
@@ -474,6 +477,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	std::thread t75(&CDM::getCdmServerMasterAirports, this);
 	t75.detach();
 
+	std::thread t73(&CDM::getCdmServerRelevantFlights, this);
+	t73.detach();
+
 	if (ftpPassword == "") {
 		ftpPassword = "test";
 	}
@@ -488,6 +494,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	refresh4 = false;
 
 	showPanel = true;
+	showAtfcmList = false;
 
 	//Initialize with empty callsign
 	myAtcCallsign = "";
@@ -664,6 +671,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				lastAddedIcao = airport_icao;
 				addMasterAirport(airport_icao);
 			}
+		}
+		else if (FunctionId == TAG_FUNC_RELEVANT_FLIGHTS_FILTER) {
+			flightsFilterText = ItemString;
 		}
 
 	//FP Required functions
@@ -7537,6 +7547,10 @@ bool CDM::getPanelStatus() {
 	return showPanel;
 }
 
+bool CDM::getAtfcmList() {
+	return showAtfcmList;
+}
+
 vector<string> CDM::explode(std::string const& s, char delim)
 {
 	std::vector<std::string> result;
@@ -7622,6 +7636,18 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 		else {
 			showPanel = true;
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm atfcm", sCommandLine))
+	{
+		addLogLine(sCommandLine);
+		if (showAtfcmList) {
+			showAtfcmList = false;
+		}
+		else {
+			showAtfcmList = true;
 		}
 		return true;
 	}
@@ -8254,6 +8280,7 @@ void CDM::refreshActions3() {
 	addLogLine("[AUTO] - REFRESH API 1");
 	getCdmServerRestricted(slotList);
 	getCdmServerMasterAirports();
+	getCdmServerRelevantFlights();
 	getCdmServerOnTime();
 	refresh3 = false;
 }
@@ -9822,8 +9849,112 @@ bool CDM::clearMasterAirport(string icao)
 	}
 }
 
+void CDM::getCdmServerRelevantFlights() {
+	if (serverEnabled) {
+		addLogLine("Called getCdmServerRelevantFlights...");
+		try {
+			vector<vector<string>> relevantFlightsTemp;
+			string callsign = ControllerMyself().GetCallsign();
+			if (callsign.length() > 4) {
+				callsign = callsign.substr(0, 2);
+			}
+			else {
+				//return;
+			}
+			CURL* curl;
+			CURLcode result = CURLE_FAILED_INIT;
+			std::string readBuffer;
+			long responseCode = 0;
+			curl = curl_easy_init();
+			if (curl) {
+				string url = cdmServerUrl + "/etfms/relevant?filter=" + callsign;
+				string apiKeyHeader = "x-api-key: " + apikey;
+				struct curl_slist* headers = NULL;
+				headers = curl_slist_append(headers, apiKeyHeader.c_str());
+				curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+				curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+				curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+				curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+				curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+				curl_easy_setopt(curl, CURLOPT_TIMEOUT, 20);
+				result = curl_easy_perform(curl);
+				curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+				curl_easy_cleanup(curl);
+			}
+
+			if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+				// handle error 404
+				addLogLine("UNABLE TO LOAD CDM-API URL...");
+			}
+			else {
+				Json::Reader reader;
+				Json::Value obj;
+				Json::FastWriter fastWriter;
+				reader.parse(readBuffer, obj);
+
+				relevantFlightsTemp.clear();
+
+				const Json::Value& data = obj;
+				for (size_t i = 0; i < data.size(); i++) {
+					if (data[i].isMember("callsign") && data[i].isMember("cid") &&
+						data[i].isMember("departure") && data[i].isMember("arrival") &&
+						data[i].isMember("eobt") && data[i].isMember("atfcmStatus") &&
+						data[i].isMember("tobt") && data[i].isMember("taxi") &&
+						data[i].isMember("ctot") && data[i].isMember("aobt") &&
+						data[i].isMember("atot") && data[i].isMember("eta") &&
+						data[i].isMember("mostPenalizingAirspace") &&
+						data[i].isMember("informed") && data[i].isMember("isCdm")) {
+
+						auto cleanString = [&](const Json::Value& val) -> std::string {
+							std::string s = fastWriter.write(val);
+							s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
+							s.erase(std::remove(s.begin(), s.end(), '\n'));
+							s.erase(std::remove(s.begin(), s.end(), '\n'));
+							return s;
+							};
+
+						// Extract all fields
+						std::string callsign = cleanString(data[i]["callsign"]);
+						std::string departure = cleanString(data[i]["departure"]);
+						std::string arrival = cleanString(data[i]["arrival"]);
+						std::string eobt = cleanString(data[i]["eobt"]);
+						std::string tobt = cleanString(data[i]["tobt"]);
+						std::string taxi = cleanString(data[i]["taxi"]);
+						std::string ctot = cleanString(data[i]["ctot"]);
+						std::string aobt = cleanString(data[i]["aobt"]);
+						std::string eta = cleanString(data[i]["eta"]);
+						std::string mostPenalizingAirspace = cleanString(data[i]["mostPenalizingAirspace"]);
+						std::string atfcmStatus = cleanString(data[i]["atfcmStatus"]);
+						std::string informed = cleanString(data[i]["informed"]);
+						std::string isCdm = cleanString(data[i]["isCdm"]);
+
+						//Only keep sts if not affected by ecfmp restriction
+						relevantFlightsTemp.push_back({ callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta, mostPenalizingAirspace, atfcmStatus, informed, isCdm });
+					}
+				}
+			}
+			relevantFlights = relevantFlightsTemp;
+			addLogLine("COMPLETED - getCdmServerRelevantFlights");
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getCdmServerRelevantFlights: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getCdmServerRelevantFlights");
+		}
+	}
+}
+
 vector<string> CDM::getCDMAirports() {
 	return CDMairports;
+}
+
+string CDM::getFilterFlightsText() {
+	return flightsFilterText;
+}
+
+vector<vector<string>> CDM::returnRelevantFlights() {
+	return relevantFlights;
 }
 
 vector<string> CDM::getMasterAirports() {
@@ -9833,3 +9964,96 @@ vector<string> CDM::getMasterAirports() {
 vector<vector<string>> CDM::getServerMasterAirports() {
 	return serverMasterAirports;
 }
+
+static void SendUnicodeChar(wchar_t ch)
+{
+	INPUT in[2]{};
+	in[0].type = INPUT_KEYBOARD;
+	in[0].ki.wScan = ch;
+	in[0].ki.dwFlags = KEYEVENTF_UNICODE;
+
+	in[1] = in[0];
+	in[1].ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+
+	SendInput(2, in, sizeof(INPUT));
+}
+
+static void SendEnter()
+{
+	INPUT in[2]{};
+	in[0].type = INPUT_KEYBOARD;
+	in[0].ki.wVk = VK_RETURN;
+
+	in[1] = in[0];
+	in[1].ki.dwFlags = KEYEVENTF_KEYUP;
+
+	SendInput(2, in, sizeof(INPUT));
+}
+
+// Types a string using Unicode input (reliable across layouts)
+static void TypeText(const std::string& text, int delayMs = 15)
+{
+	// Convert ANSI/ACP std::string -> UTF-16
+	int wlen = MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, nullptr, 0);
+	if (wlen <= 1) return; // empty or conversion failure
+
+	std::vector<wchar_t> buf((size_t)wlen); // includes null terminator
+	MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, buf.data(), wlen);
+
+	// Exclude the terminating null when typing
+	for (int i = 0; i < wlen - 1; ++i)
+	{
+		SendUnicodeChar(buf[(size_t)i]);
+		std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
+	}
+}
+
+// Optional: set focus to a specific window before typing (you must supply/know HWND)
+static void FocusWindow(HWND hwnd)
+{
+	if (!hwnd) return;
+	SetForegroundWindow(hwnd);
+	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+}
+
+bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
+{
+	for (int i = 0; i < (int)relevantFlights.size(); i++)
+	{
+		if (relevantFlights[i][0] == flight[0])
+			relevantFlights[i][11] = "true";
+	}
+
+	std::thread t9(&CDM::setCdmSts, this, flight[0], "INFORMED/1");
+	t9.detach();
+
+	std::string message;
+
+	const std::string& status = flight[10];
+
+	if (status.find("FLS") != std::string::npos)
+	{
+		message = ".msg " + flight[0] + " FLS - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+			") OFF-BLOCK TIME EXPIRED. PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES.";
+	}
+	else if (status.find("SRM") != std::string::npos || status.find("SAM") != std::string::npos)
+	{
+		message = ".msg " + flight[0] + " SLOT ALLOCATION MESSAGE " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+			") CTOT:" + flight[6] + " REGUL:" + flight[9] +
+			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER UPDATES AND START-UP TIME.";
+	}
+	else
+	{
+		sendMessage("Unable to identify ATFCM status for flight " + flight[0] + ". Message not sent.");
+		return false;
+	}
+
+	// If you need to focus the target app first, call FocusWindow(hwnd) here.
+	// FocusWindow(targetHwnd);
+
+	TypeText(message, 15);
+	SendEnter();
+
+	return true;
+}
+

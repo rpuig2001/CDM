@@ -31,16 +31,27 @@ public:
     void OnAsrContentToBeSaved(void);
     void OnAsrContentLoaded(bool Loaded);
     void OnRefresh(HDC hDC, int Phase);
+
     void DrawMasterAirportPanel(HDC hDC);
     void ToggleMasterAirport(const std::string& icao);
     void OnClickScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, int Button);
     void OnMoveScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, bool Released);
     void OnMouseMove(POINT Pt);
+
     static constexpr int MAX_AIRPORTS_DISPLAYED = 9999;
     int CalculatePanelHeight(int airportCount) const;
     void CheckPendingMasterChanges();
     void MarkAirportPending(const std::string& icao, bool adding);
 
+    // -----------------------
+    // Flights panel (reads from CDM::relevantFlights)
+    // -----------------------
+    void DrawRelevantFlightsPanel(HDC hDC);
+    std::vector<std::vector<std::string>> GetFilteredRelevantFlightsRows() const;
+
+    // -----------------------
+    // Airport panel geometry
+    // -----------------------
     RECT masterAirportPanelRect;
     RECT masterAirportBtnRects[MAX_AIRPORTS_DISPLAYED];
     RECT plusBtnRect;
@@ -50,6 +61,17 @@ public:
     POINT panelPosition;
     bool minimized;
 
+    // -----------------------
+    // Flights panel state
+    // -----------------------
+    POINT flightsPanelPos{ 40, 640 };
+    RECT flightsPanelRect{ 0,0,0,0 };
+    RECT flightsHeaderRect{ 0,0,0,0 };
+    bool showAtfcmAllFlights = false;
+    bool showAtfcmAllCdmFlights = false;
+    RECT flightsFilterRect;
+    int sortColumn;
+    bool sortAscending;
 private:
     CDM* cdm;
 };
