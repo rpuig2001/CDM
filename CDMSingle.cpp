@@ -7648,6 +7648,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		}
 		else {
 			showAtfcmList = true;
+			std::thread t73(&CDM::getCdmServerRelevantFlights, this);
+			t73.detach();
 		}
 		return true;
 	}
@@ -9850,7 +9852,7 @@ bool CDM::clearMasterAirport(string icao)
 }
 
 void CDM::getCdmServerRelevantFlights() {
-	if (serverEnabled) {
+	if (serverEnabled && showAtfcmList) {
 		addLogLine("Called getCdmServerRelevantFlights...");
 		try {
 			vector<vector<string>> relevantFlightsTemp;
@@ -9902,7 +9904,7 @@ void CDM::getCdmServerRelevantFlights() {
 						data[i].isMember("tobt") && data[i].isMember("taxi") &&
 						data[i].isMember("ctot") && data[i].isMember("aobt") &&
 						data[i].isMember("atot") && data[i].isMember("eta") &&
-						data[i].isMember("mostPenalizingAirspace") &&
+						data[i].isMember("mostPenalizingAirspace") && data[i].isMember("atfcmData") &&
 						data[i].isMember("informed") && data[i].isMember("isCdm")) {
 
 						auto cleanString = [&](const Json::Value& val) -> std::string {
@@ -9927,9 +9929,13 @@ void CDM::getCdmServerRelevantFlights() {
 						std::string atfcmStatus = cleanString(data[i]["atfcmStatus"]);
 						std::string informed = cleanString(data[i]["informed"]);
 						std::string isCdm = cleanString(data[i]["isCdm"]);
+						const Json::Value& atfcm = data[i]["atfcmData"];
+						std::string isExcluded = cleanString(atfcm["excluded"]);
+						std::string isRea = cleanString(atfcm["isRea"]);
+						std::string isSir = cleanString(atfcm["SIR"]);
 
 						//Only keep sts if not affected by ecfmp restriction
-						relevantFlightsTemp.push_back({ callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta, mostPenalizingAirspace, atfcmStatus, informed, isCdm });
+						relevantFlightsTemp.push_back({ callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta, mostPenalizingAirspace, atfcmStatus, informed, isCdm, isExcluded, isRea, isSir });
 					}
 				}
 			}
@@ -9963,6 +9969,46 @@ vector<string> CDM::getMasterAirports() {
 
 vector<vector<string>> CDM::getServerMasterAirports() {
 	return serverMasterAirports;
+}
+
+bool CDM::setCdmServerStatusFromDialog(std::vector<std::string> flight, string request) {
+	string requestToDo = "";
+	if (request == "EXCL") {
+		if (flight[13] == "true") requestToDo = "EXCLUDED/0";
+		else requestToDo = "EXCLUDED/1";
+
+		for (int i = 0; i < (int)relevantFlights.size(); i++)
+		{
+			if (relevantFlights[i][0] == flight[0])
+				if (requestToDo == "EXCLUDED/1") relevantFlights[i][13] = "true";
+				else relevantFlights[i][13] = "false";
+		}
+	}
+	if (request == "REA") {
+		if (flight[14] == "true") requestToDo = "REA/0";
+		else requestToDo = "REA/1";
+
+		for (int i = 0; i < (int)relevantFlights.size(); i++)
+		{
+			if (relevantFlights[i][0] == flight[0])
+				if (requestToDo == "REA/1") relevantFlights[i][14] = "true";
+				else relevantFlights[i][14] = "false";
+		}
+	}
+	if (request == "SIR") {
+		if (flight[15] == "true") requestToDo = "SIR/0";
+		else requestToDo = "SIR/1";
+
+		for (int i = 0; i < (int)relevantFlights.size(); i++)
+		{
+			if (relevantFlights[i][0] == flight[0])
+				if (requestToDo == "SIR/1") relevantFlights[i][15] = "true";
+				else relevantFlights[i][15] = "false";
+		}
+	}
+	std::thread t6(&CDM::setCdmSts, this, flight[0], requestToDo);
+	t6.detach();
+	return true;
 }
 
 static void SendUnicodeChar(wchar_t ch)

@@ -258,7 +258,8 @@ void CDMScreen::MarkAirportPending(const std::string& icao, bool adding) {
 // Flights Panel
 // Data layout (server parsing):
 //  0 callsign, 1 dep, 2 arr, 3 eobt, 4 tobt, 5 taxi, 6 ctot, 7 aobt,
-// 8 eta, 9 mostPenalizingAirspace, 10 atfcmStatus, 11 informed, 12 isCdm
+//  8 eta, 9 mostPenalizingAirspace, 10 atfcmStatus, 11 informed, 12 isCdm,
+//  13 isExcluded, 14 isRea, 15 isSir
 // ------------------------------
 std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows() const
 {
@@ -434,14 +435,40 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     addHeader("FLT_COL_8", "AOBT", 50);
     addHeader("FLT_COL_10", "ETA", 50);
     addHeader("FLT_COL_11", "REGUL", 130);
-    addHeader("FLT_COL_13", "ATFCM", 80);
-    addHeader("FLT_SEND_HDR", "SEND", 45, true);
+    addHeader("FLT_ATFCM_HDR", "ATFCM", 60);
+    addHeader("FLT_COL_13", "EXCL", 40, true);
+    addHeader("FLT_COL_14", "REA", 40, true);
+    addHeader("FLT_COL_15", "SIR", 40, true);
+
+    addHeader("FLT_SEND_HDR", "", 45, true);
 
     // Rows
     int y = colHdr.bottom + 6;
+
+    // Helper: draw centered green/red square instead of text
+    auto boolFill = [](bool v) { return v ? RGB(0, 170, 0) : RGB(220, 0, 0); };
+
+    auto drawBoolSquare = [&](RECT r, bool value)
+        {
+            int cellW = (r.right - r.left);
+            int cellH = (r.bottom - r.top);
+
+            int size = min(cellW, cellH) - 6; // padding
+            if (size < 6) size = min(cellW, cellH);
+
+            int left = r.left + (cellW - size) / 2;
+            int top = r.top + (cellH - size) / 2;
+
+            RECT sq{ left, top, left + size, top + size };
+
+            // Using DrawRoundedRect with small radius still looks like a square here
+            DrawRoundedRect(hDC, sq, boolFill(value), RGB(30, 30, 30));
+        };
+
     for (int i = 0; i < rows; i++) {
         RECT rowRect{ flightsPanelRect.left + 6, y, flightsPanelRect.right - 6, y + FLT_ROW_HEIGHT };
 
+        // SEND button rect (existing behavior)
         RECT sendRect = rowRect;
         sendRect.left = sendRect.right - 45;
 
@@ -472,9 +499,31 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
         DrawCellTextA_Flt(hDC, GetColSafe(row, 5), cell(35));   // taxi
         DrawCellTextA_Flt(hDC, GetColSafe(row, 6), cell(50));   // ctot
         DrawCellTextA_Flt(hDC, GetColSafe(row, 7), cell(50));   // aobt
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 8), cell(50));  // eta
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 9), cell(130)); // mostPenalizingAirspace
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 10), cell(80));  // atfcmStatus
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 8), cell(50));   // eta
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 9), cell(130));  // mostPenalizingAirspace
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 10), cell(60));  // atfcmStatus
+
+        // NEW: EXCL/REA/SIR clickable cells with colored squares
+        RECT exclRect = cell(40);
+        RECT reaRect = cell(40);
+        RECT sirRect = cell(40);
+
+        char exclId[64], reaId[64], sirId[64];
+        sprintf_s(exclId, "FLT_EXCL_%d", i);
+        sprintf_s(reaId, "FLT_REA_%d", i);
+        sprintf_s(sirId, "FLT_SIR_%d", i);
+
+        AddScreenObject(RADARSCR_OBJECT_CUSTOM, exclId, exclRect, true, NULL);
+        AddScreenObject(RADARSCR_OBJECT_CUSTOM, reaId, reaRect, true, NULL);
+        AddScreenObject(RADARSCR_OBJECT_CUSTOM, sirId, sirRect, true, NULL);
+
+        bool isExcluded = IsTrueString(GetColSafe(row, 13));
+        bool isRea = IsTrueString(GetColSafe(row, 14));
+        bool isSir = IsTrueString(GetColSafe(row, 15));
+
+        drawBoolSquare(exclRect, isExcluded);
+        drawBoolSquare(reaRect, isRea);
+        drawBoolSquare(sirRect, isSir);
 
         SetBkMode(hDC, TRANSPARENT);
         SetTextColor(hDC, RGB(255, 255, 255));
@@ -683,12 +732,38 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
         return;
     }
 
-    // Flights: column click -> sort
+    // Flights: column click -> sort (keep existing behavior)
     if (strncmp(sObjectId, "FLT_COL_", 8) == 0) {
         int col = atoi(sObjectId + 8);
         if (sortColumn == col) sortAscending = !sortAscending;
         else { sortColumn = col; sortAscending = true; }
         RequestRefresh();
+        return;
+    }
+
+    // NEW: clicking EXCL / REA / SIR per-row cells calls a function (like SEND)
+    if (strncmp(sObjectId, "FLT_EXCL_", 9) == 0) {
+        int idx = atoi(sObjectId + 9);
+        auto flights = GetFilteredRelevantFlightsRows();
+        if (idx >= 0 && idx < (int)flights.size()) {
+            cdm->setCdmServerStatusFromDialog(flights[(size_t)idx], "EXCL");
+        }
+        return;
+    }
+    if (strncmp(sObjectId, "FLT_REA_", 8) == 0) {
+        int idx = atoi(sObjectId + 8);
+        auto flights = GetFilteredRelevantFlightsRows();
+        if (idx >= 0 && idx < (int)flights.size()) {
+            cdm->setCdmServerStatusFromDialog(flights[(size_t)idx], "REA");
+        }
+        return;
+    }
+    if (strncmp(sObjectId, "FLT_SIR_", 8) == 0) {
+        int idx = atoi(sObjectId + 8);
+        auto flights = GetFilteredRelevantFlightsRows();
+        if (idx >= 0 && idx < (int)flights.size()) {
+            cdm->setCdmServerStatusFromDialog(flights[(size_t)idx], "SIR");
+        }
         return;
     }
 
