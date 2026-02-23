@@ -2060,9 +2060,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					{
 						bool networkSuspended = false;
 						if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1].find("FLS") != string::npos && networkStatus[i][1].find("CDM") == string::npos) {
+							for (size_t s = 0; s < networkStatus.size(); s++) {
+								if (networkStatus[s][0] == callsign) {
+									if (networkStatus[s][1].find("FLS") != string::npos && networkStatus[s][1].find("CDM") == string::npos) {
 										networkSuspended = true;
 									}
 								}
