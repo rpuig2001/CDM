@@ -338,7 +338,7 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     DrawRoundedRect(hDC, flightsHeaderRect, RGB(45, 45, 105));
     SetBkMode(hDC, TRANSPARENT);
     SetTextColor(hDC, RGB(245, 245, 255));
-    DrawTextA(hDC, "Relevant Flights", -1, &flightsHeaderRect,
+    DrawTextA(hDC, "ATFCM Flight List", -1, &flightsHeaderRect,
         DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
     // Checkbox row #1 (Informed filter)
@@ -697,6 +697,15 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
 
     CheckPendingMasterChanges();
     DrawMasterAirportPanel(hDC);
+
+    static auto lastCallTime = std::chrono::steady_clock::now();
+    auto now = std::chrono::steady_clock::now();
+    auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - lastCallTime).count();
+    if (elapsed >= 30)
+    {
+        lastCallTime = now;
+        cdm->fetchRelevantFlights();
+    }
 }
 
 void CDMScreen::ToggleMasterAirport(const std::string& icao) {

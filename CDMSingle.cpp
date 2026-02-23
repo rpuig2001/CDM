@@ -5932,19 +5932,19 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 /*
 * Mehod to push FlightStrip Data to other controllers (old Amend)
 */
-void CDM::PushToOtherControllers(CFlightPlan fp)
-{
-	for (CController c = ControllerSelectFirst(); c.IsValid(); c = ControllerSelectNext(c))
-	{
-		std::string callsign = c.GetCallsign();
-
-		if (callsign.find("DEL") != std::string::npos ||
-			callsign.find("GND") != std::string::npos ||
-			callsign.find("TWR") != std::string::npos ||
-			callsign.find("APP") != std::string::npos ||
-			callsign.find("OBS") != std::string::npos)
-		{
-			fp.PushFlightStrip(callsign.c_str());
+void CDM::PushToOtherControllers(CFlightPlan fp) {
+	string callsign = "";
+	for (CController c = ControllerSelectFirst(); c.IsValid(); c = ControllerSelectNext(c)) {
+		if (c.IsController()) {
+			callsign = c.GetCallsign();
+			if (callsign.size() > 3) {
+				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos) {
+					fp.PushFlightStrip(c.GetCallsign());
+				}
+			}
+		}
+		else if (callsign.find("OBS") != string::npos) {
+			fp.PushFlightStrip(c.GetCallsign());
 		}
 	}
 }
@@ -9869,7 +9869,7 @@ void CDM::getCdmServerRelevantFlights() {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/etfms/relevant?filter=" + callsign;
+				string url = cdmServerUrl + "/etfms/relevant" /* ? filter = " + callsign */;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
@@ -9934,6 +9934,10 @@ void CDM::getCdmServerRelevantFlights() {
 						std::string isRea = cleanString(atfcm["isRea"]);
 						std::string isSir = cleanString(atfcm["SIR"]);
 
+						if (mostPenalizingAirspace.length() <= 2 && ctot.length() > 2) {
+							mostPenalizingAirspace = "N/A";
+						}
+
 						//Only keep sts if not affected by ecfmp restriction
 						relevantFlightsTemp.push_back({ callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta, mostPenalizingAirspace, atfcmStatus, informed, isCdm, isExcluded, isRea, isSir });
 					}
@@ -9969,6 +9973,11 @@ vector<string> CDM::getMasterAirports() {
 
 vector<vector<string>> CDM::getServerMasterAirports() {
 	return serverMasterAirports;
+}
+
+void CDM::fetchRelevantFlights() {
+	std::thread t78(&CDM::getCdmServerRelevantFlights, this);
+	t78.detach();
 }
 
 bool CDM::setCdmServerStatusFromDialog(std::vector<std::string> flight, string request) {
@@ -10080,13 +10089,13 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 	if (status.find("FLS") != std::string::npos)
 	{
 		message = ".msg " + flight[0] + " FLS - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
-			") OFF-BLOCK TIME EXPIRED. PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES.";
+			") OFF-BLOCK TIME EXPIRED. PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [THIS IS AN AUTO GENERATED MESSAGE, TRIAL IN PROGRESS]";
 	}
 	else if (status.find("SRM") != std::string::npos || status.find("SAM") != std::string::npos)
 	{
-		message = ".msg " + flight[0] + " SLOT ALLOCATION MESSAGE " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+		message = ".msg " + flight[0] + " SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
 			") CTOT:" + flight[6] + " REGUL:" + flight[9] +
-			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER UPDATES AND START-UP TIME.";
+			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER UPDATES AND START-UP TIME. [THIS IS AN AUTO GENERATED MESSAGE, TRIAL IN PROGRESS]";
 	}
 	else
 	{
