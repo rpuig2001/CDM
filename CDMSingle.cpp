@@ -2070,9 +2070,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					{
 						bool networkSuspended = false;
 						if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1].find("FLS") != string::npos && networkStatus[i][1].find("CDM") == string::npos) {
+							for (size_t s = 0; s < networkStatus.size(); s++) {
+								if (networkStatus[s][0] == callsign) {
+									if (networkStatus[s][1].find("FLS") != string::npos && networkStatus[s][1].find("CDM") == string::npos) {
 										networkSuspended = true;
 									}
 								}
@@ -2175,15 +2175,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string ShowEOBT = (string)EOBT;
 							ItemRGB = TAG_GREENNOTACTIVE;
 							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
-						}
-						else if (ItemCode == TAG_ITEM_TSAT)
-						{
-							if (aircraftFind) {
-								string ShowTSAT = (string)TSAT;
-								ShowTSAT = ShowTSAT.substr(0, ShowTSAT.length() - 2);
-								ItemRGB = TAG_RED;
-								strcpy_s(sItemString, 16, ShowTSAT.c_str());
-							}
 						}
 						else if (ItemCode == TAG_ITEM_TSAC)
 						{
