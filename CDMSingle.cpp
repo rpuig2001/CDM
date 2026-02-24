@@ -6954,7 +6954,7 @@ void CDM::saveData() {
 					}
 				}
 			}
-			if (!found) {
+			if (!found && plane.isCdmAirport) {
 				//Plane is new in the slotList (not found int he latest slotListSaved)
 				updated = true;
 				updateCdmDataApi(plane);
