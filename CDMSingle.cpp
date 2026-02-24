@@ -106,7 +106,7 @@ vector<Plane> apiCtots;
 vector<string> asatList;
 vector<string> taxiTimesList;
 vector<string> TxtTimesVector;
-vector<string> OutOfTsat;
+vector<vector<string>> OutOfTsat;
 vector<string> colors;
 vector<Rate> rate;
 vector<Rate> initialRate;
@@ -2066,26 +2066,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 					}
 
+					string outOfTsatString = "";
+
 					for (size_t i = 0; i < OutOfTsat.size(); i++)
 					{
 						bool networkSuspended = false;
-						if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
-							for (size_t s = 0; s < networkStatus.size(); s++) {
-								if (networkStatus[s][0] == callsign) {
-									if (networkStatus[s][1].find("FLS") != string::npos && networkStatus[s][1].find("CDM") == string::npos) {
-										networkSuspended = true;
+						if (callsign == OutOfTsat[i][0]) {
+								for (size_t s = 0; s < networkStatus.size(); s++) {
+									if (networkStatus[s][0] == callsign) {
+										if (networkStatus[s][1].find("FLS") != string::npos && networkStatus[s][1].find("CDM") == string::npos) {
+											networkSuspended = true;
+										}
 									}
 								}
-							}
 
-							if (EOBTfinal.substr(0, 4) == OutOfTsat[i].substr(OutOfTsat[i].find(",") + 1, 4) || networkSuspended) {
-								stillOutOfTsat = true;
-								stillOutOfTsatPos = i;
+								if (EOBTfinal == OutOfTsat[i][1] || networkSuspended) {
+									stillOutOfTsat = true;
+									stillOutOfTsatPos = i;
+									outOfTsatString = OutOfTsat[i][2];
+									if (outOfTsatString.length() > 4) outOfTsatString = outOfTsatString.substr(0, 4);
+								}
+								else {
+									OutOfTsat.erase(OutOfTsat.begin() + i);
+								}
 							}
-							else {
-								OutOfTsat.erase(OutOfTsat.begin() + i);
-							}
-						}
 					}
 
 					if (stillOutOfTsat && !gndStatusSet) {
@@ -2167,14 +2171,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (ItemCode == TAG_ITEM_TOBT)
 						{
 							string ShowEOBT = (string)EOBT;
-							ItemRGB = TAG_GREENNOTACTIVE;
+							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 						}
 						else if (ItemCode == TAG_ITEM_ETOBT)
 						{
 							string ShowEOBT = (string)EOBT;
-							ItemRGB = TAG_GREENNOTACTIVE;
+							ItemRGB = TAG_RED;
 							strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
+						}
+						else if (ItemCode == TAG_ITEM_TSAT)
+						{
+							ItemRGB = TAG_RED;
+							strcpy_s(sItemString, 16, outOfTsatString.c_str());
 						}
 						else if (ItemCode == TAG_ITEM_TSAC)
 						{
@@ -2783,7 +2792,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 							string getTTOT = getFlightStripInfo(FlightPlan, 4);
 							if (oldTOBT && !getTTOT.empty() && invalidateTOBT_Option) {
-								OutOfTsat.push_back(callsign + "," + EOBT);
+								OutOfTsat.push_back({callsign,EOBT,TSAT});
 								setFlightStripInfo(FlightPlan, "", 0);
 								setFlightStripInfo(FlightPlan, "", 3);
 								setFlightStripInfo(FlightPlan, "", 4);
@@ -2850,7 +2859,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						string getTTOT = getFlightStripInfo(FlightPlan, 4);
 						if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) && invalidateTSAT_Option && !getTTOT.empty()) {
-							OutOfTsat.push_back(callsign + "," + EOBT);
+							OutOfTsat.push_back({ callsign,EOBT,TSAT });
 							setFlightStripInfo(FlightPlan, "", 0);
 							setFlightStripInfo(FlightPlan, "", 3);
 							setFlightStripInfo(FlightPlan, "", 4);
@@ -2865,7 +2874,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (networkStatus[i][0] == callsign) {
 								//Check for any FLS status (except "FLS-CDM")
 								if (networkStatus[i][1].find("FLS") != string::npos && networkStatus[i][1].find("CDM") == string::npos) {
-									OutOfTsat.push_back(callsign + "," + EOBT);
+									OutOfTsat.push_back({ callsign,EOBT,TSAT });
 									setFlightStripInfo(FlightPlan, "", 0);
 									setFlightStripInfo(FlightPlan, "", 3);
 									setFlightStripInfo(FlightPlan, "", 4);
@@ -3794,13 +3803,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							bool alreadyInList = false;
 							for (size_t i = 0; i < OutOfTsat.size(); i++)
 							{
-								if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+								if (callsign == OutOfTsat[i][0]) {
 									alreadyInList = true;
 								}
 							}
 
 							if (!alreadyInList) {
-								OutOfTsat.push_back(callsign + "," + EOBT);
+								OutOfTsat.push_back({callsign,EOBT,TSAT});
 							}
 						}
 
@@ -6592,7 +6601,7 @@ void CDM::RemoveDataFromTfc(string callsign) {
 	//Remove from OutOfTsat
 	for (size_t i = 0; i < OutOfTsat.size(); i++)
 	{
-		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+		if (callsign == OutOfTsat[i][0]) {
 			if (debugMode) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 10");
 			}
@@ -9155,7 +9164,7 @@ bool CDM::isFligthSusp(string callsign) {
 	bool outOfTsat = false;
 	for (size_t i = 0; i < OutOfTsat.size(); i++)
 	{
-		if (callsign == OutOfTsat[i].substr(0, OutOfTsat[i].find(","))) {
+		if (callsign == OutOfTsat[i][0]) {
 			outOfTsat = true;
 		}
 	}
@@ -10037,29 +10046,34 @@ static void SendEnter()
 }
 
 // Types a string using Unicode input (reliable across layouts)
-static void TypeText(const std::string& text, int delayMs = 15)
+static void TypeTextInstant(const std::string& text)
 {
-	// Convert ANSI/ACP std::string -> UTF-16
-	int wlen = MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, nullptr, 0);
-	if (wlen <= 1) return; // empty or conversion failure
+	// Convert to UTF-16
+	int wlen = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
+	if (wlen <= 1) return;
 
-	std::vector<wchar_t> buf((size_t)wlen); // includes null terminator
-	MultiByteToWideChar(CP_ACP, 0, text.c_str(), -1, buf.data(), wlen);
+	std::vector<wchar_t> wbuf((size_t)wlen);
+	MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, wbuf.data(), wlen);
 
-	// Exclude the terminating null when typing
+	// Each character needs 2 INPUT events (down + up)
+	std::vector<INPUT> inputs;
+	inputs.reserve((wlen - 1) * 2);
+
 	for (int i = 0; i < wlen - 1; ++i)
 	{
-		SendUnicodeChar(buf[(size_t)i]);
-		std::this_thread::sleep_for(std::chrono::milliseconds(delayMs));
-	}
-}
+		INPUT down{};
+		down.type = INPUT_KEYBOARD;
+		down.ki.wScan = wbuf[i];
+		down.ki.dwFlags = KEYEVENTF_UNICODE;
 
-// Optional: set focus to a specific window before typing (you must supply/know HWND)
-static void FocusWindow(HWND hwnd)
-{
-	if (!hwnd) return;
-	SetForegroundWindow(hwnd);
-	std::this_thread::sleep_for(std::chrono::milliseconds(50));
+		INPUT up = down;
+		up.ki.dwFlags = KEYEVENTF_UNICODE | KEYEVENTF_KEYUP;
+
+		inputs.push_back(down);
+		inputs.push_back(up);
+	}
+
+	SendInput((UINT)inputs.size(), inputs.data(), sizeof(INPUT));
 }
 
 bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
@@ -10079,14 +10093,14 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 
 	if (status.find("FLS") != std::string::npos)
 	{
-		message = ".msg " + flight[0] + " FLS - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
-			") OFF-BLOCK TIME EXPIRED. PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [THIS IS AN AUTO GENERATED MESSAGE, TRIAL IN PROGRESS]";
+		message = ".msg " + flight[0] + " [ATFCM MESSAGE] OFF-BLOCK TIME EXPIRED - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+			"). PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [END OF ATFCM MESSAGE - TRIAL IN PROGRESS]";
 	}
 	else if (status.find("SRM") != std::string::npos || status.find("SAM") != std::string::npos)
 	{
-		message = ".msg " + flight[0] + " SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+		message = ".msg " + flight[0] + " [ATFCM MESSAGE] SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
 			") CTOT:" + flight[6] + " REGUL:" + flight[9] +
-			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER UPDATES AND START-UP TIME. [THIS IS AN AUTO GENERATED MESSAGE, TRIAL IN PROGRESS]";
+			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER CTOT UPDATES AND START-UP TIME INFORMATION. [END OF ATFCM MESSAGE - TRIAL IN PROGRESS]";
 	}
 	else
 	{
@@ -10094,10 +10108,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 		return false;
 	}
 
-	// If you need to focus the target app first, call FocusWindow(hwnd) here.
-	// FocusWindow(targetHwnd);
-
-	TypeText(message, 15);
+	TypeTextInstant(message);
 	SendEnter();
 
 	return true;

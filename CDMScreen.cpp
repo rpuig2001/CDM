@@ -426,16 +426,16 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
 
     // NOTE: We include only visible columns in this compact layout
     addHeader("FLT_COL_0", "CS", 70);
-    addHeader("FLT_COL_2", "DEP", 55);
-    addHeader("FLT_COL_3", "ARR", 55);
-    addHeader("FLT_COL_4", "EOBT", 50);
-    addHeader("FLT_COL_5", "TOBT", 50);
-    addHeader("FLT_COL_6", "TX", 35);
-    addHeader("FLT_COL_7", "CTOT", 50);
-    addHeader("FLT_COL_8", "AOBT", 50);
-    addHeader("FLT_COL_10", "ETA", 50);
-    addHeader("FLT_COL_11", "REGUL", 130);
-    addHeader("FLT_ATFCM_HDR", "ATFCM", 60);
+    addHeader("FLT_COL_1", "DEP", 55);
+    addHeader("FLT_COL_2", "ARR", 55);
+    addHeader("FLT_COL_3", "EOBT", 50);
+    addHeader("FLT_COL_4", "TOBT", 50);
+    addHeader("FLT_COL_5", "TX", 35);
+    addHeader("FLT_COL_6", "CTOT", 50);
+    addHeader("FLT_COL_7", "AOBT", 50);
+    addHeader("FLT_COL_8", "ETA", 50);
+    addHeader("FLT_COL_9", "REGUL", 130);
+    addHeader("FLT_COL_10", "ATFCM", 60);
     addHeader("FLT_COL_13", "EXCL", 40, true);
     addHeader("FLT_COL_14", "REA", 40, true);
     addHeader("FLT_COL_15", "SIR", 40, true);
