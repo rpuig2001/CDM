@@ -58,6 +58,7 @@ public:
 	vector<vector<string>> getServerMasterAirports();
 	void fetchRelevantFlights();
 	bool setCdmServerStatusFromDialog(std::vector<std::string> flight, string request);
+	bool sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight);
 	bool sendAtfcmPrivateMessageToPilot(vector<string> flight);
 	vector<string> getCDMAirports();
 

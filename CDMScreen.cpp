@@ -387,7 +387,7 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
         DrawTextA(hDC, "X", -1, &chkBox2, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
 
-    DrawCellTextA_Flt(hDC, "Show CDM AND non-CDM).", chkLabel2, DT_LEFT, RGB(255, 255, 255));
+    DrawCellTextA_Flt(hDC, "Show CDM AND non-CDM.", chkLabel2, DT_LEFT, RGB(255, 255, 255));
 
     // Filter row (click to edit)
     RECT filterRow = flightsPanelRect;
@@ -781,7 +781,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
         int idx = atoi(sObjectId + 8);
         auto flights = GetFilteredRelevantFlightsRows();
         if (idx >= 0 && idx < (int)flights.size()) {
-            cdm->sendAtfcmPrivateMessageToPilot(flights[(size_t)idx]);
+            cdm->sendAtfcmPrivateMessageToPilotCon(flights[(size_t)idx]);
         }
         return;
     }

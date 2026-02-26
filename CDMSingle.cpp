@@ -10076,7 +10076,7 @@ static void TypeTextInstant(const std::string& text)
 	SendInput((UINT)inputs.size(), inputs.data(), sizeof(INPUT));
 }
 
-bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
+bool CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight)
 {
 	for (int i = 0; i < (int)relevantFlights.size(); i++)
 	{
@@ -10084,6 +10084,12 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 			relevantFlights[i][11] = "true";
 	}
 
+	std::thread t457(&CDM::sendAtfcmPrivateMessageToPilot, this, flight);
+	t457.detach();
+}
+
+bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
+{
 	std::thread t9(&CDM::setCdmSts, this, flight[0], "INFORMED/1");
 	t9.detach();
 
@@ -10096,7 +10102,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 		message = ".msg " + flight[0] + " [ATFCM MESSAGE] OFF-BLOCK TIME EXPIRED - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
 			"). PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [END OF ATFCM MESSAGE - TRIAL IN PROGRESS]";
 	}
-	else if (status.find("SRM") != std::string::npos || status.find("SAM") != std::string::npos)
+	else if (flight[6] != "")
 	{
 		message = ".msg " + flight[0] + " [ATFCM MESSAGE] SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
 			") CTOT:" + flight[6] + " REGUL:" + flight[9] +
