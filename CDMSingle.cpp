@@ -139,6 +139,7 @@ vector<string> atotSet;
 vector<vector<string>> reqTobtTypes;
 vector<vector<string>> reqTobtTypesQueue;
 vector<vector<string>> relevantFlights;
+vector<string> messagesSent;
 std::mutex reqTobtTypesQueueMutex;
 std::mutex later1Mutex;
 std::mutex later2Mutex;
@@ -249,6 +250,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item "ON_TIME_STATUS"
 	RegisterTagItemType("On Time Sts", TAG_ITEM_ON_TIME_STATUS);
+
+	// Register Tag Item "VDGS PM SEND"
+	RegisterTagItemType("VDGS PM SEND", TAG_ITEM_SEND_STATUS);
+	RegisterTagItemFunction("Send VDGS PM", TAG_FUNC_PM_SEND);
 
 	GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
 	pfad = DllPathFile;
@@ -694,9 +699,17 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
 		AtcMe = true;
 	}
-	
 
-	if (FunctionId == TAG_FUNC_EDITEOBT)
+
+
+	if (FunctionId == TAG_FUNC_PM_SEND) {
+		for (Plane plane : slotList) {
+			if (plane.callsign == fp.GetCallsign()) {
+				sendCdmMessageToPilot(plane);
+			}
+		}
+	}
+	else if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
 		//Can be modified as non-master
 		if (AtcMe) {
@@ -704,7 +717,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			OpenPopupEdit(Area, TAG_FUNC_NEWEOBT, fp.GetFlightPlanData().GetEstimatedDepartureTime());
 		}
 	}
-
 	else if (FunctionId == TAG_FUNC_NEWEOBT) {
 		addLogLine("TRIGGER - TAG_FUNC_NEWEOBT");
 		string editedEOBT = ItemString;
@@ -2275,6 +2287,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_SEND_STATUS) {
+							ItemRGB = TAG_RED;
+							for (string flt : messagesSent) {
+								if (flt == callsign) {
+									ItemRGB = TAG_GREEN;
+								}
+							}
+							strcpy_s(sItemString, 16, "SEND");
+						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -3557,6 +3578,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_SEND_STATUS) {
+							ItemRGB = TAG_RED;
+							for (string flt : messagesSent) {
+								if (flt == callsign) {
+									ItemRGB = TAG_GREEN;
+								}
+							}
+							strcpy_s(sItemString, 16, "SEND");
+						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -4326,7 +4356,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
-							}
+						}
+						else if (ItemCode == TAG_ITEM_SEND_STATUS) {
+								ItemRGB = TAG_RED;
+								for (string flt : messagesSent) {
+									if (flt == callsign) {
+										ItemRGB = TAG_GREEN;
+									}
+								}
+								strcpy_s(sItemString, 16, "SEND");
+						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -4509,7 +4548,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								strcpy_s(sItemString, 16, status.c_str());
 							}
+						}
+						else if (ItemCode == TAG_ITEM_SEND_STATUS) {
+							ItemRGB = TAG_RED;
+							for (string flt : messagesSent) {
+								if (flt == callsign) {
+									ItemRGB = TAG_GREEN;
+								}
 							}
+							strcpy_s(sItemString, 16, "SEND");
+						}
 						else if (ItemCode == TAG_ITEM_DEICE) {
 							string status = "";
 							for (vector<string> deice : deiceList) {
@@ -4696,7 +4744,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						strcpy_s(sItemString, 16, status.c_str());
 					}
+				}
+				else if (ItemCode == TAG_ITEM_SEND_STATUS) {
+					ItemRGB = TAG_RED;
+					for (string flt : messagesSent) {
+						if (flt == callsign) {
+							ItemRGB = TAG_GREEN;
+						}
 					}
+					strcpy_s(sItemString, 16, "SEND");
+				}
 				else if (ItemCode == TAG_ITEM_DEICE) {
 					string status = "";
 					for (vector<string> deice : deiceList) {
@@ -4934,6 +4991,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					}
 					strcpy_s(sItemString, 16, status.c_str());
 				}
+			}
+			else if (ItemCode == TAG_ITEM_SEND_STATUS) {
+				ItemRGB = TAG_RED;
+				for (string flt : messagesSent) {
+					if (flt == callsign) {
+						ItemRGB = TAG_GREEN;
+					}
+				}
+				strcpy_s(sItemString, 16, "SEND");
 			}
 			if (ItemRGB != 0xFFFFFFFF)
 			{
@@ -9852,7 +9918,7 @@ bool CDM::clearMasterAirport(string icao)
 }
 
 void CDM::getCdmServerRelevantFlights() {
-	if (serverEnabled && showAtfcmList) {
+	if (serverEnabled) {
 		addLogLine("Called getCdmServerRelevantFlights...");
 		try {
 			vector<vector<string>> relevantFlightsTemp;
@@ -10099,14 +10165,14 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 
 	if (status.find("FLS") != std::string::npos)
 	{
-		message = ".msg " + flight[0] + " [ATFCM MESSAGE] OFF-BLOCK TIME EXPIRED - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
-			"). PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [END OF ATFCM MESSAGE - TRIAL IN PROGRESS]";
+		message = ".msg " + flight[0] + " [ATFCM MSG] OFF-BLOCK TIME EXPIRED - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+			"). PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [END OF ATFCM MSG - TRIAL IN PROGRESS]";
 	}
 	else if (flight[6] != "")
 	{
-		message = ".msg " + flight[0] + " [ATFCM MESSAGE] SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
+		message = ".msg " + flight[0] + " [ATFCM MSG] SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] + " - " + flight[2] +
 			") CTOT:" + flight[6] + " REGUL:" + flight[9] +
-			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER CTOT UPDATES AND START-UP TIME INFORMATION. [END OF ATFCM MESSAGE - TRIAL IN PROGRESS]";
+			" RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER CTOT UPDATES AND START-UP TIME INFORMATION. [END OF ATFCM MSG - TRIAL IN PROGRESS]";
 	}
 	else
 	{
@@ -10114,6 +10180,31 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 		return false;
 	}
 
+	TypeTextInstant(message);
+	SendEnter();
+
+	return true;
+}
+
+bool CDM::sendCdmMessageToPilot(Plane plane) {
+	bool found = false;
+	for (string flt : messagesSent) {
+		if (flt == plane.callsign) {
+			found = true;
+		}
+	}
+	if (!found) {
+		messagesSent.push_back(plane.callsign);
+	}
+
+	string msg = ".msg " + plane.callsign + " [CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]";
+
+	std::thread t458(&CDM::sendCdmPrivateMessageToPilot, this, msg);
+	t458.detach();
+}
+
+bool CDM::sendCdmPrivateMessageToPilot(string message)
+{
 	TypeTextInstant(message);
 	SendEnter();
 
