@@ -472,7 +472,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	t63.detach();
 
 	//CDM-Server
-	cdmServerUrl = "https://cdm-server-production.up.railway.app";
+	cdmServerUrl = "https://viff-system.network";
 
 	//CDM-Server Fetch restricted
 	std::thread t34(&CDM::getCdmServerRestricted, this, slotList);
