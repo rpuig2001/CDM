@@ -444,7 +444,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - Column Network Status: Shows the STS from the CDM-Network.
   - Status/Funcions:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
-    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``FLS`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the ATFCM System side: https://github.com/rpuig2001/CDM/wiki/CDM-Server-%E2%80%90-(IFPS)-Process-of-the-flight-Path#atfcm-status
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``FLS`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the ATFCM System side: https://github.com/rpuig2001/CDM/wiki/vIFF-%E2%80%90-(IFPS)-Process-of-the-flight-Path#atfcm-status
 
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
