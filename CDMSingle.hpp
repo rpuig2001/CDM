@@ -6,6 +6,7 @@
 #include "Constant.hpp"
 #include <fstream>
 #include <vector>
+#include <algorithm>
 #include <map>
 #include <chrono>
 #include <regex>
@@ -209,6 +210,8 @@ public:
 	bool getCtotsFromUrl(string url);
 
 	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
+
+	int GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2);
 
 	template <typename Out>
 	void split(const string& s, char delim, Out result) {

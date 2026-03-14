@@ -1705,7 +1705,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
 			}
 		}
-		if ((timeNow - countFetchServerTime) > 30 && !refresh3) {
+		if ((timeNow - countFetchServerTime) > 15 && !refresh3) {
 			countFetchServerTime = timeNow;
 			std::thread t(&CDM::refreshActions3, this);
 			t.detach();
@@ -2736,8 +2736,24 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 															slotList[a].showData = false;
 														}
 													}
-													std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
-													t.detach();
+													//if the ttot > ctot but is no later then ctot+7, do not send a settobtapi request
+													if (slotList[pos].hasManualCtot && slotList[pos].ctot != "" && slotList[pos].ttot.length() >= 4) {
+														string myTTOT = TTOT;
+														myTTOT = myTTOT.substr(0, 4);
+														if (stoi(myTTOT) > stoi(slotList[pos].ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
+															//Do not update TOBT API if TTOT is greater than CTOT but less or equal to CTOT+7
+															slotList[pos].showData = true;
+														}
+														else {
+															std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
+															t.detach();
+														}
+
+													}
+													else {
+														std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
+														t.detach();
+													}
 												}
 											}
 										}
@@ -5600,7 +5616,10 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 				}
 
 				if (slotList[i].hasManualCtot && slotList[i].ctot != "") {
-					myTTOT = slotList[i].ctot + "00";
+					double diffTime = GetDifferenceTimeHHMMSS(slotList[i].tsat, slotList[i].ttot);
+					int candidateTTOT = stoi(calculateTime(slotList[i].eobt, diffTime));
+					int maxValue = max(candidateTTOT, stoi(slotList[i].ctot + "00"));
+					myTTOT = to_string(maxValue);
 				}
 
 				Plane item = refreshTimes(slotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myDepRwy, dataRate, true);
@@ -5976,7 +5995,21 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						if (doRequest && TSATfinal.length() >= 4) {
 							if (serverEnabled) {
 								string myTSATApi = TSAT;
-								setTOBTApi(callsign, myTSATApi, false);
+								//if the ttot > ctot but is no later then ctot+7, do not send a settobtapi request
+								if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
+									string myTTOT = TTOT;
+									myTTOT = myTTOT.substr(0, 4);
+									if (stoi(myTTOT) > stoi(plane.ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
+										//Do not update TOBT API if TTOT is greater than CTOT but less or equal to CTOT+7
+									}
+									else {
+										setTOBTApi(callsign, myTSATApi, false);
+									}
+
+								}
+								else {
+									setTOBTApi(callsign, myTSATApi, false);
+								}
 							}
 						}
 					}
@@ -7396,6 +7429,29 @@ int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2)
 	int time2 = stoi(stringTime2);
 
 	return time1 - time2;
+}
+
+int CDM::GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2) {
+	// Expect time1 and time2 in "HHMMSS" format
+	if (time1.length() != 6 || time2.length() != 6) {
+		return 0; // invalid format
+	}
+
+	// Parse hours, minutes, seconds
+	int h1 = std::stoi(time1.substr(0, 2));
+	int m1 = std::stoi(time1.substr(2, 2));
+	int s1 = std::stoi(time1.substr(4, 2));
+
+	int h2 = std::stoi(time2.substr(0, 2));
+	int m2 = std::stoi(time2.substr(2, 2));
+	int s2 = std::stoi(time2.substr(4, 2));
+
+	// Convert to total seconds
+	int totalSec1 = h1 * 3600 + m1 * 60 + s1;
+	int totalSec2 = h2 * 3600 + m2 * 60 + s2;
+
+	// Return difference in seconds
+	return totalSec1 - totalSec2;
 }
 
 string CDM::GetTimeNow() {
