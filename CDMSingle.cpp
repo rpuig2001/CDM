@@ -507,13 +507,13 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	lvo = false;
 	if (rateUrl.length() <= 1) {
 		if (debugMode) {
-			sendMessage("[DEBUG MESSAGE] - USING RATE FROM LOCAL TXT FILE");
+			sendMessage("[DEBUG MESSAGE] - USING RATES FROM LOCAL TXT FILE");
 		}
 		getRate();
 	}
 	else {
 		if (debugMode) {
-			sendMessage("[DEBUG MESSAGE] - USING TAXIZONES FROM URL");
+			sendMessage("[DEBUG MESSAGE] - USING RATES FROM URL");
 		}
 		getRateFromUrl(rateUrl);
 	}

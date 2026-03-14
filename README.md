@@ -362,6 +362,8 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - ![#8fd894](https://img.shields.io/badge/-8fd894) `LIGHT GREEN` -> Before EOBT -5.
     - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> After EOBT-5.
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> Last minute of TOBT (with ASRT set or no).
+   
+(EOBT and TOBT can be combined in the same item by using E/TOBT column. This will display the EOBT for non-CDM airports and TOBT for CDM airports)
 
 - Column E: It shows a letter depending on the plane timmings:
   - Functions:
