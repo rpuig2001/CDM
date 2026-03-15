@@ -1155,7 +1155,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_OPT_TOBT) {
-		if (master && AtcMe) {
+		if (AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_OPT_TOBT");
 			OpenPopupList(Area, "TOBT Options", 1);
 			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
@@ -1174,12 +1174,19 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_OPT_ETOBT) {
 		addLogLine("TRIGGER - TAG_FUNC_OPT_ETOBT");
-		if (isCdmAirport(fp.GetFlightPlanData().GetOrigin()) && AtcMe) {
+		bool isCDMairport = false;
+		for (string a : CDMairports)
+		{
+			if (fp.GetFlightPlanData().GetOrigin() == a) {
+				isCDMairport = true;
+			}
+		}
+		if (!isCDMairport && AtcMe) {
 			addLogLine("TRIGGER - EOBT options");
 			OpenPopupList(Area, "E/TOBT Options", 1);
 			AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
 		}
-		else if (master && AtcMe) {
+		else if (AtcMe) {
 			addLogLine("TRIGGER - TOBT options");
 			OpenPopupList(Area, "E/TOBT Options", 1);
 			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
