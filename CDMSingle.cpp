@@ -8990,14 +8990,24 @@ void CDM::sendCheckCIDLater() {
 				string readBuffer;
 				long responseCode = 0;
 				string str;
+				CFlightPlan fp = FlightPlanSelect(p.callsign.c_str());
 				if (p.hasManualCtot && p.ctot != "" && p.ttot.length() >= 4) {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ctot.substr(0, 4) + "&reason=" + p.flowReason;
+					if (fp.IsValid()) {
+						str += "&asrt=" + getFlightStripInfo(fp, 0);
+					}
 				}
 				else if (p.hasManualCtot && p.ttot.length() >= 4) {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ttot.substr(0, 4) + "&reason=MANUAL";
+					if (fp.IsValid()) {
+						str += "&asrt=" + getFlightStripInfo(fp, 0);
+					}
 				}
 				else {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=&reason=";
+					if (fp.IsValid()) {
+						str += "&asrt=" + getFlightStripInfo(fp, 0);
+					}
 				}
 				result = CURLE_FAILED_INIT;
 				curl = curl_easy_init();
@@ -9673,7 +9683,7 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 
 				const Json::Value& data = obj;
 				for (size_t i = 0; i < data.size(); i++) {
-					if (data[i].isMember("cdmData") && data[i]["cdmData"].isMember("reqTobt") && data[i]["cdmData"].isMember("reqTobtType") && data[i].isMember("callsign") && data[i].isMember("atot")) {
+					if (data[i].isMember("cdmData") && data[i]["cdmData"].isMember("reqTobt") && data[i]["cdmData"].isMember("reqTobtType") && data[i]["cdmData"].isMember("reqAsrt") && data[i].isMember("callsign") && data[i].isMember("atot")) {
 
 						string callsign = fastWriter.write(data[i]["callsign"]);
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
@@ -9690,13 +9700,18 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 						type.erase(std::remove(type.begin(), type.end(), '\n'));
 						type.erase(std::remove(type.begin(), type.end(), '\n'));
 
+						string asrt = fastWriter.write(data[i]["cdmData"]["reqAsrt"]);
+						asrt.erase(std::remove(asrt.begin(), asrt.end(), '"'));
+						asrt.erase(std::remove(asrt.begin(), asrt.end(), '\n'));
+						asrt.erase(std::remove(asrt.begin(), asrt.end(), '\n'));
+
 						string atot = fastWriter.write(data[i]["atot"]);
 						atot.erase(std::remove(atot.begin(), atot.end(), '"'));
 						atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
 						atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
 
 						if (atot == "") {
-							planes.push_back({ callsign, tobt, type });
+							planes.push_back({ callsign, tobt, type, asrt });
 						}
 					}
 				}
@@ -9743,7 +9758,17 @@ void CDM::getNetworkTobt() {
 								if (!fp.IsValid()) {
 									continue;
 								}
+
+								//Update ASRT
 								string annotAsrt = getFlightStripInfo(fp, 0);
+								if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+									addLogLine("Updating ASRT for: " + mySlotList[i].callsign + " Old: " + annotAsrt + " New: " + plane[3] + "00");
+									setFlightStripInfo(fp, plane[3], 0);
+									setCdmSts(plane[0], "REQASRT/NULL");
+								}
+
+								//Update TOBT
+								annotAsrt = getFlightStripInfo(fp, 0);
 								if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
 									addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
 									/*int posPlane = getPlanePosition(mySlotList[i].callsign);
