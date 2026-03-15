@@ -101,6 +101,7 @@ string vdgsFileType;
 vector<Plane> slotList;
 vector<Plane> slotListToUpdate;
 vector<Plane> slotListSaved;
+vector<vector<string>> dataSaved;
 vector<EcfmpRestriction> ecfmpData;
 vector<Plane> apiCtots;
 vector<string> asatList;
@@ -6826,6 +6827,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			reqTobtTypes.erase(reqTobtTypes.begin() + i);
 		}
 	}
+	//Remove from dataSaved
+	for (size_t i = 0; i < dataSaved.size(); i++)
+	{
+		if (callsign == dataSaved[i][0]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 19");
+			}
+			dataSaved.erase(dataSaved.begin() + i);
+		}
+	}
 
 	deleteFlightStrips(callsign);
 	}
@@ -7055,24 +7066,44 @@ bool CDM::isCdmAirport(string airport) {
 void CDM::saveData() {
 	addLogLine("Called saveData...");
 	try {
-		bool updated = false;
 		bool found = false;
 		vector<Plane> mySlotList = slotList;
 		for (Plane plane : mySlotList) {
 			found = false;
+			bool foundData = false;
+			string dataString = "";
 			for (Plane planeSaved : slotListSaved) {
 				if (plane.callsign == planeSaved.callsign && plane.isCdmAirport) {
 					found = true;
-					if (plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason) {
-						updateCdmDataApi(plane);
-						updated = true;
+					bool diffDataStored = false;
+					CFlightPlan fp = FlightPlanSelect(plane.callsign.c_str());
+					if (fp.IsValid()) {
+						dataString = getFlightStripInfo(fp, 0) + "/" + fp.GetFlightPlanData().GetDepartureRwy() + "/" + fp.GetFlightPlanData().GetSidName();
 					}
+					for (int z = 0; z < dataSaved.size(); z++) {
+						if (dataSaved[z].size() == 2) {
+							if (plane.callsign == dataSaved[z][0]) {
+								foundData = true;
+								if (dataString != dataSaved[z][1]) {
+									dataSaved[z][1] = dataString;
+									diffDataStored = true;
+								}
+								break;
+							}
+						}
+					}
+					if (plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat || plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason || diffDataStored) {
+						updateCdmDataApi(plane);
+					}
+					break;
 				}
 			}
 			if (!found && plane.isCdmAirport) {
 				//Plane is new in the slotList (not found int he latest slotListSaved)
-				updated = true;
 				updateCdmDataApi(plane);
+			}
+			if (!foundData) {
+				dataSaved.push_back({ plane.callsign, dataString });
 			}
 		}
 
@@ -8994,19 +9025,19 @@ void CDM::sendCheckCIDLater() {
 				if (p.hasManualCtot && p.ctot != "" && p.ttot.length() >= 4) {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ctot.substr(0, 4) + "&reason=" + p.flowReason;
 					if (fp.IsValid()) {
-						str += "&asrt=" + getFlightStripInfo(fp, 0);
+						str += "&asrt=" + getFlightStripInfo(fp, 0) + "&depInfo=" + fp.GetFlightPlanData().GetDepartureRwy() + "/" + fp.GetFlightPlanData().GetSidName();
 					}
 				}
 				else if (p.hasManualCtot && p.ttot.length() >= 4) {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=" + p.ttot.substr(0, 4) + "&reason=MANUAL";
 					if (fp.IsValid()) {
-						str += "&asrt=" + getFlightStripInfo(fp, 0);
+						str += "&asrt=" + getFlightStripInfo(fp, 0) + "&depInfo=" + fp.GetFlightPlanData().GetDepartureRwy() + "/" + fp.GetFlightPlanData().GetSidName();
 					}
 				}
 				else {
 					str = "callsign=" + p.callsign + "&tobt=" + p.eobt + "&tsat=" + p.tsat + "&ttot=" + p.ttot + "&ctot=&reason=";
 					if (fp.IsValid()) {
-						str += "&asrt=" + getFlightStripInfo(fp, 0);
+						str += "&asrt=" + getFlightStripInfo(fp, 0) + "&depInfo=" + fp.GetFlightPlanData().GetDepartureRwy() + "/" + fp.GetFlightPlanData().GetSidName();
 					}
 				}
 				result = CURLE_FAILED_INIT;
@@ -9742,7 +9773,19 @@ void CDM::getNetworkTobt() {
 
 		for (vector<string> plane : planes) {
 			bool updated = false;
-			if (plane.size() == 3) {
+			if (plane.size() == 4) {
+				if (plane[3] != "" && plane[0] != "") {
+					CFlightPlan fp1 = FlightPlanSelect(plane[0].c_str());
+					if (fp1.IsValid()) {
+						//Update ASRT
+						string prevAsrt = getFlightStripInfo(fp1, 0);
+						if ((string)fp1.GetGroundState() != "STUP" && (string)fp1.GetGroundState() != "ST-UP" && (string)fp1.GetGroundState() != "PUSH" && (string)fp1.GetGroundState() != "TAXI" && (string)fp1.GetGroundState() != "DEPA") {
+							addLogLine("Updating ASRT for: " + plane[0] + " Old: " + prevAsrt + " New: " + plane[3] + "00");
+							setFlightStripInfo(fp1, plane[3], 0);
+							setCdmSts(plane[0], "REQASRT/NULL");
+						}
+					}
+				}
 				if (plane[1] != "" && plane[0] != "") {
 					bool found = false;
 					for (int i = 0; i < mySlotList.size(); i++)
@@ -9759,16 +9802,8 @@ void CDM::getNetworkTobt() {
 									continue;
 								}
 
-								//Update ASRT
-								string annotAsrt = getFlightStripInfo(fp, 0);
-								if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
-									addLogLine("Updating ASRT for: " + mySlotList[i].callsign + " Old: " + annotAsrt + " New: " + plane[3] + "00");
-									setFlightStripInfo(fp, plane[3], 0);
-									setCdmSts(plane[0], "REQASRT/NULL");
-								}
-
 								//Update TOBT
-								annotAsrt = getFlightStripInfo(fp, 0);
+								string annotAsrt = getFlightStripInfo(fp, 0);
 								if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
 									addLogLine("Updating TOBT for: " + mySlotList[i].callsign + " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
 									/*int posPlane = getPlanePosition(mySlotList[i].callsign);
