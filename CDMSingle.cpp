@@ -191,6 +191,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Register Tag Item "CDM-E/TOBT"
 	RegisterTagItemType("E/TOBT", TAG_ITEM_ETOBT);
+	RegisterTagItemFunction("E/TOBT Options", TAG_FUNC_OPT_ETOBT);
 
 	// Register Tag Item "CDM-TSAT"
 	RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
@@ -1167,6 +1168,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			addLogLine("TRIGGER - TAG_FUNC_OPT_EOBT");
 			OpenPopupList(Area, "EOBT Options", 1);
 			AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+		}
+	}
+
+	else if (FunctionId == TAG_FUNC_OPT_ETOBT) {
+		addLogLine("TRIGGER - TAG_FUNC_OPT_ETOBT");
+		if (isCdmAirport(fp.GetFlightPlanData().GetOrigin()) && AtcMe) {
+			addLogLine("TRIGGER - EOBT options");
+			OpenPopupList(Area, "E/TOBT Options", 1);
+			AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
+		}
+		else if (master && AtcMe) {
+			addLogLine("TRIGGER - TOBT options");
+			OpenPopupList(Area, "E/TOBT Options", 1);
+			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+			AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
 		}
 	}
 
