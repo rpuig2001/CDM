@@ -21,7 +21,7 @@
 // -----------------------
 // Relevant flights panel (UI reads CDM::relevantFlights)
 // -----------------------
-#define FLT_PANEL_WIDTH 840
+#define FLT_PANEL_WIDTH 880
 #define FLT_HEADER_HEIGHT 16
 #define FLT_ROW_HEIGHT 18
 #define FLT_ROW_GAP 2
@@ -259,7 +259,7 @@ void CDMScreen::MarkAirportPending(const std::string& icao, bool adding) {
 // Data layout (server parsing):
 //  0 callsign, 1 dep, 2 arr, 3 eobt, 4 tobt, 5 taxi, 6 ctot, 7 aobt,
 //  8 eta, 9 mostPenalizingAirspace, 10 atfcmStatus, 11 informed, 12 isCdm,
-//  13 isExcluded, 14 isRea, 15 isSir
+//  13 isExcluded, 14 isRea, 15 isSir, 16 isSwm
 // ------------------------------
 std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows() const
 {
@@ -439,6 +439,7 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     addHeader("FLT_COL_13", "EXCL", 40, true);
     addHeader("FLT_COL_14", "REA", 40, true);
     addHeader("FLT_COL_15", "SIR", 40, true);
+    addHeader("FLT_COL_16", "SWM", 40, true);
 
     addHeader("FLT_SEND_HDR", "", 45, true);
 
@@ -507,23 +508,28 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
         RECT exclRect = cell(40);
         RECT reaRect = cell(40);
         RECT sirRect = cell(40);
+        RECT swmRect = cell(40);
 
-        char exclId[64], reaId[64], sirId[64];
+        char exclId[64], reaId[64], sirId[64], swmId[64];
         sprintf_s(exclId, "FLT_EXCL_%d", i);
         sprintf_s(reaId, "FLT_REA_%d", i);
         sprintf_s(sirId, "FLT_SIR_%d", i);
+        sprintf_s(swmId, "FLT_SWM_%d", i);
 
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, exclId, exclRect, true, NULL);
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, reaId, reaRect, true, NULL);
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, sirId, sirRect, true, NULL);
+        AddScreenObject(RADARSCR_OBJECT_CUSTOM, swmId, swmRect, true, NULL);
 
         bool isExcluded = IsTrueString(GetColSafe(row, 13));
         bool isRea = IsTrueString(GetColSafe(row, 14));
         bool isSir = IsTrueString(GetColSafe(row, 15));
+        bool isSwm = IsTrueString(GetColSafe(row, 16));
 
         drawBoolSquare(exclRect, isExcluded);
         drawBoolSquare(reaRect, isRea);
         drawBoolSquare(sirRect, isSir);
+        drawBoolSquare(swmRect, isSwm);
 
         SetBkMode(hDC, TRANSPARENT);
         SetTextColor(hDC, RGB(255, 255, 255));
@@ -772,6 +778,14 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
         auto flights = GetFilteredRelevantFlightsRows();
         if (idx >= 0 && idx < (int)flights.size()) {
             cdm->setCdmServerStatusFromDialog(flights[(size_t)idx], "SIR");
+        }
+        return;
+    }
+    if (strncmp(sObjectId, "FLT_SWM_", 8) == 0) {
+        int idx = atoi(sObjectId + 8);
+        auto flights = GetFilteredRelevantFlightsRows();
+        if (idx >= 0 && idx < (int)flights.size()) {
+            cdm->setCdmServerStatusFromDialog(flights[(size_t)idx], "SWM");
         }
         return;
     }

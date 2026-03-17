@@ -10220,6 +10220,17 @@ bool CDM::setCdmServerStatusFromDialog(std::vector<std::string> flight, string r
 				else relevantFlights[i][15] = "false";
 		}
 	}
+	if (request == "SWM") {
+		if (flight[16] == "true") requestToDo = "SWM/0";
+		else requestToDo = "SWM/1";
+
+		for (int i = 0; i < (int)relevantFlights.size(); i++)
+		{
+			if (relevantFlights[i][0] == flight[0])
+				if (requestToDo == "SWM/1") relevantFlights[i][16] = "true";
+				else relevantFlights[i][16] = "false";
+		}
+	}
 	std::thread t6(&CDM::setCdmSts, this, flight[0], requestToDo);
 	t6.detach();
 	return true;
