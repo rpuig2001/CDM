@@ -8516,6 +8516,9 @@ bool CDM::setMasterAirport(string airport, string position) {
 								sendMessage("Successfully set master airport " + airport);
 								addLogLine("Successfully set master airport " + airport);
 								lastAddedIcao = "";
+								//Update server master list
+								std::thread t99(&CDM::getCdmServerMasterAirports, this);
+								t99.detach();
 								return true;
 							}
 							catch (const std::system_error& e) {
@@ -8604,6 +8607,9 @@ bool CDM::removeMasterAirport(string airport, string position) {
 			{
 				if (masterAirports[a] == airport) {
 					masterAirports.erase(masterAirports.begin() + a);
+					//Update server master list
+					std::thread t99(&CDM::getCdmServerMasterAirports, this);
+					t99.detach();
 					return true;
 				}
 			}
@@ -8661,6 +8667,9 @@ bool CDM::removeAllMasterAirports(string position) {
 						addLogLine("Successfully removed all master airports for " + position);
 						sendMessage("Successfully removed all master airports for " + position);
 						masterAirports.clear();
+						//Update server master list
+						std::thread t99(&CDM::getCdmServerMasterAirports, this);
+						t99.detach();
 						return true;
 					}
 				}
@@ -8715,6 +8724,9 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 			}
 			else {
 				addLogLine("Removed masters for airport " + airport);
+				//Update server master list
+				std::thread t99(&CDM::getCdmServerMasterAirports, this);
+				t99.detach();
 			}
 		}
 		catch (const std::exception& e) {
@@ -10003,9 +10015,6 @@ bool CDM::addMasterAirport(string icao)
 		else {
 			sendMessage("NO AIRPORT SET");
 		}
-		//Update server master list
-		std::thread t99(&CDM::getCdmServerMasterAirports, this);
-		t99.detach();
 		return true;
 	}
 	catch (const std::exception& e) {
@@ -10041,9 +10050,6 @@ bool CDM::clearMasterAirport(string icao)
 		else {
 			sendMessage("NO AIRPORT SET");
 		}
-		//Update server master list
-		std::thread t99(&CDM::getCdmServerMasterAirports, this);
-		t99.detach();
 		return true;
 	}
 	catch (const std::exception& e) {
@@ -10057,7 +10063,7 @@ bool CDM::clearMasterAirport(string icao)
 }
 
 void CDM::getCdmServerRelevantFlights() {
-	if (serverEnabled) {
+	if (serverEnabled && showAtfcmList) {
 		addLogLine("Called getCdmServerRelevantFlights...");
 		try {
 			vector<vector<string>> relevantFlightsTemp;
