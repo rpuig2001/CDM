@@ -312,6 +312,20 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//Get data from xml config file
 	//airport = getFromXml("/CDM/apt/@icao");
 	//airport = getFromXml("/CDM/apt/@icao");
+
+	// Validate CDMconfig.xml exists and parses before using it
+	{
+		xml_document testDoc;
+		xml_parse_result parseResult = testDoc.load_file(pfad.c_str());
+		if (!parseResult) {
+			sendMessage("Error", "CDMconfig.xml not found or failed to parse. Place CDMconfig.xml next to CDM.dll. Details: " + string(parseResult.description()));
+			addLogLine("FATAL: CDMconfig.xml not found or failed to parse: " + string(parseResult.description()));
+			return;
+		}
+	}
+
+	try {
+
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 	string deIceLight = getFromXml("/CDM/DeIceTimes/@light");
 	string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
@@ -456,6 +470,12 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	invalidateTOBT_Option = true;
 	if (invalidateTOBT_OptionStr == "false") {
 		invalidateTOBT_Option = false;
+	}
+
+	} catch (const std::exception& e) {
+		sendMessage("Error", "CDMconfig.xml has missing or invalid values. Check configuration. Details: " + string(e.what()));
+		addLogLine("FATAL: CDMconfig.xml has missing or invalid values: " + string(e.what()));
+		return;
 	}
 
 	//Flow Data
@@ -5207,6 +5227,11 @@ bool CDM::getRate() {
 	fstream rateFile;
 	string lineValue;
 	rateFile.open(rfad.c_str(), std::ios::in);
+	if (!rateFile.is_open()) {
+		sendMessage("Error", "rate.txt not found. Place rate.txt next to CDM.dll.");
+		addLogLine("ERROR: rate.txt not found at " + rfad);
+		return false;
+	}
 	bool found;
 	while (getline(rateFile, lineValue))
 	{
