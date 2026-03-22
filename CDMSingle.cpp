@@ -5644,9 +5644,15 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 					int candidateTTOT = stoi(calculateTime(slotList[i].eobt, diffTime));
 					int maxValue = max(candidateTTOT, stoi(slotList[i].ctot + "00"));
 					myTTOT = to_string(maxValue);
-					if (myTTOT.length() == 4) {
+					if (myTTOT.length() == 2) {
+						myTTOT = "0000" + myTTOT;
+					} else if (myTTOT.length() == 3) {
+						myTTOT = "000" + myTTOT;
+					}
+					else if (myTTOT.length() == 4) {
 						myTTOT = "00" + myTTOT;
-					} else if (myTTOT.length() == 5) {
+					}
+					else if (myTTOT.length() == 5) {
 						myTTOT = "0" + myTTOT;
 					}
 				}
