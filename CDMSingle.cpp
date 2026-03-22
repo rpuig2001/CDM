@@ -855,7 +855,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 
 	else if (FunctionId == TAG_FUNC_FMASTEXT) {
-		if (master) {
 			addLogLine("TRIGGER - TAG_FUNC_FMASTEXT");
 			for (size_t i = 0; i < slotList.size(); i++)
 			{
@@ -865,7 +864,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 			}
-		}
 	}
 	else if (FunctionId == TAG_FUNC_OPT_DEICE) {
 		if (master && AtcMe) {
@@ -2766,7 +2764,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														myTTOT = myTTOT.substr(0, 4);
 														if (stoi(myTTOT) > stoi(slotList[pos].ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
 															//Do not update TOBT API if TTOT is greater than CTOT but less or equal to CTOT+7
-															slotList[pos].showData = true;
 														}
 														else {
 															std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
@@ -7497,12 +7494,10 @@ int CDM::GetdifferenceTime(string hour1, string min1, string hour2, string min2)
 }
 
 int CDM::GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2) {
-	// Expect time1 and time2 in "HHMMSS" format
 	if (time1.length() != 6 || time2.length() != 6) {
-		return 0; // invalid format
+		return 0;
 	}
 
-	// Parse hours, minutes, seconds
 	int h1 = std::stoi(time1.substr(0, 2));
 	int m1 = std::stoi(time1.substr(2, 2));
 	int s1 = std::stoi(time1.substr(4, 2));
@@ -7511,12 +7506,10 @@ int CDM::GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& ti
 	int m2 = std::stoi(time2.substr(2, 2));
 	int s2 = std::stoi(time2.substr(4, 2));
 
-	// Convert to total seconds
 	int totalSec1 = h1 * 3600 + m1 * 60 + s1;
 	int totalSec2 = h2 * 3600 + m2 * 60 + s2;
 
-	// Return difference in seconds
-	return totalSec1 - totalSec2;
+	return std::abs(totalSec1 - totalSec2) / 60;
 }
 
 string CDM::GetTimeNow() {
