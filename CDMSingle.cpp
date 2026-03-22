@@ -5644,6 +5644,11 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 					int candidateTTOT = stoi(calculateTime(slotList[i].eobt, diffTime));
 					int maxValue = max(candidateTTOT, stoi(slotList[i].ctot + "00"));
 					myTTOT = to_string(maxValue);
+					if (myTTOT.length() == 4) {
+						myTTOT = "00" + myTTOT;
+					} else if (myTTOT.length() == 5) {
+						myTTOT = "0" + myTTOT;
+					}
 				}
 
 				Plane item = refreshTimes(slotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myDepRwy, dataRate, true);
