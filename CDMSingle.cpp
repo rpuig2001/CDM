@@ -8771,7 +8771,7 @@ bool CDM::setEvCtot(string callsign) {
 			long responseCode = 0;
 			curl = curl_easy_init();
 			if (curl) {
-				string url = cdmServerUrl + "/plane/cidCheck?callsign=" + callsign;
+				string url = cdmServerUrl + "/ifps/cidCheck?callsign=" + callsign;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
