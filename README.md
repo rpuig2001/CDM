@@ -140,7 +140,7 @@ CDM includes the following times:
   - [OPTIONAL] DeIce Remote Additional Taxi Time and name definition (ex. "<DeIceRemTaxi rem1Name= "REM1" rem1="10" rem2Name= "REM2" rem2="10" rem3Name= "REM3" rem3="10" rem4Name= "REM4" rem4="10" rem5Name= "REM5" rem5="10"/>") If not defined, extra 0 minutes are used. In case of empty remXName, the option will be disabled in the popup menu of Euroscope (Example: By setting rem2Name= "", rem2 will not be available in Euroscope).
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
-  - [OPTIONAL] In case of ECFMP use, the api url needs to be set (Default -> FlowRestrictions url:"https://ecfmp.vatsim.net/api/v1/plugin"), if no URL needed, just leave it blank (ex. FlowRestrictions url="").
+  - [OPTIONAL] In case MDIs or other STAM measures system are used (ECFMP and Hong Kong systems are already in the vIFF system and **don't require this setting**)  (Default -> FlowRestrictions url:""). The format required is as ECFMP. example: https://ecfmp.vatsim.net/api/v1/plugin.
   - VDGS file type: 0-None, 1-TXT, 2-JSON, 3-TXT&JSON (ex. vdgsFileType type="3").
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use ATFCM System.
