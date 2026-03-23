@@ -2748,7 +2748,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											TTOT = TTOTFinal.c_str();
 											bool doRequest = false;
 											if (aircraftFind) {
-												if (TTOT != slotList[pos].ttot) {
+												if (TTOT != slotList[pos].ttot || EOBT != slotList[pos].eobt) {
 													Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot, slotList[pos].flowReason, myEcfmp, hasEcfmpRestriction, hasManualCtot, true, true);
 													doRequest = true;
 													slotList[pos] = p;
@@ -2774,12 +2774,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 															slotList[a].showData = false;
 														}
 													}
-													//if the ttot > ctot but is no later then ctot+7, do not send a settobtapi request
 													if (slotList[pos].hasManualCtot && slotList[pos].ctot != "" && slotList[pos].ttot.length() >= 4) {
 														string myTTOT = TTOT;
 														myTTOT = myTTOT.substr(0, 4);
 														if (stoi(myTTOT) > stoi(slotList[pos].ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
-															//Do not update TOBT API if TTOT is greater than CTOT but less or equal to CTOT+7
+															//Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to CTOT+7
+															string myCOBT = calculateLessTime(slotList[pos].ctot + "00", taxiTime);
+															std::thread t(&CDM::setTOBTApi, this, callsign, myCOBT, true);
+															t.detach();
 														}
 														else {
 															std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
@@ -2926,7 +2928,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						string getTTOT = getFlightStripInfo(FlightPlan, 4);
-						sendMessage(" CorrectState: " + to_string(correctState) + " OldTSAT: " + to_string(oldTSAT) + " OldTOBT: " + to_string(oldTOBT) + " InvalidateTOBTOption: " + to_string(invalidateTOBT_Option) + " InvalidateTSATOption: " + to_string(invalidateTSAT_Option) + " getTTOT: " + getTTOT);
 						if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) && invalidateTSAT_Option && !getTTOT.empty()) {
 							OutOfTsat.push_back({ callsign,EOBT,TSAT });
 							setFlightStripInfo(FlightPlan, "", 0);
@@ -5657,15 +5658,15 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 					int candidateTTOT = stoi(calculateTime(slotList[i].eobt, diffTime));
 					int maxValue = max(candidateTTOT, stoi(slotList[i].ctot + "00"));
 					myTTOT = to_string(maxValue);
-					if (myTTOT.length() == 2) {
+					if (myTTOT.length() == 1) {
+						myTTOT = "00000" + myTTOT;
+					} else if (myTTOT.length() == 2) {
 						myTTOT = "0000" + myTTOT;
 					} else if (myTTOT.length() == 3) {
 						myTTOT = "000" + myTTOT;
-					}
-					else if (myTTOT.length() == 4) {
+					} else if (myTTOT.length() == 4) {
 						myTTOT = "00" + myTTOT;
-					}
-					else if (myTTOT.length() == 5) {
+					} else if (myTTOT.length() == 5) {
 						myTTOT = "0" + myTTOT;
 					}
 				}
@@ -6043,12 +6044,13 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						if (doRequest && TSATfinal.length() >= 4) {
 							if (serverEnabled) {
 								string myTSATApi = TSAT;
-								//if the ttot > ctot but is no later then ctot+7, do not send a settobtapi request
 								if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
 									string myTTOT = TTOT;
 									myTTOT = myTTOT.substr(0, 4);
 									if (stoi(myTTOT) > stoi(plane.ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
-										//Do not update TOBT API if TTOT is greater than CTOT but less or equal to CTOT+7
+										//Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to CTOT+7
+										string myCOBT = calculateLessTime(plane.ctot + "00", taxiTime);
+										setTOBTApi(callsign, myCOBT, false);
 									}
 									else {
 										setTOBTApi(callsign, myTSATApi, false);
