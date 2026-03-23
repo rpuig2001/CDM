@@ -705,11 +705,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 
 	if (FunctionId == TAG_FUNC_PM_SEND) {
-		for (Plane plane : slotList) {
-			if (plane.callsign == fp.GetCallsign()) {
-				sendCdmMessageToPilot(plane);
-			}
-		}
+		sendCdmMessageToPilot(fp.GetCallsign());
 	}
 	else if (FunctionId == TAG_FUNC_EDITEOBT)
 	{
@@ -2909,13 +2905,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							correctState = true;
 						}
 
-						if (oldTSAT && aircraftFind) {
-							if (slotList[pos].hasManualCtot) {
-								oldTSAT = false;
-							}
-						}
-
 						string getTTOT = getFlightStripInfo(FlightPlan, 4);
+						sendMessage(" CorrectState: " + to_string(correctState) + " OldTSAT: " + to_string(oldTSAT) + " OldTOBT: " + to_string(oldTOBT) + " InvalidateTOBTOption: " + to_string(invalidateTOBT_Option) + " InvalidateTSATOption: " + to_string(invalidateTSAT_Option) + " getTTOT: " + getTTOT);
 						if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) && invalidateTSAT_Option && !getTTOT.empty()) {
 							OutOfTsat.push_back({ callsign,EOBT,TSAT });
 							setFlightStripInfo(FlightPlan, "", 0);
@@ -9205,7 +9196,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 										slotListTemp[i] = {
 											apiCallsign,
 											slotListTemp[i].eobt,
-											calculateLessTime(ctot, stod(getTaxiTime(apiCallsign))),
+											slotListTemp[i].tsat,
 											slotListTemp[i].ttot,
 											ctot,
 											reason,
@@ -10346,18 +10337,18 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 	return true;
 }
 
-bool CDM::sendCdmMessageToPilot(Plane plane) {
+bool CDM::sendCdmMessageToPilot(string callsign) {
 	bool found = false;
 	for (string flt : messagesSent) {
-		if (flt == plane.callsign) {
+		if (flt == callsign) {
 			found = true;
 		}
 	}
 	if (!found) {
-		messagesSent.push_back(plane.callsign);
+		messagesSent.push_back(callsign);
 	}
 
-	string msg = ".msg " + plane.callsign + " [CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]";
+	string msg = ".msg " + callsign + " [CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]";
 
 	std::thread t458(&CDM::sendCdmPrivateMessageToPilot, this, msg);
 	t458.detach();

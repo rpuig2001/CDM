@@ -27,7 +27,7 @@
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.25.1"
+#define MY_PLUGIN_VERSION   "2.2.8.252"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -61,7 +61,7 @@ public:
 	bool setCdmServerStatusFromDialog(std::vector<std::string> flight, string request);
 	bool sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight);
 	bool sendAtfcmPrivateMessageToPilot(vector<string> flight);
-	bool sendCdmMessageToPilot(Plane plane);
+	bool sendCdmMessageToPilot(string callsign);
 	bool sendCdmPrivateMessageToPilot(string message);
 	vector<string> getCDMAirports();
 
