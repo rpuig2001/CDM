@@ -45,8 +45,10 @@ bool realMode;
 bool pilotTobt;
 bool atotEnabled;
 bool remarksOption;
+bool remarksOptionCtot;
 bool invalidateTSAT_Option;
 bool invalidateTOBT_Option;
+bool readySetTsac;
 bool sidIntervalEnabled;
 bool readyToUpdateList;
 string lastAddedIcao;
@@ -354,6 +356,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	sidIntervalUrl = getFromXml("/CDM/sidInterval/@url");
 	string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
 	string invalidateTOBT_OptionStr = getFromXml("/CDM/invalidateAtTobt/@mode");
+	string readySetTsacOpt = getFromXml("/CDM/readySetTsac/@mode");
 	string stringDebugMode = getFromXml("/CDM/Debug/@mode");
 	flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
 	vdgsFileType = getFromXml("/CDM/vdgsFileType/@type");
@@ -472,6 +475,11 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		invalidateTOBT_Option = false;
 	}
 
+	readySetTsac = true;
+	if (readySetTsacOpt == "false") {
+		readySetTsac = false;
+	}
+
 	} catch (const std::exception& e) {
 		sendMessage("Error", "CDMconfig.xml has missing or invalid values. Check configuration. Details: " + string(e.what()));
 		addLogLine("FATAL: CDMconfig.xml has missing or invalid values: " + string(e.what()));
@@ -513,6 +521,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Init reamrksOption
 	remarksOption = false;
+	remarksOptionCtot = false;
 
 	//Init refreshActions
 	refresh1 = false;
@@ -1277,6 +1286,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					if (!found) {
 						reqTobtTypes.push_back({ fp.GetCallsign(), "ATC" });
 					}
+
+					//Set TSAC 9999 to later set the correct TSAT when calculation of TSAT completed
+					if (readySetTsac) setFlightStripInfo(fp, "9999", 1);
 
 					//Set REA Status
 					std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
@@ -2238,6 +2250,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						else if (ItemCode == TAG_ITEM_TSAC)
 						{
 							ItemRGB = TAG_GREEN;
+							if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 							strcpy_s(sItemString, 16, "____");
 						}
 						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
@@ -2245,10 +2258,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string annotTSAC = getFlightStripInfo(FlightPlan, 1);
 							if (!annotTSAC.empty()) {
 								ItemRGB = TAG_GREEN;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, "\xA4");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, "\xAC");
 							}
 						}
@@ -2378,6 +2393,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									recalculate = true;
 									//Update times to slaves
 									countTime = std::time(nullptr) - refreshTime;
+								}
+								else if (readySetTsac) {
+									//Update TSAC
+									string myTsac = getFlightStripInfo(FlightPlan, 1);
+									if (slotList[pos].showData && myTsac == "9999") {
+										myTsac = slotList[pos].tsat;
+										myTsac = (myTsac.length() >= 4) ? myTsac.substr(0, 4) : "";
+										setFlightStripInfo(FlightPlan, myTsac, 1);
+									}
 								}
 							}
 
@@ -3147,38 +3171,42 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							//TSAC
 							bool TSACNotTSAT = false;
 							string annotTSAC = getFlightStripInfo(FlightPlan, 1);
+							if (annotTSAC != "9999") {
+								if (!annotTSAC.empty()) {
+									string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
+									string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
 
-							if (!annotTSAC.empty()) {
-								string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
-								string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
-
-								int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
-								if (TSAThour == TSAChour) {
-									if (TSACDif > 5 || TSACDif < -5) {
-										TSACNotTSAT = true;
+									int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
+									if (TSAThour == TSAChour) {
+										if (TSACDif > 5 || TSACDif < -5) {
+											TSACNotTSAT = true;
+										}
 									}
+									else {
+										if (TSACDif > 45 || TSACDif < -45) {
+											TSACNotTSAT = true;
+										}
+									}
+								}
+
+								if (TSACNotTSAT) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_ORANGE;
+									if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+									strcpy_s(sItemString, 16, annotTSAC.c_str());
+								}
+								else if (!annotTSAC.empty()) {
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+									strcpy_s(sItemString, 16, annotTSAC.c_str());
 								}
 								else {
-									if (TSACDif > 45 || TSACDif < -45) {
-										TSACNotTSAT = true;
-									}
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									ItemRGB = TAG_GREEN;
+									if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+									strcpy_s(sItemString, 16, "____");
 								}
-							}
-
-							if (TSACNotTSAT) {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_ORANGE;
-								strcpy_s(sItemString, 16, annotTSAC.c_str());
-							}
-							else if (!annotTSAC.empty()) {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, annotTSAC.c_str());
-							}
-							else {
-								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_GREEN;
-								strcpy_s(sItemString, 16, "____");
 							}
 						}
 						else if (ItemCode == TAG_ITEM_TSAC_SIMPLE)
@@ -3205,17 +3233,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 
 							if (!annotTSAC.empty()) {
-								if (TSACNotTSAT) {
+								if (SU_ISSET) {
+									ItemRGB = SU_SET_COLOR;
+								} else if (TSACNotTSAT) {
 									ItemRGB = TAG_ORANGE;
 								}
 								else {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_GREEN;
+									if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								}
 								strcpy_s(sItemString, 16, "\xA4");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, "\xAC");
 							}
 						}
@@ -4081,14 +4113,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							if (TSACNotTSAT) {
 								ItemRGB = TAG_ORANGE;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, annotTSAC.c_str());
 							}
 							else if (!annotTSAC.empty()) {
 								ItemRGB = TAG_GREEN;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, annotTSAC.c_str());
 							}
 							else {
 								ItemRGB = TAG_GREEN;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, "____");
 							}
 						}
@@ -4098,15 +4133,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							if (!annotTSAC.empty()) {
 								if (TSACNotTSAT) {
 									ItemRGB = TAG_ORANGE;
+									if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								}
 								else {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
 									ItemRGB = TAG_GREEN;
+									if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								}
 								strcpy_s(sItemString, 16, "\xA4");
 							}
 							else {
 								ItemRGB = TAG_GREEN;
+								if (SU_ISSET) ItemRGB = SU_SET_COLOR;
 								strcpy_s(sItemString, 16, "\xAC");
 							}
 						}
@@ -5482,22 +5520,22 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 		{
 
 			//Update TSAT in scratchpad if enabled remarksOption
-			if (remarksOption) {
+			if (remarksOption || remarksOptionCtot) {
 				CFlightPlan fplSelect = FlightPlanSelect(slotList[i].callsign.c_str());
 				if (!fplSelect.IsValid()) {
 					continue;
 				}
 				string testTsat = slotList[i].tsat;
-				if (testTsat.length() >= 4) {
-					if (
-						(string)fplSelect.GetGroundState() != "STUP" &&
-						(string)fplSelect.GetGroundState() != "ST-UP" &&
-						(string)fplSelect.GetGroundState() != "PUSH" &&
-						(string)fplSelect.GetGroundState() != "TAXI" &&
-						(string)fplSelect.GetGroundState() != "DEPA")
-					{
-						fplSelect.GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
-					}
+				string testCtot = slotList[i].ctot;
+				if (
+					(string)fplSelect.GetGroundState() != "STUP" &&
+					(string)fplSelect.GetGroundState() != "ST-UP" &&
+					(string)fplSelect.GetGroundState() != "PUSH" &&
+					(string)fplSelect.GetGroundState() != "TAXI" &&
+					(string)fplSelect.GetGroundState() != "DEPA")
+				{
+					if (testCtot.length() >= 4 && remarksOptionCtot) fplSelect.GetControllerAssignedData().SetScratchPadString(testCtot.substr(0, 4).c_str());
+					if (testTsat.length() >= 4 && remarksOption) fplSelect.GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
 				}
 			}
 
@@ -7909,6 +7947,20 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			remarksOption = true;
 			sendMessage("Set TSAT to Scratchpad to ON");
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm remarks ctot", sCommandLine))
+	{
+		addLogLine(sCommandLine);
+		if (remarksOptionCtot) {
+			remarksOptionCtot = false;
+			sendMessage("Set CTOT to Scratchpad to OFF");
+		}
+		else {
+			remarksOptionCtot = true;
+			sendMessage("Set CTOT to Scratchpad to ON");
 		}
 		return true;
 	}
