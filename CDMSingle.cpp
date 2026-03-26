@@ -174,7 +174,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	loadingMessage += MY_PLUGIN_VERSION;
 	loadingMessage += " loaded.";
 	sendMessage(loadingMessage);
-	addLogLine(loadingMessage);
 
 	// Register Tag Item "CDM-OPTIONS"
 	RegisterTagItemType("Options", TAG_ITEM_OPTIONS);
@@ -288,14 +287,17 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	rfad.resize(rfad.size() - strlen("CDM.dll"));
 	rfad += "rate.txt";
 
+	std::time_t now = std::time(nullptr);
+	std::tm* localTime = std::localtime(&now);
+	int day = localTime->tm_mday;
 	tfad = DllPathFile;
 	tfad.resize(tfad.size() - strlen("CDM.dll"));
-	tfad += "log.txt";
+	tfad += "log_" + GetTimeNow().substr(0,3) + ".txt";
+	removeLog();
+	addLogLine(loadingMessage);
 
 	debugMode = false;
 	initialSidLoad = false;
-
-	removeLog();
 
 	countTime = std::time(nullptr);
 	countTimeNonCdm = std::time(nullptr);
@@ -9716,7 +9718,7 @@ void CDM::getNetworkRates() {
 
 				const Json::Value& data = obj;
 				for (size_t i = 0; i < data.size(); i++) {
-					if (data[i].isMember("type") && data[i].isMember("airspace") && data[i].isMember("capacity")) {
+					if (data[i].isMember("type") && data[i].isMember("airspace") && data[i].isMember("capacity") && data[i].isMember("runway")) {
 
 						//Get airspace name
 						string airspace = fastWriter.write(data[i]["airspace"]);
@@ -9738,16 +9740,28 @@ void CDM::getNetworkRates() {
 							type.erase(std::remove(type.begin(), type.end(), '\n'));
 
 							if (type == "DEP") {
-								//Get CTOT
+								//Get capacity
 								string capacity = fastWriter.write(data[i]["capacity"]);
 								capacity.erase(std::remove(capacity.begin(), capacity.end(), '"'));
 								capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
 								capacity.erase(std::remove(capacity.begin(), capacity.end(), '\n'));
 
+								//Get runway
+								string runway = fastWriter.write(data[i]["runway"]);
+								runway.erase(std::remove(runway.begin(), runway.end(), '"'));
+								runway.erase(std::remove(runway.begin(), runway.end(), '\n'));
+								runway.erase(std::remove(runway.begin(), runway.end(), '\n'));
+
 								for (int i = 0; i < tempRate.size(); i++) {
 									if (tempRate[i].airport == airspace) {
-										for (int a = 0; a < tempRate[i].rates.size(); a++) {
-											tempRate[i].rates[a] = capacity;
+										for (int s = 0; s < tempRate[i].depRwyYes.size(); s++) {
+											if (tempRate[i].depRwyYes[s] == runway || tempRate[i].depRwyYes[s] == "*") {
+												if (tempRate[i].rates.size() > 1) {
+													tempRate[i].rates[s] = capacity;
+												} else if (tempRate[i].rates.size() == 1) {
+													tempRate[i].rates[0] = capacity;
+												}
+											}
 										}
 									}
 								}
