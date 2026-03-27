@@ -1,5 +1,7 @@
 ﻿#pragma once
+#pragma warning(push, 0) 
 #include "EuroScopePlugIn.h"
+#pragma warning(pop) 
 #include <sstream>
 #include <iostream>
 #include <string>
