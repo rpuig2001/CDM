@@ -510,7 +510,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	std::thread t34(&CDM::getCdmServerRestricted, this, slotList);
 	t34.detach();
 
-	apikey = "test";
 	std::thread t75(&CDM::getCdmServerMasterAirports, this);
 	t75.detach();
 
@@ -9102,7 +9101,7 @@ void CDM::sendWaitingCdmSts() {
 void CDM::sendWaitingCdmData() {
 	vector<Plane> callsignsToProcess;
 	{
-		addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmDatalater.size()));
+		addLogLine("Call sendWaitingCdmData - " + to_string(setCdmDatalater.size()));
 		std::lock_guard<std::mutex> lock(later4Mutex);
 		callsignsToProcess = setCdmDatalater;
 		setCdmDatalater.clear();
