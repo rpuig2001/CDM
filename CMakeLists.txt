@@ -43,7 +43,6 @@ SET(SOURCE_FILES
     json_reader.cpp
     json_value.cpp
     json_writer.cpp
-    pugixml.cpp
     SFTP.cpp
     stdafx.cpp
 )
@@ -64,7 +63,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}_shared PRIVATE
 )
 
 # Set include directories
-TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_static PUBLIC
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_static SYSTEM PUBLIC
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/external/include
