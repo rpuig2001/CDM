@@ -32,7 +32,6 @@ INCLUDE_DIRECTORIES(
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/external/include
-    ${CMAKE_SOURCE_DIR}/Libs/include
     ${CMAKE_SOURCE_DIR}
 )
 
@@ -69,14 +68,12 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_static PUBLIC
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/src/
     ${CMAKE_SOURCE_DIR}/external/include
-    ${CMAKE_SOURCE_DIR}/Libs/include
     ${CMAKE_SOURCE_DIR}
 )
 
 TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_shared PUBLIC
     ${CMAKE_BINARY_DIR}
     ${CMAKE_SOURCE_DIR}/external/include
-    ${CMAKE_SOURCE_DIR}/Libs/include
     ${CMAKE_SOURCE_DIR}
 )
 
