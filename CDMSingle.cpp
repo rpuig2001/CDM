@@ -996,7 +996,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 
-			if (status == "") {
+			if (hasCtot && status == "") {
 				OpenPopupList(Area, "CDM-Network", 1);
 				if (status != "REA") {
 					AddPopupListElement("Set REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
