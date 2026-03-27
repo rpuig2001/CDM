@@ -1,0 +1,83 @@
+CMAKE_MINIMUM_REQUIRED(VERSION 3.15)
+
+PROJECT(CDM VERSION "2.2.8.23")
+SET_PROPERTY(GLOBAL PROPERTY USE_FOLDERS ON)
+SET(CMAKE_CXX_STANDARD 20)
+SET(CMAKE_CXX_STANDARD_REQUIRED ON)
+SET(CMAKE_CXX_EXTENSIONS OFF)
+SET(CMAKE_INTERPROCEDURAL_OPTIMIZATION_RELEASE TRUE)
+IF (MSVC)
+    IF (CMAKE_CXX_FLAGS MATCHES "/W[0-4]")
+        STRING(REGEX REPLACE "/W[0-4]" "/W4" CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS}")
+    ELSE ()
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /W4")
+    ENDIF ()
+    IF (NOT CMAKE_CXX_FLAGS MATCHES "/MP")
+        SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /MP")
+        SET(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /MP")
+    ENDIF ()
+
+    SET(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} /sdl /permissive- /DNOMINMAX")
+    SET(CMAKE_C_FLAGS   "${CMAKE_C_FLAGS} /sdl /permissive- /DNOMINMAX")
+    SET(CMAKE_SHARED_LINKER_FLAGS "${CMAKE_SHARED_LINKER_FLAGS} /MANIFESTUAC:NO /ignore:4099")
+    ADD_DEFINITIONS(/D_USRDLL)
+ENDIF ()
+
+# CONFIGURE_FILE(
+#     ${CMAKE_SOURCE_DIR}/src/Version.h.in
+#     ${CMAKE_BINARY_DIR}/Version.h
+# )
+
+INCLUDE_DIRECTORIES(
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/src/
+    ${CMAKE_SOURCE_DIR}/external/include
+    ${CMAKE_SOURCE_DIR}
+)
+
+ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
+
+SET(SOURCE_FILES
+    CDMScreen.cpp
+    CDMSingle.cpp
+    json_reader.cpp
+    json_value.cpp
+    json_writer.cpp
+    SFTP.cpp
+    stdafx.cpp
+)
+
+# Create a static library target, used in tests and shared dll
+ADD_LIBRARY(${PROJECT_NAME}_static STATIC ${SOURCE_FILES})
+
+# Create shared library target - used for Euroscope
+ADD_LIBRARY(${PROJECT_NAME}_shared SHARED)
+SET_TARGET_PROPERTIES(${PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
+TARGET_SOURCES(${PROJECT_NAME}_shared PRIVATE CDM.cpp)
+
+TARGET_LINK_LIBRARIES(${PROJECT_NAME}_shared PRIVATE
+    ${PROJECT_NAME}_static
+    ${CMAKE_SOURCE_DIR}/external/lib/EuroScopePlugInDLL.lib
+    ${CMAKE_SOURCE_DIR}/external/lib/libcurl.lib
+    crypt32.lib ws2_32.lib Shlwapi.lib Wldap32.lib 
+)
+
+# Set include directories
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_static SYSTEM PUBLIC
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/src/
+    ${CMAKE_SOURCE_DIR}/external/include
+    ${CMAKE_SOURCE_DIR}
+)
+
+TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_shared PUBLIC
+    ${CMAKE_BINARY_DIR}
+    ${CMAKE_SOURCE_DIR}/external/include
+    ${CMAKE_SOURCE_DIR}
+)
+
+INCLUDE(external/CMakeLists.txt)
+
+# SET(gtest_force_shared_crt on)
+# INCLUDE(CTest)
+# ADD_SUBDIRECTORY(tests)

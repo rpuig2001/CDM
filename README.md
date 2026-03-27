@@ -467,3 +467,10 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - Purple: Master set by another ATC.
 - Yellow: Enabling/Disabling Master.
 - Green: Master Airport set by me.
+
+
+## Build the project
+
+Configure the project using ```cmake -S . -B build -A Win32```
+
+Build the DLL using ```cmake --build build --config Release```

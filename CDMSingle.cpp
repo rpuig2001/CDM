@@ -10428,7 +10428,7 @@ static void TypeTextInstant(const std::string& text)
 	SendInput((UINT)inputs.size(), inputs.data(), sizeof(INPUT));
 }
 
-bool CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight)
+void CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight)
 {
 	for (int i = 0; i < (int)relevantFlights.size(); i++)
 	{
@@ -10472,7 +10472,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 	return true;
 }
 
-bool CDM::sendCdmMessageToPilot(string callsign) {
+void CDM::sendCdmMessageToPilot(string callsign) {
 	bool found = false;
 	for (string flt : messagesSent) {
 		if (flt == callsign) {

@@ -2,7 +2,9 @@
 //
 
 #include "stdafx.h"
+#pragma warning(push, 0) 
 #include "EuroScopePlugIn.h"
+#pragma warning(pop) 
 #include "CDMSingle.hpp"
 
 CDM* gpMyPlugin = NULL;
