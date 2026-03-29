@@ -24,6 +24,12 @@
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
+#include <memory>
+#include <windows.h>
+#include <dbghelp.h>
+#include <iomanip>
+#include <ctime>
+#pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Wininet")
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
