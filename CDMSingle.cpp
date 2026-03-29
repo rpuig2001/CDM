@@ -293,6 +293,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	int day = localTime->tm_mday;
 	tfad = DllPathFile;
 	tfad.resize(tfad.size() - strlen("CDM.dll"));
+	tfad += "logs\\";
+	BuildAndEnsureLogPath(tfad);
 	tfad += "log_" + GetTimeNow().substr(0,3) + ".txt";
 	removeLog();
 	addLogLine(loadingMessage);
@@ -655,6 +657,32 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 			}
 		}
 	}
+}
+
+static bool EnsureDirExists(const std::string& dir)
+{
+#ifdef _WIN32
+	if (_mkdir(dir.c_str()) == 0) return true;
+	return (errno == EEXIST);
+#else
+	if (mkdir(dir.c_str(), 0755) == 0) return true;
+	return (errno == EEXIST);
+#endif
+}
+
+// helper: drop trailing slash/backslash (if any)
+static std::string RTrimSlash(std::string s)
+{
+	while (!s.empty() && (s.back() == '\\' || s.back() == '/'))
+		s.pop_back();
+	return s;
+}
+
+void CDM::BuildAndEnsureLogPath(std::string& tfad)
+{
+	// ensure "...\logs\" exists
+	std::string logsDir = RTrimSlash(tfad);   // => "...\logs"
+	EnsureDirExists(logsDir);
 }
 
 CRadarScreen* CDM::OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated) {

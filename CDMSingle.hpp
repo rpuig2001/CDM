@@ -32,6 +32,13 @@
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Wininet")
 
+#ifdef _WIN32
+#include <direct.h> // _mkdir
+#else
+#include <sys/stat.h> // mkdir
+#include <sys/types.h>
+#endif
+
 #define MY_PLUGIN_NAME      "CDM Plugin"
 #define MY_PLUGIN_VERSION   "2.2.8.26"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
@@ -343,6 +350,8 @@ public:
 	void removeAllMasterAirportsByAirport(string airport);
 
 	bool setEvCtot(string callsign);
+
+	void BuildAndEnsureLogPath(std::string& tfad);
 
 	CRadarScreen* OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
 
