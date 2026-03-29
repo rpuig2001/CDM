@@ -5574,7 +5574,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 					(string)fplSelect.GetGroundState() != "TAXI" &&
 					(string)fplSelect.GetGroundState() != "DEPA")
 				{
-					if (testCtot.length() >= 4 && remarksOptionCtot) fplSelect.GetControllerAssignedData().SetScratchPadString(testCtot.substr(0, 4).c_str());
+					if (testCtot.length() >= 4 && remarksOptionCtot) fplSelect.GetControllerAssignedData().SetScratchPadString('.C' + testCtot.substr(0, 4).c_str());
 					if (testTsat.length() >= 4 && remarksOption) fplSelect.GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
 				}
 			}
