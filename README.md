@@ -1,4 +1,4 @@
-# CDM plugin V2.2
+# CDM plugin V2
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 
 - If you want to support the development, you can do it in: https://ko-fi.com/rpuig
@@ -131,6 +131,7 @@ CDM includes the following times:
   - Auto ATOT to enable/disable automatic update TTOT when "DEPA" sts is set (**DISABLED:** autoAtot mode="false" and **ENABLED:** autoAtot mode="true").
   - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
   - Invalidate flight at tobt will invalidate flights at TOBT+5 (ex. invalidateAtTobt mode=true).
+  - When Ready TOBT is pressed, automatically set the TSAC as the calculated TSAT (ex. readySetTsac mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
@@ -336,6 +337,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm server`` - Toggle server communication ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
+- ``.cdm rmkctot`` - Toggle set CTOT to Euroscope scratchpad ON or OFF (as ".C1234).
 - ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
 - ``.cdm recover`` - In case of of CTD, it tries to recover the latest time status backed up in the server. Example: ``.cdm recover LEBL``.
