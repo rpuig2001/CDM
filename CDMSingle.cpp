@@ -148,6 +148,7 @@ std::mutex later1Mutex;
 std::mutex later2Mutex;
 std::mutex later3Mutex;
 std::mutex later4Mutex;
+std::mutex networkStatusMutex;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -980,6 +981,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 			//Get actual status
 			string status = "";
+			std::lock_guard<std::mutex> lock(networkStatusMutex);
 			for (size_t i = 0; i < networkStatus.size(); i++) {
 				if (networkStatus[i][0] == fp.GetCallsign()) {
 					status = networkStatus[i][1];
@@ -1735,6 +1737,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		strcpy_s(sItemString, 16, "->");
 	}
 
+	std::vector<std::vector<std::string>> myNetworkStatus;
+	{
+		std::lock_guard<std::mutex> lock(networkStatusMutex);
+		myNetworkStatus = networkStatus;
+	}
+
 
 	if (!isVfr) {
 
@@ -2136,9 +2144,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					{
 						bool networkSuspended = false;
 						if (callsign == OutOfTsat[i][0]) {
-								for (size_t s = 0; s < networkStatus.size(); s++) {
-									if (networkStatus[s][0] == callsign) {
-										if (networkStatus[s][1].find("FLS") != string::npos && networkStatus[s][1].find("CDM") == string::npos) {
+								for (size_t s = 0; s < myNetworkStatus.size(); s++) {
+									if (myNetworkStatus[s][0] == callsign) {
+										if (myNetworkStatus[s][1].find("FLS") != string::npos && myNetworkStatus[s][1].find("CDM") == string::npos) {
 											networkSuspended = true;
 										}
 									}
@@ -2222,9 +2230,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							string myeobt = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
 							string ShowEOBT = formatTime(myeobt);
 							ItemRGB = TAG_EOBT;
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1].find("FLS") != string::npos) {
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									if (myNetworkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -2298,9 +2306,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
 							string status = "";
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									status = networkStatus[i][1];
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									status = myNetworkStatus[i][1];
 								}
 							}
 							if (status != "") {
@@ -2966,10 +2974,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						//If suspended by network Status, mark it as Invalid (I)
-						for (size_t i = 0; i < networkStatus.size(); i++) {
-							if (networkStatus[i][0] == callsign) {
+						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+							if (myNetworkStatus[i][0] == callsign) {
 								//Check for any FLS status (except "FLS-CDM")
-								if (networkStatus[i][1].find("FLS") != string::npos && networkStatus[i][1].find("CDM") == string::npos) {
+								if (myNetworkStatus[i][1].find("FLS") != string::npos && myNetworkStatus[i][1].find("CDM") == string::npos) {
 									OutOfTsat.push_back({ callsign,EOBT,TSAT });
 									setFlightStripInfo(FlightPlan, "", 0);
 									setFlightStripInfo(FlightPlan, "", 3);
@@ -3088,9 +3096,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_ORANGE;
 								}
 							}
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1].find("FLS") != string::npos) {
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									if (myNetworkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -3617,9 +3625,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
 						string status = "";
-						for (size_t i = 0; i < networkStatus.size(); i++) {
-							if (networkStatus[i][0] == callsign) {
-								status = networkStatus[i][1];
+						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+							if (myNetworkStatus[i][0] == callsign) {
+								status = myNetworkStatus[i][1];
 							}
 						}
 						if (status != "") {
@@ -4051,9 +4059,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						if (ItemCode == TAG_ITEM_EOBT) {
 							string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							ItemRGB = TAG_EOBT;
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1].find("FLS") != string::npos) {
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									if (myNetworkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -4402,9 +4410,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
 						string status = "";
-						for (size_t i = 0; i < networkStatus.size(); i++) {
-							if (networkStatus[i][0] == callsign) {
-								status = networkStatus[i][1];
+						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+							if (myNetworkStatus[i][0] == callsign) {
+								status = myNetworkStatus[i][1];
 							}
 						}
 						if (status != "") {
@@ -4482,9 +4490,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						{
 							string ShowEOBT = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
 							ItemRGB = TAG_EOBT;
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									if (networkStatus[i][1].find("FLS") != string::npos) {
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									if (myNetworkStatus[i][1].find("FLS") != string::npos) {
 										ItemRGB = TAG_RED;
 									}
 									break;
@@ -4594,9 +4602,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
 							string status = "";
-							for (size_t i = 0; i < networkStatus.size(); i++) {
-								if (networkStatus[i][0] == callsign) {
-									status = networkStatus[i][1];
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									status = myNetworkStatus[i][1];
 								}
 							}
 							if (status != "") {
@@ -4678,9 +4686,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				if (ItemCode == TAG_ITEM_EOBT)
 				{
 					ItemRGB = TAG_EOBT;
-					for (size_t i = 0; i < networkStatus.size(); i++) {
-						if (networkStatus[i][0] == callsign) {
-							if (networkStatus[i][1].find("FLS") != string::npos) {
+					for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+						if (myNetworkStatus[i][0] == callsign) {
+							if (myNetworkStatus[i][1].find("FLS") != string::npos) {
 								ItemRGB = TAG_RED;
 							}
 							break;
@@ -4790,9 +4798,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				}
 				else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
 					string status = "";
-					for (size_t i = 0; i < networkStatus.size(); i++) {
-						if (networkStatus[i][0] == callsign) {
-							status = networkStatus[i][1];
+					for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+						if (myNetworkStatus[i][0] == callsign) {
+							status = myNetworkStatus[i][1];
 						}
 					}
 					if (status != "") {
@@ -4992,9 +5000,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			if (ItemCode == TAG_ITEM_EOBT)
 			{
 				ItemRGB = TAG_EOBT;
-				for (size_t i = 0; i < networkStatus.size(); i++) {
-					if (networkStatus[i][0] == callsign) {
-						if (networkStatus[i][1].find("FLS") != string::npos) {
+				for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+					if (myNetworkStatus[i][0] == callsign) {
+						if (myNetworkStatus[i][1].find("FLS") != string::npos) {
 							ItemRGB = TAG_RED;
 						}
 						break;
@@ -5037,9 +5045,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 			else if (ItemCode == TAG_ITEM_NETWORK_STATUS) {
 				string status = "";
-				for (size_t i = 0; i < networkStatus.size(); i++) {
-					if (networkStatus[i][0] == callsign) {
-						status = networkStatus[i][1];
+				for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+					if (myNetworkStatus[i][0] == callsign) {
+						status = myNetworkStatus[i][1];
 					}
 				}
 				if (status != "") {
@@ -9548,7 +9556,10 @@ void CDM::getCdmServerStatus() {
 					}
 				}
 			}
-			networkStatus = networkStatusTemp;
+			{
+				std::lock_guard<std::mutex> lock(networkStatusMutex);
+				networkStatus = std::move(networkStatusTemp);
+			}
 			addLogLine("COMPLETED - getCdmServerStatus");
 		}
 		catch (const std::exception& e) {
