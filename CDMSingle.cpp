@@ -42,6 +42,8 @@ bool addTime;
 bool lvo;
 bool ctotCid;
 bool realMode;
+bool eventMode;
+int eventModeTime;
 bool pilotTobt;
 bool atotEnabled;
 bool remarksOption;
@@ -350,6 +352,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string deIceRem5 = getFromXml("/CDM/DeIceRemTaxi/@rem5");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
+	eventModeTime = stoi(getFromXml("/CDM/eventModeMin/@time"));
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
 	string pilotTobtStr = getFromXml("/CDM/pilotTobt/@mode");
 	string autSetAtot = getFromXml("/CDM/autoAtot/@mode");
@@ -454,6 +457,8 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	if (autSetAtot == "true") {
 		atotEnabled = true;
 	}
+
+	eventMode = false;
 
 	realMode = false;
 	if (realModeStr == "true") {
@@ -6297,13 +6302,13 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 				if (inPoly(4, LatArea, LonArea, lat, lon) % 2 != 0) {
 					if (remId > 0 && times.size() >= remId) {
 						if (isNumber(times[remId - 1])) {
-							return to_string(deIceTime + stoi(times[remId - 1]));
+							return to_string(deIceTime + stoi(times[remId - 1]) + (eventMode ? eventModeTime : 0));
 						}
 						else {
 							addLogLine("ERROR: Non-numeric REM time in line: " + line);
 						}
 					}
-					return to_string((isNumber(match[11]) ? stoi(match[11]) : defTaxiTime) + deIceTime);
+					return to_string((isNumber(match[11]) ? stoi(match[11]) : defTaxiTime) + deIceTime + (eventMode ? eventModeTime : 0));
 				}
 			}
 		}
@@ -7911,6 +7916,20 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 		else {
 			realMode = true;
 			sendMessage("Real Mode set to ON");
+		}
+		return true;
+	}
+
+	if (startsWith(".cdm event", sCommandLine))
+	{
+		addLogLine(sCommandLine);
+		if (eventMode) {
+			eventMode = false;
+			sendMessage("Event Mode set to OFF");
+		}
+		else {
+			eventMode = true;
+			sendMessage("Event Mode set to ON");
 		}
 		return true;
 	}
