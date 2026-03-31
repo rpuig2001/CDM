@@ -371,6 +371,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string sftpConnectionString = getFromXml("/CDM/sftpConnection/@mode");
 	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
+	cdmServerUrl = getFromXml("/CDM/viffSystem/@url");
 
 	if (ftpHost == "" && ftpUser == "") {
 		ftpHost = "ftp.vatsimspain.es";
@@ -507,7 +508,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	t63.detach();
 
 	//CDM-Server
-	cdmServerUrl = "https://viff-system.network";
+	if (cdmServerUrl.length() <= 1) {
+		cdmServerUrl = "https://viff-system.network";
+	}
 
 	//CDM-Server Fetch restricted
 	std::thread t34(&CDM::getCdmServerRestricted, this, slotList);
@@ -8623,10 +8626,7 @@ bool CDM::setMasterAirport(string airport, string position) {
 			}
 
 			if ((responseCode == 404 || CURLE_OK != result) && responseCode != 401) {
-				addLogLine("UNABLE TO CONNECT CDM-API...");
-				masterAirports.push_back(airport);
-				sendMessage("Successfully set master airport (Locally only) " + airport);
-				addLogLine("Successfully set master airport (Locally only) " + airport);
+				addLogLine("UNABLE TO CONNECT CDM-API... Master not set.");
 			}
 			else {
 				std::istringstream is(readBuffer);
