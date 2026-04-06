@@ -60,6 +60,7 @@ string rateUrl;
 string taxiZonesUrl;
 string ctotURL;
 string cdmServerUrl;
+string customRestrictedUrl;
 string sidIntervalUrl;
 int defTaxiTime;
 string flowRestrictionsUrl;
@@ -376,6 +377,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string cdmserver = getFromXml("/CDM/Server/@mode");
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
 	cdmServerUrl = getFromXml("/CDM/viffSystem/@url");
+	customRestrictedUrl = getFromXml("/CDM/customRestricted/@url");
 
 	if (ftpHost == "" && ftpUser == "") {
 		ftpHost = "ftp.vatsimspain.es";
@@ -526,6 +528,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	//CDM-Server
 	if (cdmServerUrl.length() <= 1) {
 		cdmServerUrl = "https://viff-system.network";
+	}
+
+	if (customRestrictedUrl.length() <= 1) {
+		customRestrictedUrl = "";
 	}
 
 	//CDM-Server Fetch restricted
@@ -9149,6 +9155,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 			curl = curl_easy_init();
 			if (curl) {
 				string url = cdmServerUrl + "/etfms/restricted";
+				if (customRestrictedUrl != "") url = customRestrictedUrl;
 				string apiKeyHeader = "x-api-key: " + apikey;
 				struct curl_slist* headers = NULL;
 				headers = curl_slist_append(headers, apiKeyHeader.c_str());
