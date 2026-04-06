@@ -40,6 +40,7 @@ int countTfcDisconnection;
 int refreshTime;
 bool addTime;
 bool lvo;
+bool bmiMode;
 bool ctotCid;
 bool realMode;
 bool eventMode;
@@ -334,7 +335,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	}
 
 	try {
-
 	defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
 	string deIceLight = getFromXml("/CDM/DeIceTimes/@light");
 	string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
@@ -352,8 +352,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string deIceRem5 = getFromXml("/CDM/DeIceRemTaxi/@rem5");
 	refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
 	expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
-	eventModeTime = stoi(getFromXml("/CDM/eventModeMin/@time"));
+	string eventModeTimeString = getFromXml("/CDM/eventModeMin/@time");
 	string realModeStr = getFromXml("/CDM/realMode/@mode");
+	string bmiModeString = getFromXml("/CDM/bmi/@mode");
 	string pilotTobtStr = getFromXml("/CDM/pilotTobt/@mode");
 	string autSetAtot = getFromXml("/CDM/autoAtot/@mode");
 	rateString = getFromXml("/CDM/rate/@ops");
@@ -436,6 +437,10 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 		deIceTaxiRem5 = stoi(deIceRem5);
 	}
 
+	bmiMode = false;
+	if (bmiModeString == "true") {
+		bmiMode = true;
+	}
 
 	option_su_wait = false;
 	if (opt_su_wait == "true") {
@@ -459,6 +464,12 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	}
 
 	eventMode = false;
+	if (eventModeTimeString == "") {
+		eventModeTime = 0;
+	}
+	else {
+		eventModeTime = stoi(eventModeTimeString);
+	}
 
 	realMode = false;
 	if (realModeStr == "true") {
@@ -1785,6 +1796,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 		//Refresh ecfmpData every 5 min
 		time_t timeNow = std::time(nullptr);
 		if ((timeNow - countEcfmpTime) > 300 && !refresh2) {
+			refresh2 = true;
 			countEcfmpTime = timeNow;
 			std::thread t(&CDM::refreshActions2, this);
 			t.detach();
@@ -1802,6 +1814,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 		if ((timeNow - countFetchServerTime) > 15 && !refresh3) {
+			refresh3 = true;
 			countFetchServerTime = timeNow;
 			std::thread t(&CDM::refreshActions3, this);
 			t.detach();
@@ -1810,6 +1823,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			}
 		}
 		if ((timeNow - countRefreshActions4Time) > 10 && !refresh4) {
+			refresh4 = true;
 			countRefreshActions4Time = timeNow;
 			std::thread t(&CDM::refreshActions4, this);
 			t.detach();
@@ -2613,6 +2627,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								while (equalTTOT) {
 									correctTTOT = true;
 									if (!hasManualCtot) {
+										if (bmiMode) {
+											TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, hasManualCtot, slotList, rate, callsign, origin, depRwy, GetActualTime() + "00", taxiTime);
+										} else {
 										for (size_t t = 0; t < slotList.size(); t++)
 										{
 											string listTTOT;
@@ -2722,6 +2739,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 										}
+									}
 									}
 
 									if (correctTTOT) {
@@ -3010,17 +3028,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						//If suspended by network Status, mark it as Invalid (I)
-						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-							if (myNetworkStatus[i][0] == callsign) {
-								//Check for any FLS status (except "FLS-CDM")
-								if (myNetworkStatus[i][1].find("FLS") != string::npos && myNetworkStatus[i][1].find("CDM") == string::npos) {
-									OutOfTsat.push_back({ callsign,EOBT,TSAT });
-									setFlightStripInfo(FlightPlan, "", 0);
-									setFlightStripInfo(FlightPlan, "", 3);
-									setFlightStripInfo(FlightPlan, "", 4);
+						if (!stillOutOfTsat) {
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									//Check for any FLS status (except "FLS-CDM")
+									if (myNetworkStatus[i][1].find("FLS") != string::npos && myNetworkStatus[i][1].find("CDM") == string::npos) {
+										OutOfTsat.push_back({ callsign,EOBT,TSAT });
+										setFlightStripInfo(FlightPlan, "", 0);
+										setFlightStripInfo(FlightPlan, "", 3);
+										setFlightStripInfo(FlightPlan, "", 4);
+									}
 								}
+								//Do NOT Update CDM-API (As we are SUSP because of network status)
 							}
-							//Do NOT Update CDM-API (As we are SUSP because of network status)
 						}
 
 						//EOBT
@@ -3777,6 +3797,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//Check readyToUpdateList;
 						if (readyToUpdateList && !refresh1) {
+							refresh1 = true;
 							addLogLine("[AUTO] - Updating slotList with latest update...");
 							for (Plane p : slotListToUpdate) {
 								for (int d = 0; d < slotList.size(); d++) {
@@ -3793,6 +3814,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//Refresh times every x sec
 						if ((timeNow - countTime) > refreshTime && !refresh1) {
+							refresh1 = true;
 							countTime = timeNow;
 							addLogLine("[AUTO] - REFRESH CDM INTERNAL DATA");
 							//Order list according TTOT
@@ -5837,6 +5859,10 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 
 			while (equalTTOT) {
 				correctTTOT = true;
+				if (bmiMode) {
+					TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin, depRwy, timeNow, taxiTime);
+				}
+				else {
 				for (size_t t = 0; t < planes.size(); t++)
 				{
 					string listTTOT;
@@ -5996,6 +6022,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 							}
 						}
 					}
+				}
 				}
 
 				if (correctTTOT) {
@@ -6162,6 +6189,148 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 		addLogLine("ERROR: Unhandled exception refreshTimes");
 		return plane;
 	}
+}
+
+string CDM::getCorrectTTOT_Windowed(
+	string TTOTInitial,
+	bool hasManualCtot,
+	const vector<Plane>& planes,
+	int rateHour,
+	const string& callsign,
+	const string& origin,
+	const string& depRwy,
+	const string& timeNow,
+	double taxiTime
+) {
+	string TTOTFinal = TTOTInitial;
+	bool correctTTOT = true;
+	bool alreadySetTOStd = false;
+
+	const int windowMinutes = 10;
+	const int windowsPerHour = 60 / windowMinutes;
+
+	// Instead of ceil -> distribute remainder across windows
+	const int baseCap = rateHour / windowsPerHour;      // e.g. 40/6 = 6
+	const int remainder = rateHour % windowsPerHour;    // e.g. 40%6 = 4  -> 4 windows get +1
+
+	auto getWindowStartFromTTOT = [&](const string& ttot) -> string {
+		int v = stoi(ttot);
+		int hh = v / 10000;
+		int mm = (v / 100) % 100;
+
+		int mmStart = (mm / windowMinutes) * windowMinutes;
+		int startVal = (hh * 10000) + (mmStart * 100);
+
+		string s = to_string(startVal);
+		while ((int)s.size() < 6) s = "0" + s;
+		return s;
+		};
+
+	auto capForWindowStart = [&](const string& windowStartTTOT) -> int {
+		int v = stoi(windowStartTTOT);
+		int mmStart = (v / 100) % 100;
+		int windowIndex = mmStart / windowMinutes;
+		return baseCap + ((windowIndex < remainder) ? 1 : 0);
+		};
+
+	auto inSameWindow = [&](const string& a, const string& b) -> bool {
+		return getWindowStartFromTTOT(a) == getWindowStartFromTTOT(b);
+		};
+
+	auto bumpToNextWindowStart = [&](const string& ttot) -> string {
+		string winStart = getWindowStartFromTTOT(ttot);
+		string next = calculateTime(winStart, 10.0);
+		return getWindowStartFromTTOT(next);
+		};
+
+	auto countInWindow = [&](const string& windowTTOT, bool manualMode) -> int {
+		int count = 0;
+		for (int t = 0; t < (int)planes.size(); t++) {
+			if (planes[t].callsign == callsign) continue;
+			if (manualMode && !planes[t].hasManualCtot) continue;
+			if (!manualMode && planes[t].hasManualCtot) continue;
+
+			string listCallsign = planes[t].callsign;
+			string listDepRwy = "";
+
+			CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
+			if (!listFlightPlan.IsValid()) continue;
+
+			string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
+
+			bool depRwyFound = false;
+			for (size_t i = 0; i < taxiTimesList.size(); i++) {
+				if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
+					if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
+						listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
+						depRwyFound = true;
+					}
+					else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
+						listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
+						depRwyFound = true;
+					}
+				}
+			}
+
+			string listAirport;
+			for (size_t i = 0; i < planeAiportList.size(); i++) {
+				if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
+					listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
+				}
+			}
+
+			if (!depRwyFound) listDepRwy = depRwy;
+
+			bool sameOrDependantRwys = (depRwy == listDepRwy);
+
+			if (!(listAirport == origin)) continue;
+			if (!sameOrDependantRwys) continue;
+
+			if (inSameWindow(windowTTOT, planes[t].ttot)) {
+				count++;
+			}
+		}
+		return count;
+		};
+
+	bool found = false;
+	while (!found) {
+		found = true;
+
+		string currentWindowStart = getWindowStartFromTTOT(TTOTFinal);
+
+		int used = countInWindow(currentWindowStart, hasManualCtot);
+		int capThisWindow = capForWindowStart(currentWindowStart);
+
+		if (used >= capThisWindow) {
+			found = false;
+
+			TTOTFinal = bumpToNextWindowStart(TTOTFinal);
+
+			correctTTOT = false;
+			alreadySetTOStd = true;
+		}
+
+		if (found && correctTTOT) {
+			string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
+			if (calculatedTSATNow.substr(0, 2) == "00") {
+				calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
+			}
+			if (stoi(calculatedTSATNow) < stoi(timeNow)) {
+				found = false;
+
+				TTOTFinal = bumpToNextWindowStart(TTOTFinal);
+
+				correctTTOT = false;
+				alreadySetTOStd = true;
+			}
+		}
+	}
+
+	while ((int)TTOTFinal.size() < 6) TTOTFinal = "0" + TTOTFinal;
+	if ((int)TTOTFinal.size() > 6) TTOTFinal = TTOTFinal.substr(0, 6);
+
+	return TTOTFinal;
 }
 
 /*
@@ -8591,14 +8760,12 @@ void CDM::refreshActions1() {
 }
 
 void CDM::refreshActions2() {
-	refresh2 = true;
 	addLogLine("[AUTO] - REFRESH ECFMP");
 	getEcfmpData();
 	refresh2 = false;
 }
 
 void CDM::refreshActions3() {
-	refresh3 = true;
 	addLogLine("[AUTO] - REFRESH API 1");
 	getCdmServerRestricted(slotList);
 	getCdmServerMasterAirports();
@@ -8608,7 +8775,6 @@ void CDM::refreshActions3() {
 }
 
 void CDM::refreshActions4() {
-	refresh4 = true;
 	addLogLine("[AUTO] - REFRESH API 2");
 	getCdmServerStatus();
 	refresh4 = false;

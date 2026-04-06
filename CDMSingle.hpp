@@ -40,7 +40,7 @@
 #endif
 
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.26.1"
+#define MY_PLUGIN_VERSION   "2.26.2b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -300,6 +300,8 @@ public:
 	vector<Plane> backgroundProcess_recaulculate();
 
 	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind);
+
+	string getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour, const string& callsign, const string& origin, const string& depRwy, const string& timeNow, double taxiTime);
 
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
