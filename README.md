@@ -127,6 +127,7 @@ CDM includes the following times:
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").
+  - Block Movement Index Mode to calculate times as "windows" (**DISABLED:** bmi mode="false" and **ENABLED:** bmi mode="true").
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
   - Auto ATOT to enable/disable automatic update TTOT when "DEPA" sts is set (**DISABLED:** autoAtot mode="false" and **ENABLED:** autoAtot mode="true").
   - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
@@ -139,6 +140,7 @@ CDM includes the following times:
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
   - [OPTIONAL] DeIce Remote Additional Taxi Time and name definition (ex. "<DeIceRemTaxi rem1Name= "REM1" rem1="10" rem2Name= "REM2" rem2="10" rem3Name= "REM3" rem3="10" rem4Name= "REM4" rem4="10" rem5Name= "REM5" rem5="10"/>") If not defined, extra 0 minutes are used. In case of empty remXName, the option will be disabled in the popup menu of Euroscope (Example: By setting rem2Name= "", rem2 will not be available in Euroscope).
+  - Event Mode minutes, it specifies the amount of minutes to add to all flights when event mode is enabled (by command) (ex. eventModeMin time="5").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case MDIs or other STAM measures system are used (ECFMP and Hong Kong systems are already in the vIFF system and **don't require this setting**)  (Default -> FlowRestrictions url:""). The format required is as ECFMP. example: https://ecfmp.vatsim.net/api/v1/plugin.
@@ -325,6 +327,28 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 
 ![image](https://github.com/user-attachments/assets/409d5241-872f-4f94-ae8f-c454cd905c48)
 
+### Block Movement Index (BMI)
+Example: rate = 40
+6 Blocks.
+base = 40 / 6 = 6 each.
+
+Allocated 6*6 = 36
+Remainder = 40 − 36 = 4
+
+extras to place 4 across 6 blocks. Spacing of remainder allocation is 6/4 = 1.5 blocks:
+assign 1 at block 0.
+0 + 1.5 = 1.5 -> assign 1 to block 1
+1.5 + 1.5 = 3.0 -> assign 1 to block 3
+3.0 + 1.5 = 4.5 -> assign 1 to block 4
+
+Capacities:
+0- 00–09: 7
+1- 10–19: 7
+2- 20–29: 6
+3- 30–39: 7
+4- 40–49: 7
+5- 50–59: 6
+
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
@@ -341,6 +365,7 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - ``.cdm rmkctot`` - Toggle set CTOT to Euroscope scratchpad ON or OFF (as ".C1234).
 - ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
+- ``.cdm event`` - Toggle Event Mode ON or OFF (adds extra min to taxi time of all flights).
 - ``.cdm recover`` - In case of of CTD, it tries to recover the latest time status backed up in the server. Example: ``.cdm recover LEBL``.
 - ``.cdm panel`` - Show or hide the CDM Airport Panel.
 - ``.cdm atfcm`` - Show or hide the ATFCM Flight List.
