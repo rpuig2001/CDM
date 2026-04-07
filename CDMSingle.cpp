@@ -3803,7 +3803,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
 						//Check readyToUpdateList;
 						if (readyToUpdateList && !refresh1) {
-							refresh1 = true;
 							addLogLine("[AUTO] - Updating slotList with latest update...");
 							for (Plane p : slotListToUpdate) {
 								for (int d = 0; d < slotList.size(); d++) {
