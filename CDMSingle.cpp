@@ -108,6 +108,7 @@ vector<Plane> slotList;
 vector<Plane> slotListToUpdate;
 vector<Plane> slotListSaved;
 vector<vector<string>> dataSaved;
+vector<vector<string>> obtList;
 vector<EcfmpRestriction> ecfmpData;
 vector<Plane> apiCtots;
 vector<string> asatList;
@@ -815,8 +816,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
 				fp.GetFlightPlanData().AmendFlightPlan();
 				if (editedEOBT.length() == 4) {
+					for (int u = 0; u < obtList.size(); u++) {
+						if (obtList[u][0] == fp.GetCallsign()) {
+							obtList[u][1] = editedEOBT;
+							break;
+						}
+					}
 					//Set EOBT in API
-					std::thread t(&CDM::setCdmSts, this, fp.GetCallsign(), "EOBT/" + editedEOBT);
+					std::thread t(&CDM::setTOBTApi, this, fp.GetCallsign(), editedEOBT, true, true);
 					t.detach();
 				}
 			}
@@ -1621,7 +1628,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								}
 							}
 							//Check API
-							std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].tsat, true);
+							std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].tsat, true, false);
 							t.detach();
 						}
 
@@ -1703,7 +1710,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								slotList[a].showData = false;
 							}
 						}
-						std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", true);
+						std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", true, false);
 						t.detach();
 					}
 					//}
@@ -2874,17 +2881,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														if (stoi(myTTOT) > stoi(slotList[pos].ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
 															//Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to CTOT+7
 															string myCOBT = calculateLessTime(slotList[pos].ctot + "00", taxiTime);
-															std::thread t(&CDM::setTOBTApi, this, callsign, myCOBT, true);
+															std::thread t(&CDM::setTOBTApi, this, callsign, myCOBT, true, false);
 															t.detach();
 														}
 														else {
-															std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
+															std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true, false);
 															t.detach();
 														}
 
 													}
 													else {
-														std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true);
+														std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true, false);
 														t.detach();
 													}
 												}
@@ -5071,7 +5078,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						break;
 					}
 				}
-				strcpy_s(sItemString, 16, EOBTfinal.c_str());
+				string eobtValue = EOBTfinal;
+				for (vector<string> obtItem : obtList) {
+					if (obtItem[0] == callsign && obtItem[1] != "") {
+						eobtValue = obtItem[1];
+						break;
+					}
+				}
+				strcpy_s(sItemString, 16, eobtValue.c_str());
 			}
 			if (ItemCode == TAG_ITEM_ETOBT)
 			{
@@ -6168,15 +6182,15 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 									if (stoi(myTTOT) > stoi(plane.ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
 										//Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to CTOT+7
 										string myCOBT = calculateLessTime(plane.ctot + "00", taxiTime);
-										setTOBTApi(callsign, myCOBT, false);
+										setTOBTApi(callsign, myCOBT, false, false);
 									}
 									else {
-										setTOBTApi(callsign, myTSATApi, false);
+										setTOBTApi(callsign, myTSATApi, false, false);
 									}
 
 								}
 								else {
-									setTOBTApi(callsign, myTSATApi, false);
+									setTOBTApi(callsign, myTSATApi, false, false);
 								}
 							}
 						}
@@ -7128,6 +7142,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 19");
 			}
 			dataSaved.erase(dataSaved.begin() + i);
+		}
+	}
+	//Remove from obtList
+	for (size_t i = 0; i < obtList.size(); i++)
+	{
+		if (callsign == obtList[i][0]) {
+			if (debugMode) {
+				sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 20");
+			}
+			obtList.erase(obtList.begin() + i);
 		}
 	}
 
@@ -8782,6 +8806,7 @@ void CDM::refreshActions3() {
 void CDM::refreshActions4() {
 	addLogLine("[AUTO] - REFRESH API 2");
 	getCdmServerStatus();
+	getIffOffBlockTimes();
 	refresh4 = false;
 }
 
@@ -9298,7 +9323,7 @@ void CDM::sendWaitingTOBT() {
 				alreadyProcessed.push_back(setTOBTlaterTemp[i]);
 				addLogLine("sendWaitingTOBT - " + setTOBTlaterTemp[i].callsign);
 				if (serverEnabled) {
-					setTOBTApi(setTOBTlaterTemp[i].callsign, setTOBTlaterTemp[i].tsat, false);
+					setTOBTApi(setTOBTlaterTemp[i].callsign, setTOBTlaterTemp[i].tsat, false, false);
 				}
 			}
 		}
@@ -9436,7 +9461,7 @@ void CDM::sendCheckCIDLater() {
 		}
 	}
 
-void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
+void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool useEobt) {
 		addLogLine("Called setTOBTApi...");
 		try {
 			vector<Plane> slotListTemp; // Local copy of the slotList
@@ -9480,6 +9505,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser) {
 				if (curl) {
 					addLogLine("Requesting TOBT (" + tobt + ") for " + callsign);
 					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=TOBT/" + tobt + "/" + taxiTime;
+					if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + tobt;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -10133,6 +10159,95 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 	return planes;
 }
 
+void CDM::getIffOffBlockTimes() {
+	vector<vector<string>> myObts;
+	if (serverEnabled) {
+		vector<Plane> mySlotList = slotList;
+		vector<string> airports;
+		for (int i = 0; i < mySlotList.size(); i++) {
+			CFlightPlan fp1 = FlightPlanSelect(mySlotList[i].callsign.c_str());
+			if (fp1.IsValid()) {
+				string depAirport = fp1.GetFlightPlanData().GetOrigin();
+				if (find(CDMairports.begin(), CDMairports.end(), depAirport) == CDMairports.end()) airports.push_back(depAirport);
+			}
+		}
+		sort(airports.begin(), airports.end());
+		airports.erase(unique(airports.begin(), airports.end()), airports.end());
+
+		addLogLine("Called getIffOffBlockTimes...");
+		try {
+			for (string apt : airports)
+			{
+				CURL* curl;
+				CURLcode result = CURLE_FAILED_INIT;
+				std::string readBuffer;
+				long responseCode = 0;
+				curl = curl_easy_init();
+				if (curl) {
+					string url = cdmServerUrl + "/ifps/depAirport?airport=" + apt;
+					string apiKeyHeader = "x-api-key: " + apikey;
+					struct curl_slist* headers = NULL;
+					headers = curl_slist_append(headers, apiKeyHeader.c_str());
+					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
+					curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
+					curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
+					curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
+					curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
+					curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
+					curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
+					curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
+					result = curl_easy_perform(curl);
+					curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
+					curl_easy_cleanup(curl);
+				}
+
+				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+					// handle error 404
+					addLogLine("UNABLE TO LOAD CDM-API URL...");
+				}
+				else {
+					Json::Reader reader;
+					Json::Value obj;
+					Json::FastWriter fastWriter;
+					reader.parse(readBuffer, obj);
+
+					const Json::Value& data = obj;
+					for (size_t i = 0; i < data.size(); i++) {
+						if (data[i].isMember("obt") && data[i].isMember("callsign") && data[i].isMember("atot")) {
+
+							string callsign = fastWriter.write(data[i]["callsign"]);
+							callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
+							callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+							callsign.erase(std::remove(callsign.begin(), callsign.end(), '\n'));
+
+							string obt = fastWriter.write(data[i]["obt"]);
+							obt.erase(std::remove(obt.begin(), obt.end(), '"'));
+							obt.erase(std::remove(obt.begin(), obt.end(), '\n'));
+							obt.erase(std::remove(obt.begin(), obt.end(), '\n'));
+
+							string atot = fastWriter.write(data[i]["atot"]);
+							atot.erase(std::remove(atot.begin(), atot.end(), '"'));
+							atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
+							atot.erase(std::remove(atot.begin(), atot.end(), '\n'));
+
+							if (atot == "") {
+								myObts.push_back({ callsign, obt });
+							}
+						}
+					}
+				}
+			}
+		}
+		catch (const std::exception& e) {
+			addLogLine("ERROR: Unhandled exception getIffOffBlockTimes: " + (string)e.what());
+		}
+		catch (...) {
+			addLogLine("ERROR: Unhandled exception getIffOffBlockTimes");
+		}
+	}
+	obtList = myObts;
+}
+
 void CDM::getNetworkTobt() {
 	if (serverEnabled && pilotTobt) {
 		addLogLine("Called getNetworkTobt...");
@@ -10188,7 +10303,7 @@ void CDM::getNetworkTobt() {
 									setFlightStripInfo(fp, plane[1], 2);
 									setCdmSts(plane[0], "REQTOBT/NULL/NULL");
 									//Trigger TOBT update to update TAXI TIME
-									setTOBTApi(plane[0], plane[1], true);
+									setTOBTApi(plane[0], plane[1], true, false);
 									updated = true;
 								}
 							}
@@ -10204,7 +10319,7 @@ void CDM::getNetworkTobt() {
 							setFlightStripInfo(fp, plane[1], 2);
 							setCdmSts(plane[0], "REQTOBT/NULL/NULL");
 							//Trigger TOBT update to update TAXI TIME
-							setTOBTApi(plane[0], plane[1], true);
+							setTOBTApi(plane[0], plane[1], true, false);
 							updated = true;
 						}
 					}

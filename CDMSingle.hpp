@@ -160,7 +160,7 @@ public:
 
 	void updateCdmDataApi(Plane p);
 
-	void setTOBTApi(string callsign, string tobt, bool triggeredByUser);
+	void setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool useEobt);
 
 	string getTaxiTime(string callsign);
 
@@ -177,6 +177,8 @@ public:
 	void getNetworkRates();
 
 	vector<vector<string>> getDepAirportPlanes(string airport);
+
+	void getIffOffBlockTimes();
 
 	void getNetworkTobt();
 
