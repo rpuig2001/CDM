@@ -329,7 +329,9 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 ![image](https://github.com/user-attachments/assets/409d5241-872f-4f94-ae8f-c454cd905c48)
 
 ### Block Movement Index (BMI)
-Example: rate = 40
+Example: 
+```
+rate = 40
 6 Blocks.
 base = 40 / 6 = 6 each.
 
@@ -349,7 +351,7 @@ Capacities:
 3- 30–39: 7
 4- 40–49: 7
 5- 50–59: 6
-
+```
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
