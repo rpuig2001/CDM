@@ -73,6 +73,7 @@ const int TAG_FUNC_NEW_MASTER_AIRPORT = 151;
 const int TAG_FUNC_RELEVANT_FLIGHTS_FILTER = 152;
 const int TAG_FUNC_PM_SEND = 153;
 const int TAG_FUNC_OPT_ETOBT = 154;
+const int TAG_FUNC_TOGGLEASRTREA = 155;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

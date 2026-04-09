@@ -222,6 +222,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	// Register Tag Item "CDM-ASAT"
 	RegisterTagItemType("ASRT", TAG_ITEM_ASRT);
 	RegisterTagItemFunction("Toggle ASRT", TAG_FUNC_TOGGLEASRT);
+	RegisterTagItemFunction("Toggle ASRT+REA", TAG_FUNC_TOGGLEASRTREA);
 
 	// Register Tag Item "CDM-ASAT"
 	RegisterTagItemType("Ready Start-up", TAG_ITEM_READYSTARTUP);
@@ -914,7 +915,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 
-	else if (FunctionId == TAG_FUNC_TOGGLEASRT || FunctionId == TAG_FUNC_READYSTARTUP) {
+	else if (FunctionId == TAG_FUNC_TOGGLEASRT || FunctionId == TAG_FUNC_READYSTARTUP || FunctionId == TAG_FUNC_TOGGLEASRTREA) {
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_READYSTARTUP");
 			string annotAsrt = getFlightStripInfo(fp, 0);
@@ -935,6 +936,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 
 				setFlightStripInfo(fp, (hour + min), 0);
+				if (FunctionId == TAG_FUNC_TOGGLEASRTREA) {
+					std::thread t74(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
+					t74.detach();
+				}
 			}
 			else {
 				setFlightStripInfo(fp, "", 0);
@@ -5090,7 +5095,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 			if (ItemCode == TAG_ITEM_ETOBT)
 			{
 				ItemRGB = TAG_EOBT;
-				strcpy_s(sItemString, 16, EOBTfinal.c_str());
+				for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+					if (myNetworkStatus[i][0] == callsign) {
+						if (myNetworkStatus[i][1].find("FLS") != string::npos) {
+							ItemRGB = TAG_RED;
+						}
+						break;
+					}
+				}
+				string eobtValue = EOBTfinal;
+				for (vector<string> obtItem : obtList) {
+					if (obtItem[0] == callsign && obtItem[1] != "") {
+						eobtValue = obtItem[1];
+						break;
+					}
+				}
+				strcpy_s(sItemString, 16, eobtValue.c_str());
 			}
 			if (ItemCode == TAG_ITEM_CTOT)
 			{
