@@ -2735,7 +2735,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 												}
 											}
 											//Check SID Interval
-											if (correctTTOT && sidIntervalEnabled) {
+											if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
+												listTTOT = slotList[t].ttot;
 												double interval = getSidInterval(mySid, listSid, origin, depRwy);
 												if (interval > 0) {
 													bool found = false;
@@ -6040,7 +6041,8 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 						}
 					}
 					//Check SID Interval
-					if (correctTTOT && sidIntervalEnabled) {
+					if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
+						listTTOT = planes[t].ttot;
 						double interval = getSidInterval(mySid, listSid, origin, depRwy);
 						if (interval > 0) {
 							bool found = false;
