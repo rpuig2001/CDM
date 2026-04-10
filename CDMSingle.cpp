@@ -50,6 +50,7 @@ bool atotEnabled;
 bool remarksOption;
 bool remarksOptionCtot;
 bool invalidateTSAT_Option;
+bool invalidateTSAT_Option_asrt;
 bool invalidateTOBT_Option;
 bool readySetTsac;
 bool sidIntervalEnabled;
@@ -492,8 +493,13 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	//Invalidate FP at TSAT+6
 	invalidateTSAT_Option = true;
+	invalidateTSAT_Option_asrt = false;
 	if (invalidateTSAT_OptionStr == "false") {
 		invalidateTSAT_Option = false;
+	}
+	else if (invalidateTSAT_OptionStr == "asrt") {
+		invalidateTSAT_Option = true;
+		invalidateTSAT_Option_asrt = true;
 	}
 
 	invalidateTOBT_Option = true;
@@ -3035,7 +3041,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						}
 
 						string getTTOT = getFlightStripInfo(FlightPlan, 4);
-						if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) && invalidateTSAT_Option && !getTTOT.empty()) {
+						if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) && invalidateTSAT_Option && !getTTOT.empty() && ((invalidateTSAT_Option_asrt && !ASRTtext.empty()) || (!invalidateTSAT_Option_asrt))) {
 							OutOfTsat.push_back({ callsign,EOBT,TSAT });
 							setFlightStripInfo(FlightPlan, "", 0);
 							setFlightStripInfo(FlightPlan, "", 3);
