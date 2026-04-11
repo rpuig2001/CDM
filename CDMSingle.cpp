@@ -1674,9 +1674,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 					if (hasNoNumber) {
 						if (!master) {
-							//Set REQ TOBT
-							std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REQTOBT/" + editedTOBT + "/ATC");
-							t99.detach();
+							if (editedTOBT.length() == 4) {
+								//Set REQ TOBT
+								std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REQTOBT/" + editedTOBT + "/ATC");
+								t99.detach();
+							}
 						} else {
 							int hours = stoi(editedTOBT.substr(0, 2));
 							int minutes = stoi(editedTOBT.substr(2, 2));
