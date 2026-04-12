@@ -9713,6 +9713,19 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 				setCdmStslater.push_back({ callsign, cdmSts });
 				addLogLine("UNABLE TO CONNECT CDM-API...");
 			}
+			else {
+				std::istringstream is(readBuffer);
+				//Get data from .txt file
+				string lineValue;
+				while (getline(is, lineValue))
+				{
+					if (lineValue != "true") {
+						std::lock_guard<std::mutex> lock(later2Mutex);
+						addLogLine("setCdmSts: true not received. Retrying later... Received: " + lineValue);
+						setCdmStslater.push_back({ callsign, cdmSts });
+					}
+				}
+			}
 			std::thread t59(&CDM::getCdmServerStatus, this);
 			t59.detach();
 
