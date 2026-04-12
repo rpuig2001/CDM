@@ -9715,7 +9715,6 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
 			}
 			else {
 				std::istringstream is(readBuffer);
-				//Get data from .txt file
 				string lineValue;
 				while (getline(is, lineValue))
 				{
