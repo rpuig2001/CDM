@@ -6492,8 +6492,17 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 		{
 			line = TxtTimesVector[t];
 			if (
-				regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)", regex::icase)) ||
-				regex_match(TxtTimesVector[t], match, regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)", regex::icase))
+				regex_match(TxtTimesVector[t], match,
+					regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)$",
+						regex::icase)) ||
+
+				regex_match(TxtTimesVector[t], match,
+					regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)$",
+						regex::icase)) ||
+
+				regex_match(TxtTimesVector[t], match,
+					regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+):(\\d+)$",
+						regex::icase))
 				)
 			{
 				if (origin != match[1])
@@ -6517,16 +6526,32 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
 					times = splitString(match[12], ',');
 				}
 
+				int eventAdd = 0;
+				if (eventMode) {
+					if (match.size() > 13 && match[13].matched && match[13].length() > 0) {
+						if (isNumber(match[13])) {
+							eventAdd = stoi(match[13]);
+						}
+						else {
+							addLogLine("ERROR: Non-numeric EVENT_TAXI in line: " + line);
+							eventAdd = eventModeTime;
+						}
+					}
+					else {
+						eventAdd = eventModeTime;
+					}
+				}
+
 				if (inPoly(4, LatArea, LonArea, lat, lon) % 2 != 0) {
-					if (remId > 0 && times.size() >= remId) {
+					if (remId > 0 && times.size() >= (size_t)remId) {
 						if (isNumber(times[remId - 1])) {
-							return to_string(deIceTime + stoi(times[remId - 1]) + (eventMode ? eventModeTime : 0));
+							return to_string(deIceTime + stoi(times[remId - 1]) + eventAdd);
 						}
 						else {
 							addLogLine("ERROR: Non-numeric REM time in line: " + line);
 						}
 					}
-					return to_string((isNumber(match[11]) ? stoi(match[11]) : defTaxiTime) + deIceTime + (eventMode ? eventModeTime : 0));
+					return to_string((isNumber(match[11]) ? stoi(match[11]) : defTaxiTime) + deIceTime + eventAdd);
 				}
 			}
 		}
