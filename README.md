@@ -140,7 +140,7 @@ CDM includes the following times:
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
   - [OPTIONAL] DeIce Remote Additional Taxi Time and name definition (ex. "<DeIceRemTaxi rem1Name= "REM1" rem1="10" rem2Name= "REM2" rem2="10" rem3Name= "REM3" rem3="10" rem4Name= "REM4" rem4="10" rem5Name= "REM5" rem5="10"/>") If not defined, extra 0 minutes are used. In case of empty remXName, the option will be disabled in the popup menu of Euroscope (Example: By setting rem2Name= "", rem2 will not be available in Euroscope).
-  - Event Mode minutes, it specifies the amount of minutes to add to all flights when event mode is enabled (by command) (ex. eventModeMin time="5").
+  - Event Mode minutes, it specifies the amount of minutes to add to all flights by default (if not configured EVENT_EXTRA_TIME in taxizones) when event mode is enabled (by command) (ex. eventModeMin time="5").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case MDIs or other STAM measures system are used (ECFMP and Hong Kong systems are already in the vIFF system and **don't require this setting**)  (Default -> FlowRestrictions url:""). The format required is as ECFMP. example: https://ecfmp.vatsim.net/api/v1/plugin.
@@ -156,13 +156,15 @@ CDM includes the following times:
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
-  -  With de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI``.
-  -  With no de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``.
+  -  With de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI:7``.
+  -  With no de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:EVENT_EXTRA_TIME``.
 
   ex:
-  - ith de-ice taxi definitions: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0``.
-  - With no de-ice taxi definitions: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``.
+  - with de-ice taxi definitions and EVENT_EXTRA_TIME: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0:12``.
+  - with de-ice taxi definitions and no EVENT_EXTRA_TIME: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0``.
+  - With no de-ice taxi definitions and no EVENT_EXTRA_TIME: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``.
   - If no taxizone defined, the default taxi time is set to 15 min.
+  - If eventMode activated and EVENT_EXTRA_TIME not defined, then eventModeTime (from CDMConfig.xml) is used.
   - REMx_TAXI defines the taxi time from stand to runway passing over de-ice X pad (TAXITIME is not used for De-Ice pads when REMx_TAXI is defined).
 
 ### rate.txt
