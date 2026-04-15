@@ -214,6 +214,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	RegisterTagItemType("TSAC", TAG_ITEM_TSAC);
 	RegisterTagItemType("TSAC-Simple", TAG_ITEM_TSAC_SIMPLE);
 	RegisterTagItemFunction("Add TSAT to TSAC", TAG_FUNC_ADDTSAC);
+	RegisterTagItemFunction("Remove TSAC", TAG_FUNC_REMOVETSAC);
 	RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
 	RegisterTagItemFunction("TSAC Options", TAG_FUNC_OPT_TSAC);
 
@@ -842,9 +843,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 	}
 	else if (FunctionId == TAG_FUNC_ADDTSAC) {
 		addLogLine("TRIGGER - TAG_FUNC_ADDTSAC");
-		string annotTSAC = getFlightStripInfo(fp, 1);
 		string completeTOBT = getFlightStripInfo(fp, 2);
-		if (annotTSAC.empty() && !completeTOBT.empty()) {
+		if (!completeTOBT.empty()) {
 			//Get Time now
 			time_t rawtime;
 			struct tm ptm;
@@ -893,9 +893,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 		}
-		else {
-			setFlightStripInfo(fp, "", 1);
-		}
+	}
+
+	else if (FunctionId == TAG_FUNC_REMOVETSAC) {
+		addLogLine("TRIGGER - TAG_FUNC_REMOVETSAC");
+		setFlightStripInfo(fp, "", 1);
 	}
 
 	else if (FunctionId == TAG_FUNC_EDITTSAC) {
@@ -1192,7 +1194,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
 			}
 			else {
-				AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+				AddPopupListElement("Remove TSAC", "", TAG_FUNC_REMOVETSAC, false, 2, false);
 			}
 			AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
 			AddPopupListElement("----------------", "", -1, false, 2, false);
@@ -1297,11 +1299,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			addLogLine("TRIGGER - TAG_FUNC_OPT_TSAC");
 			OpenPopupList(Area, "TSAC Options", 1);
 			string tsacvalue = getFlightStripInfo(fp, 1);
-			if (tsacvalue.empty()) {
-				AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
-			}
-			else {
-				AddPopupListElement("Remove TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+			AddPopupListElement("Add TSAT to TSAC", "", TAG_FUNC_ADDTSAC, false, 2, false);
+			if (!tsacvalue.empty()) {
+				AddPopupListElement("Remove TSAC", "", TAG_FUNC_REMOVETSAC, false, 2, false);
 			}
 			AddPopupListElement("Edit TSAC", "", TAG_FUNC_EDITTSAC, false, 2, false);
 		}
