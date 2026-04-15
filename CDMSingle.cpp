@@ -3000,6 +3000,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						bool oldTSAT = false;
 						bool moreLessFive = false;
 						bool lastMinute = false;
+						bool firstMinute = false;
 						bool lastMinuteTOBT = false;
 						bool notYetEOBT = false;
 						bool actualTOBT = false;
@@ -3015,7 +3016,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
 
 						if (hour != TSAThour) {
-							if (difTime >= 44 && difTime <= 45) {
+							if (difTime == -45) {
+								firstMinute = true;
+							}
+							else if (difTime >= 44 && difTime <= 45) {
 								lastMinute = true;
 							}
 							else if (difTime >= -45 && difTime <= 45) {
@@ -3026,7 +3030,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 						else {
-							if (difTime > 5) {
+							if (difTime == -5) {
+								firstMinute = true;
+							}
+							else if (difTime > 5) {
 								oldTSAT = true;
 							}
 							else if (difTime >= 4 && difTime <= 5) {
@@ -3359,6 +3366,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										//*pColorCode = TAG_COLOR_RGB_DEFINED;
 										ItemRGB = TAG_GREY;
 										strcpy_s(sItemString, 16, "~");
+									}
+									else if (firstMinute) {
+										time_t now = time(nullptr);
+										bool toggle = (now % 2) == 0;
+										if (toggle) {
+											ItemRGB = TAG_ORANGE;
+										}
+										else {
+											ItemRGB = TAG_GREEN;
+										}
+										strcpy_s(sItemString, 16, ShowTSAT.c_str());
 									}
 									else if (lastMinute) {
 										//*pColorCode = TAG_COLOR_RGB_DEFINED;
