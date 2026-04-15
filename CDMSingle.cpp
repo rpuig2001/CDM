@@ -64,6 +64,9 @@ string cdmServerUrl;
 string customRestrictedUrl;
 string sidIntervalUrl;
 int defTaxiTime;
+bool flashingTOBTend;
+bool flashingTSATstart;
+bool flashingTSATend;
 string flowRestrictionsUrl;
 string cdm_api;
 string myAtcCallsign;
@@ -382,6 +385,9 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
 	cdmServerUrl = getFromXml("/CDM/viffSystem/@url");
 	customRestrictedUrl = getFromXml("/CDM/customRestricted/@url");
+	string flashingTOBTendString = getFromXml("/CDM/flashingMode/@tobtLastMin");
+	string flashingTSATstartString = getFromXml("/CDM/flashingMode/@tsatFirstMin");
+	string flashingTSATendString = getFromXml("/CDM/flashingMode/@tsatLastMin");
 
 	if (ftpHost == "" && ftpUser == "") {
 		ftpHost = "ftp.vatsimspain.es";
@@ -442,6 +448,14 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	if (deIceRem5 != "") {
 		deIceTaxiRem5 = stoi(deIceRem5);
 	}
+
+	flashingTOBTend = false;
+	flashingTSATstart = false;
+	flashingTSATend = false;
+
+	if (flashingTOBTendString == "true") flashingTOBTend = true;
+	if (flashingTSATstartString == "true") flashingTSATstart = true;
+	if (flashingTSATendString == "true") flashingTSATend = true;
 
 	bmiMode = false;
 	if (bmiModeString == "true") {
@@ -3122,6 +3136,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						time_t now = time(nullptr);
+
 						//ASAT
 						bool ASATFound = false;
 						bool ASATPlusFiveLessTen = false;
@@ -3216,7 +3232,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
-									ItemRGB = TAG_YELLOW;
+									bool toggle = (now % 2) == 0;
+									if (toggle || !flashingTOBTend) {
+										ItemRGB = TAG_YELLOW;
+									}
+									else {
+										ItemRGB = TAG_GREEN;
+									}
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
 								else {
@@ -3251,7 +3273,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								}
 								else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 									//*pColorCode = TAG_COLOR_RGB_DEFINED;
-									ItemRGB = TAG_YELLOW;
+									bool toggle = (now % 2) == 0;
+									if (toggle || !flashingTOBTend) {
+										ItemRGB = TAG_YELLOW;
+									}
+									else {
+										ItemRGB = TAG_GREEN;
+									}
 									strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 								}
 								else {
@@ -3368,9 +3396,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										strcpy_s(sItemString, 16, "~");
 									}
 									else if (firstMinute) {
-										time_t now = time(nullptr);
 										bool toggle = (now % 2) == 0;
-										if (toggle) {
+										if (toggle || !flashingTSATstart) {
 											ItemRGB = TAG_ORANGE;
 										}
 										else {
@@ -3380,7 +3407,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 									else if (lastMinute) {
 										//*pColorCode = TAG_COLOR_RGB_DEFINED;
-										ItemRGB = TAG_YELLOW;
+										bool toggle = (now % 2) == 0;
+										if (toggle || !flashingTSATend) {
+											ItemRGB = TAG_YELLOW;
+										}
+										else {
+											ItemRGB = TAG_GREEN;
+										}
 										strcpy_s(sItemString, 16, ShowTSAT.c_str());
 									}
 									else if (moreLessFive) {
@@ -3425,8 +3458,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										strcpy_s(sItemString, 16, "~");
 									}
 									else if (lastMinute) {
-										//*pColorCode = TAG_COLOR_RGB_DEFINED;
-										ItemRGB = TAG_YELLOW;
+										ItemRGB = TAG_GREEN;
 										strcpy_s(sItemString, 16, value.c_str());
 									}
 									else if (moreLessFive) {
@@ -3471,8 +3503,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										strcpy_s(sItemString, 16, "~");
 									}
 									else if (lastMinute) {
-										//*pColorCode = TAG_COLOR_RGB_DEFINED;
-										ItemRGB = TAG_YELLOW;
+										ItemRGB = TAG_GREEN;
 										strcpy_s(sItemString, 16, value.c_str());
 									}
 									else if (moreLessFive) {
@@ -3983,6 +4014,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						bool oldTSAT = false;
 						bool moreLessFive = false;
 						bool lastMinute = false;
+						bool firstMinute = false;
 						bool lastMinuteTOBT = false;
 						bool notYetEOBT = false;
 						bool actualTOBT = false;
@@ -3994,7 +4026,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						int difTime = GetdifferenceTime(hour, min, TSAThour, TSATmin);
 
 						if (hour != TSAThour) {
-							if (difTime >= 44 && difTime <= 45) {
+							if (difTime == -45) {
+								firstMinute = true;
+							}
+							else if (difTime >= 44 && difTime <= 45) {
 								lastMinute = true;
 							}
 							else if (difTime >= -45 && difTime <= 45) {
@@ -4005,7 +4040,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 						else {
-							if (difTime > 5) {
+							if (difTime == -5) {
+								firstMinute = true;
+							}
+							else if (difTime > 5) {
 								oldTSAT = true;
 							}
 							else if (difTime >= 4 && difTime <= 5) {
@@ -4102,6 +4140,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 						}
 
+						time_t now = time(nullptr);
+
 						// ASAT
 						bool ASATFound = false;
 						bool ASATPlusFiveLessTen = false;
@@ -4188,7 +4228,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_YELLOW;
+								bool toggle = (now % 2) == 0;
+								if (toggle || !flashingTOBTend) {
+									ItemRGB = TAG_YELLOW;
+								}
+								else {
+									ItemRGB = TAG_GREEN;
+								}
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
 							else {
@@ -4213,7 +4259,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else if (lastMinuteTOBT && ASRTtext == "" && invalidateTOBT_Option) {
 								//*pColorCode = TAG_COLOR_RGB_DEFINED;
-								ItemRGB = TAG_YELLOW;
+								bool toggle = (now % 2) == 0;
+								if (toggle || !flashingTOBTend) {
+									ItemRGB = TAG_YELLOW;
+								}
+								else {
+									ItemRGB = TAG_GREEN;
+								}
 								strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
 							}
 							else {
@@ -4272,8 +4324,25 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREY;
 									strcpy_s(sItemString, 16, "~");
 								}
+								else if (firstMinute) {
+									bool toggle = (now % 2) == 0;
+									if (toggle || !flashingTSATstart) {
+										ItemRGB = TAG_ORANGE;
+									}
+									else {
+										ItemRGB = TAG_GREEN;
+									}
+									strcpy_s(sItemString, 16, TSATString.c_str());
+								}
 								else if (lastMinute) {
-									ItemRGB = TAG_YELLOW;
+									//*pColorCode = TAG_COLOR_RGB_DEFINED;
+									bool toggle = (now % 2) == 0;
+									if (toggle || !flashingTSATend) {
+										ItemRGB = TAG_YELLOW;
+									}
+									else {
+										ItemRGB = TAG_GREEN;
+									}
 									strcpy_s(sItemString, 16, TSATString.c_str());
 								}
 								else if (moreLessFive) {
