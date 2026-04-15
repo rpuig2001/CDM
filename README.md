@@ -130,7 +130,7 @@ CDM includes the following times:
   - Block Movement Index Mode to calculate times as "windows" (**DISABLED:** bmi mode="false" and **ENABLED:** bmi mode="true").
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
   - Auto ATOT to enable/disable automatic update TTOT when "DEPA" sts is set (**DISABLED:** autoAtot mode="false" and **ENABLED:** autoAtot mode="true").
-  - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
+  - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true). By setting "asrt" it will not invalidate at TOBT+6 if ASRT is set.
   - Invalidate flight at tobt will invalidate flights at TOBT+5 (ex. invalidateAtTobt mode=true).
   - When Ready TOBT is pressed, automatically set the TSAC as the calculated TSAT (ex. readySetTsac mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
@@ -153,6 +153,7 @@ CDM includes the following times:
   - FTP/SFTP connection (sftpConnection mode="true" or sftpConnection mode="false"). By default, SFTP connection is used ("true": SFTP / "false": FTP).
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
+  - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  "<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>").
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
