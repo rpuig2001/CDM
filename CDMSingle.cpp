@@ -2668,7 +2668,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									correctTTOT = true;
 									if (!hasManualCtot) {
 										if (bmiMode) {
-											TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, hasManualCtot, slotList, rate, callsign, origin, depRwy, GetActualTime() + "00", taxiTime);
+											TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, hasManualCtot, slotList, rate, callsign, origin, depRwy, GetActualTime() + "00", taxiTime, mySid);
 										} else {
 										for (size_t t = 0; t < slotList.size(); t++)
 										{
@@ -5995,7 +5995,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 			while (equalTTOT) {
 				correctTTOT = true;
 				if (bmiMode) {
-					TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin, depRwy, timeNow, taxiTime);
+					TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin, depRwy, timeNow, taxiTime, mySid);
 				}
 				else {
 				for (size_t t = 0; t < planes.size(); t++)
@@ -6336,7 +6336,8 @@ string CDM::getCorrectTTOT_Windowed(
 	const string& origin,
 	const string& depRwy,
 	const string& timeNow,
-	double taxiTime
+	double taxiTime,
+	const string& mySid
 ) {
 	string TTOTFinal = TTOTInitial;
 	bool correctTTOT = true;
@@ -6459,6 +6460,36 @@ string CDM::getCorrectTTOT_Windowed(
 
 				correctTTOT = false;
 				alreadySetTOStd = true;
+			}
+		}
+
+		if (found && sidIntervalEnabled) {
+			for (int t = 0; t < (int)planes.size(); t++) {
+				if (planes[t].callsign == callsign) continue;
+				string listAirport;
+				for (size_t i = 0; i < planeAiportList.size(); i++) {
+					if (planes[t].callsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
+						listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
+					}
+				}
+				if (listAirport != origin) continue;
+				string listCallsign = planes[t].callsign;
+				string listTTOT = planes[t].ttot;
+				CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
+				if (!listFlightPlan.IsValid()) continue;
+				string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
+				double interval = getSidInterval(mySid, listSid, origin, depRwy);
+				if (interval <= 0) continue;
+				int ttotFinalInt = stoi(TTOTFinal);
+				int listTTOTInt = stoi(listTTOT);
+				int requiredTTOT = stoi(calculateTime(listTTOT, interval));
+				if (ttotFinalInt < requiredTTOT) {
+					found = false;
+					TTOTFinal = calculateTime(listTTOT, interval);
+					correctTTOT = false;
+					alreadySetTOStd = true;
+					break;
+				}
 			}
 		}
 	}
