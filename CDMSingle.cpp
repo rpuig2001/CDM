@@ -3395,9 +3395,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										ItemRGB = TAG_GREY;
 										strcpy_s(sItemString, 16, "~");
 									}
-									else if (firstMinute) {
+									else if (firstMinute && flashingTSATstart) {
 										bool toggle = (now % 2) == 0;
-										if (toggle || !flashingTSATstart) {
+										if (toggle) {
 											ItemRGB = TAG_ORANGE;
 										}
 										else {
@@ -4324,9 +4324,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_GREY;
 									strcpy_s(sItemString, 16, "~");
 								}
-								else if (firstMinute) {
+								else if (firstMinute && flashingTSATstart) {
 									bool toggle = (now % 2) == 0;
-									if (toggle || !flashingTSATstart) {
+									if (toggle) {
 										ItemRGB = TAG_ORANGE;
 									}
 									else {
