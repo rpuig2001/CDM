@@ -10959,6 +10959,23 @@ bool CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight)
 
 bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 {
+	string callsign = "";
+	bool correctPosition = false;
+	if (ControllerMyself().IsValid()) {
+		if (ControllerMyself().IsController()) {
+			callsign = ControllerMyself().GetCallsign();
+			if (callsign.size() > 3) {
+				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos || callsign.find("CTR") != string::npos || callsign.find("FMP") != string::npos) {
+					correctPosition = true;
+				}
+			}
+		}
+	}
+
+	if (!correctPosition) {
+		sendMessage("You are not in a position able to send ATFCM messages to pilots.");
+		return false;
+	}
 	std::thread t9(&CDM::setCdmSts, this, flight[0], "INFORMED/1");
 	t9.detach();
 
@@ -10990,6 +11007,23 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 }
 
 bool CDM::sendCdmMessageToPilot(string callsign) {
+	string position = "";
+	bool correctPosition = false;
+	if (ControllerMyself().IsValid()) {
+		if (ControllerMyself().IsController()) {
+			position = ControllerMyself().GetCallsign();
+			if (position.size() > 3) {
+				if (position.find("DEL") != string::npos || position.find("GND") != string::npos || position.find("TWR") != string::npos || position.find("APP") != string::npos || position.find("CTR") != string::npos || position.find("FMP") != string::npos) {
+					correctPosition = true;
+				}
+			}
+		}
+	}
+
+	if (!correctPosition) {
+		sendMessage("You are not in a position able to send CDM messages to pilots.");
+		return false;
+	}
 	bool found = false;
 	for (string flt : messagesSent) {
 		if (flt == callsign) {
