@@ -9405,7 +9405,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 
 				const Json::Value& restricted = obj;
 				for (size_t i = 0; i < restricted.size(); i++) {
-					if (restricted[i].isMember("callsign") && restricted[i].isMember("ctot") && restricted[i].isMember("mostPenalizingAirspace")) {
+					if (restricted[i].isMember("callsign") && restricted[i].isMember("ctot") && restricted[i].isMember("atfcmData") && restricted[i]["atfcmData"].isMember("mostPenalisingRegulation")) {
 						//Get callsign 
 						string callsign = fastWriter.write(restricted[i]["callsign"]);
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
@@ -9419,7 +9419,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 						ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
 
 						//Get reason
-						string reason = fastWriter.write(restricted[i]["mostPenalizingAirspace"]);
+						string reason = fastWriter.write(restricted[i]["atfcmData"]["mostPenalisingRegulation"]);
 						reason.erase(std::remove(reason.begin(), reason.end(), '"'));
 						reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
 						reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
@@ -9717,7 +9717,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 					Json::Value obj;
 					Json::FastWriter fastWriter;
 					reader.parse(readBuffer, obj);
-					if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("mostPenalizingAirspace")) {
+					if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("atfcmData") && obj["atfcmData"].isMember("mostPenalisingRegulation")) {
 						string apiCallsign = fastWriter.write(obj["callsign"]);
 						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
 						apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
@@ -9726,7 +9726,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 						ctot.erase(remove(ctot.begin(), ctot.end(), '"'), ctot.end());
 						ctot.erase(remove(ctot.begin(), ctot.end(), '\n'), ctot.end());
 
-						string reason = fastWriter.write(obj["mostPenalizingAirspace"]);
+						string reason = fastWriter.write(obj["atfcmData"]["mostPenalisingRegulation"]);
 						reason.erase(remove(reason.begin(), reason.end(), '"'), reason.end());
 						reason.erase(remove(reason.begin(), reason.end(), '\n'), reason.end());
 
@@ -10772,7 +10772,7 @@ void CDM::getCdmServerRelevantFlights() {
 						data[i].isMember("tobt") && data[i].isMember("taxi") &&
 						data[i].isMember("ctot") && data[i].isMember("aobt") &&
 						data[i].isMember("atot") && data[i].isMember("eta") &&
-						data[i].isMember("mostPenalizingAirspace") && data[i].isMember("atfcmData") &&
+						data[i].isMember("atfcmData") && data[i]["atfcmData"].isMember("mostPenalisingRegulation") &&
 						data[i].isMember("informed") && data[i].isMember("isCdm")) {
 
 						auto cleanString = [&](const Json::Value& val) -> std::string {
@@ -10793,7 +10793,7 @@ void CDM::getCdmServerRelevantFlights() {
 						std::string ctot = cleanString(data[i]["ctot"]);
 						std::string aobt = cleanString(data[i]["aobt"]);
 						std::string eta = cleanString(data[i]["eta"]);
-						std::string mostPenalizingAirspace = cleanString(data[i]["mostPenalizingAirspace"]);
+						std::string mostPenalisingRegulation = cleanString(data[i]["atfcmData"]["mostPenalisingRegulation"]);
 						std::string atfcmStatus = cleanString(data[i]["atfcmStatus"]);
 						std::string informed = cleanString(data[i]["informed"]);
 						std::string isCdm = cleanString(data[i]["isCdm"]);
@@ -10802,12 +10802,12 @@ void CDM::getCdmServerRelevantFlights() {
 						std::string isRea = cleanString(atfcm["isRea"]);
 						std::string isSir = cleanString(atfcm["SIR"]);
 
-						if (mostPenalizingAirspace.length() <= 2 && ctot.length() > 2) {
-							mostPenalizingAirspace = "N/A";
+						if (mostPenalisingRegulation.length() <= 2 && ctot.length() > 2) {
+							mostPenalisingRegulation = "N/A";
 						}
 
 						//Only keep sts if not affected by ecfmp restriction
-						relevantFlightsTemp.push_back({ callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta, mostPenalizingAirspace, atfcmStatus, informed, isCdm, isExcluded, isRea, isSir });
+						relevantFlightsTemp.push_back({ callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta, mostPenalisingRegulation, atfcmStatus, informed, isCdm, isExcluded, isRea, isSir });
 					}
 				}
 			}
