@@ -806,11 +806,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		}
 	}
 	AtcMe = false;
-	if (fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) {
+	string position = ControllerMyself().GetCallsign();
+	bool isPositionOk = position.find("_DEL") != string::npos || position.find("_GND") != string::npos || position.find("_TWR") != string::npos || position.find("_APP") != string::npos || position.find("_CTR") != string::npos || position.find("_FMP") != string::npos;
+	if ((fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) && isPositionOk) {
 		AtcMe = true;
 	}
-
-
 
 	if (FunctionId == TAG_FUNC_PM_SEND) {
 		sendCdmMessageToPilot(fp.GetCallsign());
@@ -6509,7 +6509,7 @@ void CDM::PushToOtherControllers(CFlightPlan fp) {
 		if (c.IsController()) {
 			callsign = c.GetCallsign();
 			if (callsign.size() > 3) {
-				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos) {
+				if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos || callsign.find("_TWR") != string::npos || callsign.find("_APP") != string::npos) {
 					fp.PushFlightStrip(c.GetCallsign());
 				}
 			}
@@ -10965,7 +10965,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 		if (ControllerMyself().IsController()) {
 			callsign = ControllerMyself().GetCallsign();
 			if (callsign.size() > 3) {
-				if (callsign.find("DEL") != string::npos || callsign.find("GND") != string::npos || callsign.find("TWR") != string::npos || callsign.find("APP") != string::npos || callsign.find("CTR") != string::npos || callsign.find("FMP") != string::npos) {
+				if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos || callsign.find("_TWR") != string::npos || callsign.find("_APP") != string::npos || callsign.find("_CTR") != string::npos || callsign.find("_FMP") != string::npos) {
 					correctPosition = true;
 				}
 			}
@@ -11013,7 +11013,7 @@ bool CDM::sendCdmMessageToPilot(string callsign) {
 		if (ControllerMyself().IsController()) {
 			position = ControllerMyself().GetCallsign();
 			if (position.size() > 3) {
-				if (position.find("DEL") != string::npos || position.find("GND") != string::npos || position.find("TWR") != string::npos || position.find("APP") != string::npos || position.find("CTR") != string::npos || position.find("FMP") != string::npos) {
+				if (position.find("_DEL") != string::npos || position.find("_GND") != string::npos || position.find("_TWR") != string::npos || position.find("_APP") != string::npos || position.find("_CTR") != string::npos || position.find("_FMP") != string::npos) {
 					correctPosition = true;
 				}
 			}
