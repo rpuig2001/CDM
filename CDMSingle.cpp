@@ -1198,9 +1198,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 			AddPopupListElement("----------------", "", -1, false, 2, false);
 
 			//TOBT OPTIONS
-			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
-			AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
-			AddPopupListElement("----------------", "", -1, false, 2, false);
+			if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+				AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+				AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+				AddPopupListElement("----------------", "", -1, false, 2, false);
+			}
 
 			//TSAC OPTIONS
 			string tsacvalue = getFlightStripInfo(fp, 1);
@@ -1270,10 +1272,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_OPT_TOBT) {
 		if (AtcMe) {
-			addLogLine("TRIGGER - TAG_FUNC_OPT_TOBT");
-			OpenPopupList(Area, "TOBT Options", 1);
-			AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
-			AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+			if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+				addLogLine("TRIGGER - TAG_FUNC_OPT_TOBT");
+				OpenPopupList(Area, "TOBT Options", 1);
+				AddPopupListElement("Ready TOBT", "", TAG_FUNC_READYTOBT, false, 2, false);
+				AddPopupListElement("Edit TOBT", "", TAG_FUNC_EDITTOBT, false, 2, false);
+			}
 		}
 	}
 
@@ -1331,7 +1335,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_READYTOBT) {
 		try{
-			if (master && AtcMe) {
+		if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+				if (master && AtcMe) {
 				addLogLine("TRIGGER - TAG_FUNC_READYTOBT");
 				//SET SU_WAIT WHEN OPTION ENABLED
 				if (option_su_wait) {
@@ -1410,6 +1415,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					t99.detach();
 				}
 			}
+		}
 		}
 		catch (const std::exception& ex) {
 			addLogLine(string("EXCEPTION in TAG_FUNC_READYTOBT: ") + ex.what());
@@ -1668,12 +1674,15 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_EDITTOBT) {
 		if (AtcMe) {
-			addLogLine("TRIGGER - TAG_FUNC_EDITTOBT");
-			OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, getFlightStripInfo(fp, 2).c_str());
+			if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+				addLogLine("TRIGGER - TAG_FUNC_EDITTOBT");
+				OpenPopupEdit(Area, TAG_FUNC_NEWTOBT, getFlightStripInfo(fp, 2).c_str());
+			}
 		}
 	}
 	else if (FunctionId == TAG_FUNC_NEWTOBT) {
 		try {
+		if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
 			addLogLine("TRIGGER - TAG_FUNC_NEWTOBT");
 			string editedTOBT = ItemString;
 			string setBy = "NONE";
@@ -1759,6 +1768,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 					}
 				}
 			}
+		}
 		}
 		catch (const std::exception& ex) {
 			addLogLine(string("EXCEPTION in TAG_FUNC_NEWTOBT: ") + ex.what());
