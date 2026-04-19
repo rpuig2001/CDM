@@ -1452,7 +1452,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_TRY_TO_SET_CDT");
 			//only before start-up/push back
-			if ((string)fp.GetGroundState() != "STUP" || (string)fp.GetGroundState() != "ST-UP" || (string)fp.GetGroundState() != "PUSH" || (string)fp.GetGroundState() != "TAXI" || (string)fp.GetGroundState() != "DEPA") {
+			const string groundState = fp.GetGroundState();
+			if (groundState != "STUP" && groundState != "ST-UP" && groundState != "PUSH" && groundState != "TAXI" && groundState != "DEPA") {
 				string editedCDT = ItemString;
 				bool hasNoNumber = true;
 				if (editedCDT.length() == 4) {
@@ -1494,7 +1495,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_EvCTOTtoCTOT");
 			//only before start-up/push back
-			if ((string)fp.GetGroundState() != "STUP" || (string)fp.GetGroundState() != "ST-UP" || (string)fp.GetGroundState() != "PUSH" || (string)fp.GetGroundState() != "TAXI" || (string)fp.GetGroundState() != "DEPA") {
+			const string groundState = fp.GetGroundState();
+			if (groundState != "STUP" && groundState != "ST-UP" && groundState != "PUSH" && groundState != "TAXI" && groundState != "DEPA") {
 				bool hasEvCTOT = false;
 				string editedCTOT = "";
 				for (size_t i = 0; i < evCtots.size(); i++) {
@@ -1599,7 +1601,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 		if (master && AtcMe) {
 			addLogLine("TRIGGER - TAG_FUNC_MODIFYMANCTOT");
 			//only before start-up/push back
-			if ((string)fp.GetGroundState() != "STUP" || (string)fp.GetGroundState() != "ST-UP" || (string)fp.GetGroundState() != "PUSH" || (string)fp.GetGroundState() != "TAXI" || (string)fp.GetGroundState() != "DEPA") {
+			const string groundState = fp.GetGroundState();
+			if (groundState != "STUP" && groundState != "ST-UP" && groundState != "PUSH" && groundState != "TAXI" && groundState != "DEPA") {
 				string editedCTOT = ItemString;
 				bool hasNoNumber = true;
 				if (editedCTOT.length() == 4) {
