@@ -9409,7 +9409,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 
 				const Json::Value& restricted = obj;
 				for (size_t i = 0; i < restricted.size(); i++) {
-					if (restricted[i].isMember("callsign") && restricted[i].isMember("ctot") && restricted[i].isMember("atfcmData") && restricted[i]["atfcmData"].isMember("mostPenalisingRegulation")) {
+					if (restricted[i].isMember("callsign") && restricted[i].isMember("ctot") &&  restricted[i].isMember("mostPenalisingRegulation")) {
 						//Get callsign 
 						string callsign = fastWriter.write(restricted[i]["callsign"]);
 						callsign.erase(std::remove(callsign.begin(), callsign.end(), '"'));
@@ -9423,7 +9423,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 						ctot.erase(std::remove(ctot.begin(), ctot.end(), '\n'));
 
 						//Get reason
-						string reason = fastWriter.write(restricted[i]["atfcmData"]["mostPenalisingRegulation"]);
+						string reason = fastWriter.write(restricted[i]["mostPenalisingRegulation"]);
 						reason.erase(std::remove(reason.begin(), reason.end(), '"'));
 						reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
 						reason.erase(std::remove(reason.begin(), reason.end(), '\n'));
