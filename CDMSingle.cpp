@@ -9775,6 +9775,13 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 							}
 						}
 					}
+					else {
+						Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
+						{
+							std::lock_guard<std::mutex> lock(later1Mutex);
+							setTOBTlater.push_back(plane);
+						}
+					}
 				}
 			}
 
