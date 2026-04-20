@@ -3716,6 +3716,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											value = slotList[pos].ctot;
 											ItemRGB = TAG_CTOT;
+											for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+												if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+													ItemRGB = TAG_YELLOW;
+												}
+											}
 										}
 										strcpy_s(sItemString, 16, value.c_str());
 									}
@@ -3749,6 +3754,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										}
 										else {
 											ItemRGB = TAG_CTOT;
+											for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+												if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+													ItemRGB = TAG_YELLOW;
+												}
+											}
 										}
 										strcpy_s(sItemString, 16, value.c_str());
 									}
@@ -4565,6 +4575,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							for (ServerRestricted sr : serverRestrictedPlanes) {
 								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 									ItemRGB = TAG_CTOT;
+									for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+										if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+											ItemRGB = TAG_YELLOW;
+										}
+									}
 									strcpy_s(sItemString, 16, sr.ctot.c_str());
 								}
 							}
@@ -4574,6 +4589,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							for (ServerRestricted sr : serverRestrictedPlanes) {
 								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 									ItemRGB = TAG_CTOT;
+									for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+										if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+											ItemRGB = TAG_YELLOW;
+										}
+									}
 									string value = getDiffNowTime(sr.ctot);
 									strcpy_s(sItemString, 16, value.c_str());
 								}
@@ -4732,6 +4752,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									else {
 										value = slotList[pos].ctot;
 										ItemRGB = TAG_CTOT;
+										for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+											if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+												ItemRGB = TAG_YELLOW;
+											}
+										}
 									}
 									strcpy_s(sItemString, 16, value.c_str());
 								}
@@ -4744,6 +4769,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								for (ServerRestricted sr : serverRestrictedPlanes) {
 									if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 										ItemRGB = TAG_CTOT;
+										for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+											if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+												ItemRGB = TAG_YELLOW;
+											}
+										}
 										strcpy_s(sItemString, 16, sr.ctot.c_str());
 									}
 								}
@@ -4766,6 +4796,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									}
 									else {
 										ItemRGB = TAG_CTOT;
+										for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+											if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+												ItemRGB = TAG_YELLOW;
+											}
+										}
 									}
 									strcpy_s(sItemString, 16, value.c_str());
 								}
@@ -4928,6 +4963,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							else {
 								value = slotList[pos].ctot;
 								ItemRGB = TAG_CTOT;
+								for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+									if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+										ItemRGB = TAG_YELLOW;
+									}
+								}
 							}
 							strcpy_s(sItemString, 16, value.c_str());
 						}
@@ -4940,6 +4980,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						for (ServerRestricted sr : serverRestrictedPlanes) {
 							if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 								ItemRGB = TAG_CTOT;
+								for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+									if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+										ItemRGB = TAG_YELLOW;
+									}
+								}
 								strcpy_s(sItemString, 16, sr.ctot.c_str());
 							}
 						}
@@ -4962,6 +5007,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							}
 							else {
 								ItemRGB = TAG_CTOT;
+								for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+									if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+										ItemRGB = TAG_YELLOW;
+									}
+								}
 							}
 							strcpy_s(sItemString, 16, value.c_str());
 						}
@@ -5227,6 +5277,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 				for (ServerRestricted sr : serverRestrictedPlanes) {
 					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 						ItemRGB = TAG_CTOT;
+						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+							if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+								ItemRGB = TAG_YELLOW;
+							}
+						}
 						strcpy_s(sItemString, 16, sr.ctot.c_str());
 					}
 				}
@@ -5237,6 +5292,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 						string value = getDiffNowTime(sr.ctot);
 						ItemRGB = TAG_CTOT;
+						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+							if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+								ItemRGB = TAG_YELLOW;
+							}
+						}
 						strcpy_s(sItemString, 16, value.c_str());
 					}
 				}
