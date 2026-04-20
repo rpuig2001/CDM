@@ -10488,7 +10488,7 @@ void CDM::getNetworkTobt() {
 									setFlightStripInfo(fp, plane[1], 2);
 									setCdmSts(plane[0], "REQTOBT/NULL/NULL");
 									//Trigger TOBT update to update TAXI TIME
-									setTOBTApi(plane[0], plane[1], true, false);
+									//setTOBTApi(plane[0], plane[1], true, false);
 									updated = true;
 								}
 							}
@@ -10502,7 +10502,7 @@ void CDM::getNetworkTobt() {
 								continue;
 							}
 							setFlightStripInfo(fp, plane[1], 2);
-							setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+							//setCdmSts(plane[0], "REQTOBT/NULL/NULL");
 							//Trigger TOBT update to update TAXI TIME
 							setTOBTApi(plane[0], plane[1], true, false);
 							updated = true;
