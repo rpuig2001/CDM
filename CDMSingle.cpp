@@ -9697,7 +9697,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 
 				if (curl) {
 					addLogLine("Requesting TOBT (" + tobt + ") for " + callsign);
-					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=TOBT/" + tobt + "/" + taxiTime;
+					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + tobt + "/" + taxiTime;
 					if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + tobt;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
