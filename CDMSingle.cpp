@@ -570,6 +570,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	if (ftpPassword == "") {
 		ftpPassword = "test";
+		ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
 	}
 
 	//Init reamrksOption
@@ -9509,7 +9510,12 @@ void CDM::sendWaitingTOBT() {
 				alreadyProcessed.push_back(setTOBTlaterTemp[i]);
 				addLogLine("sendWaitingTOBT - " + setTOBTlaterTemp[i].callsign);
 				if (serverEnabled) {
-					setTOBTApi(setTOBTlaterTemp[i].callsign, setTOBTlaterTemp[i].tsat, false, false);
+					setTOBTApi(
+					setTOBTlaterTemp[i].callsign,
+					setTOBTlaterTemp[i].tsat,
+					setTOBTlaterTemp[i].showData, /*Used as manualTrigger*/
+					setTOBTlaterTemp[i].isCdmAirport /*Used as useEobt*/
+					);
 				}
 			}
 		}
@@ -9655,19 +9661,20 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 				slotListTemp = slotList; // Copy the slotList
 			}
 
-			addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign);
+			addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign + " with triggeredByUser=" + (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
 			bool createRequest = false;
 
 			if (tobt != "") {
 				for (Plane p : slotListTemp) {
 					if (p.callsign == callsign) {
-						createRequest = true;
 						//Only create request if TOBT is manually triggered (or initially triggered or when no ctot), to avoid update set TSAT when syncing from CTOT
 						if ((p.ctot != "" && triggeredByUser) || p.ctot == "") {
 							createRequest = true;
+							break;
 						}
 						else {
 							createRequest = false;
+							break;
 						}
 					}
 				}
@@ -9708,7 +9715,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 				}
 
 				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-					Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false, true);
+					Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
 					{
 						std::lock_guard<std::mutex> lock(later1Mutex);
 						setTOBTlater.push_back(plane); // Safely modify setTOBTlater
@@ -9766,13 +9773,6 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 									}
 								}
 							}
-						}
-					}
-					else {
-						Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, false, true);
-						{
-							std::lock_guard<std::mutex> lock(later1Mutex);
-							setTOBTlater.push_back(plane);
 						}
 					}
 				}
