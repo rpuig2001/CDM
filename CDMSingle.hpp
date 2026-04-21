@@ -160,7 +160,7 @@ public:
 
 	void updateCdmDataApi(Plane p);
 
-	void setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool useEobt);
+	void setOBTApi(string callsign, string obt, bool triggeredByUser, bool useEobt);
 
 	string getTaxiTime(string callsign);
 

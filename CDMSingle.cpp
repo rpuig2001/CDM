@@ -846,7 +846,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 						}
 					}
 					//Set EOBT in API
-					std::thread t(&CDM::setTOBTApi, this, fp.GetCallsign(), editedEOBT, true, true);
+					std::thread t(&CDM::setOBTApi, this, fp.GetCallsign(), editedEOBT, true, true);
 					t.detach();
 				}
 			}
@@ -1663,7 +1663,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								}
 							}
 							//Check API
-							std::thread t(&CDM::setTOBTApi, this, slotList[i].callsign, slotList[i].tsat, true, false);
+							std::thread t(&CDM::setOBTApi, this, slotList[i].callsign, slotList[i].tsat, true, false);
 							t.detach();
 						}
 
@@ -1750,7 +1750,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 								slotList[a].showData = false;
 							}
 						}
-						std::thread t(&CDM::setTOBTApi, this, (string)fp.GetCallsign(), "", true, false);
+						std::thread t(&CDM::setOBTApi, this, (string)fp.GetCallsign(), "", true, false);
 						t.detach();
 					}
 					//}
@@ -2923,17 +2923,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 														if (stoi(myTTOT) > stoi(slotList[pos].ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
 															//Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to CTOT+7
 															string myCOBT = calculateLessTime(slotList[pos].ctot + "00", taxiTime);
-															std::thread t(&CDM::setTOBTApi, this, callsign, myCOBT, true, false);
+															std::thread t(&CDM::setOBTApi, this, callsign, myCOBT, true, false);
 															t.detach();
 														}
 														else {
-															std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true, false);
+															std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi, true, false);
 															t.detach();
 														}
 
 													}
 													else {
-														std::thread t(&CDM::setTOBTApi, this, callsign, myTSATApi, true, false);
+														std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi, true, false);
 														t.detach();
 													}
 												}
@@ -6373,15 +6373,15 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 									if (stoi(myTTOT) > stoi(plane.ctot) && stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
 										//Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to CTOT+7
 										string myCOBT = calculateLessTime(plane.ctot + "00", taxiTime);
-										setTOBTApi(callsign, myCOBT, false, false);
+										setOBTApi(callsign, myCOBT, false, false);
 									}
 									else {
-										setTOBTApi(callsign, myTSATApi, false, false);
+										setOBTApi(callsign, myTSATApi, false, false);
 									}
 
 								}
 								else {
-									setTOBTApi(callsign, myTSATApi, false, false);
+									setOBTApi(callsign, myTSATApi, false, false);
 								}
 							}
 						}
@@ -9570,7 +9570,7 @@ void CDM::sendWaitingTOBT() {
 				alreadyProcessed.push_back(setTOBTlaterTemp[i]);
 				addLogLine("sendWaitingTOBT - " + setTOBTlaterTemp[i].callsign);
 				if (serverEnabled) {
-					setTOBTApi(
+					setOBTApi(
 					setTOBTlaterTemp[i].callsign,
 					setTOBTlaterTemp[i].tsat,
 					setTOBTlaterTemp[i].showData, /*Used as manualTrigger*/
@@ -9713,15 +9713,15 @@ void CDM::sendCheckCIDLater() {
 		}
 	}
 
-void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool useEobt) {
-		addLogLine("Called setTOBTApi...");
+void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useEobt) {
+		addLogLine("Called setOBTApi...");
 		try {
 			vector<Plane> slotListTemp; // Local copy of the slotList
 			{
 				slotListTemp = slotList; // Copy the slotList
 			}
 
-			addLogLine("Call - Set TOBT (" + tobt + ") for " + callsign + " with triggeredByUser=" + (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
+			addLogLine("Call - Set OBT (" + tobt + ") for " + callsign + " with triggeredByUser=" + (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
 			bool createRequest = false;
 
 			if (tobt != "") {
@@ -9756,7 +9756,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 				curl = curl_easy_init();
 
 				if (curl) {
-					addLogLine("Requesting TOBT (" + tobt + ") for " + callsign);
+					addLogLine("Requesting OBT (" + tobt + ") for " + callsign);
 					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + tobt + "/" + taxiTime;
 					if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + tobt;
 					string apiKeyHeader = "x-api-key: " + apikey;
@@ -9861,10 +9861,10 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 				apiQueueResponse.insert(apiQueueResponse.end(), toAdd.begin(), toAdd.end());
 			}
 
-			addLogLine("COMPLETED - setTOBTApi for " + callsign);
+			addLogLine("COMPLETED - setOBTApi for " + callsign);
 		}
 		catch (const std::exception& e) {
-			addLogLine("ERROR: Unhandled exception setTOBTApi: " + (string)e.what());
+			addLogLine("ERROR: Unhandled exception setOBTApi: " + (string)e.what());
 			{
 				for (size_t a = 0; a < slotList.size(); a++) {
 					if (slotList[a].callsign == callsign) {
@@ -9874,7 +9874,7 @@ void CDM::setTOBTApi(string callsign, string tobt, bool triggeredByUser, bool us
 			}
 		}
 		catch (...) {
-			addLogLine("ERROR: Unhandled exception setTOBTApi");
+			addLogLine("ERROR: Unhandled exception setOBTApi");
 			{
 				for (size_t a = 0; a < slotList.size(); a++) {
 					if (slotList[a].callsign == callsign) {
@@ -10555,7 +10555,7 @@ void CDM::getNetworkTobt() {
 									setFlightStripInfo(fp, plane[1], 2);
 									setCdmSts(plane[0], "REQTOBT/NULL/NULL");
 									//Trigger TOBT update to update TAXI TIME
-									//setTOBTApi(plane[0], plane[1], true, false);
+									//setOBTApi(plane[0], plane[1], true, false);
 									updated = true;
 								}
 							}
@@ -10571,7 +10571,7 @@ void CDM::getNetworkTobt() {
 							setFlightStripInfo(fp, plane[1], 2);
 							//setCdmSts(plane[0], "REQTOBT/NULL/NULL");
 							//Trigger TOBT update to update TAXI TIME
-							setTOBTApi(plane[0], plane[1], true, false);
+							setOBTApi(plane[0], plane[1], true, false);
 							updated = true;
 						}
 					}
