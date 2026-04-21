@@ -135,7 +135,7 @@ vector<vector<string>> slotFile;
 vector<vector<string>> evCtots;
 vector<Delay> delayList;
 vector<ServerRestricted> serverRestrictedPlanes;
-vector<Plane> setTOBTlater;
+vector<Plane> setOBTlater;
 vector<vector<string>> setCdmStslater;
 vector<Plane> setCdmDatalater;
 vector<string> suWaitList;
@@ -7278,16 +7278,16 @@ void CDM::RemoveDataFromTfc(string callsign) {
 			OutOfTsat.erase(OutOfTsat.begin() + i);
 		}
 	}
-	//Remove from setTOBTlater
+	//Remove from setOBTlater
 	{
 		std::lock_guard<std::mutex> lock(later1Mutex);
-		for (size_t i = 0; i < setTOBTlater.size(); i++)
+		for (size_t i = 0; i < setOBTlater.size(); i++)
 		{
-			if (callsign == setTOBTlater[i].callsign) {
+			if (callsign == setOBTlater[i].callsign) {
 				if (debugMode) {
 					sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 11");
 				}
-				setTOBTlater.erase(setTOBTlater.begin() + i);
+				setOBTlater.erase(setOBTlater.begin() + i);
 			}
 		}
 	}
@@ -9546,35 +9546,35 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 
 void CDM::sendWaitingTOBT() {
 	try {
-		vector<Plane> setTOBTlaterTemp;
+		vector<Plane> setOBTlaterTemp;
 		{
-			addLogLine("Call sendWaitingTOBT - " + to_string(setTOBTlater.size()));
+			addLogLine("Call sendWaitingTOBT - " + to_string(setOBTlater.size()));
 			addLogLine("Called sendWaitingTOBT...");
 			std::lock_guard<std::mutex> lock(later1Mutex);
-			setTOBTlaterTemp = setTOBTlater;
-			setTOBTlater.clear();
+			setOBTlaterTemp = setOBTlater;
+			setOBTlater.clear();
 		}
 
 		vector<Plane> alreadyProcessed;
 		bool found = false;
 
-		for (int i = 0; i < setTOBTlaterTemp.size(); i++) {
+		for (int i = 0; i < setOBTlaterTemp.size(); i++) {
 			found = false;
 			for (Plane p : alreadyProcessed) {
-				if (p.callsign == setTOBTlaterTemp[i].callsign) {
+				if (p.callsign == setOBTlaterTemp[i].callsign) {
 					found = true;
 				}
 			}
 
 			if (!found) {
-				alreadyProcessed.push_back(setTOBTlaterTemp[i]);
-				addLogLine("sendWaitingTOBT - " + setTOBTlaterTemp[i].callsign);
+				alreadyProcessed.push_back(setOBTlaterTemp[i]);
+				addLogLine("sendWaitingTOBT - " + setOBTlaterTemp[i].callsign);
 				if (serverEnabled) {
 					setOBTApi(
-					setTOBTlaterTemp[i].callsign,
-					setTOBTlaterTemp[i].tsat,
-					setTOBTlaterTemp[i].showData, /*Used as manualTrigger*/
-					setTOBTlaterTemp[i].isCdmAirport /*Used as useEobt*/
+					setOBTlaterTemp[i].callsign,
+					setOBTlaterTemp[i].tsat,
+					setOBTlaterTemp[i].showData, /*Used as manualTrigger*/
+					setOBTlaterTemp[i].isCdmAirport /*Used as useEobt*/
 					);
 				}
 			}
@@ -9721,10 +9721,10 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 				slotListTemp = slotList; // Copy the slotList
 			}
 
-			addLogLine("Call - Set OBT (" + tobt + ") for " + callsign + " with triggeredByUser=" + (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
+			addLogLine("Call - Set OBT (" + obt + ") for " + callsign + " with triggeredByUser=" + (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
 			bool createRequest = false;
 
-			if (tobt != "") {
+			if (obt != "") {
 				for (Plane p : slotListTemp) {
 					if (p.callsign == callsign) {
 						//Only create request if TOBT is manually triggered (or initially triggered or when no ctot), to avoid update set TSAT when syncing from CTOT
@@ -9746,7 +9746,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 			if (isFligthSusp(callsign)) createRequest = false;
 
 			if (createRequest) {
-				tobt = (tobt.length() >= 4) ? tobt.substr(0, 4) : "";
+				obt = (obt.length() >= 4) ? obt.substr(0, 4) : "";
 				string taxiTime = getTaxiTime(callsign);
 
 				CURL* curl;
@@ -9756,9 +9756,9 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 				curl = curl_easy_init();
 
 				if (curl) {
-					addLogLine("Requesting OBT (" + tobt + ") for " + callsign);
-					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + tobt + "/" + taxiTime;
-					if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + tobt;
+					addLogLine("Requesting OBT (" + obt + ") for " + callsign);
+					string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + obt + "/" + taxiTime;
+					if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + obt;
 					string apiKeyHeader = "x-api-key: " + apikey;
 					struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
 					curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
@@ -9775,10 +9775,10 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 				}
 
 				if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-					Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
+					Plane plane(callsign, "", obt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
 					{
 						std::lock_guard<std::mutex> lock(later1Mutex);
-						setTOBTlater.push_back(plane); // Safely modify setTOBTlater
+						setOBTlater.push_back(plane); // Safely modify setOBTlater
 					}
 					addLogLine("UNABLE TO CONNECT CDM-API...");
 				}
@@ -9836,10 +9836,10 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 						}
 					}
 					else {
-						Plane plane(callsign, "", tobt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
+						Plane plane(callsign, "", obt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
 						{
 							std::lock_guard<std::mutex> lock(later1Mutex);
-							setTOBTlater.push_back(plane);
+							setOBTlater.push_back(plane);
 						}
 					}
 				}
