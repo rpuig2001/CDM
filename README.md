@@ -482,11 +482,16 @@ Capacities:
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> Flow/CAD CTOT.
    
-- Column Network Status: Shows the STS from the CDM-Network.
+- Column Network Status: Shows the STS from the vIFF-Network.
   - Status/Funcions:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
     - ![#BE0000](https://img.shields.io/badge/-BE0000) ``FLS`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the ATFCM System side: https://github.com/rpuig2001/CDM/wiki/vIFF-%E2%80%90-(IFPS)-Process-of-the-flight-Path#atfcm-status
 
+- Column Network Status Airborne: Shows the STS for Airborne indication from the vIFF-Network.
+  - Status/Funcions:
+    - ![#00c000](https://img.shields.io/badge/-00c000) ``C`` -> Flight departed between -10 and +15 of ETOT/CTOT.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``A`` -> Flight connected while airborne.
+    - (No message means, pilot did not comply!)
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
   - Functions:
