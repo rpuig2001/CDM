@@ -972,11 +972,21 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 	else if (FunctionId == TAG_FUNC_FMASTEXT) {
 			addLogLine("TRIGGER - TAG_FUNC_FMASTEXT");
+			bool found = false;
 			for (size_t i = 0; i < slotList.size(); i++)
 			{
 				if (slotList[i].callsign == fp.GetCallsign()) {
 					if (slotList[i].hasManualCtot) {
 						sendMessage(slotList[i].callsign + " FM -> " + slotList[i].flowReason);
+						found = true;
+					}
+				}
+			}
+
+			if (!found) {
+				for (ServerRestricted sr : serverRestrictedPlanes) {
+					if (sr.callsign == (string)fp.GetCallsign()) {
+						sendMessage(sr.callsign + " FM -> " + sr.reason);
 					}
 				}
 			}
