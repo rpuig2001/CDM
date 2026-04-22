@@ -254,6 +254,7 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 
 	// Register Tag Item and functions "NETWORK STATUS"
 	RegisterTagItemType("Network Sts", TAG_ITEM_NETWORK_STATUS);
+	RegisterTagItemType("Network Sts Airborne", TAG_ITEM_NETWORK_STATUS_AIRBORNE);
 	RegisterTagItemFunction("Network Sts Options", TAG_FUNC_NETWORK_STATUS_OPTIONS);
 
 	//Register Tag Item "CDM-DEICE"
@@ -2443,6 +2444,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
+							string status = "";
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									status = myNetworkStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status == "COMPLY") {
+									ItemRGB = TAG_GREEN;
+									status = "C";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+								else if (status == "AIRB") {
+									ItemRGB = TAG_RED;
+									status = "A";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+							}
+						}
 						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
 							string status = "";
 							for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -3814,6 +3836,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
+							string status = "";
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									status = myNetworkStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status == "COMPLY") {
+									ItemRGB = TAG_GREEN;
+									status = "C";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+								else if (status == "AIRB") {
+									ItemRGB = TAG_RED;
+									status = "A";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+							}
+							}
 						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
 							string status = "";
 							for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -4648,6 +4691,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
+							string status = "";
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									status = myNetworkStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status == "COMPLY") {
+									ItemRGB = TAG_GREEN;
+									status = "C";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+								else if (status == "AIRB") {
+									ItemRGB = TAG_RED;
+									status = "A";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+							}
+							}
 						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
 							string status = "";
 							for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -4853,6 +4917,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 									ItemRGB = TAG_RED;
 								}
 								strcpy_s(sItemString, 16, status.c_str());
+							}
+						}
+						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
+							string status = "";
+							for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+								if (myNetworkStatus[i][0] == callsign) {
+									status = myNetworkStatus[i][1];
+								}
+							}
+							if (status != "") {
+								ItemRGB = TAG_YELLOW;
+								if (status == "COMPLY") {
+									ItemRGB = TAG_GREEN;
+									status = "C";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
+								else if (status == "AIRB") {
+									ItemRGB = TAG_RED;
+									status = "A";
+									strcpy_s(sItemString, 16, status.c_str());
+								}
 							}
 						}
 						else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
@@ -5066,6 +5151,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						strcpy_s(sItemString, 16, status.c_str());
 					}
 				}
+				else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
+					string status = "";
+					for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+						if (myNetworkStatus[i][0] == callsign) {
+							status = myNetworkStatus[i][1];
+						}
+					}
+					if (status != "") {
+						ItemRGB = TAG_YELLOW;
+						if (status == "COMPLY") {
+							ItemRGB = TAG_GREEN;
+							status = "C";
+							strcpy_s(sItemString, 16, status.c_str());
+						}
+						else if (status == "AIRB") {
+							ItemRGB = TAG_RED;
+							status = "A";
+							strcpy_s(sItemString, 16, status.c_str());
+						}
+					}
+						}
 				else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
 					string status = "";
 					for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -5343,6 +5449,27 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						ItemRGB = TAG_RED;
 					}
 					strcpy_s(sItemString, 16, status.c_str());
+				}
+			}
+			else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
+				string status = "";
+				for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+					if (myNetworkStatus[i][0] == callsign) {
+						status = myNetworkStatus[i][1];
+					}
+				}
+				if (status != "") {
+					ItemRGB = TAG_YELLOW;
+					if (status == "COMPLY") {
+						ItemRGB = TAG_GREEN;
+						status = "C";
+						strcpy_s(sItemString, 16, status.c_str());
+					}
+					else if (status == "AIRB") {
+						ItemRGB = TAG_RED;
+						status = "A";
+						strcpy_s(sItemString, 16, status.c_str());
+					}
 				}
 			}
 			else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {

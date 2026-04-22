@@ -24,6 +24,7 @@ const int NOW_CTOT_DIFF = 21;
 const int TAG_ITEM_ETOBT = 22;
 const int TAG_ITEM_ON_TIME_STATUS = 23;
 const int TAG_ITEM_SEND_STATUS = 24;
+const int TAG_ITEM_NETWORK_STATUS_AIRBORNE = 25;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
