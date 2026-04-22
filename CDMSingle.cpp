@@ -2430,18 +2430,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_YELLOW;
 								if (status == "REA") {
 									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, status.c_str());
 								}
 								else if (status.find("FLS") != string::npos) {
 									ItemRGB = TAG_RED;
 									status = GetTimedStatus(status);
+									strcpy_s(sItemString, 16, status.c_str());
 								}
-								else if (status == "COMPLY") {
-									ItemRGB = TAG_GREEN;
-								}
-								else if (status == "AIRB") {
-									ItemRGB = TAG_RED;
-								}
-								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
@@ -3822,18 +3817,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_YELLOW;
 							if (status == "REA") {
 								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, status.c_str());
 							}
 							else if (status.find("FLS") != string::npos) {
 								ItemRGB = TAG_RED;
 								status = GetTimedStatus(status);
+								strcpy_s(sItemString, 16, status.c_str());
 							}
-							else if (status == "COMPLY") {
-								ItemRGB = TAG_GREEN;
-							}
-							else if (status == "AIRB") {
-								ItemRGB = TAG_RED;
-							}
-							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
@@ -4677,18 +4667,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_YELLOW;
 							if (status == "REA") {
 								ItemRGB = TAG_YELLOW;
+								strcpy_s(sItemString, 16, status.c_str());
 							}
 							else if (status.find("FLS") != string::npos) {
 								ItemRGB = TAG_RED;
 								status = GetTimedStatus(status);
+								strcpy_s(sItemString, 16, status.c_str());
 							}
-							else if (status == "COMPLY") {
-								ItemRGB = TAG_GREEN;
-							}
-							else if (status == "AIRB") {
-								ItemRGB = TAG_RED;
-							}
-							strcpy_s(sItemString, 16, status.c_str());
 						}
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
@@ -4905,18 +4890,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								ItemRGB = TAG_YELLOW;
 								if (status == "REA") {
 									ItemRGB = TAG_YELLOW;
+									strcpy_s(sItemString, 16, status.c_str());
 								}
 								else if (status.find("FLS") != string::npos) {
 									ItemRGB = TAG_RED;
 									status = GetTimedStatus(status);
+									strcpy_s(sItemString, 16, status.c_str());
 								}
-								else if (status == "COMPLY") {
-									ItemRGB = TAG_GREEN;
-								}
-								else if (status == "AIRB") {
-									ItemRGB = TAG_RED;
-								}
-								strcpy_s(sItemString, 16, status.c_str());
 							}
 						}
 						else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
@@ -5137,18 +5117,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						ItemRGB = TAG_YELLOW;
 						if (status == "REA") {
 							ItemRGB = TAG_YELLOW;
+							strcpy_s(sItemString, 16, status.c_str());
 						}
 						else if (status.find("FLS") != string::npos) {
 							ItemRGB = TAG_RED;
 							status = GetTimedStatus(status);
+							strcpy_s(sItemString, 16, status.c_str());
 						}
-						else if (status == "COMPLY") {
-							ItemRGB = TAG_GREEN;
-						}
-						else if (status == "AIRB") {
-							ItemRGB = TAG_RED;
-						}
-						strcpy_s(sItemString, 16, status.c_str());
 					}
 				}
 				else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
@@ -5437,18 +5412,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					ItemRGB = TAG_YELLOW;
 					if (status == "REA") {
 						ItemRGB = TAG_YELLOW;
+						strcpy_s(sItemString, 16, status.c_str());
 					}
 					else if (status.find("FLS") != string::npos) {
 						ItemRGB = TAG_RED;
 						status = GetTimedStatus(status);
+						strcpy_s(sItemString, 16, status.c_str());
 					}
-					else if (status == "COMPLY") {
-						ItemRGB = TAG_GREEN;
-					}
-					else if (status == "AIRB") {
-						ItemRGB = TAG_RED;
-					}
-					strcpy_s(sItemString, 16, status.c_str());
 				}
 			}
 			else if (ItemCode == TAG_ITEM_NETWORK_STATUS_AIRBORNE) {
