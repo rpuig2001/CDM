@@ -3744,7 +3744,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 											value = slotList[pos].ctot;
 											ItemRGB = TAG_CTOT;
 											for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-												if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+												if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
 													ItemRGB = TAG_YELLOW;
 												}
 											}
@@ -3782,7 +3782,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 										else {
 											ItemRGB = TAG_CTOT;
 											for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-												if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+												if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
 													ItemRGB = TAG_YELLOW;
 												}
 											}
@@ -4619,7 +4619,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 									ItemRGB = TAG_CTOT;
 									for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-										if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+										if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
 											ItemRGB = TAG_YELLOW;
 										}
 									}
@@ -4633,7 +4633,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 								if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 									ItemRGB = TAG_CTOT;
 									for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-										if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+										if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
 											ItemRGB = TAG_YELLOW;
 										}
 									}
@@ -5369,7 +5369,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 					if (sr.callsign == (string)FlightPlan.GetCallsign()) {
 						ItemRGB = TAG_CTOT;
 						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-							if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+							if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
 								ItemRGB = TAG_YELLOW;
 							}
 						}
@@ -5384,7 +5384,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 						string value = getDiffNowTime(sr.ctot);
 						ItemRGB = TAG_CTOT;
 						for (size_t i = 0; i < myNetworkStatus.size(); i++) {
-							if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA") {
+							if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
 								ItemRGB = TAG_YELLOW;
 							}
 						}
