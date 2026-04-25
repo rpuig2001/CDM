@@ -3239,7 +3239,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 							ItemRGB = TAG_EOBT;
 							if (tobt.length() > 0) {
 								string mySetEobt = formatTime(FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime());
-								if (mySetEobt != tobt) {
+								if (mySetEobt != tobt && realMode) {
 									ItemRGB = TAG_ORANGE;
 								}
 							}
