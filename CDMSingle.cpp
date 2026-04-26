@@ -11208,7 +11208,6 @@ void CDM::sendCdmMessageToPilot(string callsign) {
 
 	if (!correctPosition) {
 		sendMessage("You are not in a position able to send CDM messages to pilots.");
-		return false;
 	}
 	bool found = false;
 	for (string flt : messagesSent) {
