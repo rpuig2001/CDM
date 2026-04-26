@@ -1,4 +1,4 @@
-# CDM plugin V2.2
+# CDM plugin V2
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 
 - If you want to support the development, you can do it in: https://ko-fi.com/rpuig
@@ -127,10 +127,12 @@ CDM includes the following times:
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").
+  - Block Movement Index Mode to calculate times as "windows" (**DISABLED:** bmi mode="false" and **ENABLED:** bmi mode="true").
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
   - Auto ATOT to enable/disable automatic update TTOT when "DEPA" sts is set (**DISABLED:** autoAtot mode="false" and **ENABLED:** autoAtot mode="true").
-  - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true).
+  - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true). By setting "asrt" it will not invalidate at TOBT+6 if ASRT is set.
   - Invalidate flight at tobt will invalidate flights at TOBT+5 (ex. invalidateAtTobt mode=true).
+  - When Ready TOBT is pressed, automatically set the TSAC as the calculated TSAT (ex. readySetTsac mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
@@ -138,6 +140,7 @@ CDM includes the following times:
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
   - [OPTIONAL] DeIce Remote Additional Taxi Time and name definition (ex. "<DeIceRemTaxi rem1Name= "REM1" rem1="10" rem2Name= "REM2" rem2="10" rem3Name= "REM3" rem3="10" rem4Name= "REM4" rem4="10" rem5Name= "REM5" rem5="10"/>") If not defined, extra 0 minutes are used. In case of empty remXName, the option will be disabled in the popup menu of Euroscope (Example: By setting rem2Name= "", rem2 will not be available in Euroscope).
+  - Event Mode minutes, it specifies the amount of minutes to add to all flights by default (if not configured EVENT_EXTRA_TIME in taxizones) when event mode is enabled (by command) (ex. eventModeMin time="5").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").
   - Debug mode activated (true) or desactivated (false) (ex. Debug mode="false" or Debug mode="true").
   - [OPTIONAL] In case MDIs or other STAM measures system are used (ECFMP and Hong Kong systems are already in the vIFF system and **don't require this setting**)  (Default -> FlowRestrictions url:""). The format required is as ECFMP. example: https://ecfmp.vatsim.net/api/v1/plugin.
@@ -145,19 +148,25 @@ CDM includes the following times:
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank to use ATFCM System.
+  - [OPTIONAL] Set only when issues with default provider - Set vIFF system URL. If empty or not set, default "https://viff-system.network" is used (Example: <viffSystem url="https://viff-system.network").
+  - [OPTIONAL] Set only for testing or training purposes - Set custom restrictions URL. If empty or not set, default "" is used (Example: <customRestricted url="").
   - FTP/SFTP connection (sftpConnection mode="true" or sftpConnection mode="false"). By default, SFTP connection is used ("true": SFTP / "false": FTP).
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
+  - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  "<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>").
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
-  -  With de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI``.
-  -  With no de-ice taxi definitions: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``.
+  -  With de-ice taxi definitions and EVENT_EXTRA_TIME: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI:EVENT_EXTRA_TIME``.
+  -  With de-ice taxi definitions and no EVENT_EXTRA_TIME: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME:REM1_TAXI,REM2_TAXI,REM3_TAXI,REM4_TAXI,REM5_TAXI``.
+  -  With no de-ice taxi definitions and no EVENT_EXTRA_TIME: ``AIRPORT:RUNWAY:BOTTOM_LEFT_LAT:BOTTOM_LEFT_LON:TOP_LEFT_LAT:TOP_LEFT_LON:TOP_RIGHT_LAT:TOP_RIGHT_LON:BOTTOM_RIGHT_LAT:BOTTOM_RIGHT_LON:TAXITIME``.
 
   ex:
-  - ith de-ice taxi definitions: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0``.
-  - With no de-ice taxi definitions: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``.
+  - with de-ice taxi definitions and EVENT_EXTRA_TIME: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0:12``.
+  - with de-ice taxi definitions and no EVENT_EXTRA_TIME: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10:7,4,2,0,0``.
+  - With no de-ice taxi definitions and no EVENT_EXTRA_TIME: ``LEBL:25L:41.286876:2.067318:41.290236:2.065955:41.295688:2.082523:41.292662:2.084613:10``.
   - If no taxizone defined, the default taxi time is set to 15 min.
+  - If eventMode activated and EVENT_EXTRA_TIME not defined, then eventModeTime (from CDMConfig.xml) is used.
   - REMx_TAXI defines the taxi time from stand to runway passing over de-ice X pad (TAXITIME is not used for De-Ice pads when REMx_TAXI is defined).
 
 ### rate.txt
@@ -323,6 +332,30 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 
 ![image](https://github.com/user-attachments/assets/409d5241-872f-4f94-ae8f-c454cd905c48)
 
+### Block Movement Index (BMI)
+Example: 
+```
+rate = 40
+6 Blocks.
+base = 40 / 6 = 6 each.
+
+Allocated 6*6 = 36
+Remainder = 40 − 36 = 4
+
+extras to place 4 across 6 blocks. Spacing of remainder allocation is 6/4 = 1.5 blocks:
+assign 1 at block 0.
+0 + 1.5 = 1.5 -> assign 1 to block 1
+1.5 + 1.5 = 3.0 -> assign 1 to block 3
+3.0 + 1.5 = 4.5 -> assign 1 to block 4
+
+Capacities:
+0- 00–09: 7
+1- 10–19: 7
+2- 20–29: 6
+3- 30–39: 7
+4- 40–49: 7
+5- 50–59: 6
+```
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
@@ -336,8 +369,10 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
 - ``.cdm realmode`` - Toggle realmode ON or OFF.
 - ``.cdm server`` - Toggle server communication ON or OFF.
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
+- ``.cdm rmkctot`` - Toggle set CTOT to Euroscope scratchpad ON or OFF (as ".C1234).
 - ``.cdm rate`` - Updates rates values from rate.txt.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).
+- ``.cdm event`` - Toggle Event Mode ON or OFF (adds extra min to taxi time of all flights).
 - ``.cdm recover`` - In case of of CTD, it tries to recover the latest time status backed up in the server. Example: ``.cdm recover LEBL``.
 - ``.cdm panel`` - Show or hide the CDM Airport Panel.
 - ``.cdm atfcm`` - Show or hide the ATFCM Flight List.
@@ -447,11 +482,16 @@ The TOBT can be modified. It will have a direct effect to the plugin if _"PilotT
     - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> MANUAL/EVENT CTOT.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) `RED` -> Flow/CAD CTOT.
    
-- Column Network Status: Shows the STS from the CDM-Network.
+- Column Network Status: Shows the STS from the vIFF-Network.
   - Status/Funcions:
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) ``REA`` -> Sends a REA message to find the best possible CTOT (Only shows in case CTOT exists).
     - ![#BE0000](https://img.shields.io/badge/-BE0000) ``FLS`` - It would be set automatically when flightplan is suspended due to TOBT, TSAT or other cases from the ATFCM System side: https://github.com/rpuig2001/CDM/wiki/vIFF-%E2%80%90-(IFPS)-Process-of-the-flight-Path#atfcm-status
 
+- Column Network Status Airborne: Shows the STS for Airborne indication from the vIFF-Network.
+  - Status/Funcions:
+    - ![#00c000](https://img.shields.io/badge/-00c000) ``C`` -> Flight departed between -10 and +15 of ETOT/CTOT.
+    - ![#BE0000](https://img.shields.io/badge/-BE0000) ``A`` -> Flight connected while airborne.
+    - (No message means, pilot did not comply!)
 
 - Column EvCTOT: It  show ctots provided by ctot file (ctot.txt).
   - Functions:

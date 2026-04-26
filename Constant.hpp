@@ -24,6 +24,7 @@ const int NOW_CTOT_DIFF = 21;
 const int TAG_ITEM_ETOBT = 22;
 const int TAG_ITEM_ON_TIME_STATUS = 23;
 const int TAG_ITEM_SEND_STATUS = 24;
+const int TAG_ITEM_NETWORK_STATUS_AIRBORNE = 25;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
@@ -73,6 +74,8 @@ const int TAG_FUNC_NEW_MASTER_AIRPORT = 151;
 const int TAG_FUNC_RELEVANT_FLIGHTS_FILTER = 152;
 const int TAG_FUNC_PM_SEND = 153;
 const int TAG_FUNC_OPT_ETOBT = 154;
+const int TAG_FUNC_TOGGLEASRTREA = 155;
+const int TAG_FUNC_REMOVETSAC = 156;
 
 inline static bool startsWith(const char* pre, const char* str)
 {

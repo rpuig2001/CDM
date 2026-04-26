@@ -26,10 +26,23 @@
 #define CURL_STATICLIB
 #include "curl/curl.h"
 #include <wininet.h>
+#include <memory>
+#include <windows.h>
+#include <dbghelp.h>
+#include <iomanip>
+#include <ctime>
+#pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Wininet")
 
+#ifdef _WIN32
+#include <direct.h> // _mkdir
+#else
+#include <sys/stat.h> // mkdir
+#include <sys/types.h>
+#endif
+
 #define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.2.8.26"
+#define MY_PLUGIN_VERSION   "2.28"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
@@ -149,7 +162,7 @@ public:
 
 	void updateCdmDataApi(Plane p);
 
-	void setTOBTApi(string callsign, string tobt, bool triggeredByUser);
+	void setOBTApi(string callsign, string obt, bool triggeredByUser, bool useEobt);
 
 	string getTaxiTime(string callsign);
 
@@ -166,6 +179,8 @@ public:
 	void getNetworkRates();
 
 	vector<vector<string>> getDepAirportPlanes(string airport);
+
+	void getIffOffBlockTimes();
 
 	void getNetworkTobt();
 
@@ -290,6 +305,8 @@ public:
 
 	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind);
 
+	string getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour, const string& callsign, const string& origin, const string& depRwy, const string& timeNow, double taxiTime, const string& mySid);
+
 	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
 	string getFromXml(string xpath);
@@ -339,6 +356,8 @@ public:
 	void removeAllMasterAirportsByAirport(string airport);
 
 	bool setEvCtot(string callsign);
+
+	void BuildAndEnsureLogPath(std::string& tfad);
 
 	CRadarScreen* OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
 
