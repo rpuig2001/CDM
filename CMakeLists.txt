@@ -47,8 +47,17 @@ SET(SOURCE_FILES
     stdafx.cpp
 )
 
+find_package(boost_preprocessor CONFIG REQUIRED)
+find_package(boost_algorithm CONFIG REQUIRED)
+find_package(boost_format CONFIG REQUIRED)
+
 # Create a static library target, used in tests and shared dll
 ADD_LIBRARY(${PROJECT_NAME}_static STATIC ${SOURCE_FILES})
+TARGET_LINK_LIBRARIES(${PROJECT_NAME}_static PUBLIC
+    Boost::algorithm
+    Boost::format
+    Boost::preprocessor
+)
 
 # Create shared library target - used for Euroscope
 ADD_LIBRARY(${PROJECT_NAME}_shared SHARED)

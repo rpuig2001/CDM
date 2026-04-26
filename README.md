@@ -511,6 +511,8 @@ Capacities:
 
 ## Build the project
 
-Configure the project using ```cmake -S . -B build -A Win32```
+Install vcpkg [see here (steps 1. - 2.1)](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-cmd)
+
+Configure the project using ```cmake --preset default```
 
 Build the DLL using ```cmake --build build --config Release```

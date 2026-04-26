@@ -1,6 +1,7 @@
 # Prerequisites
 *.d
 vcpkg_installed/
+CMakeUserPresets.json
 
 # Compiled Object files
 *.slo
