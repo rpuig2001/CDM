@@ -57,6 +57,7 @@ bool invalidateTOBT_Option;
 bool readySetTsac;
 bool sidIntervalEnabled;
 bool readyToUpdateList;
+bool autoSetTobtFromEvSlot;
 string lastAddedIcao;
 string myTimeToAdd;
 string rateUrl;
@@ -395,6 +396,7 @@ CDM::CDM(void)
         string flashingTSATstartString = getFromXml("/CDM/flashingMode/@tsatFirstMin");
         string flashingTSATendString = getFromXml("/CDM/flashingMode/@tsatLastMin");
         string eventPriorityString = getFromXml("/CDM/eventPriority/@mode");
+        string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
 
         if (ftpHost == "" && ftpUser == "") {
             ftpHost = "ftp.vatsimspain.es";
@@ -471,6 +473,11 @@ CDM::CDM(void)
         eventPriorityEnabled = false;
         if (eventPriorityString == "true") {
             eventPriorityEnabled = true;
+        }
+
+        autoSetTobtFromEvSlot = false;
+        if (autoSetTobtFromEvSlotString == "true") {
+            autoSetTobtFromEvSlot = true;
         }
 
         option_su_wait = false;
@@ -1304,13 +1311,13 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                     bool inEvCtotsList = false;
                     string slot = "";
                     for (size_t i = 0; i < evCtots.size(); i++) {
-                        if (evCtots[i][0] == fp.GetCallsign()) {
+                        if (evCtots[i][0] == fp.GetCallsign() && evCtots[i][1] != "") {
                             inEvCtotsList = true;
                             slot = evCtots[i][1];
                         }
                     }
                     if (inEvCtotsList) {
-                        setFlightStripInfo(fp, slot, 0);
+                        setFlightStripInfo(fp, formatTime(slot), 2);
                     }
                 }
             }
@@ -9012,6 +9019,8 @@ bool CDM::setEvCtot(string callsign) {
                                         if (evCtots[a].size() > 0) {
                                             if (evCtots[a][0] == callsign) {
                                                 evCtots[a] = {callsign, slotFile[i][2]};
+                                                if (autoSetTobtFromEvSlot)
+                                                    setFlightStripInfo(FlightPlanSelect(callsign.c_str()), formatTime(slotFile[i][2]), 2);
                                                 return true;
                                             };
                                         }
@@ -10708,7 +10717,7 @@ bool CDM::sendCdmPrivateMessageToPilot(string message) {
 
 bool CDM::isEvSlot(string callsign) {
     for (size_t i = 0; i < evCtots.size(); i++) {
-        if (evCtots[i][0] == callsign) {
+        if (evCtots[i][0] == callsign && evCtots[i][1] != "") {
             return true;
         }
     }
