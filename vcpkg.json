@@ -3,6 +3,7 @@
     "boost-algorithm",
     "boost-format",
     "curl",
-    "jsoncpp"
+    "jsoncpp",
+    "rapidjson"
   ]
 }

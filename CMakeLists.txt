@@ -40,9 +40,6 @@ ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
 SET(SOURCE_FILES
     CDMScreen.cpp
     CDMSingle.cpp
-    json_reader.cpp
-    json_value.cpp
-    json_writer.cpp
     SFTP.cpp
     stdafx.cpp
 )
@@ -57,6 +54,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}_static PUBLIC
     Boost::preprocessor
     CURL::libcurl
     JsonCpp::JsonCpp
+    RapidJSON rapidjson
 )
 
 # Create shared library target - used for Euroscope
