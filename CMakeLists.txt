@@ -55,6 +55,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}_static PUBLIC
     Boost::algorithm
     Boost::format
     Boost::preprocessor
+    CURL::libcurl
 )
 
 # Create shared library target - used for Euroscope
@@ -65,7 +66,6 @@ TARGET_SOURCES(${PROJECT_NAME}_shared PRIVATE CDM.cpp)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}_shared PRIVATE
     ${PROJECT_NAME}_static
     ${CMAKE_SOURCE_DIR}/external/lib/EuroScopePlugInDLL.lib
-    ${CMAKE_SOURCE_DIR}/external/lib/libcurl.lib
     crypt32.lib ws2_32.lib Shlwapi.lib Wldap32.lib 
 )
 

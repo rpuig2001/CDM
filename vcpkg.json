@@ -1,6 +1,7 @@
 {
-    "dependencies": [
-        "boost-algorithm",
-        "boost-format"
-    ]
+  "dependencies": [
+    "boost-algorithm",
+    "boost-format",
+    "curl"
+  ]
 }
