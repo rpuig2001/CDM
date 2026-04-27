@@ -56,6 +56,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}_static PUBLIC
     Boost::format
     Boost::preprocessor
     CURL::libcurl
+    JsonCpp::JsonCpp
 )
 
 # Create shared library target - used for Euroscope
