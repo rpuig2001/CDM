@@ -1,5 +1,4 @@
 #pragma once
-#include "stdafx.h"
 
 const int TAG_ITEM_EOBT = 1;
 const int TAG_ITEM_TSAT = 2;
@@ -77,8 +76,7 @@ const int TAG_FUNC_OPT_ETOBT = 154;
 const int TAG_FUNC_TOGGLEASRTREA = 155;
 const int TAG_FUNC_REMOVETSAC = 156;
 
-inline static bool startsWith(const char* pre, const char* str)
-{
-	size_t lenpre = strlen(pre), lenstr = strlen(str);
-	return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
+inline static bool startsWith(const char* pre, const char* str) {
+    size_t lenpre = strlen(pre), lenstr = strlen(str);
+    return lenstr < lenpre ? false : strncmp(pre, str, lenpre) == 0;
 };

@@ -43,13 +43,16 @@ SET(SOURCE_FILES
     CDMScreen.cpp
     CDMSingle.cpp
     SFTP.cpp
-    stdafx.cpp
 )
 
 INCLUDE(external/CMakeLists.txt)
 
 # Create a static library target, used in tests and shared dll
 ADD_LIBRARY(${PROJECT_NAME}_static STATIC ${SOURCE_FILES})
+TARGET_COMPILE_DEFINITIONS(${PROJECT_NAME}_static PRIVATE WIN32_LEAN_AND_MEAN)
+TARGET_PRECOMPILE_HEADERS(${PROJECT_NAME}_static PUBLIC
+    <Windows.h>
+)
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}_static PUBLIC
     Boost::algorithm
     Boost::format

@@ -1,13 +1,14 @@
 #pragma once
 
-#include <vector>
-#include <string>
 #include <windows.h>
-#pragma warning(push, 0) 
+
+#include <string>
+#include <vector>
+#pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
-#pragma warning(pop) 
-#include <map>
+#pragma warning(pop)
 #include <chrono>
+#include <map>
 
 #pragma comment(lib, "Gdi32.lib")
 #pragma comment(lib, "User32.lib")
@@ -19,11 +20,11 @@ class CDM;
 
 struct PendingMasterChange {
     std::chrono::steady_clock::time_point startTime;
-    bool adding; // true=add, false=remove
+    bool adding;  // true=add, false=remove
 };
 
 class CDMScreen : public CRadarScreen {
-public:
+   public:
     CDMScreen(CDM* pCDM);
     virtual ~CDMScreen();
 
@@ -66,14 +67,15 @@ public:
     // -----------------------
     // Flights panel state
     // -----------------------
-    POINT flightsPanelPos{ 40, 640 };
-    RECT flightsPanelRect{ 0,0,0,0 };
-    RECT flightsHeaderRect{ 0,0,0,0 };
+    POINT flightsPanelPos{40, 640};
+    RECT flightsPanelRect{0, 0, 0, 0};
+    RECT flightsHeaderRect{0, 0, 0, 0};
     bool showAtfcmAllFlights = false;
     bool showAtfcmAllCdmFlights = false;
     RECT flightsFilterRect;
     int sortColumn;
     bool sortAscending;
-private:
+
+   private:
     CDM* cdm;
 };
