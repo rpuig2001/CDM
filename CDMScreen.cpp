@@ -1,12 +1,15 @@
-#include <windows.h>
 #include "CDMScreen.h"
-#include "CDMSingle.hpp"
-#include <vector>
-#include <string>
+
+#include <windows.h>
+
 #include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <map>
-#include <cctype>
+#include <string>
+#include <vector>
+
+#include "CDMSingle.hpp"
 
 #define RADARSCR_OBJECT_CUSTOM 1000
 
@@ -28,8 +31,7 @@
 #define FLT_MAX_ROWS 500
 
 static std::string ToLowerCopy(std::string s) {
-    std::transform(s.begin(), s.end(), s.begin(),
-        [](unsigned char c) { return (char)std::tolower(c); });
+    std::transform(s.begin(), s.end(), s.begin(), [](unsigned char c) { return (char)std::tolower(c); });
     return s;
 }
 
@@ -38,24 +40,21 @@ static bool ContainsCI(const std::string& hay, const std::string& needle) {
     return ToLowerCopy(hay).find(ToLowerCopy(needle)) != std::string::npos;
 }
 
-static bool IsTrueString(const std::string& s)
-{
+static bool IsTrueString(const std::string& s) {
     std::string v = ToLowerCopy(s);
     v.erase(std::remove_if(v.begin(), v.end(), [](unsigned char c) { return std::isspace(c); }), v.end());
     return (v == "true" || v == "1" || v == "yes" || v == "y" || v == "ok");
 }
 
 // renamed to avoid collision with anything else in your project
-static void DrawCellTextA_Flt(HDC hDC, const std::string& s, RECT r, UINT fmt = DT_LEFT, COLORREF color = RGB(255, 255, 255))
-{
+static void DrawCellTextA_Flt(HDC hDC, const std::string& s, RECT r, UINT fmt = DT_LEFT,
+                              COLORREF color = RGB(255, 255, 255)) {
     SetBkMode(hDC, TRANSPARENT);
     SetTextColor(hDC, color);
-    DrawTextA(hDC, s.c_str(), -1, &r,
-        fmt | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
+    DrawTextA(hDC, s.c_str(), -1, &r, fmt | DT_VCENTER | DT_SINGLELINE | DT_END_ELLIPSIS | DT_NOPREFIX);
 }
 
-static std::string GetColSafe(const std::vector<std::string>& row, int idx)
-{
+static std::string GetColSafe(const std::vector<std::string>& row, int idx) {
     if (idx < 0) return "";
     if ((size_t)idx >= row.size()) return "";
     return row[(size_t)idx];
@@ -77,18 +76,15 @@ void DrawRoundedRect(HDC hDC, RECT rect, COLORREF fill, COLORREF border = RGB(50
     DeleteObject(rgn);
 }
 
-static COLORREF DimColor(COLORREF c, float factor)
-{
+static COLORREF DimColor(COLORREF c, float factor) {
     BYTE r = (BYTE)(GetRValue(c) * factor);
     BYTE g = (BYTE)(GetGValue(c) * factor);
     BYTE b = (BYTE)(GetBValue(c) * factor);
     return RGB(r, g, b);
 }
 
-static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF color)
-{
-    if (!hDC || !text || !*text)
-        return;
+static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF color) {
+    if (!hDC || !text || !*text) return;
 
     int oldBkMode = SetBkMode(hDC, TRANSPARENT);
 
@@ -112,28 +108,19 @@ static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF 
     int wlen = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS, text, -1, nullptr, 0);
     UINT usedCP = CP_UTF8;
 
-    if (wlen <= 0)
-    {
+    if (wlen <= 0) {
         usedCP = CP_ACP;
         wlen = MultiByteToWideChar(CP_ACP, 0, text, -1, nullptr, 0);
     }
 
-    if (wlen > 0)
-    {
+    if (wlen > 0) {
         wtext.resize((size_t)wlen);
-        MultiByteToWideChar(usedCP,
-            (usedCP == CP_UTF8) ? MB_ERR_INVALID_CHARS : 0,
-            text,
-            -1,
-            &wtext[0],
-            wlen);
+        MultiByteToWideChar(usedCP, (usedCP == CP_UTF8) ? MB_ERR_INVALID_CHARS : 0, text, -1, &wtext[0], wlen);
 
-        if (!wtext.empty() && wtext.back() == L'\0')
-            wtext.pop_back();
+        if (!wtext.empty() && wtext.back() == L'\0') wtext.pop_back();
     }
 
-    if (!wtext.empty())
-    {
+    if (!wtext.empty()) {
         SIZE sz{};
         GetTextExtentPoint32W(hDC, wtext.c_str(), (int)wtext.length(), &sz);
 
@@ -142,10 +129,7 @@ static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF 
 
         SetTextAlign(hDC, TA_LEFT | TA_TOP);
 
-        ExtTextOutW(hDC, x, y, ETO_CLIPPED, &rect,
-            wtext.c_str(),
-            (UINT)wtext.length(),
-            nullptr);
+        ExtTextOutW(hDC, x, y, ETO_CLIPPED, &rect, wtext.c_str(), (UINT)wtext.length(), nullptr);
     }
 
     SelectObject(hDC, oldFont);
@@ -160,47 +144,40 @@ static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF 
 // Helper to calculate panel height based on airports count
 int CDMScreen::CalculatePanelHeight(int airportCount) const {
     int displayCount = min(airportCount, MAX_AIRPORTS_DISPLAYED);
-    int totalBtns = displayCount + 1; // plus button
+    int totalBtns = displayCount + 1;  // plus button
     int rows = (totalBtns + PER_ROW - 1) / PER_ROW;
     int btnsAreaHeight = rows * BTN_HEIGHT + (rows - 1) * BTN_GAP_Y;
     return PANEL_HEADER_HEIGHT + 7 + btnsAreaHeight + 7;
 }
 
-CDMScreen::CDMScreen(CDM* pCDM)
-    : cdm(pCDM), panelPosition({ 40, 560 }), minimized(false)
-{
-    masterAirportPanelRect = RECT{ panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH, panelPosition.y + PANEL_HEADER_HEIGHT };
+CDMScreen::CDMScreen(CDM* pCDM) : cdm(pCDM), panelPosition({40, 560}), minimized(false) {
+    masterAirportPanelRect =
+        RECT{panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH, panelPosition.y + PANEL_HEADER_HEIGHT};
     for (int i = 0; i < MAX_AIRPORTS_DISPLAYED; ++i) {
-        masterAirportBtnRects[i] = { 0, 0, 0, 0 };
+        masterAirportBtnRects[i] = {0, 0, 0, 0};
     }
-    plusBtnRect = { 0, 0, 0, 0 };
-    minBtnRect = { 0, 0, 0, 0 };
+    plusBtnRect = {0, 0, 0, 0};
+    minBtnRect = {0, 0, 0, 0};
     cached_airports.clear();
     pendingMasterChanges.clear();
 
-    flightsPanelPos = { 40, 640 };
-    flightsPanelRect = { 0,0,0,0 };
-    flightsHeaderRect = { 0,0,0,0 };
-    flightsFilterRect = { 0,0,0,0 };
+    flightsPanelPos = {40, 640};
+    flightsPanelRect = {0, 0, 0, 0};
+    flightsHeaderRect = {0, 0, 0, 0};
+    flightsFilterRect = {0, 0, 0, 0};
 
     // state
-    showAtfcmAllFlights = false;     // informed filter
-    showAtfcmAllCdmFlights = true;   // NEW: true=all (CDM+non-CDM), false=only non-CDM
+    showAtfcmAllFlights = false;    // informed filter
+    showAtfcmAllCdmFlights = true;  // NEW: true=all (CDM+non-CDM), false=only non-CDM
 
     // column click sorting
     sortColumn = -1;
     sortAscending = true;
 }
 
-CDMScreen::~CDMScreen()
-{
-    this->OnAsrContentToBeSaved();
-}
+CDMScreen::~CDMScreen() { this->OnAsrContentToBeSaved(); }
 
-void CDMScreen::OnAsrContentToBeClosed(void)
-{
-    delete this;
-}
+void CDMScreen::OnAsrContentToBeClosed(void) { delete this; }
 
 void CDMScreen::OnAsrContentToBeSaved(void) {
     cdm->SaveDataToSettings("CDMWindowPositionX", "CDM Window X", std::to_string(panelPosition.x).c_str());
@@ -250,7 +227,7 @@ void CDMScreen::CheckPendingMasterChanges() {
 }
 
 void CDMScreen::MarkAirportPending(const std::string& icao, bool adding) {
-    pendingMasterChanges[icao] = PendingMasterChange{ std::chrono::steady_clock::now(), adding };
+    pendingMasterChanges[icao] = PendingMasterChange{std::chrono::steady_clock::now(), adding};
     RequestRefresh();
 }
 
@@ -261,8 +238,7 @@ void CDMScreen::MarkAirportPending(const std::string& icao, bool adding) {
 //  8 eta, 9 mostPenalizingAirspace, 10 atfcmStatus, 11 informed, 12 isCdm,
 //  13 isExcluded, 14 isRea, 15 isSir, 16 isSwm
 // ------------------------------
-std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows() const
-{
+std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows() const {
     if (!cdm) return {};
     const auto& all = cdm->returnRelevantFlights();
 
@@ -273,15 +249,13 @@ std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows(
         // checkbox #1: if showAll==false -> only non-informed
         if (!showAtfcmAllFlights) {
             bool informed = IsTrueString(GetColSafe(row, 11));
-            if (informed)
-                continue;
+            if (informed) continue;
         }
 
         // checkbox #2: if showAllCdm==false -> only non-CDM
         if (!showAtfcmAllCdmFlights) {
             bool isCdm = IsTrueString(GetColSafe(row, 12));
-            if (isCdm)
-                continue;
+            if (isCdm) continue;
         }
 
         std::string flightsFilterText = cdm->getFilterFlightsText();
@@ -290,10 +264,12 @@ std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows(
         if (!flightsFilterText.empty()) {
             bool any = false;
             for (const auto& cell : row) {
-                if (ContainsCI(cell, flightsFilterText)) { any = true; break; }
+                if (ContainsCI(cell, flightsFilterText)) {
+                    any = true;
+                    break;
+                }
             }
-            if (!any)
-                continue;
+            if (!any) continue;
         }
 
         out.push_back(row);
@@ -302,21 +278,19 @@ std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows(
     // sorting by clicked column
     if (sortColumn >= 0) {
         std::stable_sort(out.begin(), out.end(),
-            [&](const std::vector<std::string>& a, const std::vector<std::string>& b)
-            {
-                std::string av = GetColSafe(a, sortColumn);
-                std::string bv = GetColSafe(b, sortColumn);
-                int cmp = _stricmp(av.c_str(), bv.c_str());
-                if (sortAscending) return cmp < 0;
-                return cmp > 0;
-            });
+                         [&](const std::vector<std::string>& a, const std::vector<std::string>& b) {
+                             std::string av = GetColSafe(a, sortColumn);
+                             std::string bv = GetColSafe(b, sortColumn);
+                             int cmp = _stricmp(av.c_str(), bv.c_str());
+                             if (sortAscending) return cmp < 0;
+                             return cmp > 0;
+                         });
     }
 
     return out;
 }
 
-void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
-{
+void CDMScreen::DrawRelevantFlightsPanel(HDC hDC) {
     if (!cdm) return;
     if (!cdm->getAtfcmList()) return;
 
@@ -329,8 +303,10 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     // header + gap + checkbox row + gap + checkbox row + gap + filter row + gap + column header + gap + list + gap
     int panelH = FLT_HEADER_HEIGHT + 6 + 18 + 6 + 18 + 6 + 18 + 6 + 18 + 6 + bodyH + 6;
 
-    flightsPanelRect = RECT{ flightsPanelPos.x, flightsPanelPos.y, flightsPanelPos.x + FLT_PANEL_WIDTH, flightsPanelPos.y + panelH };
-    flightsHeaderRect = RECT{ flightsPanelRect.left, flightsPanelRect.top, flightsPanelRect.right, flightsPanelRect.top + FLT_HEADER_HEIGHT };
+    flightsPanelRect =
+        RECT{flightsPanelPos.x, flightsPanelPos.y, flightsPanelPos.x + FLT_PANEL_WIDTH, flightsPanelPos.y + panelH};
+    flightsHeaderRect = RECT{flightsPanelRect.left, flightsPanelRect.top, flightsPanelRect.right,
+                             flightsPanelRect.top + FLT_HEADER_HEIGHT};
 
     AddScreenObject(RADARSCR_OBJECT_CUSTOM, "FLT_HDR", flightsHeaderRect, true, NULL);
 
@@ -338,8 +314,7 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     DrawRoundedRect(hDC, flightsHeaderRect, RGB(45, 45, 105));
     SetBkMode(hDC, TRANSPARENT);
     SetTextColor(hDC, RGB(245, 245, 255));
-    DrawTextA(hDC, "ATFCM Flight List", -1, &flightsHeaderRect,
-        DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    DrawTextA(hDC, "ATFCM Flight List", -1, &flightsHeaderRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
     // Checkbox row #1 (Informed filter)
     RECT chkRow = flightsPanelRect;
@@ -417,12 +392,12 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     int x = colHdr.left + 4;
 
     auto addHeader = [&](const char* id, const char* label, int w, bool center = false) {
-        RECT r{ x, colHdr.top, x + w, colHdr.bottom };
+        RECT r{x, colHdr.top, x + w, colHdr.bottom};
         x += w;
         AddScreenObject(RADARSCR_OBJECT_CUSTOM, id, r, true, NULL);
         DrawCellTextA_Flt(hDC, label, r, center ? DT_CENTER : DT_LEFT, RGB(255, 255, 255));
         return r;
-        };
+    };
 
     // NOTE: We include only visible columns in this compact layout
     addHeader("FLT_COL_0", "CS", 70);
@@ -449,25 +424,24 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
     // Helper: draw centered green/red square instead of text
     auto boolFill = [](bool v) { return v ? RGB(0, 170, 0) : RGB(220, 0, 0); };
 
-    auto drawBoolSquare = [&](RECT r, bool value)
-        {
-            int cellW = (r.right - r.left);
-            int cellH = (r.bottom - r.top);
+    auto drawBoolSquare = [&](RECT r, bool value) {
+        int cellW = (r.right - r.left);
+        int cellH = (r.bottom - r.top);
 
-            int size = min(cellW, cellH) - 6; // padding
-            if (size < 6) size = min(cellW, cellH);
+        int size = min(cellW, cellH) - 6;  // padding
+        if (size < 6) size = min(cellW, cellH);
 
-            int left = r.left + (cellW - size) / 2;
-            int top = r.top + (cellH - size) / 2;
+        int left = r.left + (cellW - size) / 2;
+        int top = r.top + (cellH - size) / 2;
 
-            RECT sq{ left, top, left + size, top + size };
+        RECT sq{left, top, left + size, top + size};
 
-            // Using DrawRoundedRect with small radius still looks like a square here
-            DrawRoundedRect(hDC, sq, boolFill(value), RGB(30, 30, 30));
-        };
+        // Using DrawRoundedRect with small radius still looks like a square here
+        DrawRoundedRect(hDC, sq, boolFill(value), RGB(30, 30, 30));
+    };
 
     for (int i = 0; i < rows; i++) {
-        RECT rowRect{ flightsPanelRect.left + 6, y, flightsPanelRect.right - 6, y + FLT_ROW_HEIGHT };
+        RECT rowRect{flightsPanelRect.left + 6, y, flightsPanelRect.right - 6, y + FLT_ROW_HEIGHT};
 
         // SEND button rect (existing behavior)
         RECT sendRect = rowRect;
@@ -487,22 +461,26 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC)
         DrawRoundedRect(hDC, sendRect, sendFill, RGB(60, 60, 60));
 
         int cx = rowRect.left + 4;
-        auto cell = [&](int w) { RECT r{ cx, rowRect.top, cx + w, rowRect.bottom }; cx += w; return r; };
+        auto cell = [&](int w) {
+            RECT r{cx, rowRect.top, cx + w, rowRect.bottom};
+            cx += w;
+            return r;
+        };
 
         bool isCdm = IsTrueString(GetColSafe(row, 12));
         COLORREF callsignColor = isCdm ? RGB(100, 255, 100) : RGB(255, 255, 255);
 
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 0), cell(70), DT_LEFT, callsignColor); // callsign
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 1), cell(55));   // dep
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 2), cell(55));   // arr
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 3), cell(50));   // eobt
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 4), cell(50));   // tobt
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 5), cell(35));   // taxi
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 6), cell(50));   // ctot
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 7), cell(50));   // aobt
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 8), cell(50));   // eta
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 9), cell(130));  // mostPenalizingAirspace
-        DrawCellTextA_Flt(hDC, GetColSafe(row, 10), cell(60));  // atfcmStatus
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 0), cell(70), DT_LEFT, callsignColor);  // callsign
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 1), cell(55));                          // dep
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 2), cell(55));                          // arr
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 3), cell(50));                          // eobt
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 4), cell(50));                          // tobt
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 5), cell(35));                          // taxi
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 6), cell(50));                          // ctot
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 7), cell(50));                          // aobt
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 8), cell(50));                          // eta
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 9), cell(130));                         // mostPenalizingAirspace
+        DrawCellTextA_Flt(hDC, GetColSafe(row, 10), cell(60));                         // atfcmStatus
 
         // NEW: EXCL/REA/SIR clickable cells with colored squares
         RECT exclRect = cell(40);
@@ -559,19 +537,11 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
 
     int fullPanelHeight = CalculatePanelHeight(static_cast<int>(airports.size()));
 
-    masterAirportPanelRect = RECT{
-        panelPosition.x,
-        panelPosition.y,
-        panelPosition.x + PANEL_WIDTH,
-        panelPosition.y + (minimized ? PANEL_HEADER_HEIGHT : fullPanelHeight)
-    };
+    masterAirportPanelRect = RECT{panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH,
+                                  panelPosition.y + (minimized ? PANEL_HEADER_HEIGHT : fullPanelHeight)};
 
-    RECT headerRect = {
-        panelPosition.x,
-        panelPosition.y,
-        panelPosition.x + PANEL_WIDTH,
-        panelPosition.y + PANEL_HEADER_HEIGHT
-    };
+    RECT headerRect = {panelPosition.x, panelPosition.y, panelPosition.x + PANEL_WIDTH,
+                       panelPosition.y + PANEL_HEADER_HEIGHT};
 
     minBtnRect = headerRect;
     minBtnRect.left = minBtnRect.right - 25;
@@ -606,7 +576,7 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         int x = xStart + col * (BTN_WIDTH + BTN_GAP_X);
         int y = yStart + row * (BTN_HEIGHT + BTN_GAP_Y);
 
-        RECT btnRect = { x, y, x + BTN_WIDTH, y + BTN_HEIGHT };
+        RECT btnRect = {x, y, x + BTN_WIDTH, y + BTN_HEIGHT};
         masterAirportBtnRects[i] = btnRect;
 
         std::string btnId = "APTBTN_" + airports[i];
@@ -619,8 +589,7 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
 
         if (pendingMasterChanges.find(airports[i]) != pendingMasterChanges.end()) {
             colFill = RGB(255, 200, 30);
-        }
-        else {
+        } else {
             const bool isCurrentMaster =
                 (std::find(masterAirports.begin(), masterAirports.end(), airports[i]) != masterAirports.end());
 
@@ -639,11 +608,9 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
             if (isCurrentMaster) {
                 colFill = RGB(0, 160, 0);
                 showServerPos = false;
-            }
-            else if (isServerMaster) {
+            } else if (isServerMaster) {
                 colFill = RGB(160, 0, 160);
-            }
-            else {
+            } else {
                 colFill = RGB(220, 0, 0);
             }
         }
@@ -666,14 +633,13 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
 
             DrawTextA(hDC, airports[i].c_str(), -1, &topRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
             DrawSmallTextQuality(hDC, serverPosText.c_str(), botRect, RGB(255, 255, 255));
-        }
-        else {
+        } else {
             DrawTextA(hDC, airports[i].c_str(), -1, &btnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
         }
     }
 
     for (size_t i = airports.size(); i < MAX_AIRPORTS_DISPLAYED; ++i) {
-        masterAirportBtnRects[i] = { 0, 0, 0, 0 };
+        masterAirportBtnRects[i] = {0, 0, 0, 0};
     }
 
     int plusIndex = static_cast<int>(std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED));
@@ -681,7 +647,7 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
     int row = plusIndex / PER_ROW;
     int x = xStart + col * (BTN_WIDTH + BTN_GAP_X);
     int y = yStart + row * (BTN_HEIGHT + BTN_GAP_Y);
-    plusBtnRect = { x, y, x + BTN_WIDTH, y + BTN_HEIGHT };
+    plusBtnRect = {x, y, x + BTN_WIDTH, y + BTN_HEIGHT};
     AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_PLUS", plusBtnRect, true, NULL);
     DrawRoundedRect(hDC, plusBtnRect, RGB(40, 180, 255), RGB(40, 120, 200));
     SetBkMode(hDC, TRANSPARENT);
@@ -690,8 +656,7 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
 }
 
 void CDMScreen::OnRefresh(HDC hDC, int Phase) {
-    if (Phase != REFRESH_PHASE_AFTER_LISTS)
-    {
+    if (Phase != REFRESH_PHASE_AFTER_LISTS) {
         return;
     }
 
@@ -707,8 +672,7 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
     static auto lastCallTime = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - lastCallTime).count();
-    if (elapsed >= 30)
-    {
+    if (elapsed >= 30) {
         lastCallTime = now;
         cdm->fetchRelevantFlights();
     }
@@ -719,8 +683,7 @@ void CDMScreen::ToggleMasterAirport(const std::string& icao) {
     if (std::find(masterAirports.begin(), masterAirports.end(), icao) != masterAirports.end()) {
         cdm->clearMasterAirport(icao);
         MarkAirportPending(icao, false);
-    }
-    else {
+    } else {
         cdm->addMasterAirport(icao);
         MarkAirportPending(icao, true);
     }
@@ -750,8 +713,12 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
     // Flights: column click -> sort (keep existing behavior)
     if (strncmp(sObjectId, "FLT_COL_", 8) == 0) {
         int col = atoi(sObjectId + 8);
-        if (sortColumn == col) sortAscending = !sortAscending;
-        else { sortColumn = col; sortAscending = true; }
+        if (sortColumn == col)
+            sortAscending = !sortAscending;
+        else {
+            sortColumn = col;
+            sortAscending = true;
+        }
         RequestRefresh();
         return;
     }

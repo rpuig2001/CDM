@@ -1,8 +1,11 @@
 #include "SFTP.h"
+
 #include <curl/curl.h>
+
 #include <string>
 
-int UploadFileFTPS(const std::string& ftpUrl, const std::string& ftpUser, const std::string& ftpPassword, const std::string& filePath, const std::string& savePath) {
+int UploadFileFTPS(const std::string& ftpUrl, const std::string& ftpUser, const std::string& ftpPassword,
+                   const std::string& filePath, const std::string& savePath) {
     CURL* curl;
     CURLcode res;
 
@@ -26,15 +29,13 @@ int UploadFileFTPS(const std::string& ftpUrl, const std::string& ftpUser, const 
                 curl_easy_cleanup(curl);
                 return 1;
             }
-        }
-        else {
+        } else {
             curl_easy_cleanup(curl);
             return 2;
         }
 
         curl_easy_cleanup(curl);
-    }
-    else {
+    } else {
         return 3;
     }
 

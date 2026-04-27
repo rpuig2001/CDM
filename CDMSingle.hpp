@@ -1,369 +1,361 @@
 ﻿#pragma once
-#pragma warning(push, 0) 
+#pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
-#pragma warning(pop) 
-#include <sstream>
-#include <iostream>
-#include <string>
-#include "Constant.hpp"
-#include <fstream>
-#include <vector>
+#pragma warning(pop)
 #include <algorithm>
-#include <map>
-#include <chrono>
-#include <regex>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
+#include <chrono>
+#include <fstream>
+#include <iostream>
+#include <map>
+#include <mutex>
+#include <regex>
+#include <sstream>
+#include <string>
+#include <vector>
+
+#include "Constant.hpp"
+#include "Plane.h"
+#include "Rate.h"
+#include "ServerRestricted.h"
+#include "json/json.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "json/json.h"
-#include "Rate.h"
-#include "Plane.h"
-#include "ServerRestricted.h"
 #include "sidInterval.h"
-#include <mutex>
 #define CURL_STATICLIB
-#include "curl/curl.h"
-#include <wininet.h>
-#include <memory>
-#include <windows.h>
 #include <dbghelp.h>
-#include <iomanip>
+#include <windows.h>
+#include <wininet.h>
+
 #include <ctime>
+#include <iomanip>
+#include <memory>
+
+#include "curl/curl.h"
 #pragma comment(lib, "dbghelp.lib")
 #pragma comment(lib, "Wininet")
 
 #ifdef _WIN32
-#include <direct.h> // _mkdir
+#include <direct.h>  // _mkdir
 #else
-#include <sys/stat.h> // mkdir
+#include <sys/stat.h>  // mkdir
 #include <sys/types.h>
 #endif
 
-#define MY_PLUGIN_NAME      "CDM Plugin"
-#define MY_PLUGIN_VERSION   "2.28"
+#define MY_PLUGIN_NAME "CDM Plugin"
+#define MY_PLUGIN_VERSION "2.28"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
-#define MY_PLUGIN_VIEW_AVISO  "Euroscope CDM"
+#define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"
 
-#define PLUGIN_WELCOME_MESSAGE	"Thanks for using the CDM Plugin for Euroscope!"
+#define PLUGIN_WELCOME_MESSAGE "Thanks for using the CDM Plugin for Euroscope!"
 
 using namespace std;
 using namespace boost;
 using namespace rapidjson;
 using namespace EuroScopePlugIn;
 
-class CDM :
-	public EuroScopePlugIn::CPlugIn
-{
-public:
-	CDM();
-	virtual ~CDM();
-	//Define OnGetTagItem function
-	void OnGetTagItem(CFlightPlan FlightPlan,
-		CRadarTarget RadarTarget,
-		int ItemCode,
-		int TagData,
-		char sItemString[16],
-		int* pColorCode,
-		COLORREF* pRGB,
-		double* pFontSize);
+class CDM : public EuroScopePlugIn::CPlugIn {
+   public:
+    CDM();
+    virtual ~CDM();
+    // Define OnGetTagItem function
+    void OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData, char sItemString[16],
+                      int* pColorCode, COLORREF* pRGB, double* pFontSize);
 
-	vector<string> getMasterAirports();
-	vector<vector<string>> getServerMasterAirports();
-	void fetchRelevantFlights();
-	bool setCdmServerStatusFromDialog(std::vector<std::string> flight, string request);
-	void sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight);
-	bool sendAtfcmPrivateMessageToPilot(vector<string> flight);
-	void sendCdmMessageToPilot(string callsign);
-	bool sendCdmPrivateMessageToPilot(string message);
-	vector<string> getCDMAirports();
+    vector<string> getMasterAirports();
+    vector<vector<string>> getServerMasterAirports();
+    void fetchRelevantFlights();
+    bool setCdmServerStatusFromDialog(std::vector<std::string> flight, string request);
+    void sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight);
+    bool sendAtfcmPrivateMessageToPilot(vector<string> flight);
+    void sendCdmMessageToPilot(string callsign);
+    bool sendCdmPrivateMessageToPilot(string message);
+    vector<string> getCDMAirports();
 
-	string getFilterFlightsText();
+    string getFilterFlightsText();
 
-	vector<vector<string>> returnRelevantFlights();
+    vector<vector<string>> returnRelevantFlights();
 
-	bool getRateFromUrl(string url);
+    bool getRateFromUrl(string url);
 
-	bool getRate();
+    bool getRate();
 
-	Rate rateForRunway(string airport, string depRwy);
+    Rate rateForRunway(string airport, string depRwy);
 
-	void PushToOtherControllers(CFlightPlan fp);
+    void PushToOtherControllers(CFlightPlan fp);
 
-	void deleteFlightStrips(string callsign);
+    void deleteFlightStrips(string callsign);
 
-	string EobtPlusTime(string EOBT, int time);
+    string EobtPlusTime(string EOBT, int time);
 
-	string getTaxiTime(double lat, double lon, string origin, string depRwy, int deIceTime, string callsign);
+    string getTaxiTime(double lat, double lon, string origin, string depRwy, int deIceTime, string callsign);
 
-	string GetActualTime();
+    string GetActualTime();
 
-	string GetDateMonthNow();
+    string GetDateMonthNow();
 
-	CPosition readPosition(string lat, string lon)
-	{
-		CPosition p;
+    CPosition readPosition(string lat, string lon) {
+        CPosition p;
 
-		if (!p.LoadFromStrings(lon.c_str(), lat.c_str()))
-		{
-			p.m_Latitude = stod(lat);
-			p.m_Longitude = stod(lon);
-		}
-		return p;
-	}
+        if (!p.LoadFromStrings(lon.c_str(), lat.c_str())) {
+            p.m_Latitude = stod(lat);
+            p.m_Longitude = stod(lon);
+        }
+        return p;
+    }
 
-	int inPoly(int nvert, double* vertx, double* verty, double testx, double testy);
+    int inPoly(int nvert, double* vertx, double* verty, double testx, double testy);
 
-	string formatTime(string timeString);
+    string formatTime(string timeString);
 
-	void RemoveDataFromTfc(string callsign);
+    void RemoveDataFromTfc(string callsign);
 
-	void disconnectTfcs();
+    void disconnectTfcs();
 
-	string calculateTime(string timeString, double minsToAdd);
+    string calculateTime(string timeString, double minsToAdd);
 
-	string calculateLessTime(string timeString, double minsToAdd);
+    string calculateLessTime(string timeString, double minsToAdd);
 
-	string GetTimeNow();
+    string GetTimeNow();
 
-	void saveData();
+    void saveData();
 
-	int getPlanePosition(string callsign);
+    int getPlanePosition(string callsign);
 
-	void multithread(void(CDM::* f)());
+    void multithread(void (CDM::*f)());
 
-	bool checkIsNumber(string str);
+    bool checkIsNumber(string str);
 
-	void setDeice(string remText, CFlightPlan fp, string index);
+    void setDeice(string remText, CFlightPlan fp, string index);
 
-	string getCidByCallsign(string callsign);
+    string getCidByCallsign(string callsign);
 
-	bool flightHasCtotDisabled(string callsign);
+    bool flightHasCtotDisabled(string callsign);
 
-	void getEcfmpData();
+    void getEcfmpData();
 
-	void getSidIntervalValuesUrl(string url);
+    void getSidIntervalValuesUrl(string url);
 
-	double getSidInterval(string mySid, string listSid, string depAirport, string depRwy);
+    double getSidInterval(string mySid, string listSid, string depAirport, string depRwy);
 
-	bool isCdmAirport(string airport);
+    bool isCdmAirport(string airport);
 
-	void getCdmServerRestricted(vector<Plane> slotListTemp);
+    void getCdmServerRestricted(vector<Plane> slotListTemp);
 
-	void sendWaitingTOBT();
+    void sendWaitingTOBT();
 
-	void sendWaitingCdmSts();
+    void sendWaitingCdmSts();
 
-	void sendWaitingCdmData();
+    void sendWaitingCdmData();
 
-	void sendCheckCIDLater();
+    void sendCheckCIDLater();
 
-	void updateCdmDataApi(Plane p);
+    void updateCdmDataApi(Plane p);
 
-	void setOBTApi(string callsign, string obt, bool triggeredByUser, bool useEobt);
+    void setOBTApi(string callsign, string obt, bool triggeredByUser, bool useEobt);
 
-	string getTaxiTime(string callsign);
+    string getTaxiTime(string callsign);
 
-	void setCdmSts(string callsign, string cdmSts);
+    void setCdmSts(string callsign, string cdmSts);
 
-	bool isFligthSusp(string callsign);
+    bool isFligthSusp(string callsign);
 
-	void getCdmServerStatus();
+    void getCdmServerStatus();
 
-	void getCdmServerOnTime();
+    void getCdmServerOnTime();
 
-	void getCdmServerMasterAirports();
+    void getCdmServerMasterAirports();
 
-	void getNetworkRates();
+    void getNetworkRates();
 
-	vector<vector<string>> getDepAirportPlanes(string airport);
+    vector<vector<string>> getDepAirportPlanes(string airport);
 
-	void getIffOffBlockTimes();
+    void getIffOffBlockTimes();
 
-	void getNetworkTobt();
+    void getNetworkTobt();
 
-	vector<vector<string>> getAirportPlanesCdmDataSection(string airport);
+    vector<vector<string>> getAirportPlanesCdmDataSection(string airport);
 
-	void copyServerSavedData(string airport);
+    void copyServerSavedData(string airport);
 
-	bool addMasterAirport(string icao);
+    bool addMasterAirport(string icao);
 
-	bool clearMasterAirport(string icao);
+    bool clearMasterAirport(string icao);
 
-	void getCdmServerRelevantFlights();
+    void getCdmServerRelevantFlights();
 
-	void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
+    void toggleReaMsg(CFlightPlan fp, bool deleteIfExist);
 
-	void addTimeToList(int timeToAdd, string minTSAT);
+    void addTimeToList(int timeToAdd, string minTSAT);
 
-	void addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway);
+    void addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT, string airport, string runway);
 
-	vector<Plane> recalculateSlotList(vector<Plane> mySlotList);
+    vector<Plane> recalculateSlotList(vector<Plane> mySlotList);
 
-	vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
+    vector<Plane> cleanUpSlotListVector(vector<Plane> mySlotList);
 
-	void removeLog();
+    void removeLog();
 
-	int GetVersion();
+    int GetVersion();
 
-	void createJsonVDGS(vector<Plane> slotListValue, string fileName, string airport);
+    void createJsonVDGS(vector<Plane> slotListValue, string fileName, string airport);
 
-	bool isNumber(string s);
+    bool isNumber(string s);
 
-	void uploadSftp(string fileName, string airport, string type);
+    void uploadSftp(string fileName, string airport, string type);
 
-	void upload(string fileName, string airport, string type);
+    void upload(string fileName, string airport, string type);
 
-	void uploadFtp(string fileName, string airport, string type);
+    void uploadFtp(string fileName, string airport, string type);
 
-	void addLogLine(string text);
+    void addLogLine(string text);
 
-	vector<string> explode(std::string const& s, char delim);
+    vector<string> explode(std::string const& s, char delim);
 
-	bool getTaxiZonesFromUrl(string url);
+    bool getTaxiZonesFromUrl(string url);
 
-	bool getCtotsFromUrl(string url);
+    bool getCtotsFromUrl(string url);
 
-	int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
+    int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
-	int GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2);
+    int GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2);
 
-	template <typename Out>
-	void split(const string& s, char delim, Out result) {
-		istringstream iss(s);
-		string item;
-		while (getline(iss, item, delim)) {
-			*result++ = item;
-		}
-	}
+    template <typename Out>
+    void split(const string& s, char delim, Out result) {
+        istringstream iss(s);
+        string item;
+        while (getline(iss, item, delim)) {
+            *result++ = item;
+        }
+    }
 
-	vector<string> split(const string& s, char delim) {
-		vector<string> elems;
-		split(s, delim, back_inserter(elems));
-		return elems;
-	}
+    vector<string> split(const string& s, char delim) {
+        vector<string> elems;
+        split(s, delim, back_inserter(elems));
+        return elems;
+    }
 
-	string destArrayContains(const Value& a, string s) {
-		for (SizeType i = 0; i < a.Size(); i++) {
-			string test = a[i].GetString();
-			SizeType x = static_cast<rapidjson::SizeType>(s.rfind(test, 0));
-			if (s.rfind(a[i].GetString(), 0) != -1)
-				return a[i].GetString();
-		}
-		return "";
-	}
+    string destArrayContains(const Value& a, string s) {
+        for (SizeType i = 0; i < a.Size(); i++) {
+            string test = a[i].GetString();
+            SizeType x = static_cast<rapidjson::SizeType>(s.rfind(test, 0));
+            if (s.rfind(a[i].GetString(), 0) != -1) return a[i].GetString();
+        }
+        return "";
+    }
 
-	bool arrayContains(const Value& a, string s) {
-		for (SizeType i = 0; i < a.Size(); i++) {
-			if (a[i].GetString() == s)
-				return true;
-		}
-		return false;
-	}
+    bool arrayContains(const Value& a, string s) {
+        for (SizeType i = 0; i < a.Size(); i++) {
+            if (a[i].GetString() == s) return true;
+        }
+        return false;
+    }
 
-	bool arrayContains(const Value& a, char s) {
-		for (SizeType i = 0; i < a.Size(); i++) {
-			if (a[i].GetString()[0] == s)
-				return true;
-		}
-		return false;
-	}
+    bool arrayContains(const Value& a, char s) {
+        for (SizeType i = 0; i < a.Size(); i++) {
+            if (a[i].GetString()[0] == s) return true;
+        }
+        return false;
+    }
 
-	string arrayToString(const Value& a, char delimiter) {
-		string s;
-		for (SizeType i = 0; i < a.Size(); i++) {
-			s += a[i].GetString()[0];
-			if (i != a.Size() - 1)
-				s += delimiter;
-		}
-		return s;
-	}
-	bool routeContains(string s, const Value& a) {
-		for (SizeType i = 0; i < a.Size(); i++) {
-			bool dd = contains(s, a[i].GetString());
-			if (contains(s, a[i].GetString()))
-				return true;
-		}
-		return false;
-	}
+    string arrayToString(const Value& a, char delimiter) {
+        string s;
+        for (SizeType i = 0; i < a.Size(); i++) {
+            s += a[i].GetString()[0];
+            if (i != a.Size() - 1) s += delimiter;
+        }
+        return s;
+    }
+    bool routeContains(string s, const Value& a) {
+        for (SizeType i = 0; i < a.Size(); i++) {
+            bool dd = contains(s, a[i].GetString());
+            if (contains(s, a[i].GetString())) return true;
+        }
+        return false;
+    }
 
-	void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
+    void OnFlightPlanDisconnect(CFlightPlan FlightPlan);
 
-	void debugMessage(string type, string message);
+    void debugMessage(string type, string message);
 
-	void sendMessage(string type, string message);
+    void sendMessage(string type, string message);
 
-	void sendMessage(string message);
+    void sendMessage(string message);
 
-	void OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan);
+    void OnFlightPlanFlightPlanDataUpdate(CFlightPlan FlightPlan);
 
-	void RemoveMasterAirports();
+    void RemoveMasterAirports();
 
-	vector<Plane> backgroundProcess_recaulculate();
+    vector<Plane> backgroundProcess_recaulculate();
 
-	Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT, string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate, bool aircraftFind);
+    Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT,
+                       string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate,
+                       bool aircraftFind);
 
-	string getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour, const string& callsign, const string& origin, const string& depRwy, const string& timeNow, double taxiTime, const string& mySid);
+    string getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour,
+                                   const string& callsign, const string& origin, const string& depRwy,
+                                   const string& timeNow, double taxiTime, const string& mySid);
 
-	void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
+    void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
-	string getFromXml(string xpath);
+    string getFromXml(string xpath);
 
-	int getDeIceId(string callsign);
+    int getDeIceId(string callsign);
 
-	int addDeIceTime(string callsign, char wtc);
+    int addDeIceTime(string callsign, char wtc);
 
-	int getDeIceTime(char wtc, int remNum);
+    int getDeIceTime(char wtc, int remNum);
 
-	string getDiffTOBTTSAT(string TSAT, string TOBT);
+    string getDiffTOBTTSAT(string TSAT, string TOBT);
 
-	string getDiffNowTime(string time);
+    string getDiffNowTime(string time);
 
-	string GetTimedStatus(const string status);
+    string GetTimedStatus(const string status);
 
-	void addVatcanCtotToEvCTOT(string line);
+    void addVatcanCtotToEvCTOT(string line);
 
-	bool getPanelStatus();
+    bool getPanelStatus();
 
-	bool getAtfcmList();
+    bool getAtfcmList();
 
-	bool OnCompileCommand(const char* sCommandLine);
+    bool OnCompileCommand(const char* sCommandLine);
 
-	void OnTimer(int Count);
+    void OnTimer(int Count);
 
-	vector<string> splitString(const std::string& str, char delimiter);
+    vector<string> splitString(const std::string& str, char delimiter);
 
-	string getFlightStripInfo(CFlightPlan FlightPlan, int position);
+    string getFlightStripInfo(CFlightPlan FlightPlan, int position);
 
-	void setFlightStripInfo(CFlightPlan FlightPlan, string text, int position);
+    void setFlightStripInfo(CFlightPlan FlightPlan, string text, int position);
 
-	void refreshActions1();
+    void refreshActions1();
 
-	void refreshActions2();
+    void refreshActions2();
 
-	void refreshActions3();
+    void refreshActions3();
 
-	void refreshActions4();
+    void refreshActions4();
 
-	bool setMasterAirport(string airport, string position);
+    bool setMasterAirport(string airport, string position);
 
-	bool removeMasterAirport(string airport, string position);
+    bool removeMasterAirport(string airport, string position);
 
-	bool removeAllMasterAirports(string position);
+    bool removeAllMasterAirports(string position);
 
-	void removeAllMasterAirportsByAirport(string airport);
+    void removeAllMasterAirportsByAirport(string airport);
 
-	bool setEvCtot(string callsign);
+    bool setEvCtot(string callsign);
 
-	void BuildAndEnsureLogPath(std::string& tfad);
+    void BuildAndEnsureLogPath(std::string& tfad);
 
-	CRadarScreen* OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced, bool CanBeSaved, bool CanBeCreated);
+    CRadarScreen* OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced,
+                                       bool CanBeSaved, bool CanBeCreated);
 
-	int FuncBuffer;
+    int FuncBuffer;
 
-	protected:
-		Document config;
+   protected:
+    Document config;
 };
-
