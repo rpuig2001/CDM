@@ -562,7 +562,6 @@ CDM::CDM(void) :CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_
 	std::thread t34(&CDM::getCdmServerRestricted, this, slotList);
 	t34.detach();
 
-	apikey = "test";
 	std::thread t75(&CDM::getCdmServerMasterAirports, this);
 	t75.detach();
 
@@ -1098,7 +1097,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 				}
 			}
 
-			if (status == "") {
+			if (hasCtot && status == "") {
 				OpenPopupList(Area, "CDM-Network", 1);
 				if (status != "REA") {
 					AddPopupListElement("Set REA", "", TAG_FUNC_NETWORK_SET_REA, false, 2, false);
@@ -9713,7 +9712,7 @@ void CDM::sendWaitingCdmSts() {
 void CDM::sendWaitingCdmData() {
 	vector<Plane> callsignsToProcess;
 	{
-		addLogLine("Call sendWaitingCdmSts - " + to_string(setCdmDatalater.size()));
+		addLogLine("Call sendWaitingCdmData - " + to_string(setCdmDatalater.size()));
 		std::lock_guard<std::mutex> lock(later4Mutex);
 		callsignsToProcess = setCdmDatalater;
 		setCdmDatalater.clear();
@@ -11132,7 +11131,7 @@ static void TypeTextInstant(const std::string& text)
 	SendInput((UINT)inputs.size(), inputs.data(), sizeof(INPUT));
 }
 
-bool CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight)
+void CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight)
 {
 	for (int i = 0; i < (int)relevantFlights.size(); i++)
 	{
@@ -11193,7 +11192,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight)
 	return true;
 }
 
-bool CDM::sendCdmMessageToPilot(string callsign) {
+void CDM::sendCdmMessageToPilot(string callsign) {
 	string position = "";
 	bool correctPosition = false;
 	if (ControllerMyself().IsValid()) {
@@ -11209,7 +11208,6 @@ bool CDM::sendCdmMessageToPilot(string callsign) {
 
 	if (!correctPosition) {
 		sendMessage("You are not in a position able to send CDM messages to pilots.");
-		return false;
 	}
 	bool found = false;
 	for (string flt : messagesSent) {

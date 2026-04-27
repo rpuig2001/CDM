@@ -1,0 +1,9 @@
+{
+  "dependencies": [
+    "boost-algorithm",
+    "boost-format",
+    "curl",
+    "jsoncpp",
+    "rapidjson"
+  ]
+}

@@ -1,5 +1,7 @@
 # Prerequisites
 *.d
+vcpkg_installed/
+CMakeUserPresets.json
 
 # Compiled Object files
 *.slo
@@ -34,6 +36,7 @@
 # Build results
 [Dd]ebug/
 [Rr]elease/
+build/
 
 # Visual Studo cache/options directory
 .vs/

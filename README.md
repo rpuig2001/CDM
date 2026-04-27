@@ -507,3 +507,12 @@ Capacities:
 - Purple: Master set by another ATC.
 - Yellow: Enabling/Disabling Master.
 - Green: Master Airport set by me.
+
+
+## Build the project
+
+Install vcpkg [see here (steps 1. - 2.1)](https://learn.microsoft.com/en-us/vcpkg/get_started/get-started?pivots=shell-cmd)
+
+Configure the project using ```cmake --preset default```
+
+Build the DLL using ```cmake --build build --config Release```

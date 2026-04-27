@@ -1,0 +1,6 @@
+find_package(boost_preprocessor CONFIG REQUIRED)
+find_package(boost_algorithm CONFIG REQUIRED)
+find_package(boost_format CONFIG REQUIRED)
+find_package(CURL REQUIRED)
+find_package(jsoncpp CONFIG REQUIRED)
+find_package(RapidJSON CONFIG REQUIRED)

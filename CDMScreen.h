@@ -3,7 +3,9 @@
 #include <vector>
 #include <string>
 #include <windows.h>
+#pragma warning(push, 0) 
 #include "EuroScopePlugIn.h"
+#pragma warning(pop) 
 #include <map>
 #include <chrono>
 
