@@ -9012,6 +9012,22 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
 	{
 		try {
 			addLogLine(sCommandLine);
+			string callsign = "";
+			bool correctPosition = false;
+			if (ControllerMyself().IsValid()) {
+				if (ControllerMyself().IsController()) {
+					callsign = ControllerMyself().GetCallsign();
+					if (callsign.size() > 3) {
+						if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos || callsign.find("_TWR") != string::npos || callsign.find("_APP") != string::npos || callsign.find("_CTR") != string::npos || callsign.find("_FMP") != string::npos) {
+							correctPosition = true;
+						}
+					}
+				}
+			}
+			if (!correctPosition) {
+				sendMessage("RECOVER NOT SUCCESFULL. NOT AN ACTIVE ATC POSITION.");
+				return true;
+			}
 			string line = sCommandLine; boost::to_upper(line);
 			vector<string> lineAirports = explode(line, ' ');
 
