@@ -47,9 +47,7 @@ SET(SOURCE_FILES
     stdafx.cpp
 )
 
-find_package(boost_preprocessor CONFIG REQUIRED)
-find_package(boost_algorithm CONFIG REQUIRED)
-find_package(boost_format CONFIG REQUIRED)
+INCLUDE(external/CMakeLists.txt)
 
 # Create a static library target, used in tests and shared dll
 ADD_LIBRARY(${PROJECT_NAME}_static STATIC ${SOURCE_FILES})
@@ -84,8 +82,6 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_shared PUBLIC
     ${CMAKE_SOURCE_DIR}/external/include
     ${CMAKE_SOURCE_DIR}
 )
-
-INCLUDE(external/CMakeLists.txt)
 
 # SET(gtest_force_shared_crt on)
 # INCLUDE(CTest)
