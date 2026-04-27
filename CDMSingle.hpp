@@ -14,7 +14,7 @@
 #include <sstream>
 #include <string>
 #include <vector>
-
+#include <unordered_set>
 #include "Constant.hpp"
 #include "Plane.h"
 #include "Rate.h"
@@ -204,6 +204,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     void createJsonVDGS(vector<Plane> slotListValue, string fileName, string airport);
 
     bool isNumber(string s);
+
+    bool isEvSlot(string callsign);
 
     void uploadSftp(string fileName, string airport, string type);
 

@@ -42,6 +42,7 @@ int refreshTime;
 bool addTime;
 bool lvo;
 bool bmiMode;
+bool eventPriorityEnabled;
 bool ctotCid;
 bool realMode;
 bool eventMode;
@@ -249,9 +250,10 @@ CDM::CDM(void)
     RegisterTagItemFunction("Get FM as text", TAG_FUNC_FMASTEXT);
 
     // Register Tag Item "CDM-EVENT-CTOT"
-    RegisterTagItemType("EV-CTOT", TAG_ITEM_EV_CTOT);
-    RegisterTagItemFunction("EvCTOT Options", TAG_FUNC_OPT_EvCTOT);
-    RegisterTagItemFunction("EvCTOT to MANUAL CTOT", TAG_FUNC_EvCTOTtoCTOT);
+    RegisterTagItemType("EV-SLOT", TAG_ITEM_EV_CTOT);
+    RegisterTagItemFunction("EvSLOT Options", TAG_FUNC_OPT_EvCTOT);
+    RegisterTagItemFunction("EvSLOT to MANUAL CTOT", TAG_FUNC_EvCTOTtoCTOT);
+    RegisterTagItemFunction("EvSLOT to TOBT", TAG_FUNC_EvCTOTtoTOBT);
 
     // Register Tag Item and functions "NETWORK STATUS"
     RegisterTagItemType("Network Sts", TAG_ITEM_NETWORK_STATUS);
@@ -392,6 +394,7 @@ CDM::CDM(void)
         string flashingTOBTendString = getFromXml("/CDM/flashingMode/@tobtLastMin");
         string flashingTSATstartString = getFromXml("/CDM/flashingMode/@tsatFirstMin");
         string flashingTSATendString = getFromXml("/CDM/flashingMode/@tsatLastMin");
+        string eventPriorityString = getFromXml("/CDM/eventPriority/@mode");
 
         if (ftpHost == "" && ftpUser == "") {
             ftpHost = "ftp.vatsimspain.es";
@@ -463,6 +466,11 @@ CDM::CDM(void)
         bmiMode = false;
         if (bmiModeString == "true") {
             bmiMode = true;
+        }
+
+        eventPriorityEnabled = false;
+        if (eventPriorityString == "true") {
+            eventPriorityEnabled = true;
         }
 
         option_su_wait = false;
@@ -1282,8 +1290,29 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
         else if (FunctionId == TAG_FUNC_OPT_EvCTOT) {
             if (master && AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_OPT_EvCTOT");
-                OpenPopupList(Area, "Event CTOT Options", 1);
-                AddPopupListElement("Add Event CTOT as MAN CTOT", "", TAG_FUNC_EvCTOTtoCTOT, false, 2, false);
+                OpenPopupList(Area, "Event SLOT Options", 1);
+                AddPopupListElement("Add Event SLOT as TOBT", "", TAG_FUNC_EvCTOTtoTOBT, false, 2, false);
+                AddPopupListElement("Add Event SLOT as MAN CTOT", "", TAG_FUNC_EvCTOTtoCTOT, false, 2, false);
+            }
+        }
+
+        else if (FunctionId == TAG_FUNC_EvCTOTtoTOBT) {
+            if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" &&
+                (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
+                (string)fp.GetGroundState() != "DEPA") {
+                if (master && AtcMe) {
+                    bool inEvCtotsList = false;
+                    string slot = "";
+                    for (size_t i = 0; i < evCtots.size(); i++) {
+                        if (evCtots[i][0] == callsign) {
+                            inEvCtotsList = true;
+                            slot = evCtots[i][1];
+                        }
+                    }
+                    if (inEvCtotsList) {
+                        setFlightStripInfo(fp, slot, 0);
+                    }
+                }
             }
         }
 
@@ -2314,7 +2343,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 strcpy_s(sItemString, 16, ShowEOBT.substr(0, ShowEOBT.length() - 2).c_str());
                             } else if (ItemCode == TAG_ITEM_TSAT) {
                                 ItemRGB = TAG_RED;
-                                strcpy_s(sItemString, 16, outOfTsatString.c_str());
+                                if (isEvSlot(callsign)) {
+                                    strcpy_s(sItemString, 16, (outOfTsatString + "E").c_str());
+                                } else {
+                                    strcpy_s(sItemString, 16, outOfTsatString.c_str());
+                                }
                             } else if (ItemCode == TAG_ITEM_TSAC) {
                                 ItemRGB = TAG_GREEN;
                                 if (SU_ISSET) ItemRGB = SU_SET_COLOR;
@@ -3323,6 +3356,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     if (aircraftFind) {
                                         string ShowTSAT = (string)TSAT;
                                         ShowTSAT = ShowTSAT.substr(0, ShowTSAT.length() - 2);
+                                        if (isEvSlot(callsign)) ShowTSAT = ShowTSAT + "E";
 
                                         if (SU_ISSET) {
                                             ItemRGB = SU_SET_COLOR;
@@ -4165,6 +4199,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TSAT) {
                                 if (TSATString.length() > 0 && aircraftFind) {
                                     TSATString = TSATString.substr(0, 4);
+                                    if (isEvSlot(callsign)) TSATString = TSATString + "E";
+
                                     if (SU_ISSET) {
                                         ItemRGB = SU_SET_COLOR;
                                         strcpy_s(sItemString, 16, TSATString.c_str());
@@ -6692,8 +6728,16 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
 std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
     addLogLine("Called recalculateSlotList...");
 
+    std::unordered_set<std::string> eventCtotCallsigns;
+    eventCtotCallsigns.reserve(evCtots.size());
+    for (const auto& row : evCtots) {
+        if (row.size() >= 2 && !row[1].empty()) {
+            eventCtotCallsigns.insert(row[0]);
+        }
+    }
+
     try {
-        std::sort(mySlotList.begin(), mySlotList.end(), [](const Plane& a, const Plane& b) {
+        std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns](const Plane& a, const Plane& b) {
             // 1. Manual CTOT first
             if (a.hasManualCtot != b.hasManualCtot) return a.hasManualCtot > b.hasManualCtot;
 
@@ -6702,7 +6746,14 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
                 return std::stoi(a.ctot) < std::stoi(b.ctot);
             }
 
-            // 3. Fallback → order by TTOT
+            // 3) Event SLOT present (found in evCtots with non-empty value) before those without SLOT
+            if (eventPriorityEnabled) {
+                const bool aHasEventCtot = eventCtotCallsigns.find(a.callsign) != eventCtotCallsigns.end();
+                const bool bHasEventCtot = eventCtotCallsigns.find(b.callsign) != eventCtotCallsigns.end();
+                if (aHasEventCtot != bHasEventCtot) return aHasEventCtot > bHasEventCtot;
+            }
+
+            // 4. Fallback → order by TTOT
             return std::stoi(a.ttot) < std::stoi(b.ttot);
         });
     } catch (const std::exception& e) {
@@ -7898,7 +7949,24 @@ string CDM::GetTimedStatus(string status) {
 }
 
 void CDM::addVatcanCtotToEvCTOT(string line) {
-    slotFile.push_back({line.substr(0, line.find(",")), line.substr(line.find(",") + 1, 4)});
+    // Expected:
+    //  - "vatcan,ctot"
+    //  - "vatcan,callsign,ctot"
+    //
+    // Store as:
+    //  [0] vatcan
+    //  [1] callsign ("" if not provided)
+    //  [2] ctot
+
+    const auto parts = explode(line, ',');
+
+    if (parts.size() == 2) {
+        slotFile.push_back({parts[0], "", parts[1]});
+    } else if (parts.size() == 3) {
+        slotFile.push_back({parts[0], parts[1], parts[2]});
+    } else {
+        return;
+    }
 }
 
 bool CDM::getPanelStatus() { return showPanel; }
@@ -8937,13 +9005,13 @@ bool CDM::setEvCtot(string callsign) {
                     if (cid.length() > 4) {
                         for (int i = 0; i < slotFile.size(); i++) {
                             if (slotFile[i].size() > 1) {
-                                if (slotFile[i][0] == cid) {
-                                    addLogLine(callsign + " linked with EvCTOT " + slotFile[i][1]);
-                                    sendMessage(callsign + " linked with EvCTOT " + slotFile[i][1]);
+                                if (slotFile[i][0] == cid && (slotFile[i][1] == "" || callsign == slotFile[i][1])) {
+                                    addLogLine(callsign + " linked with EvCTOT " + slotFile[i][2]);
+                                    sendMessage(callsign + " linked with EvCTOT " + slotFile[i][2]);
                                     for (int a = 0; a < evCtots.size(); a++) {
                                         if (evCtots[a].size() > 0) {
                                             if (evCtots[a][0] == callsign) {
-                                                evCtots[a] = {callsign, slotFile[i][1]};
+                                                evCtots[a] = {callsign, slotFile[i][2]};
                                                 return true;
                                             };
                                         }
@@ -10636,4 +10704,13 @@ bool CDM::sendCdmPrivateMessageToPilot(string message) {
     SendEnter();
 
     return true;
+}
+
+bool CDM::isEvSlot(string callsign) {
+    for (size_t i = 0; i < evCtots.size(); i++) {
+        if (evCtots[i][0] == callsign) {
+            return true;
+        }
+    }
+    return false;
 }
