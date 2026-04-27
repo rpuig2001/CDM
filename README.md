@@ -154,6 +154,7 @@ CDM includes the following times:
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
   - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  "<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>").
+  - (New version) Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: "<eventPriority mode="true" />") - Event Slot is not required to set as "CTOT".
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
