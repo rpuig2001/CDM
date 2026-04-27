@@ -1304,7 +1304,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                     bool inEvCtotsList = false;
                     string slot = "";
                     for (size_t i = 0; i < evCtots.size(); i++) {
-                        if (evCtots[i][0] == callsign) {
+                        if (evCtots[i][0] == fp.GetCallsign()) {
                             inEvCtotsList = true;
                             slot = evCtots[i][1];
                         }
