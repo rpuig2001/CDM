@@ -219,7 +219,7 @@ CDM includes the following times:
 
 ## Event CTOTs
 ### How does it work?
-Used for the EVCTOT column with the following format: <cid>,<CTOT>
+Used for the EVCTOT column with the following format: <cid>,<slot>
 
 Example:
 
@@ -237,6 +237,16 @@ Example:
 9999999,0840
 9999999,0842
 9999999,0844
+```
+
+Next version:
+Used for the EVCTOT column with the following format: <cid>,<CTOT> or <cid>,callsign>,<slot>
+
+```
+9999999,RYR2889,1705
+9999999,1700
+9999999,VLG11P,1703
+9999999,1709
 ```
 
 ## Sid Interval
