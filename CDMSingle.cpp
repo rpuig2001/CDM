@@ -5604,9 +5604,9 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         for (const auto& entry : asatList) {
             asatCallsigns.insert(entry.substr(0, entry.find(",")));
         }
-        for (const auto& slot : copySlotList) {
-            if (asatCallsigns.count(slot.callsign)) {
-                tempSlotList.push_back(slot);
+        for (const auto& flightItem : copySlotList) {
+            if (asatCallsigns.count(flightItem.callsign)) {
+                tempSlotList.push_back(flightItem);
             }
         }
 
@@ -10223,7 +10223,7 @@ void CDM::getNetworkTobt() {
                                 continue;
                             }
                             setFlightStripInfo(fp, plane[1], 2);
-                            // setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+                            setCdmSts(plane[0], "REQTOBT/NULL/NULL");
                             // Trigger TOBT update to update TAXI TIME
                             setOBTApi(plane[0], plane[1], true, false);
                             updated = true;
