@@ -844,8 +844,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                 }
             }
         } else if (FunctionId == TAG_FUNC_EOBTTOTOBT) {
-            addLogLine("TRIGGER - TAG_FUNC_EOBTTOTOBT");
-            setFlightStripInfo(fp, formatTime(fp.GetFlightPlanData().GetEstimatedDepartureTime()), 2);
+            if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" &&
+                (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
+                (string)fp.GetGroundState() != "DEPA") {
+                if (master && AtcMe) {
+                    addLogLine("TRIGGER - TAG_FUNC_EOBTTOTOBT");
+                    setFlightStripInfo(fp, formatTime(fp.GetFlightPlanData().GetEstimatedDepartureTime()), 2);
+                }
+            }
         } else if (FunctionId == TAG_FUNC_ADDTSAC) {
             addLogLine("TRIGGER - TAG_FUNC_ADDTSAC");
             string completeTOBT = getFlightStripInfo(fp, 2);
@@ -1479,7 +1485,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
         }
         
         else if (FunctionId == TAG_FUNC_EvCTOTtoCTOT) {
-            if (master && AtcMe) {
+            if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" &&
+                (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
+                (string)fp.GetGroundState() != "DEPA") {
+                if (master && AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_EvCTOTtoCTOT");
                 // only before start-up/push back
                 const string groundState = fp.GetGroundState();
@@ -1540,6 +1549,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             }
                         }
                     }
+                }
                 }
             }
         }
@@ -5579,6 +5589,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
     addLogLine("Called backgroundProcess_recaulculate...");
     try {
         vector<Plane> tempSlotList;
+        vector<Plane> copySlotList = slotList;
         addLogLine("[AUTO] - Starting CDM recalculation process");
         // Get Time NOW
         time_t rawtime;
@@ -5587,15 +5598,37 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         gmtime_s(&ptm, &rawtime);
         string hour = to_string(ptm.tm_hour % 24);
         string min = to_string(ptm.tm_min);
-        for (size_t i = 0; i < slotList.size(); i++) {
+
+        //Copy flights with ASAT already as they can't be moved in the list anymore.
+        std::unordered_set<std::string> asatCallsigns;
+        for (const auto& entry : asatList) {
+            asatCallsigns.insert(entry.substr(0, entry.find(",")));
+        }
+        for (const auto& slot : copySlotList) {
+            if (asatCallsigns.count(slot.callsign)) {
+                tempSlotList.push_back(slot);
+            }
+        }
+
+        for (size_t i = 0; i < copySlotList.size(); i++) {
+            //check if tempSlotList has already the callsign
+            bool callsignInTempList = false;
+            for (size_t j = 0; j < tempSlotList.size(); j++) {
+                if (tempSlotList[j].callsign == copySlotList[i].callsign) {
+                    callsignInTempList = true;
+                    break;
+                }
+            }
+            if (callsignInTempList) continue;
+
             // Update TSAT in scratchpad if enabled remarksOption
             if (remarksOption || remarksOptionCtot) {
-                CFlightPlan fplSelect = FlightPlanSelect(slotList[i].callsign.c_str());
+                CFlightPlan fplSelect = FlightPlanSelect(copySlotList[i].callsign.c_str());
+                string testTsat = copySlotList[i].tsat;
+                string testCtot = copySlotList[i].ctot;
                 if (!fplSelect.IsValid()) {
                     continue;
                 }
-                string testTsat = slotList[i].tsat;
-                string testCtot = slotList[i].ctot;
                 if ((string)fplSelect.GetGroundState() != "STUP" && (string)fplSelect.GetGroundState() != "ST-UP" &&
                     (string)fplSelect.GetGroundState() != "PUSH" && (string)fplSelect.GetGroundState() != "TAXI" &&
                     (string)fplSelect.GetGroundState() != "DEPA") {
@@ -5607,7 +5640,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 }
             }
 
-            string myCallsign = slotList[i].callsign;
+            string myCallsign = copySlotList[i].callsign;
 
             string myTTOT, myTSAT, myEOBT, myAirport, myDepRwy = "";
             int myTTime = defTaxiTime;
@@ -5621,7 +5654,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
             }
 
             // Do not calculate if has CTOT
-            // if (slotList[i].hasManualCtot && slotList[i].ctot != "") aicraftInFinalTimesList = false;
+            // if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") aicraftInFinalTimesList = false;
 
             if (!aicraftInFinalTimesList) {
                 CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
@@ -5654,7 +5687,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                myEOBT = slotList[i].eobt;
+                myEOBT = copySlotList[i].eobt;
 
                 Rate dataRate = rateForRunway(myFlightPlan.GetFlightPlanData().GetOrigin(),
                                               myFlightPlan.GetFlightPlanData().GetDepartureRwy());
@@ -5753,10 +5786,10 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                if (slotList[i].hasManualCtot && slotList[i].ctot != "") {
-                    double diffTime = GetDifferenceTimeHHMMSS(slotList[i].tsat, slotList[i].ttot);
-                    int candidateTTOT = stoi(calculateTime(slotList[i].eobt, diffTime));
-                    int maxValue = max(candidateTTOT, stoi(slotList[i].ctot + "00"));
+                if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") {
+                    double diffTime = GetDifferenceTimeHHMMSS(copySlotList[i].tsat, copySlotList[i].ttot);
+                    int candidateTTOT = stoi(calculateTime(copySlotList[i].eobt, diffTime));
+                    int maxValue = max(candidateTTOT, stoi(copySlotList[i].ctot + "00"));
                     myTTOT = to_string(maxValue);
                     if (myTTOT.length() == 1) {
                         myTTOT = "00000" + myTTOT;
@@ -5771,13 +5804,13 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                Plane item = refreshTimes(slotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
+                Plane item = refreshTimes(copySlotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
                                           myAirport, myTTime, myDepRwy, dataRate, true);
                 tempSlotList.push_back(item);
                 // refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks,
                 // myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
             } else {
-                tempSlotList.push_back(slotList[i]);
+                tempSlotList.push_back(copySlotList[i]);
             }
         }
 
@@ -9025,14 +9058,14 @@ bool CDM::setEvCtot(string callsign) {
                                     }
                                 }
                                 if (match) {
-                                    addLogLine(callsign + " linked with EvCTOT " + slotFile[i][2]);
-                                    sendMessage(callsign + " linked with EvCTOT " + slotFile[i][2]);
+                                    addLogLine(callsign + " linked with EvCTOT " + slotFile[i][4]);
+                                    sendMessage(callsign + " linked with EvCTOT " + slotFile[i][4]);
                                     for (int a = 0; a < evCtots.size(); a++) {
                                         if (evCtots[a].size() > 0) {
                                             if (evCtots[a][0] == callsign) {
-                                                evCtots[a] = {callsign, slotFile[i][2]};
+                                                evCtots[a] = {callsign, slotFile[i][4]};
                                                 if (autoSetTobtFromEvSlot)
-                                                    setFlightStripInfo(FlightPlanSelect(callsign.c_str()), formatTime(slotFile[i][2]), 2);
+                                                    setFlightStripInfo(FlightPlanSelect(callsign.c_str()), formatTime(slotFile[i][4]), 2);
                                                 return true;
                                             };
                                         }
