@@ -125,7 +125,6 @@ CDM includes the following times:
 ### CDMconfig.xml
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
-  - Expired CTOT time, it selects the time before expire the CTOT if the pilot is not connected (ex. expiredCtot time="15").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").
   - Block Movement Index Mode to calculate times as "windows" (**DISABLED:** bmi mode="false" and **ENABLED:** bmi mode="true").
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
@@ -135,7 +134,7 @@ CDM includes the following times:
   - When Ready TOBT is pressed, automatically set the TSAC as the calculated TSAT (ex. readySetTsac mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
-  - [OPTIONAL] Event CTOTs URL to the TXT file - Format is defined below (ex. Ctot url:"https://...."), if no URL needed, just leave it blank (ex. Ctot url="").
+  - [OPTIONAL] Event SLOTs URL to the TXT file - Format is defined below (ex. Slot url:"https://...."), if no URL needed, just leave it blank (ex. Slots url="").
   - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
@@ -242,14 +241,15 @@ Example:
 ```
 
 Next version:
-Used for the EVSLOT column with the following format: <cid>,<CTOT> or <cid>,callsign>,<slot>
+Used for the EVSLOT column with the following format: <cid>,<SLOT> or <cid>,callsign>,<slot> or <cid>,<callsign>,<departure>,<destination>,<slot>
 
 ```
 9999999,RYR2889,1705
 9999999,1700
-9999999,VLG11P,1703
+9999999,VLG11P,LEBL,LEPA,1703
 9999999,1709
 ```
+Note: In case of connection with the matched cid, departure and destination (with a different callsign) it will still be considered as matched.
 
 ## Sid Interval
 ### How does it work?
