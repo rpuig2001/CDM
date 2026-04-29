@@ -9017,7 +9017,12 @@ bool CDM::setEvCtot(string callsign) {
                                     // Case where we have CID, callsign, departure and destination
                                     string departure = FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetOrigin();
                                     string destination = FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetDestination();
-                                    if (slotFile[i][0] == cid && slotFile[i][1] == callsign && slotFile[i][2] == departure && slotFile[i][3] == destination) match = true;
+                                    if (slotFile[i][0] == cid && slotFile[i][1] == callsign && slotFile[i][2] == departure && slotFile[i][3] == destination) {
+                                        match = true;
+                                    } else if (slotFile[i][0] == cid && slotFile[i][2] == departure && slotFile[i][3] == destination) {
+                                        // Fallback using cid, departure and destination only
+                                        match = true;
+                                    }
                                 }
                                 if (match) {
                                     addLogLine(callsign + " linked with EvCTOT " + slotFile[i][2]);
