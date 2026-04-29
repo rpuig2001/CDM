@@ -28,7 +28,6 @@ string xfad;
 string tfad;
 string rateString;
 string lvoRateString;
-int expiredCTOTTime;
 bool defaultRate;
 time_t countTime;
 time_t countTimeNonCdm;
@@ -62,7 +61,7 @@ string lastAddedIcao;
 string myTimeToAdd;
 string rateUrl;
 string taxiZonesUrl;
-string ctotURL;
+string slotURL;
 string cdmServerUrl;
 string customRestrictedUrl;
 string sidIntervalUrl;
@@ -294,7 +293,7 @@ CDM::CDM(void)
 
     cfad = DllPathFile;
     cfad.resize(cfad.size() - strlen("CDM.dll"));
-    cfad += "ctot.txt";
+    cfad += "slot.txt";
 
     vfad = DllPathFile;
     vfad.resize(vfad.size() - strlen("CDM.dll"));
@@ -366,7 +365,6 @@ CDM::CDM(void)
         string deIceRem4 = getFromXml("/CDM/DeIceRemTaxi/@rem4");
         string deIceRem5 = getFromXml("/CDM/DeIceRemTaxi/@rem5");
         refreshTime = stoi(getFromXml("/CDM/RefreshTime/@seconds"));
-        expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
         string eventModeTimeString = getFromXml("/CDM/eventModeMin/@time");
         string realModeStr = getFromXml("/CDM/realMode/@mode");
         string bmiModeString = getFromXml("/CDM/bmi/@mode");
@@ -376,7 +374,7 @@ CDM::CDM(void)
         lvoRateString = getFromXml("/CDM/rateLvo/@ops");
         rateUrl = getFromXml("/CDM/Rates/@url");
         taxiZonesUrl = getFromXml("/CDM/Taxizones/@url");
-        ctotURL = getFromXml("/CDM/Ctot/@url");
+        slotURL = getFromXml("/CDM/Slots/@url");
         sidIntervalUrl = getFromXml("/CDM/sidInterval/@url");
         string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
         string invalidateTOBT_OptionStr = getFromXml("/CDM/invalidateAtTobt/@mode");
@@ -641,7 +639,7 @@ CDM::CDM(void)
     }
 
     // Get Values from ctot web or file
-    if (ctotURL.length() <= 1) {
+    if (slotURL.length() <= 1) {
         ctotCid = false;
         if (debugMode) {
             sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
@@ -659,7 +657,7 @@ CDM::CDM(void)
         if (debugMode) {
             sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
         }
-        getCtotsFromUrl(ctotURL);
+        getCtotsFromUrl(slotURL);
     }
 
     fstream fileColors;
@@ -1479,7 +1477,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                 }
             }
         }
-
+        
         else if (FunctionId == TAG_FUNC_EvCTOTtoCTOT) {
             if (master && AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_EvCTOTtoCTOT");
@@ -7963,14 +7961,18 @@ void CDM::addVatcanCtotToEvCTOT(string line) {
     // Store as:
     //  [0] vatcan
     //  [1] callsign ("" if not provided)
-    //  [2] ctot
+    //  [2] departure ICAO ("" if not provided)
+    //  [3] destination ICAO ("" if not provided)
+    //  [4] ctot
 
     const auto parts = explode(line, ',');
 
     if (parts.size() == 2) {
-        slotFile.push_back({parts[0], "", parts[1]});
+        slotFile.push_back({parts[0], "", "", "", parts[1]});
     } else if (parts.size() == 3) {
-        slotFile.push_back({parts[0], parts[1], parts[2]});
+        slotFile.push_back({parts[0], parts[1], "", "", parts[2]});
+    }else if (parts.size() == 5) {
+        slotFile.push_back({parts[0], parts[1], parts[2], parts[3], parts[4]});
     } else {
         return;
     }
@@ -8378,7 +8380,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
         addLogLine(sCommandLine);
         sendMessage("Loading CTOTs data....");
 
-        if (ctotURL.length() <= 1) {
+        if (slotURL.length() <= 1) {
             ctotCid = false;
             if (debugMode) {
                 sendMessage("[DEBUG MESSAGE] - NOT SHOWING EVCTOTs");
@@ -8396,17 +8398,9 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
             if (debugMode) {
                 sendMessage("[DEBUG MESSAGE] - SHOWING EVCTOTs");
             }
-            getCtotsFromUrl(ctotURL);
+            getCtotsFromUrl(slotURL);
         }
 
-        return true;
-    }
-
-    if (startsWith(".cdm ctotTime", sCommandLine)) {
-        addLogLine(sCommandLine);
-        sendMessage("Reloading Ctot Expired time....");
-        expiredCTOTTime = stoi(getFromXml("/CDM/expiredCtot/@time"));
-        sendMessage("Done");
         return true;
     }
 
@@ -9012,7 +9006,20 @@ bool CDM::setEvCtot(string callsign) {
                     if (cid.length() > 4) {
                         for (int i = 0; i < slotFile.size(); i++) {
                             if (slotFile[i].size() > 1) {
-                                if (slotFile[i][0] == cid && (slotFile[i][1] == "" || callsign == slotFile[i][1])) {
+                                bool match = false;
+                                if (slotFile[i][1] == "" && slotFile[i][2] == "" && slotFile[i][3] == "") {
+                                    //Case where we only have CID
+                                    if (slotFile[i][0] == cid) match = true;
+                                } else if (slotFile[i][2] == "" && slotFile[i][3] == "") {
+                                    // Case where we only have CID and callsign
+                                    if (slotFile[i][0] == cid && slotFile[i][1] == callsign) match = true;
+                                } else {
+                                    // Case where we have CID, callsign, departure and destination
+                                    string departure = FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetOrigin();
+                                    string destination = FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetDestination();
+                                    if (slotFile[i][0] == cid && slotFile[i][1] == callsign && slotFile[i][2] == departure && slotFile[i][3] == destination) match = true;
+                                }
+                                if (match) {
                                     addLogLine(callsign + " linked with EvCTOT " + slotFile[i][2]);
                                     sendMessage(callsign + " linked with EvCTOT " + slotFile[i][2]);
                                     for (int a = 0; a < evCtots.size(); a++) {
