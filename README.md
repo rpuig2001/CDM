@@ -154,7 +154,7 @@ CDM includes the following times:
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
   - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  "<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>").
   - (New version) Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: "<eventPriority mode="true" />") - Event Slot column is not required.
-  - (New version) Automatically set as TOBT the Slot provided for Event in slots.txt (Example: "<autoSetTobtFromEvSlot mode="true" />") - Event Slot column is not required.
+  - (New version) Automatically set as TOBT the Slot provided for Event (Example: "<autoSetTobtFromEvSlot mode="true" />") - Event Slot column is not required.
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
@@ -505,7 +505,7 @@ Capacities:
     - ![#BE0000](https://img.shields.io/badge/-BE0000) ``A`` -> Flight connected while airborne.
     - (No message means, pilot did not comply!)
 
-- Column EvSlot: It  show ctots provided by slots file (slots.txt).
+- Column EvSlot: It  show ctots provided by slots (Slots url config).
   - Functions:
     - ``Add Event CTOT as MAN CTOT`` -> Set the CTOT of the tfc as a Manual CTOT (For events such as CTL or CTP) - (CTOT will only be set when CTOTs where TSAT>now+5min).
   - Colors:
