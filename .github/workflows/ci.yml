@@ -45,9 +45,8 @@ jobs:
           submodules: recursive
 
       - name: Configure CMake
-        env:
-          VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
         run: cmake --preset vcpkg
+          -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake"
 
       - name: Build
         run: cmake --build build --parallel
