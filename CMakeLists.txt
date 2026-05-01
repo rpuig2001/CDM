@@ -40,6 +40,7 @@ INCLUDE_DIRECTORIES(
 ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
 
 SET(SOURCE_FILES
+    src/api/CurlRestClient.cpp
     CDMScreen.cpp
     CDMSingle.cpp
     SFTP.cpp
