@@ -1,0 +1,76 @@
+name: Plugin CI
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main ]
+    paths:
+      - "external/**"
+      - "src/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - "*" # temporary as majority of src code is still under repo_root/
+  pull_request:
+    paths:
+      - "external/**"
+      - "src/**"
+      - "tests/**"
+      - "CMakeLists.txt"
+      - "*" # temporary as majority of src code is still under repo_root/
+
+permissions:
+  contents: read
+
+jobs:
+  format-check:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Run clang-format style check
+        uses: jidicula/clang-format-action@v4.18.0
+        with:
+          clang-format-version: "18"
+          check-path: "src"
+          fallback-style: "Google"
+
+  build:
+    needs: format-check
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          submodules: recursive
+
+      - name: Configure CMake
+        run: cmake -S . -B build -A Win32
+
+      - name: Build
+        run: cmake --build build --parallel
+
+      - name: Upload build
+        uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: build/
+          if-no-files-found: "error"
+
+  unit-tests:
+    needs: build
+    runs-on: windows-2025
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Download build
+        uses: actions/download-artifact@v8
+        with:
+          name: build
+          path: build/
+
+      - name: Run unit tests
+        uses: ./.github/actions/ctest
+        with:
+          label: unit

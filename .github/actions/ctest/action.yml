@@ -1,0 +1,25 @@
+name: Run CTEST
+description: Run CTEST with optional label filter
+
+inputs:
+  label:
+    description: Test label to filter by (e.g. unit, integration)
+    required: false
+    default: ""
+
+runs:
+  using: composite
+  steps:
+    - name: Run tests
+      shell: pwsh
+      run: |
+        $label = "${{ inputs.label }}"
+
+        if ($label) {
+          Write-Host "Running $label tests"
+          ctest --test-dir build --output-on-failure -L $label
+        }
+        else {
+          Write-Host "Running tests"
+          ctest --test-dir build --output-on-failure
+        }
