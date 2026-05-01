@@ -1483,73 +1483,73 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                 }
             }
         }
-        
+
         else if (FunctionId == TAG_FUNC_EvCTOTtoCTOT) {
             if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" &&
                 (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
                 (string)fp.GetGroundState() != "DEPA") {
                 if (master && AtcMe) {
-                addLogLine("TRIGGER - TAG_FUNC_EvCTOTtoCTOT");
-                // only before start-up/push back
-                const string groundState = fp.GetGroundState();
-                if (groundState != "STUP" && groundState != "ST-UP" && groundState != "PUSH" && groundState != "TAXI" &&
-                    groundState != "DEPA") {
-                    bool hasEvCTOT = false;
-                    string editedCTOT = "";
-                    for (size_t i = 0; i < evCtots.size(); i++) {
-                        if (evCtots[i][0] == fp.GetCallsign()) {
-                            if (evCtots[i][1] != "") {
-                                hasEvCTOT = true;
-                                editedCTOT = evCtots[i][1];
-                            }
-                        }
-                    }
-
-                    if (hasEvCTOT) {
-                        bool hasNoNumber = true;
-                        if (editedCTOT.length() == 4) {
-                            for (size_t i = 0; i < editedCTOT.length(); i++) {
-                                if (isdigit(editedCTOT[i]) == false) {
-                                    hasNoNumber = false;
+                    addLogLine("TRIGGER - TAG_FUNC_EvCTOTtoCTOT");
+                    // only before start-up/push back
+                    const string groundState = fp.GetGroundState();
+                    if (groundState != "STUP" && groundState != "ST-UP" && groundState != "PUSH" &&
+                        groundState != "TAXI" && groundState != "DEPA") {
+                        bool hasEvCTOT = false;
+                        string editedCTOT = "";
+                        for (size_t i = 0; i < evCtots.size(); i++) {
+                            if (evCtots[i][0] == fp.GetCallsign()) {
+                                if (evCtots[i][1] != "") {
+                                    hasEvCTOT = true;
+                                    editedCTOT = evCtots[i][1];
                                 }
                             }
+                        }
 
-                            if (hasNoNumber) {
-                                slotList = recalculateSlotList(slotList);
-                                string callsign = fp.GetCallsign();
-                                string depRwy = fp.GetFlightPlanData().GetDepartureRwy();
-                                boost::to_upper(depRwy);
-                                if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
-                                    double lat =
-                                        RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
-                                    double lon =
-                                        RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
-                                    int deIceTime = addDeIceTime(callsign, fp.GetFlightPlanData().GetAircraftWtc());
-                                    string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(),
-                                                                    depRwy, deIceTime, callsign);
-                                    string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
-                                    // at the earlierst at present time + EXOT
-                                    if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
-                                        setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
-                                        setFlightStripInfo(fp, "1", 7);
-                                        for (size_t i = 0; i < slotList.size(); i++) {
-                                            if (slotList[i].callsign == fp.GetCallsign()) {
-                                                slotList[i].hasManualCtot = true;
-                                                addTimeToListForSpecificAirportAndRunway(
-                                                    10, calculateTime(GetTimeNow(), 5),
-                                                    fp.GetFlightPlanData().GetOrigin(),
-                                                    fp.GetFlightPlanData().GetDepartureRwy());
+                        if (hasEvCTOT) {
+                            bool hasNoNumber = true;
+                            if (editedCTOT.length() == 4) {
+                                for (size_t i = 0; i < editedCTOT.length(); i++) {
+                                    if (isdigit(editedCTOT[i]) == false) {
+                                        hasNoNumber = false;
+                                    }
+                                }
+
+                                if (hasNoNumber) {
+                                    slotList = recalculateSlotList(slotList);
+                                    string callsign = fp.GetCallsign();
+                                    string depRwy = fp.GetFlightPlanData().GetDepartureRwy();
+                                    boost::to_upper(depRwy);
+                                    if (RadarTargetSelect(callsign.c_str()).IsValid() && depRwy.length() > 0) {
+                                        double lat =
+                                            RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Latitude;
+                                        double lon =
+                                            RadarTargetSelect(callsign.c_str()).GetPosition().GetPosition().m_Longitude;
+                                        int deIceTime = addDeIceTime(callsign, fp.GetFlightPlanData().GetAircraftWtc());
+                                        string myTaxiTime = getTaxiTime(lat, lon, fp.GetFlightPlanData().GetOrigin(),
+                                                                        depRwy, deIceTime, callsign);
+                                        string calculatedTOBT = calculateLessTime(editedCTOT + "00", stod(myTaxiTime));
+                                        // at the earlierst at present time + EXOT
+                                        if (stoi(calculatedTOBT) > stoi(GetTimeNow())) {
+                                            setFlightStripInfo(fp, calculatedTOBT.substr(0, 4), 2);
+                                            setFlightStripInfo(fp, "1", 7);
+                                            for (size_t i = 0; i < slotList.size(); i++) {
+                                                if (slotList[i].callsign == fp.GetCallsign()) {
+                                                    slotList[i].hasManualCtot = true;
+                                                    addTimeToListForSpecificAirportAndRunway(
+                                                        10, calculateTime(GetTimeNow(), 5),
+                                                        fp.GetFlightPlanData().GetOrigin(),
+                                                        fp.GetFlightPlanData().GetDepartureRwy());
+                                                }
                                             }
+                                            // Update times to slaves
+                                            countTime = std::time(nullptr) - refreshTime;
+                                            countTimeNonCdm = std::time(nullptr) - refreshTime;
                                         }
-                                        // Update times to slaves
-                                        countTime = std::time(nullptr) - refreshTime;
-                                        countTimeNonCdm = std::time(nullptr) - refreshTime;
                                     }
                                 }
                             }
                         }
                     }
-                }
                 }
             }
         }
@@ -5599,7 +5599,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         string hour = to_string(ptm.tm_hour % 24);
         string min = to_string(ptm.tm_min);
 
-        //Copy flights with ASAT already as they can't be moved in the list anymore.
+        // Copy flights with ASAT already as they can't be moved in the list anymore.
         std::unordered_set<std::string> asatCallsigns;
         for (const auto& entry : asatList) {
             asatCallsigns.insert(entry.substr(0, entry.find(",")));
@@ -5611,7 +5611,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         }
 
         for (size_t i = 0; i < copySlotList.size(); i++) {
-            //check if tempSlotList has already the callsign
+            // check if tempSlotList has already the callsign
             bool callsignInTempList = false;
             for (size_t j = 0; j < tempSlotList.size(); j++) {
                 if (tempSlotList[j].callsign == copySlotList[i].callsign) {
@@ -5804,8 +5804,8 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                Plane item = refreshTimes(copySlotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
-                                          myAirport, myTTime, myDepRwy, dataRate, true);
+                Plane item = refreshTimes(copySlotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT,
+                                          myTTOT, myAirport, myTTime, myDepRwy, dataRate, true);
                 tempSlotList.push_back(item);
                 // refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks,
                 // myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
@@ -8004,7 +8004,7 @@ void CDM::addVatcanCtotToEvCTOT(string line) {
         slotFile.push_back({parts[0], "", "", "", parts[1]});
     } else if (parts.size() == 3) {
         slotFile.push_back({parts[0], parts[1], "", "", parts[2]});
-    }else if (parts.size() == 5) {
+    } else if (parts.size() == 5) {
         slotFile.push_back({parts[0], parts[1], parts[2], parts[3], parts[4]});
     } else {
         return;
@@ -9041,18 +9041,22 @@ bool CDM::setEvCtot(string callsign) {
                             if (slotFile[i].size() > 1) {
                                 bool match = false;
                                 if (slotFile[i][1] == "" && slotFile[i][2] == "" && slotFile[i][3] == "") {
-                                    //Case where we only have CID
+                                    // Case where we only have CID
                                     if (slotFile[i][0] == cid) match = true;
                                 } else if (slotFile[i][2] == "" && slotFile[i][3] == "") {
                                     // Case where we only have CID and callsign
                                     if (slotFile[i][0] == cid && slotFile[i][1] == callsign) match = true;
                                 } else {
                                     // Case where we have CID, callsign, departure and destination
-                                    string departure = FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetOrigin();
-                                    string destination = FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetDestination();
-                                    if (slotFile[i][0] == cid && slotFile[i][1] == callsign && slotFile[i][2] == departure && slotFile[i][3] == destination) {
+                                    string departure =
+                                        FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetOrigin();
+                                    string destination =
+                                        FlightPlanSelect(callsign.c_str()).GetFlightPlanData().GetDestination();
+                                    if (slotFile[i][0] == cid && slotFile[i][1] == callsign &&
+                                        slotFile[i][2] == departure && slotFile[i][3] == destination) {
                                         match = true;
-                                    } else if (slotFile[i][0] == cid && slotFile[i][2] == departure && slotFile[i][3] == destination) {
+                                    } else if (slotFile[i][0] == cid && slotFile[i][2] == departure &&
+                                               slotFile[i][3] == destination) {
                                         // Fallback using cid, departure and destination only
                                         match = true;
                                     }
@@ -9065,7 +9069,8 @@ bool CDM::setEvCtot(string callsign) {
                                             if (evCtots[a][0] == callsign) {
                                                 evCtots[a] = {callsign, slotFile[i][4]};
                                                 if (autoSetTobtFromEvSlot)
-                                                    setFlightStripInfo(FlightPlanSelect(callsign.c_str()), formatTime(slotFile[i][4]), 2);
+                                                    setFlightStripInfo(FlightPlanSelect(callsign.c_str()),
+                                                                       formatTime(slotFile[i][4]), 2);
                                                 return true;
                                             };
                                         }

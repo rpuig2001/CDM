@@ -13,8 +13,9 @@
 #include <regex>
 #include <sstream>
 #include <string>
-#include <vector>
 #include <unordered_set>
+#include <vector>
+
 #include "Constant.hpp"
 #include "Plane.h"
 #include "Rate.h"
