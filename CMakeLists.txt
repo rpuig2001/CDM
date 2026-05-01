@@ -87,6 +87,6 @@ TARGET_INCLUDE_DIRECTORIES(${PROJECT_NAME}_shared PUBLIC
     ${CMAKE_SOURCE_DIR}
 )
 
-# SET(gtest_force_shared_crt on)
-# INCLUDE(CTest)
-# ADD_SUBDIRECTORY(tests)
+SET(gtest_force_shared_crt on)
+INCLUDE(CTest)
+ADD_SUBDIRECTORY(tests)
