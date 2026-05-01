@@ -45,6 +45,8 @@ jobs:
           submodules: recursive
 
       - name: Configure CMake
+        env:
+          VCPKG_ROOT: ${{ env.VCPKG_INSTALLATION_ROOT }}
         run: cmake --preset vcpkg
 
       - name: Build
