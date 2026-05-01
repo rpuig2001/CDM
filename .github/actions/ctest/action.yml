@@ -12,12 +12,12 @@ runs:
   steps:
     - name: Run tests
       shell: pwsh
+      env:
+        TEST_LABEL: ${{ inputs.label }}
       run: |
-        $label = "${{ inputs.label }}"
-
-        if ($label) {
-          Write-Host "Running $label tests"
-          ctest --test-dir build --output-on-failure -L $label
+        if ($env:TEST_LABEL) {
+          Write-Host "Running $env:TEST_LABEL tests"
+          ctest --test-dir build --output-on-failure -L $env:TEST_LABEL
         }
         else {
           Write-Host "Running tests"
