@@ -3079,6 +3079,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             }
 
+                            //Check TTOT difTime from now to TTOT and if TOBT+10min > now then oldTTOT flag to true
+                            bool oldTTOT = false;
+                            if (TTOTFinal.length() >= 4) {
+                                string TTOTHour = TTOTFinal.substr(0, 2);
+                                string TTOTmin = TTOTFinal.substr(2, 2);
+                                int difTTOTTime = GetdifferenceTime(hour, min, TTOTHour, TTOTmin);
+                                if (hour != TTOTHour) {
+                                    if (difTTOTTime > 50) {
+                                        oldTTOT = true;
+                                    }
+                                } else {
+                                    if (difTTOTTime > 10) {
+                                        oldTTOT = true;
+                                    }
+                                }
+                            }
+
                             bool correctState = false;
                             if ((string)FlightPlan.GetGroundState() == "STUP" ||
                                 (string)FlightPlan.GetGroundState() == "ST-UP" ||
@@ -3501,14 +3518,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         //*pColorCode = TAG_COLOR_RGB_DEFINED;
                                         ItemRGB = TAG_GREY;
                                         strcpy_s(sItemString, 16, "~");
-                                    } else if ((moreLessFive || lastMinute) && ShowTTOT.length() >= 4) {
-                                        //*pColorCode = TAG_COLOR_RGB_DEFINED;
-                                        ItemRGB = TAG_TTOT;
-                                        strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
                                     } else if (ShowTTOT.length() >= 4) {
-                                        //*pColorCode = TAG_COLOR_RGB_DEFINED;
                                         ItemRGB = TAG_TTOT;
-                                        strcpy_s(sItemString, 16, ShowTTOT.substr(0, ShowTTOT.length() - 2).c_str());
+                                        if (oldTTOT) {
+                                            ItemRGB = TAG_RED;
+                                        }
+                                        strcpy_s(sItemString, 16, ShowTTOT.substr(0, 4).c_str());
                                     }
                                 } else {
                                     ItemRGB = TAG_GREY;
@@ -4047,6 +4062,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             }
 
+                            // Check TTOT difTime from now to TTOT and if TOBT+10min > now then oldTTOT flag to true
+                            bool oldTTOT = false;
+                            if (TTOTString.length() >= 4) {
+                                string TTOTHour = TTOTString.substr(0, 2);
+                                string TTOTmin = TTOTString.substr(2, 2);
+                                int difTTOTTime = GetdifferenceTime(hour, min, TTOTHour, TTOTmin);
+                                if (hour != TTOTHour) {
+                                    if (difTTOTTime > 50) {
+                                        oldTTOT = true;
+                                    }
+                                } else {
+                                    if (difTTOTTime > 10) {
+                                        oldTTOT = true;
+                                    }
+                                }
+                            }
+
                             // ASRT
                             string ASRTtext = getFlightStripInfo(FlightPlan, 0);
 
@@ -4327,8 +4359,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     if (notYetEOBT) {
                                         ItemRGB = TAG_GREY;
                                         strcpy_s(sItemString, 16, "~");
-                                    } else if (moreLessFive || lastMinute) {
-                                        ItemRGB = TAG_TTOT;
+                                    } else if (oldTTOT) {
+                                        ItemRGB = TAG_RED;
                                         strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
                                     } else {
                                         ItemRGB = TAG_TTOT;
