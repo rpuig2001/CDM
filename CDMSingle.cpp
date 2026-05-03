@@ -28,6 +28,7 @@ string xfad;
 string tfad;
 string rateString;
 string lvoRateString;
+string pm_message;
 bool defaultRate;
 time_t countTime;
 time_t countTimeNonCdm;
@@ -395,6 +396,7 @@ CDM::CDM(void)
         string flashingTSATendString = getFromXml("/CDM/flashingMode/@tsatLastMin");
         string eventPriorityString = getFromXml("/CDM/eventPriority/@mode");
         string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
+        pm_message = getFromXml("/CDM/PrivateMessage/@text");
 
         if (ftpHost == "" && ftpUser == "") {
             ftpHost = "ftp.vatsimspain.es";
@@ -415,6 +417,10 @@ CDM::CDM(void)
         // min 10 seconds Refresh Time
         if (refreshTime < 10) {
             refreshTime = 10;
+        }
+
+        if (pm_message == "") {
+            pm_message = "[CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]";
         }
 
         deIceTimeL = 5;
@@ -10750,8 +10756,7 @@ void CDM::sendCdmMessageToPilot(string callsign) {
         messagesSent.push_back(callsign);
     }
 
-    string msg = ".msg " + callsign +
-                 " [CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]";
+    string msg = ".msg " + callsign + " " + pm_message;
 
     std::thread t458(&CDM::sendCdmPrivateMessageToPilot, this, msg);
     t458.detach();
