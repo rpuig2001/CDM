@@ -5599,17 +5599,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         string hour = to_string(ptm.tm_hour % 24);
         string min = to_string(ptm.tm_min);
 
-        // Copy flights with ASAT already as they can't be moved in the list anymore.
-        std::unordered_set<std::string> asatCallsigns;
-        for (const auto& entry : asatList) {
-            asatCallsigns.insert(entry.substr(0, entry.find(",")));
-        }
-        for (const auto& flightItem : copySlotList) {
-            if (asatCallsigns.count(flightItem.callsign)) {
-                tempSlotList.push_back(flightItem);
-            }
-        }
-
         for (size_t i = 0; i < copySlotList.size(); i++) {
             // check if tempSlotList has already the callsign
             bool callsignInTempList = false;
@@ -6774,8 +6763,18 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
         }
     }
 
+    std::unordered_set<std::string> asatCallsigns;
+    for (const auto& entry : asatList) {
+        asatCallsigns.insert(entry.substr(0, entry.find(",")));
+    }
+
     try {
-        std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns](const Plane& a, const Plane& b) {
+        std::sort(mySlotList.begin(), mySlotList.end(),[&eventCtotCallsigns, &asatCallsigns](const Plane& a, const Plane& b) {
+            // 0. ASAT set before no ASAT
+            const bool aHasAsatSet = asatCallsigns.find(a.callsign) != asatCallsigns.end();
+            const bool bHasAsatSet = asatCallsigns.find(b.callsign) != asatCallsigns.end();
+            if (aHasAsatSet != bHasAsatSet) return aHasAsatSet > bHasAsatSet;
+
             // 1. Manual CTOT first
             if (a.hasManualCtot != b.hasManualCtot) return a.hasManualCtot > b.hasManualCtot;
 
