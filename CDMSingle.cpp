@@ -4359,11 +4359,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     if (notYetEOBT) {
                                         ItemRGB = TAG_GREY;
                                         strcpy_s(sItemString, 16, "~");
-                                    } else if (oldTTOT) {
-                                        ItemRGB = TAG_RED;
-                                        strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
                                     } else {
                                         ItemRGB = TAG_TTOT;
+                                        if (oldTTOT) {
+                                            ItemRGB = TAG_RED;
+                                        }
                                         strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
                                     }
                                 }
