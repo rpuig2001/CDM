@@ -589,7 +589,6 @@ CDM::CDM(void)
     t73.detach();
 
     if (ftpPassword == "") {
-        ftpPassword = "test";
         ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
     }
 
@@ -3841,8 +3840,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     for (int d = 0; d < slotList.size(); d++) {
                                         if (p.callsign == slotList[d].callsign && p.eobt == slotList[d].eobt &&
                                             p.ctot == slotList[d].ctot) {
-                                            p.showData = slotList[d].showData;
-                                            slotList[d] = p;
+                                            //Do not update if has a GND status set
+                                            bool aicraftInFinalTimesList = false;
+                                            for (string aircraft : finalTimesList) {
+                                                if (aircraft == p.callsign) {
+                                                    aicraftInFinalTimesList = true;
+                                                }
+                                            }
+                                            if (!aicraftInFinalTimesList) {
+                                                p.showData = false;
+                                                slotList[d] = p;
+                                            }
                                         }
                                     }
                                 }
@@ -5664,9 +5672,11 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 
             // Check if aircraft has state and no need to recalculate
             bool aicraftInFinalTimesList = false;
-            for (string aircraft : finalTimesList) {
-                if (aircraft == myCallsign) {
-                    aicraftInFinalTimesList = true;
+            if (!atotEnabled) { //Do not run this for auto ATOT enabled to keep flights in sequence and keep rolling/updated TTOT in the order affecting not yet modified flights
+                for (string aircraft : finalTimesList) {
+                    if (aircraft == myCallsign) {
+                        aicraftInFinalTimesList = true;
+                    }
                 }
             }
 
