@@ -5606,16 +5606,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         string min = to_string(ptm.tm_min);
 
         for (size_t i = 0; i < copySlotList.size(); i++) {
-            // check if tempSlotList has already the callsign
-            bool callsignInTempList = false;
-            for (size_t j = 0; j < tempSlotList.size(); j++) {
-                if (tempSlotList[j].callsign == copySlotList[i].callsign) {
-                    callsignInTempList = true;
-                    break;
-                }
-            }
-            if (callsignInTempList) continue;
-
             // Update TSAT in scratchpad if enabled remarksOption
             if (remarksOption || remarksOptionCtot) {
                 CFlightPlan fplSelect = FlightPlanSelect(copySlotList[i].callsign.c_str());
