@@ -589,7 +589,7 @@ CDM::CDM(void)
     t73.detach();
 
     if (ftpPassword == "") {
-        ftpPassword = "Ek0TxdyF33yaxBqxRAK5";
+        ftpPassword = "test";
     }
 
     // Init reamrksOption
@@ -3820,9 +3820,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             // Refresh CDM API every 30 seconds
                             time_t timeNow = std::time(nullptr);
 
-                            // Remove disconnected planes after 5 min disconnected
+                            // Remove disconnected planes after 3 min disconnected
                             if (countTfcDisconnection != -1) {
-                                if ((timeNow - countTfcDisconnectionTime) > 300) {
+                                if ((timeNow - countTfcDisconnectionTime) > 180) {
                                     countTfcDisconnectionTime = timeNow;
                                     countTfcDisconnection = -1;
                                     disconnectTfcs();
@@ -3883,9 +3883,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             }
                         }
                     } else {
-                        // Remove disconnected planes after 5 min disconnected
+                        // Remove disconnected planes after 3 min disconnected
                         if (countTfcDisconnection != -1) {
-                            if ((timeNow - countTfcDisconnectionTime) > 300) {
+                            if ((timeNow - countTfcDisconnectionTime) > 180) {
                                 countTfcDisconnectionTime = timeNow;
                                 countTfcDisconnection = -1;
                                 disconnectTfcs();
@@ -5897,10 +5897,12 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 
         double rateHour = (double)60 / rate;
 
-        string checkedTSAT = plane.tsat;
+        okToLook = true;
+        //Disabled to allow modifications of all flights without GND Status, not only in the future.
+        /*string checkedTSAT = plane.tsat;
         if (stoi(checkedTSAT) >= stoi(timeNow)) {
             okToLook = true;
-        }
+        }*/
 
         if (okToLook) {
             bool sameOrDependantRwys = false;
