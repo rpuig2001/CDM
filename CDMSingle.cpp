@@ -43,6 +43,7 @@ bool addTime;
 bool lvo;
 bool bmiMode;
 bool eventPriorityEnabled;
+bool reqTobtPriority;
 bool ctotCid;
 bool realMode;
 bool eventMode;
@@ -155,6 +156,7 @@ vector<vector<string>> reqTobtTypes;
 vector<vector<string>> reqTobtTypesQueue;
 vector<vector<string>> relevantFlights;
 vector<string> messagesSent;
+vector<string> reqTobtList;
 std::mutex reqTobtTypesQueueMutex;
 std::mutex later1Mutex;
 std::mutex later2Mutex;
@@ -394,6 +396,7 @@ CDM::CDM(void)
         string flashingTOBTendString = getFromXml("/CDM/flashingMode/@tobtLastMin");
         string flashingTSATstartString = getFromXml("/CDM/flashingMode/@tsatFirstMin");
         string flashingTSATendString = getFromXml("/CDM/flashingMode/@tsatLastMin");
+        string reqTobtPriorityString = getFromXml("/CDM/reqTobtPriority/@mode");
         string eventPriorityString = getFromXml("/CDM/eventPriority/@mode");
         string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
         pm_message = getFromXml("/CDM/PrivateMessage/@text");
@@ -477,6 +480,11 @@ CDM::CDM(void)
         eventPriorityEnabled = false;
         if (eventPriorityString == "true") {
             eventPriorityEnabled = true;
+        }
+
+        reqTobtPriority = false;
+        if (reqTobtPriorityString == "true") {
+            reqTobtPriority = true;
         }
 
         autoSetTobtFromEvSlot = false;
@@ -2997,6 +3005,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             }
 
                             string ASRTtext = getFlightStripInfo(FlightPlan, 0);
+
+                            if (ASRTtext != "") {
+                                bool found = false;
+                                for (string reqTobtCallsign : reqTobtList) {
+                                    if (reqTobtCallsign == callsign) {
+                                        found = true;
+                                        break;
+                                    }
+                                }
+                                if (!found) reqTobtList.push_back(callsign);
+                            }
 
                             // If oldTOBT
                             bool oldTOBT = false;
@@ -6803,13 +6822,18 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
         }
     }
 
+    std::unordered_set<std::string> reqTobtCallsigns;
+    for (const auto& callsign : reqTobtList) {
+        reqTobtCallsigns.insert(callsign);
+    }
+
     std::unordered_set<std::string> asatCallsigns;
     for (const auto& entry : asatList) {
         asatCallsigns.insert(entry.substr(0, entry.find(",")));
     }
 
     try {
-        std::sort(mySlotList.begin(), mySlotList.end(),[&eventCtotCallsigns, &asatCallsigns](const Plane& a, const Plane& b) {
+        std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns, &asatCallsigns, &reqTobtCallsigns](const Plane& a, const Plane& b) {
             // 0. ASAT set before no ASAT
             const bool aHasAsatSet = asatCallsigns.find(a.callsign) != asatCallsigns.end();
             const bool bHasAsatSet = asatCallsigns.find(b.callsign) != asatCallsigns.end();
@@ -6828,6 +6852,13 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
                 const bool aHasEventCtot = eventCtotCallsigns.find(a.callsign) != eventCtotCallsigns.end();
                 const bool bHasEventCtot = eventCtotCallsigns.find(b.callsign) != eventCtotCallsigns.end();
                 if (aHasEventCtot != bHasEventCtot) return aHasEventCtot > bHasEventCtot;
+            }
+
+            // 4) Has Req TOBT or ASRT over none ASRT/none reqTOBT
+            if (reqTobtPriority) {
+                const bool aHasReqTobt = reqTobtCallsigns.find(a.callsign) != reqTobtCallsigns.end();
+                const bool bHasReqTobt = reqTobtCallsigns.find(b.callsign) != reqTobtCallsigns.end();
+                if (aHasReqTobt != bHasReqTobt) return aHasReqTobt > bHasReqTobt;
             }
 
             // 4. Fallback → order by TTOT
@@ -7180,6 +7211,24 @@ void CDM::RemoveDataFromTfc(string callsign) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 20");
                 }
                 obtList.erase(obtList.begin() + i);
+            }
+        }
+        // Remove from reqTobtList
+        for (size_t i = 0; i < reqTobtList.size(); i++) {
+            if (callsign == reqTobtList[i]) {
+                if (debugMode) {
+                    sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 21");
+                }
+                reqTobtList.erase(reqTobtList.begin() + i);
+            }
+        }
+        // Remove from messagesSent
+        for (size_t i = 0; i < messagesSent.size(); i++) {
+            if (callsign == messagesSent[i]) {
+                if (debugMode) {
+                    sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 22");
+                }
+                messagesSent.erase(messagesSent.begin() + i);
             }
         }
 
@@ -10251,6 +10300,14 @@ void CDM::getNetworkTobt() {
                                             slotList.erase(slotList.begin() + posPlane);
                                     }*/
                                     setFlightStripInfo(fp, plane[1], 2);
+                                    bool found = false;
+                                    for (string callsign : reqTobtList) {
+                                        if (callsign == mySlotList[i].callsign) {
+                                            found = true;
+                                            break;
+                                        }
+                                    }
+                                    if (!found) reqTobtList.push_back(mySlotList[i].callsign);
                                     setCdmSts(plane[0], "REQTOBT/NULL/NULL");
                                     // Trigger TOBT update to update TAXI TIME
                                     // setOBTApi(plane[0], plane[1], true, false);
@@ -10258,7 +10315,7 @@ void CDM::getNetworkTobt() {
                                 }
                             }
                         }
-                    }
+                    } 
                     if (!found) {
                         if (plane[1] != "") {
                             addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
@@ -10267,6 +10324,14 @@ void CDM::getNetworkTobt() {
                                 continue;
                             }
                             setFlightStripInfo(fp, plane[1], 2);
+                            bool found = false;
+                            for (string callsign : reqTobtList) {
+                                if (callsign == plane[0]) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) reqTobtList.push_back(plane[0]);
                             setCdmSts(plane[0], "REQTOBT/NULL/NULL");
                             // Trigger TOBT update to update TAXI TIME
                             //setOBTApi(plane[0], plane[1], true, false);
