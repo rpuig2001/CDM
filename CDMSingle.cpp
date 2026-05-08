@@ -3702,7 +3702,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                                     if (aircraftFind) {
                                         if (slotList[pos].hasManualCtot) {
-                                            string value = getDiffNowTime(slotList[pos].ttot);
+                                            string ctotSource = slotList[pos].ttot;
+                                            if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
+                                            string value = getDiffNowTime(ctotSource);
                                             if (slotList[pos].ctot == "") {
                                                 ItemRGB = TAG_ORANGE;
                                             } else {
@@ -4677,7 +4679,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                                 if (aircraftFind) {
                                     if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
-                                        string value = getDiffNowTime(slotList[pos].ttot);
+                                        string ctotSource = slotList[pos].ttot;
+                                        if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
+                                        string value = getDiffNowTime(ctotSource);
                                         if (slotList[pos].ctot == "") {
                                             ItemRGB = TAG_ORANGE;
                                         } else {
@@ -4876,7 +4880,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                         if (aircraftFind) {
                             if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
-                                string value = getDiffNowTime(slotList[pos].ttot);
+                                string ctotSource = slotList[pos].ttot;
+                                if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
+                                string value = getDiffNowTime(ctotSource);
                                 if (slotList[pos].ctot == "") {
                                     ItemRGB = TAG_ORANGE;
                                 } else {
