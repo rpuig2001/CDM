@@ -153,6 +153,7 @@ CDM includes the following times:
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
   - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  "<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>").
+  - (New version) Priority for pilots who requested the TOBT via VDGS over pilots who did not. When ASRT is set, it is automatically with the priority. This functionallity Only applies for REALMODE! (Example: "<reqTobtPriority mode="true" />").
   - (New version) Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: "<eventPriority mode="true" />") - Event Slot column is not required.
   - (New version) Automatically set as TOBT the Slot provided for Event (Example: "<autoSetTobtFromEvSlot mode="true" />") - Event Slot column is not required.
  
