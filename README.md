@@ -147,15 +147,16 @@ CDM includes the following times:
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank to use ATFCM System.
-  - [OPTIONAL] Set only when issues with default provider - Set vIFF system URL. If empty or not set, default "https://viff-system.network" is used (Example: <viffSystem url="https://viff-system.network").
+  - [OPTIONAL] Set only when issues with default provider - Set vIFF system URL. If empty or not set, default "https://viff-system.network" is used (Example: ```<viffSystem url="https://viff-system.network"```).
   - [OPTIONAL] Set only for testing or training purposes - Set custom restrictions URL. If empty or not set, default "" is used (Example: <customRestricted url="").
   - FTP/SFTP connection (sftpConnection mode="true" or sftpConnection mode="false"). By default, SFTP connection is used ("true": SFTP / "false": FTP).
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
   - SU_WAIT sets a remark in FlightStrip for external use when ready TOBT is pressed (ex. Su_Wait mode="false" or Su_Wait mode="true").
-  - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  "<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>").
+  - Flashing Mode configures the time to be flashing for: TOBT Last Min, TSAT First Min and/or TSAT Last Min (Example:  ```<flashingMode tobtLastMin= "true" tsatFirstMin="true" tsatLastMin= "true"/>```).
   - (New version) Priority for pilots who requested the TOBT via VDGS over pilots who did not. When ASRT is set, it is automatically with the priority. This functionallity Only applies for REALMODE! (Example: "<reqTobtPriority mode="true" />").
-  - (New version) Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: "<eventPriority mode="true" />") - Event Slot column is not required.
-  - (New version) Automatically set as TOBT the Slot provided for Event (Example: "<autoSetTobtFromEvSlot mode="true" />") - Event Slot column is not required.
+  - (New version) Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: ```<eventPriority mode="true" />```) - Event Slot column is not required.
+  - (New version) Automatically set as TOBT the Slot provided for Event (Example: ```<autoSetTobtFromEvSlot mode="true" />```) - Event Slot column is not required.
+  - (New version) Customized Private message (Example: ```<PrivateMessage text="[CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]" />```).
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
