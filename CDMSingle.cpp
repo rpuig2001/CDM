@@ -6855,7 +6855,7 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
             }
 
             // 4) Has Req TOBT or ASRT over none ASRT/none reqTOBT
-            if (reqTobtPriority) {
+            if (reqTobtPriority && realMode) {
                 const bool aHasReqTobt = reqTobtCallsigns.find(a.callsign) != reqTobtCallsigns.end();
                 const bool bHasReqTobt = reqTobtCallsigns.find(b.callsign) != reqTobtCallsigns.end();
                 if (aHasReqTobt != bHasReqTobt) return aHasReqTobt > bHasReqTobt;
