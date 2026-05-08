@@ -3869,7 +3869,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                 }
                                             }
                                             if (!aicraftInFinalTimesList) {
-                                                p.showData = false;
+                                                p.showData = slotList[d].showData;
                                                 slotList[d] = p;
                                             }
                                         }
