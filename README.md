@@ -157,6 +157,7 @@ CDM includes the following times:
   - (New version) Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: ```<eventPriority mode="true" />```) - Event Slot column is not required.
   - (New version) Automatically set as TOBT the Slot provided for Event (Example: ```<autoSetTobtFromEvSlot mode="true" />```) - Event Slot column is not required.
   - (New version) Customized Private message (Example: ```<PrivateMessage text="[CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]" />```).
+  - (New version) Set the CTOT in remarks (Example: ```<remarksOptionCtot mode="true" />```).
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
