@@ -6858,10 +6858,10 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
 
     try {
         std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns, &depaCallsigns, &reqTobtCallsigns](const Plane& a, const Plane& b) {
-            // 0. ASAT set before no ASAT
-            const bool aHasAsatSet = depaCallsigns.find(a.callsign) != depaCallsigns.end();
-            const bool bHasAsatSet = depaCallsigns.find(b.callsign) != depaCallsigns.end();
-            if (aHasAsatSet != bHasAsatSet) return aHasAsatSet > bHasAsatSet;
+            // 0. DEPA set before no DEPA
+            const bool aHasDepaSet = depaCallsigns.find(a.callsign) != depaCallsigns.end();
+            const bool bHasDepaSet = depaCallsigns.find(b.callsign) != depaCallsigns.end();
+            if (aHasDepaSet != bHasDepaSet) return aHasDepaSet > bHasDepaSet;
 
             // 1. Manual CTOT first
             if (a.hasManualCtot != b.hasManualCtot) return a.hasManualCtot > b.hasManualCtot;
