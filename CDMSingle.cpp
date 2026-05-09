@@ -226,6 +226,14 @@ CDM::CDM(void)
     RegisterTagItemFunction("Edit TSAC", TAG_FUNC_EDITTSAC);
     RegisterTagItemFunction("TSAC Options", TAG_FUNC_OPT_TSAC);
 
+    // Register Tag Item "CDM-CTOC"
+    RegisterTagItemType("CTOC", TAG_ITEM_CTOC);
+    RegisterTagItemType("CTOC-Simple", TAG_ITEM_CTOC_SIMPLE);
+    RegisterTagItemFunction("Add CTOT to CTOC", TAG_FUNC_ADDCTOC);
+    RegisterTagItemFunction("Remove CTOC", TAG_FUNC_REMOVECTOC);
+    RegisterTagItemFunction("Edit CTOC", TAG_FUNC_EDITCTOC);
+    RegisterTagItemFunction("CTOC Options", TAG_FUNC_OPT_CTOC);
+
     // Register Tag Item "CDM-ASAT"
     RegisterTagItemType("ASAT", TAG_ITEM_ASAT);
 
@@ -1317,6 +1325,67 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             }
         }
 
+        else if (FunctionId == TAG_FUNC_ADDCTOC) {
+            addLogLine("TRIGGER - TAG_FUNC_ADDCTOC");
+            bool foundCTOT = false;
+            for (size_t a = 0; a < slotList.size(); a++) {
+                if (slotList[a].callsign == fp.GetCallsign()) {
+                    string getCTOT = slotList[a].ctot;
+                    if (getCTOT.empty() && slotList[a].hasManualCtot) {
+                        getCTOT = slotList[a].ttot;
+                    }
+                    if (getCTOT.length() >= 4) {
+                        setFlightStripInfo(fp, getCTOT.substr(0, 4), 8);
+                        foundCTOT = true;
+                    }
+                }
+            }
+            if (!foundCTOT) {
+                setFlightStripInfo(fp, "", 8);
+            }
+        }
+
+        else if (FunctionId == TAG_FUNC_REMOVECTOC) {
+            addLogLine("TRIGGER - TAG_FUNC_REMOVECTOC");
+            setFlightStripInfo(fp, "", 8);
+        }
+
+        else if (FunctionId == TAG_FUNC_EDITCTOC) {
+            addLogLine("TRIGGER - TAG_FUNC_EDITCTOC");
+            OpenPopupEdit(Area, TAG_FUNC_NEWCTOC, getFlightStripInfo(fp, 8).c_str());
+        }
+
+        else if (FunctionId == TAG_FUNC_NEWCTOC) {
+            addLogLine("TRIGGER - TAG_FUNC_NEWCTOC");
+            string editedCTOC = ItemString;
+            if (editedCTOC.length() > 0) {
+                bool hasNoNumber = true;
+                if (editedCTOC.length() == 4) {
+                    for (size_t i = 0; i < editedCTOC.length(); i++) {
+                        if (isdigit(editedCTOC[i]) == false) {
+                            hasNoNumber = false;
+                        }
+                    }
+                    if (hasNoNumber) {
+                        setFlightStripInfo(fp, editedCTOC, 8);
+                    }
+                }
+            }
+        }
+
+        else if (FunctionId == TAG_FUNC_OPT_CTOC) {
+            if (master && AtcMe) {
+                addLogLine("TRIGGER - TAG_FUNC_OPT_CTOC");
+                OpenPopupList(Area, "CTOC Options", 1);
+                string ctocvalue = getFlightStripInfo(fp, 8);
+                AddPopupListElement("Add CTOT to CTOC", "", TAG_FUNC_ADDCTOC, false, 2, false);
+                if (!ctocvalue.empty()) {
+                    AddPopupListElement("Remove CTOC", "", TAG_FUNC_REMOVECTOC, false, 2, false);
+                }
+                AddPopupListElement("Edit CTOC", "", TAG_FUNC_EDITCTOC, false, 2, false);
+            }
+        }
+
         else if (FunctionId == TAG_FUNC_OPT_EvCTOT) {
             if (master && AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_OPT_EvCTOT");
@@ -2387,15 +2456,25 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 if (SU_ISSET) ItemRGB = SU_SET_COLOR;
                                 strcpy_s(sItemString, 16, "____");
                             } else if (ItemCode == TAG_ITEM_TSAC_SIMPLE) {
-                                string annotTSAC = getFlightStripInfo(FlightPlan, 1);
-                                if (!annotTSAC.empty()) {
-                                    ItemRGB = TAG_GREEN;
-                                    if (SU_ISSET) ItemRGB = SU_SET_COLOR;
-                                    strcpy_s(sItemString, 16, "\xA4");
+                                // No valid TSAT available here - show nothing
+                            } else if (ItemCode == TAG_ITEM_CTOC) {
+                                string annotCTOC = getFlightStripInfo(FlightPlan, 8);
+                                if (!annotCTOC.empty()) {
+                                    ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
+                                    strcpy_s(sItemString, 16, annotCTOC.c_str());
                                 } else {
                                     ItemRGB = TAG_GREEN;
                                     if (SU_ISSET) ItemRGB = SU_SET_COLOR;
-                                    strcpy_s(sItemString, 16, "\xAC");
+                                    strcpy_s(sItemString, 16, "____");
+                                }
+                            } else if (ItemCode == TAG_ITEM_CTOC_SIMPLE) {
+                                string annotCTOC = getFlightStripInfo(FlightPlan, 8);
+                                if (!annotCTOC.empty()) {
+                                    ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
+                                    strcpy_s(sItemString, 16, "X");
+                                } else {
+                                    ItemRGB = TAG_GREY;
+                                    strcpy_s(sItemString, 16, "__");
                                 }
                             } else if (ItemCode == TAG_ITEM_ASAT) {
                                 ItemRGB = TAG_GREEN;
@@ -3377,41 +3456,98 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAC_SIMPLE) {
-                                // TSAC
-                                bool TSACNotTSAT = false;
-                                string annotTSAC = getFlightStripInfo(FlightPlan, 1);
-
-                                if (!annotTSAC.empty()) {
-                                    string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
-                                    string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
-
-                                    int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
-                                    if (TSAThour == TSAChour) {
-                                        if (TSACDif > 5 || TSACDif < -5) {
-                                            TSACNotTSAT = true;
-                                        }
-                                    } else {
-                                        if (TSACDif > 45 || TSACDif < -45) {
-                                            TSACNotTSAT = true;
-                                        }
-                                    }
-                                }
-
-                                if (!annotTSAC.empty()) {
+                                // TSAC diff: positive = delay (red), negative = improvement (green), within +-5 = grey
+                                string annotTSAC2 = getFlightStripInfo(FlightPlan, 1);
+                                if (!annotTSAC2.empty() && annotTSAC2 != "9999" && annotTSAC2.length() >= 4) {
+                                    string TSAChour2 = annotTSAC2.substr(annotTSAC2.length() - 4, 2);
+                                    string TSACmin2 = annotTSAC2.substr(annotTSAC2.length() - 2, 2);
+                                    int tsacDiff = GetdifferenceTime(TSAThour, TSATmin, TSAChour2, TSACmin2);
+                                    string diffStr = to_string(abs(tsacDiff));
                                     if (SU_ISSET) {
                                         ItemRGB = SU_SET_COLOR;
-                                    } else if (TSACNotTSAT) {
-                                        ItemRGB = TAG_ORANGE;
+                                    } else if (tsacDiff > 5) {
+                                        ItemRGB = TAG_RED;
+                                    } else if (tsacDiff < -5) {
+                                        ItemRGB = TAG_GREEN;
                                     } else {
-                                        //*pColorCode = TAG_COLOR_RGB_DEFINED;
+                                        ItemRGB = TAG_GREY;
+                                    }
+                                    strcpy_s(sItemString, 16, diffStr.c_str());
+                                }
+                            } else if (ItemCode == TAG_ITEM_CTOC) {
+                                // CTOC: orange=no CTOT, red=delay, green=improvement, grey=within window
+                                string annotCTOC = getFlightStripInfo(FlightPlan, 8);
+                                string ctotRef = "";
+                                if (aircraftFind) {
+                                    ctotRef = slotList[pos].ctot;
+                                    if (ctotRef.empty() && slotList[pos].hasManualCtot) {
+                                        ctotRef = slotList[pos].ttot;
+                                    }
+                                }
+                                if (annotCTOC != "9999") {
+                                    if (annotCTOC.empty()) {
                                         ItemRGB = TAG_GREEN;
                                         if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+                                        strcpy_s(sItemString, 16, "____");
+                                    } else if (ctotRef.length() < 4) {
+                                        ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
+                                        strcpy_s(sItemString, 16, annotCTOC.c_str());
+                                    } else {
+                                        string CTOThour = ctotRef.substr(0, 2);
+                                        string CTOTmin = ctotRef.substr(2, 2);
+                                        string CTOChour = annotCTOC.substr(annotCTOC.length() - 4, 2);
+                                        string CTOCmin = annotCTOC.substr(annotCTOC.length() - 2, 2);
+                                        int CTOCDif = GetdifferenceTime(CTOThour, CTOTmin, CTOChour, CTOCmin);
+                                        int threshold = (CTOThour == CTOChour) ? 5 : 45;
+                                        if (SU_ISSET) {
+                                            ItemRGB = SU_SET_COLOR;
+                                        } else if (CTOCDif > threshold) {
+                                            ItemRGB = TAG_RED;
+                                        } else if (CTOCDif < -threshold) {
+                                            ItemRGB = TAG_GREEN;
+                                        } else {
+                                            ItemRGB = TAG_GREY;
+                                        }
+                                        strcpy_s(sItemString, 16, annotCTOC.c_str());
                                     }
-                                    strcpy_s(sItemString, 16, "\xA4");
+                                }
+                            } else if (ItemCode == TAG_ITEM_CTOC_SIMPLE) {
+                                // CTOC diff: orange=no CTOT, red=delay, green=improvement, grey=within window
+                                string annotCTOC2 = getFlightStripInfo(FlightPlan, 8);
+                                string ctotRef2 = "";
+                                if (aircraftFind) {
+                                    ctotRef2 = slotList[pos].ctot;
+                                    if (ctotRef2.empty() && slotList[pos].hasManualCtot) {
+                                        ctotRef2 = slotList[pos].ttot;
+                                    }
+                                }
+                                if (!annotCTOC2.empty()) {
+                                    if (ctotRef2.length() < 4) {
+                                        ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
+                                        strcpy_s(sItemString, 16, "X");
+                                    } else if (annotCTOC2.length() >= 4) {
+                                        string CTOThour2 = ctotRef2.substr(0, 2);
+                                        string CTOTmin2 = ctotRef2.substr(2, 2);
+                                        string CTOChour2 = annotCTOC2.substr(annotCTOC2.length() - 4, 2);
+                                        string CTOCmin2 = annotCTOC2.substr(annotCTOC2.length() - 2, 2);
+                                        int ctocDiff = GetdifferenceTime(CTOThour2, CTOTmin2, CTOChour2, CTOCmin2);
+                                        int threshold2 = (CTOThour2 == CTOChour2) ? 5 : 45;
+                                        string sign = (ctocDiff > 0) ? "+" : (ctocDiff < 0 ? "-" : "");
+                                        string diffStr = sign + to_string(abs(ctocDiff));
+                                        if (SU_ISSET) {
+                                            ItemRGB = SU_SET_COLOR;
+                                        } else if (ctocDiff > threshold2) {
+                                            ItemRGB = TAG_RED;
+                                        } else if (ctocDiff < -threshold2) {
+                                            ItemRGB = TAG_GREEN;
+                                        } else {
+                                            ItemRGB = TAG_GREY;
+                                        }
+                                        strcpy_s(sItemString, 16, diffStr.c_str());
+                                    }
                                 } else {
-                                    ItemRGB = TAG_GREEN;
-                                    if (SU_ISSET) ItemRGB = SU_SET_COLOR;
-                                    strcpy_s(sItemString, 16, "\xAC");
+                                    ItemRGB = TAG_GREY;
+                                    strcpy_s(sItemString, 16, "__");
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT) {
                                 if (showData) {
@@ -4137,6 +4273,35 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             }
 
+                            // CTOC
+                            bool CTOCNotCTOT = false;
+                            string annotCTOC = getFlightStripInfo(FlightPlan, 8);
+                            string ctotRef = "";
+                            if (aircraftFind) {
+                                ctotRef = slotList[pos].ctot;
+                                if (ctotRef.empty() && slotList[pos].hasManualCtot) {
+                                    ctotRef = slotList[pos].ttot;
+                                }
+                            }
+
+                            if (!annotCTOC.empty() && ctotRef.length() >= 4) {
+                                string CTOThour = ctotRef.substr(0, 2);
+                                string CTOTmin = ctotRef.substr(2, 2);
+                                string CTOChour = annotCTOC.substr(annotCTOC.length() - 4, 2);
+                                string CTOCmin = annotCTOC.substr(annotCTOC.length() - 2, 2);
+
+                                int CTOCDif = GetdifferenceTime(CTOThour, CTOTmin, CTOChour, CTOCmin);
+                                if (CTOThour == CTOChour) {
+                                    if (CTOCDif > 5 || CTOCDif < -5) {
+                                        CTOCNotCTOT = true;
+                                    }
+                                } else {
+                                    if (CTOCDif > 45 || CTOCDif < -45) {
+                                        CTOCNotCTOT = true;
+                                    }
+                                }
+                            }
+
                             time_t now = time(nullptr);
 
                             // ASAT
@@ -4268,21 +4433,79 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     strcpy_s(sItemString, 16, "____");
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAC_SIMPLE) {
-                                string annotTSAC = getFlightStripInfo(FlightPlan, 1);
-                                if (!annotTSAC.empty()) {
-                                    if (TSACNotTSAT) {
-                                        ItemRGB = TAG_ORANGE;
-                                        if (SU_ISSET) ItemRGB = SU_SET_COLOR;
-                                    } else {
-                                        //*pColorCode = TAG_COLOR_RGB_DEFINED;
+                                // TSAC diff: positive = delay (red), negative = improvement (green), within +-5 = grey
+                                if (!annotTSAC.empty() && annotTSAC != "9999" && annotTSAC.length() >= 4) {
+                                    string TSAChour2 = annotTSAC.substr(annotTSAC.length() - 4, 2);
+                                    string TSACmin2 = annotTSAC.substr(annotTSAC.length() - 2, 2);
+                                    int tsacDiff = GetdifferenceTime(TSAThour, TSATmin, TSAChour2, TSACmin2);
+                                    string diffStr = to_string(abs(tsacDiff));
+                                    if (SU_ISSET) {
+                                        ItemRGB = SU_SET_COLOR;
+                                    } else if (tsacDiff > 5) {
+                                        ItemRGB = TAG_RED;
+                                    } else if (tsacDiff < -5) {
                                         ItemRGB = TAG_GREEN;
-                                        if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+                                    } else {
+                                        ItemRGB = TAG_GREY;
                                     }
-                                    strcpy_s(sItemString, 16, "\xA4");
-                                } else {
+                                    strcpy_s(sItemString, 16, diffStr.c_str());
+                                }
+                            } else if (ItemCode == TAG_ITEM_CTOC) {
+                                // CTOC: orange=no CTOT, red=delay, green=improvement, grey=within window
+                                if (annotCTOC.empty()) {
                                     ItemRGB = TAG_GREEN;
                                     if (SU_ISSET) ItemRGB = SU_SET_COLOR;
-                                    strcpy_s(sItemString, 16, "\xAC");
+                                    strcpy_s(sItemString, 16, "____");
+                                } else if (ctotRef.length() < 4) {
+                                    ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
+                                    strcpy_s(sItemString, 16, annotCTOC.c_str());
+                                } else {
+                                    string CTOThour3 = ctotRef.substr(0, 2);
+                                    string CTOTmin3 = ctotRef.substr(2, 2);
+                                    string CTOChour3 = annotCTOC.substr(annotCTOC.length() - 4, 2);
+                                    string CTOCmin3 = annotCTOC.substr(annotCTOC.length() - 2, 2);
+                                    int CTOCDif3 = GetdifferenceTime(CTOThour3, CTOTmin3, CTOChour3, CTOCmin3);
+                                    int threshold3 = (CTOThour3 == CTOChour3) ? 5 : 45;
+                                    if (SU_ISSET) {
+                                        ItemRGB = SU_SET_COLOR;
+                                    } else if (CTOCDif3 > threshold3) {
+                                        ItemRGB = TAG_RED;
+                                    } else if (CTOCDif3 < -threshold3) {
+                                        ItemRGB = TAG_GREEN;
+                                    } else {
+                                        ItemRGB = TAG_GREY;
+                                    }
+                                    strcpy_s(sItemString, 16, annotCTOC.c_str());
+                                }
+                            } else if (ItemCode == TAG_ITEM_CTOC_SIMPLE) {
+                                // CTOC diff: orange=no CTOT, red=delay, green=improvement, grey=within window
+                                if (!annotCTOC.empty()) {
+                                    if (ctotRef.length() < 4) {
+                                        ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
+                                        strcpy_s(sItemString, 16, "X");
+                                    } else if (annotCTOC.length() >= 4) {
+                                        string CTOThour2 = ctotRef.substr(0, 2);
+                                        string CTOTmin2 = ctotRef.substr(2, 2);
+                                        string CTOChour2 = annotCTOC.substr(annotCTOC.length() - 4, 2);
+                                        string CTOCmin2 = annotCTOC.substr(annotCTOC.length() - 2, 2);
+                                        int ctocDiff = GetdifferenceTime(CTOThour2, CTOTmin2, CTOChour2, CTOCmin2);
+                                        int threshold2 = (CTOThour2 == CTOChour2) ? 5 : 45;
+                                        string sign = (ctocDiff > 0) ? "+" : (ctocDiff < 0 ? "-" : "");
+                                        string diffStr2 = sign + to_string(abs(ctocDiff));
+                                        if (SU_ISSET) {
+                                            ItemRGB = SU_SET_COLOR;
+                                        } else if (ctocDiff > threshold2) {
+                                            ItemRGB = TAG_RED;
+                                        } else if (ctocDiff < -threshold2) {
+                                            ItemRGB = TAG_GREEN;
+                                        } else {
+                                            ItemRGB = TAG_GREY;
+                                        }
+                                        strcpy_s(sItemString, 16, diffStr2.c_str());
+                                    }
+                                } else {
+                                    ItemRGB = TAG_GREY;
+                                    strcpy_s(sItemString, 16, "__");
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT) {
                                 if (TSATString.length() > 0 && aircraftFind) {
@@ -8787,13 +9010,13 @@ vector<string> CDM::splitString(const std::string& str, char delimiter) {
 }
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
-    if (position >= 0 && position <= 7 && FlightPlan.IsValid()) {
-        //   0    1   2     3   4     5       6       7
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/
+    if (position >= 0 && position <= 8 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         vector<string> values = split(annotation, '/');
 
-        if (position < values.size()) {
+        if (position < (int)values.size()) {
             return values[position];
         }
     }
@@ -8801,27 +9024,29 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 }
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
-    if (position >= 0 && position <= 7 && FlightPlan.IsValid()) {
-        //   0    1   2     3   4     5       6       7
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/
+    if (position >= 0 && position <= 8 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         if (annotation == "") {
-            annotation = "/////////";
+            annotation = "//////////";
         }
         vector<string> values = split(annotation, '/');
 
-        if (position < values.size()) {
-            values[position] = text;
-
-            string finalString = "";
-            for (int i = 0; i < values.size(); i++) {
-                finalString += values[i];
-                if (i < values.size()) {
-                    finalString += "/";
-                }
-            }
-            FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str());
+        while ((int)values.size() <= position) {
+            values.push_back("");
         }
+
+        values[position] = text;
+
+        string finalString = "";
+        for (int i = 0; i < (int)values.size(); i++) {
+            finalString += values[i];
+            if (i < (int)values.size() - 1) {
+                finalString += "/";
+            }
+        }
+        FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str());
     }
 }
 

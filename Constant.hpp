@@ -24,6 +24,8 @@ const int TAG_ITEM_ETOBT = 22;
 const int TAG_ITEM_ON_TIME_STATUS = 23;
 const int TAG_ITEM_SEND_STATUS = 24;
 const int TAG_ITEM_NETWORK_STATUS_AIRBORNE = 25;
+const int TAG_ITEM_CTOC = 26;
+const int TAG_ITEM_CTOC_SIMPLE = 27;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
@@ -76,6 +78,12 @@ const int TAG_FUNC_OPT_ETOBT = 154;
 const int TAG_FUNC_TOGGLEASRTREA = 155;
 const int TAG_FUNC_REMOVETSAC = 156;
 const int TAG_FUNC_EvCTOTtoTOBT = 157;
+const int TAG_FUNC_ADDCTOC = 158;
+const int TAG_FUNC_REMOVECTOC = 159;
+const int TAG_FUNC_EDITCTOC = 160;
+const int TAG_FUNC_OPT_CTOC = 161;
+const int TAG_FUNC_NEWCTOC = 162;
+
 
 inline static bool startsWith(const char* pre, const char* str) {
     size_t lenpre = strlen(pre), lenstr = strlen(str);
