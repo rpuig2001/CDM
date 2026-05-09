@@ -400,6 +400,7 @@ CDM::CDM(void)
         string eventPriorityString = getFromXml("/CDM/eventPriority/@mode");
         string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
         pm_message = getFromXml("/CDM/PrivateMessage/@text");
+        string remarksOptionCtotString = getFromXml("/CDM/remarksOptionCtot/@mode");
 
         if (ftpHost == "" && ftpUser == "") {
             ftpHost = "ftp.vatsimspain.es";
@@ -555,6 +556,12 @@ CDM::CDM(void)
             readySetTsac = false;
         }
 
+        
+        remarksOptionCtot = false;
+        if (remarksOptionCtotString == "true") {
+            remarksOptionCtot = true;
+        }
+
     } catch (const std::exception& e) {
         sendMessage("Error",
                     "CDMconfig.xml has missing or invalid values. Check configuration. Details: " + string(e.what()));
@@ -602,7 +609,6 @@ CDM::CDM(void)
 
     // Init reamrksOption
     remarksOption = false;
-    remarksOptionCtot = false;
 
     // Init refreshActions
     refresh1 = false;
@@ -5682,11 +5688,17 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 if ((string)fplSelect.GetGroundState() != "STUP" && (string)fplSelect.GetGroundState() != "ST-UP" &&
                     (string)fplSelect.GetGroundState() != "PUSH" && (string)fplSelect.GetGroundState() != "TAXI" &&
                     (string)fplSelect.GetGroundState() != "DEPA") {
-                    if (testCtot.length() >= 4 && remarksOptionCtot)
+                    if (testCtot.length() >= 4 && remarksOptionCtot) {
                         fplSelect.GetControllerAssignedData().SetScratchPadString(
                             std::string(".C" + testCtot.substr(0, 4)).c_str());
-                    if (testTsat.length() >= 4 && remarksOption)
+                    } else if (testTsat.length() >= 4 && remarksOption) {
                         fplSelect.GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
+                    } else if (testCtot == "" && remarksOptionCtot) {
+                        string scratchPadOld = fplSelect.GetControllerAssignedData().GetScratchPadString();
+                        if (scratchPadOld.find(".C") != string::npos) {
+                             fplSelect.GetControllerAssignedData().SetScratchPadString("");
+                        }
+                    }
                 }
             }
 
