@@ -6851,13 +6851,16 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
         //Only add if GND state is DEPA
         string callsign = entry.substr(0, entry.find(","));
         CFlightPlan fp = FlightPlanSelect(callsign.c_str());
+        if ((string)fp.GetGroundState() == "DEPA") {
+            depaCallsigns.insert(callsign);
+        }
     }
 
     try {
-        std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns, &asatCallsigns, &reqTobtCallsigns](const Plane& a, const Plane& b) {
+        std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns, &depaCallsigns, &reqTobtCallsigns](const Plane& a, const Plane& b) {
             // 0. ASAT set before no ASAT
-            const bool aHasAsatSet = asatCallsigns.find(a.callsign) != asatCallsigns.end();
-            const bool bHasAsatSet = asatCallsigns.find(b.callsign) != asatCallsigns.end();
+            const bool aHasAsatSet = depaCallsigns.find(a.callsign) != depaCallsigns.end();
+            const bool bHasAsatSet = depaCallsigns.find(b.callsign) != depaCallsigns.end();
             if (aHasAsatSet != bHasAsatSet) return aHasAsatSet > bHasAsatSet;
 
             // 1. Manual CTOT first
