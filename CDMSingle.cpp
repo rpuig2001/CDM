@@ -6846,9 +6846,11 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
         reqTobtCallsigns.insert(callsign);
     }
 
-    std::unordered_set<std::string> asatCallsigns;
+    std::unordered_set<std::string> depaCallsigns;
     for (const auto& entry : asatList) {
-        asatCallsigns.insert(entry.substr(0, entry.find(",")));
+        //Only add if GND state is DEPA
+        string callsign = entry.substr(0, entry.find(","));
+        CFlightPlan fp = FlightPlanSelect(callsign.c_str());
     }
 
     try {
