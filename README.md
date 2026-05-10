@@ -456,6 +456,18 @@ Capacities:
   - Colors:
     - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> If actual time < ASAT - 5min.
     - ![#f5ef0d](https://img.shields.io/badge/-f5ef0d) `YELLOW` -> From ASAT+5 to always.
+   
+- Column CTOC: Displays the communicated CTOT and the difference between the communicated CTOC and the CTOT (using `+` and `-` accordingly).
+  - Functions:
+    - Add CTOT to CTOC -> Sets actual CTOT to CTOC (removes CTOC in case of empty CTOT).
+    - Remove CTOC -> Removes CTOC value.
+    - Edit CTOC -> Opens popup to edit CTOC value.
+    - CTOC Options -> Opens popup with the options: "Add CTOT to CTOC", "Remove CTOC" and "Edit CTOC".
+  - Colors:
+    - ![#ed852e](https://img.shields.io/badge/-ed852e) `ORANGE` -> If CTOT is empty and CTOC has a value, CTOC simple displays `X`.
+    - ![#808080](https://img.shields.io/badge/-808080) `GREY` -> If the difference between CTOC and CTOT is `0` or within `+/- 5min`.
+    - ![#ff0000](https://img.shields.io/badge/-ff0000) `RED` -> If CTOT is worse than `+5min` compared to CTOC.
+    - ![#00c000](https://img.shields.io/badge/-00c000) `DARK GREEN` -> If CTOT is better than `-5min` compared to CTOC.
 
 - Column ASRT: It shows the requested StartUp time, It can be added to the list with the toggle function or sending a REA Msg.
   - Functions:
