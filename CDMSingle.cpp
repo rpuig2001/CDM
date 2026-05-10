@@ -2472,9 +2472,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 if (!annotCTOC.empty()) {
                                     ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
                                     strcpy_s(sItemString, 16, "X");
-                                } else {
-                                    ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "__");
                                 }
                             } else if (ItemCode == TAG_ITEM_ASAT) {
                                 ItemRGB = TAG_GREEN;
@@ -3545,9 +3542,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         }
                                         strcpy_s(sItemString, 16, diffStr.c_str());
                                     }
-                                } else {
-                                    ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "__");
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT) {
                                 if (showData) {
@@ -4503,9 +4497,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         }
                                         strcpy_s(sItemString, 16, diffStr2.c_str());
                                     }
-                                } else {
-                                    ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "__");
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT) {
                                 if (TSATString.length() > 0 && aircraftFind) {
