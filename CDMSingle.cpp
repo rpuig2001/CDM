@@ -8016,7 +8016,7 @@ bool CDM::getCtotsFromUrl(string code) {
 
         if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
             // handle error 404
-            sendMessage("UNABLE TO LOAD CTOTs FROM VATCAN...");
+            sendMessage("UNABLE TO LOAD SLOTs...");
         } else {
             std::istringstream is(readBuffer);
 
