@@ -3608,19 +3608,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
                                         strcpy_s(sItemString, 16, "X");
                                     } else if (annotCTOC2.length() >= 4) {
-                                        string CTOThour2 = ctotRef2.substr(0, 2);
-                                        string CTOTmin2 = ctotRef2.substr(2, 2);
-                                        string CTOChour2 = annotCTOC2.substr(annotCTOC2.length() - 4, 2);
-                                        string CTOCmin2 = annotCTOC2.substr(annotCTOC2.length() - 2, 2);
-                                        int ctocDiff = GetdifferenceTime(CTOThour2, CTOTmin2, CTOChour2, CTOCmin2);
-                                        int threshold2 = (CTOThour2 == CTOChour2) ? 5 : 45;
+                                        int ctocDiff = GetDifferenceTimeHHMMSS(ctotRef2.substr(0, 4) + "00", annotCTOC2.substr(0, 4) + "00");
                                         string sign = (ctocDiff > 0) ? "+" : (ctocDiff < 0 ? "-" : "");
                                         string diffStr = sign + to_string(abs(ctocDiff));
                                         if (SU_ISSET) {
                                             ItemRGB = SU_SET_COLOR;
-                                        } else if (ctocDiff > threshold2) {
+                                        } else if (ctocDiff > 5) {
                                             ItemRGB = TAG_RED;
-                                        } else if (ctocDiff < -threshold2) {
+                                        } else if (ctocDiff < -5) {
                                             ItemRGB = TAG_GREEN;
                                         } else {
                                             ItemRGB = TAG_GREY;
@@ -4563,19 +4558,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         ItemRGB = SU_ISSET ? SU_SET_COLOR : TAG_ORANGE;
                                         strcpy_s(sItemString, 16, "X");
                                     } else if (annotCTOC.length() >= 4) {
-                                        string CTOThour2 = ctotRef.substr(0, 2);
-                                        string CTOTmin2 = ctotRef.substr(2, 2);
-                                        string CTOChour2 = annotCTOC.substr(annotCTOC.length() - 4, 2);
-                                        string CTOCmin2 = annotCTOC.substr(annotCTOC.length() - 2, 2);
-                                        int ctocDiff = GetdifferenceTime(CTOThour2, CTOTmin2, CTOChour2, CTOCmin2);
-                                        int threshold2 = (CTOThour2 == CTOChour2) ? 5 : 45;
+                                        int ctocDiff = GetDifferenceTimeHHMMSS(ctotRef.substr(0, 4) + "00", annotCTOC.substr(0, 4) + "00");
                                         string sign = (ctocDiff > 0) ? "+" : (ctocDiff < 0 ? "-" : "");
                                         string diffStr2 = sign + to_string(abs(ctocDiff));
                                         if (SU_ISSET) {
                                             ItemRGB = SU_SET_COLOR;
-                                        } else if (ctocDiff > threshold2) {
+                                        } else if (ctocDiff > 5) {
                                             ItemRGB = TAG_RED;
-                                        } else if (ctocDiff < -threshold2) {
+                                        } else if (ctocDiff < -5) {
                                             ItemRGB = TAG_GREEN;
                                         } else {
                                             ItemRGB = TAG_GREY;
@@ -7158,9 +7148,11 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
     try {
         std::sort(mySlotList.begin(), mySlotList.end(), [&eventCtotCallsigns, &depaCallsigns, &reqTobtCallsigns](const Plane& a, const Plane& b) {
             // 0. DEPA set before no DEPA
-            const bool aHasDepaSet = depaCallsigns.find(a.callsign) != depaCallsigns.end();
-            const bool bHasDepaSet = depaCallsigns.find(b.callsign) != depaCallsigns.end();
-            if (aHasDepaSet != bHasDepaSet) return aHasDepaSet > bHasDepaSet;
+            if (atotEnabled) {
+                const bool aHasDepaSet = depaCallsigns.find(a.callsign) != depaCallsigns.end();
+                const bool bHasDepaSet = depaCallsigns.find(b.callsign) != depaCallsigns.end();
+                if (aHasDepaSet != bHasDepaSet) return aHasDepaSet > bHasDepaSet;
+            }
 
             // 1. Manual CTOT first
             if (a.hasManualCtot != b.hasManualCtot) return a.hasManualCtot > b.hasManualCtot;
