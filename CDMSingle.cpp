@@ -197,6 +197,7 @@ CDM::CDM(void)
     // Register Tag Item "CDM-EOBT"
     RegisterTagItemType("EOBT", TAG_ITEM_EOBT);
     RegisterTagItemFunction("Edit EOBT", TAG_FUNC_EDITEOBT);
+    RegisterTagItemFunction("Ready EOBT", TAG_FUNC_READYEOBT);
     RegisterTagItemFunction("EOBT Options", TAG_FUNC_OPT_EOBT);
 
     // Register Tag Item "CDM-TOBT"
@@ -870,6 +871,59 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                     }
                 }
             }
+        } else if (FunctionId == TAG_FUNC_READYEOBT) {
+            try {
+                if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" &&
+                    (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
+                    (string)fp.GetGroundState() != "DEPA") {
+                        addLogLine("TRIGGER - TAG_FUNC_READYEOBT");
+                        // SET SU_WAIT WHEN OPTION ENABLED
+                        if (option_su_wait) {
+                            suWaitList.push_back(fp.GetCallsign());
+                        }
+
+                        if (getFlightStripInfo(fp, 2) != formatTime(GetActualTime())) {
+                            setFlightStripInfo(fp, formatTime(GetActualTime()), 2);
+
+                            // Get Time now
+                            time_t rawtime;
+                            struct tm ptm;
+                            time(&rawtime);
+                            gmtime_s(&ptm, &rawtime);
+                            string hour = to_string(ptm.tm_hour % 24);
+                            string min = to_string(ptm.tm_min);
+
+                            if (stoi(min) < 10) {
+                                min = "0" + min;
+                            }
+                            if (stoi(hour) < 10) {
+                                hour = "0" + hour.substr(0, 1);
+                            }
+
+                            fp.GetFlightPlanData().SetEstimatedDepartureTime((hour + min).c_str());
+                            fp.GetFlightPlanData().AmendFlightPlan();
+                            if ((hour + min).length() == 4) {
+                                for (int u = 0; u < obtList.size(); u++) {
+                                    if (obtList[u][0] == fp.GetCallsign()) {
+                                        obtList[u][1] = hour + min;
+                                        break;
+                                    }
+                                }
+                                // Set EOBT in API
+                                std::thread t(&CDM::setOBTApi, this, fp.GetCallsign(), hour + min, true, true);
+                                t.detach();
+                            }
+
+                            // Set REA Status
+                            std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
+                            t99.detach();
+                        }
+                }
+            } catch (const std::exception& ex) {
+                addLogLine(string("EXCEPTION in TAG_FUNC_READYEOBT: ") + ex.what());
+            } catch (...) {
+                addLogLine("UNKNOWN EXCEPTION in TAG_FUNC_READYEOBT");
+            }
         } else if (FunctionId == TAG_FUNC_EOBTTOTOBT) {
             if ((string)fp.GetGroundState() != "STUP" && (string)fp.GetGroundState() != "ST-UP" &&
                 (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
@@ -1200,6 +1254,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                 addLogLine("TRIGGER - TAG_FUNC_OPT");
                 OpenPopupList(Area, "CDM - Options", 1);
                 // EOBT OPTIONS
+                AddPopupListElement("Ready EOBT", "", TAG_FUNC_READYEOBT, false, 2, false);
                 AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
                 AddPopupListElement("----------------", "", -1, false, 2, false);
 
@@ -1288,6 +1343,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             if (AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_OPT_EOBT");
                 OpenPopupList(Area, "EOBT Options", 1);
+                AddPopupListElement("Ready EOBT", "", TAG_FUNC_READYEOBT, false, 2, false);
                 AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
             }
         }
@@ -1303,6 +1359,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             if (!isCDMairport && AtcMe) {
                 addLogLine("TRIGGER - EOBT options");
                 OpenPopupList(Area, "E/TOBT Options", 1);
+                AddPopupListElement("Ready EOBT", "", TAG_FUNC_READYEOBT, false, 2, false);
                 AddPopupListElement("Edit EOBT", "", TAG_FUNC_EDITEOBT, false, 2, false);
             } else if (AtcMe) {
                 addLogLine("TRIGGER - TOBT options");

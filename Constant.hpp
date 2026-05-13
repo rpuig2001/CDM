@@ -83,6 +83,7 @@ const int TAG_FUNC_REMOVECTOC = 159;
 const int TAG_FUNC_EDITCTOC = 160;
 const int TAG_FUNC_OPT_CTOC = 161;
 const int TAG_FUNC_NEWCTOC = 162;
+const int TAG_FUNC_READYEOBT = 163;
 
 
 inline static bool startsWith(const char* pre, const char* str) {
