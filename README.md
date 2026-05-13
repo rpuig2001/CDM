@@ -379,6 +379,7 @@ Capacities:
     - If **RealMode** is enabled, when the pilot send a new EOBT, then it will show with ``color4`` (Default ORANGE) when **EOBT is different than TOBT**.
   - Functions
     - ``Edit EOBT`` -> Sets EOBT to the specified time (4 digits).
+    - ``Ready EOBT`` -> Sets EOBT to "now" and REA status.
   - Colors:
     - ``color8`` -> Default.
     - ![#BE0000](https://img.shields.io/badge/-BE0000) ``RED`` -> FlightPlan SUSPENDED.
