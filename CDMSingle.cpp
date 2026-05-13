@@ -3170,6 +3170,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else {
                                 if (difTime == -5) {
                                     firstMinute = true;
+                                    moreLessFive = true;
                                 } else if (difTime > 5) {
                                     oldTSAT = true;
                                 } else if (difTime >= 4 && difTime <= 5) {
@@ -4159,6 +4160,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else {
                                 if (difTime == -5) {
                                     firstMinute = true;
+                                    moreLessFive = true;
                                 } else if (difTime > 5) {
                                     oldTSAT = true;
                                 } else if (difTime >= 4 && difTime <= 5) {
