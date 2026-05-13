@@ -2513,7 +2513,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 if (SU_ISSET) ItemRGB = SU_SET_COLOR;
                                 strcpy_s(sItemString, 16, "____");
                             } else if (ItemCode == TAG_ITEM_TSAC_SIMPLE) {
-                                // No valid TSAT available here - show nothing
+                                string annotTSAC = getFlightStripInfo(FlightPlan, 1);
+                                if (!annotTSAC.empty()) {
+                                    ItemRGB = TAG_GREEN;
+                                    if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+                                    strcpy_s(sItemString, 16, "\xA4");
+                                } else {
+                                    ItemRGB = TAG_GREEN;
+                                    if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+                                    strcpy_s(sItemString, 16, "\xAC");
+                                }
                             } else if (ItemCode == TAG_ITEM_CTOC) {
                                 string annotCTOC = getFlightStripInfo(FlightPlan, 8);
                                 if (!annotCTOC.empty()) {
@@ -3511,23 +3520,41 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAC_SIMPLE) {
-                                // TSAC diff: positive = delay (red), negative = improvement (green), within +-5 = grey
-                                string annotTSAC2 = getFlightStripInfo(FlightPlan, 1);
-                                if (!annotTSAC2.empty() && annotTSAC2 != "9999" && annotTSAC2.length() >= 4) {
-                                    string TSAChour2 = annotTSAC2.substr(annotTSAC2.length() - 4, 2);
-                                    string TSACmin2 = annotTSAC2.substr(annotTSAC2.length() - 2, 2);
-                                    int tsacDiff = GetdifferenceTime(TSAThour, TSATmin, TSAChour2, TSACmin2);
-                                    string diffStr = to_string(abs(tsacDiff));
+                                // TSAC
+                                bool TSACNotTSAT = false;
+                                string annotTSAC = getFlightStripInfo(FlightPlan, 1);
+
+                                if (!annotTSAC.empty()) {
+                                    string TSAChour = annotTSAC.substr(annotTSAC.length() - 4, 2);
+                                    string TSACmin = annotTSAC.substr(annotTSAC.length() - 2, 2);
+
+                                    int TSACDif = GetdifferenceTime(TSAThour, TSATmin, TSAChour, TSACmin);
+                                    if (TSAThour == TSAChour) {
+                                        if (TSACDif > 5 || TSACDif < -5) {
+                                            TSACNotTSAT = true;
+                                        }
+                                    } else {
+                                        if (TSACDif > 45 || TSACDif < -45) {
+                                            TSACNotTSAT = true;
+                                        }
+                                    }
+                                }
+
+                                if (!annotTSAC.empty()) {
                                     if (SU_ISSET) {
                                         ItemRGB = SU_SET_COLOR;
-                                    } else if (tsacDiff > 5) {
-                                        ItemRGB = TAG_RED;
-                                    } else if (tsacDiff < -5) {
-                                        ItemRGB = TAG_GREEN;
+                                    } else if (TSACNotTSAT) {
+                                        ItemRGB = TAG_ORANGE;
                                     } else {
-                                        ItemRGB = TAG_GREY;
+                                        //*pColorCode = TAG_COLOR_RGB_DEFINED;
+                                        ItemRGB = TAG_GREEN;
+                                        if (SU_ISSET) ItemRGB = SU_SET_COLOR;
                                     }
-                                    strcpy_s(sItemString, 16, diffStr.c_str());
+                                    strcpy_s(sItemString, 16, "\xA4");
+                                } else {
+                                    ItemRGB = TAG_GREEN;
+                                    if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+                                    strcpy_s(sItemString, 16, "\xAC");
                                 }
                             } else if (ItemCode == TAG_ITEM_CTOC) {
                                 // CTOC: orange=no CTOT, red=delay, green=improvement, grey=within window
@@ -4486,22 +4513,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     strcpy_s(sItemString, 16, "____");
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAC_SIMPLE) {
-                                // TSAC diff: positive = delay (red), negative = improvement (green), within +-5 = grey
-                                if (!annotTSAC.empty() && annotTSAC != "9999" && annotTSAC.length() >= 4) {
-                                    string TSAChour2 = annotTSAC.substr(annotTSAC.length() - 4, 2);
-                                    string TSACmin2 = annotTSAC.substr(annotTSAC.length() - 2, 2);
-                                    int tsacDiff = GetdifferenceTime(TSAThour, TSATmin, TSAChour2, TSACmin2);
-                                    string diffStr = to_string(abs(tsacDiff));
-                                    if (SU_ISSET) {
-                                        ItemRGB = SU_SET_COLOR;
-                                    } else if (tsacDiff > 5) {
-                                        ItemRGB = TAG_RED;
-                                    } else if (tsacDiff < -5) {
-                                        ItemRGB = TAG_GREEN;
+                                string annotTSAC = getFlightStripInfo(FlightPlan, 1);
+                                if (!annotTSAC.empty()) {
+                                    if (TSACNotTSAT) {
+                                        ItemRGB = TAG_ORANGE;
+                                        if (SU_ISSET) ItemRGB = SU_SET_COLOR;
                                     } else {
-                                        ItemRGB = TAG_GREY;
+                                        //*pColorCode = TAG_COLOR_RGB_DEFINED;
+                                        ItemRGB = TAG_GREEN;
+                                        if (SU_ISSET) ItemRGB = SU_SET_COLOR;
                                     }
-                                    strcpy_s(sItemString, 16, diffStr.c_str());
+                                    strcpy_s(sItemString, 16, "\xA4");
+                                } else {
+                                    ItemRGB = TAG_GREEN;
+                                    if (SU_ISSET) ItemRGB = SU_SET_COLOR;
+                                    strcpy_s(sItemString, 16, "\xAC");
                                 }
                             } else if (ItemCode == TAG_ITEM_CTOC) {
                                 // CTOC: orange=no CTOT, red=delay, green=improvement, grey=within window
