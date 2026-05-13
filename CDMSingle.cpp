@@ -6004,6 +6004,15 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                         aicraftInFinalTimesList = true;
                     }
                 }
+            } else {
+                // When atotEnabled, DEPA aircraft already in atotSet keep their actual departure TTOT (set to GetTimeNow())
+                // Recalculating them from EOBT would produce an inflated future TTOT that pushes all following aircraft
+                for (size_t ai = 0; ai < atotSet.size(); ai++) {
+                    if (myCallsign == atotSet[ai]) {
+                        aicraftInFinalTimesList = true;
+                        break;
+                    }
+                }
             }
 
             // Do not calculate if has CTOT
@@ -7136,12 +7145,14 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
     }
 
     std::unordered_set<std::string> depaCallsigns;
-    for (const auto& entry : asatList) {
-        //Only add if GND state is DEPA
-        string callsign = entry.substr(0, entry.find(","));
-        CFlightPlan fp = FlightPlanSelect(callsign.c_str());
-        if ((string)fp.GetGroundState() == "DEPA") {
-            depaCallsigns.insert(callsign);
+    if (atotEnabled) {
+        for (const auto& entry : asatList) {
+            //Only add if GND state is DEPA
+            string callsign = entry.substr(0, entry.find(","));
+            CFlightPlan fp = FlightPlanSelect(callsign.c_str());
+            if ((string)fp.GetGroundState() == "DEPA") {
+                depaCallsigns.insert(callsign);
+            }
         }
     }
 
