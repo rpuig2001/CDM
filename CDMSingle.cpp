@@ -1521,6 +1521,15 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                 reqTobtTypes.push_back({fp.GetCallsign(), "ATC"});
                             }
 
+                            found = false;
+                            for (string callsign : reqTobtList) {
+                                if (callsign == fp.GetCallsign()) {
+                                    found = true;
+                                    break;
+                                }
+                            }
+                            if (!found) reqTobtList.push_back(fp.GetCallsign());
+
                             // Set TSAC 9999 to later set the correct TSAT when calculation of TSAT completed
                             if (readySetTsac) setFlightStripInfo(fp, "9999", 1);
 
@@ -1875,6 +1884,14 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                             setFlightStripInfo(fp, editedTOBT, 2);
                                         }
                                         setBy = "ATC";
+                                        found = false;
+                                        for (string callsign : reqTobtList) {
+                                            if (callsign == fp.GetCallsign()) {
+                                                found = true;
+                                                break;
+                                            }
+                                        }
+                                        if (!found) reqTobtList.push_back(fp.GetCallsign());
                                     }
                                 }
                             }
@@ -1894,6 +1911,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             // if (!realMode) {
                             // Check API
                             setBy = "";
+                            for (int z = 0; z < reqTobtList.size(); z++) {
+                                reqTobtList.erase(reqTobtList.begin() + z);
+                                break;
+                            }
 
                             if (serverEnabled) {
                                 // Hide calculation
