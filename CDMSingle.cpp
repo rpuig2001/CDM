@@ -443,13 +443,13 @@ CDM::CDM(void)
         if (deIceLight != "") {
             deIceTimeL = stoi(deIceLight);
         }
-        if (deIceLight != "") {
+        if (deIceMedium != "") {
             deIceTimeM = stoi(deIceMedium);
         }
-        if (deIceLight != "") {
+        if (deIceHeavy != "") {
             deIceTimeH = stoi(deIceHeavy);
         }
-        if (deIceLight != "") {
+        if (deIceSuper != "") {
             deIceTimeJ = stoi(deIceSuper);
         }
 
@@ -6437,7 +6437,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                         }
 
                         for (size_t z = 0; z < sameDestList.size(); z++) {
-                            CFlightPlan fpList = FlightPlanSelect(planes[z].callsign.c_str());
+                            CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
                             if (!fpList.IsValid()) {
                                 continue;
                             }
