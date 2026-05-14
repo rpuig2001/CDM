@@ -3221,7 +3221,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                                 string getTTOT = getFlightStripInfo(FlightPlan, 4);
                                 if (oldTOBT && !getTTOT.empty() && invalidateTOBT_Option) {
-                                    OutOfTsat.push_back({callsign, EOBT, TSAT});
+                                    OutOfTsat.push_back({callsign, EOBT, aircraftFind ? TSAT : ""});
                                     setFlightStripInfo(FlightPlan, "", 0);
                                     setFlightStripInfo(FlightPlan, "", 3);
                                     setFlightStripInfo(FlightPlan, "", 4);
@@ -3306,7 +3306,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             if (oldTSAT && !correctState && (!oldTOBT || !invalidateTOBT_Option) &&
                                 invalidateTSAT_Option && !getTTOT.empty() &&
                                 ((invalidateTSAT_Option_asrt && ASRTtext.empty()) || (!invalidateTSAT_Option_asrt))) {
-                                OutOfTsat.push_back({callsign, EOBT, TSAT});
+                                OutOfTsat.push_back({callsign, EOBT, aircraftFind ? TSAT : ""});
                                 setFlightStripInfo(FlightPlan, "", 0);
                                 setFlightStripInfo(FlightPlan, "", 3);
                                 setFlightStripInfo(FlightPlan, "", 4);
@@ -3323,7 +3323,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         // Check for any FLS status (except "FLS-CDM")
                                         if (myNetworkStatus[i][1].find("FLS") != string::npos &&
                                             myNetworkStatus[i][1].find("CDM") == string::npos) {
-                                            OutOfTsat.push_back({callsign, EOBT, TSAT});
+                                            OutOfTsat.push_back({callsign, EOBT, aircraftFind ? TSAT : ""});
                                             setFlightStripInfo(FlightPlan, "", 0);
                                             setFlightStripInfo(FlightPlan, "", 3);
                                             setFlightStripInfo(FlightPlan, "", 4);
@@ -4295,7 +4295,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
 
                                 if (!alreadyInList) {
-                                    OutOfTsat.push_back({callsign, EOBT, TSAT});
+                                    OutOfTsat.push_back({callsign, EOBT, aircraftFind ? TSAT : ""});
                                 }
                             }
 
