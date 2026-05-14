@@ -6097,66 +6097,36 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                         if (tempAddTime_DELAY_TTOT) {
                             timeToUse = calculateLessTime(myTimeToAddTemp_DELAY, myTTime);
                         }
-                        string timeToAddHour = timeToUse.substr(0, 2);
-                        string timeToAddMin = timeToUse.substr(2, 2);
-                        if (hour != "00") {
-                            if (timeToAddHour == "00") {
-                                timeToAddHour = "24";
-                            }
-                        }
+                        int addMinutes = ToMinutes(timeToUse);
+                        int tsatMinutes = ToMinutes(myTSAT);
 
-                        string myTSATHour = myTSAT.substr(0, 2);
-                        string myTSATMin = myTSAT.substr(2, 2);
-                        if (hour != "00") {
-                            if (myTSATHour == "00") {
-                                myTSATHour = "24";
-                            }
-                        }
+                        int diff = addMinutes - tsatMinutes;
 
-                        int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
-                        bool fixTime = true;
-                        if (hour != timeToAddHour) {
-                            if (difTime > 40) {
-                                fixTime = false;
-                            }
-                        } else {
-                            if (difTime > 0) {
-                                fixTime = false;
-                            }
-                        }
+                        // Handle midnight crossing
+                        if (diff < -720)
+                            diff += 1440;
+                        else if (diff > 720)
+                            diff -= 1440;
+
+                        bool fixTime = (diff <= 0);
 
                         if (!fixTime) {
                             myTSAT = timeToUse;
                             myTTOT = calculateTime(timeToUse, myTTime);
                         }
                     } else {
-                        string timeToAddHour = myTimeToAdd.substr(0, 2);
-                        string timeToAddMin = myTimeToAdd.substr(2, 2);
-                        if (hour != "00") {
-                            if (timeToAddHour == "00") {
-                                timeToAddHour = "24";
-                            }
-                        }
+                        int addMinutes = ToMinutes(myTimeToAdd);
+                        int tsatMinutes = ToMinutes(myTSAT);
 
-                        string myTSATHour = myTSAT.substr(0, 2);
-                        string myTSATMin = myTSAT.substr(2, 2);
-                        if (hour != "00") {
-                            if (myTSATHour == "00") {
-                                myTSATHour = "24";
-                            }
-                        }
+                        int diff = addMinutes - tsatMinutes;
 
-                        int difTime = GetdifferenceTime(timeToAddHour, timeToAddMin, myTSATHour, myTSATMin);
-                        bool fixTime = true;
-                        if (hour != timeToAddHour) {
-                            if (difTime > 40) {
-                                fixTime = false;
-                            }
-                        } else {
-                            if (difTime > 0) {
-                                fixTime = false;
-                            }
-                        }
+                        // Handle midnight crossing
+                        if (diff < -720)
+                            diff += 1440;
+                        else if (diff > 720)
+                            diff -= 1440;
+
+                        bool fixTime = (diff <= 0);
 
                         if (!fixTime) {
                             myTSAT = myTimeToAdd;
@@ -6388,7 +6358,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                     if (calculatedTSATNow.substr(0, 2) == "00") {
                                         calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
                                     }
-                                    if (GetDifferenceTimeHHMMSS(calculatedTSATNow, timeNow, true) <= 0) {
+                                    if (stoi(calculatedTSATNow) < stoi(timeNow)) {
                                         TTOTFinal = calculateTime(TTOTFinal, 0.5);
                                         correctTTOT = false;
                                     }
@@ -6701,7 +6671,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             if (calculatedTSATNow.substr(0, 2) == "00") {
                 calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
             }
-            if (GetDifferenceTimeHHMMSS(calculatedTSATNow, timeNow, true) <= 0) {
+            if (stoi(calculatedTSATNow) < stoi(timeNow)) {
                 found = false;
 
                 TTOTFinal = bumpToNextWindowStart(TTOTFinal);
@@ -6746,6 +6716,13 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
     if ((int)TTOTFinal.size() > 6) TTOTFinal = TTOTFinal.substr(0, 6);
 
     return TTOTFinal;
+}
+
+int CDM::ToMinutes(const std::string& hhmm) {
+    int h = std::stoi(hhmm.substr(0, 2));
+    int m = std::stoi(hhmm.substr(2, 2));
+
+    return h * 60 + m;
 }
 
 /*

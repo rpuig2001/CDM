@@ -294,6 +294,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     vector<Plane> backgroundProcess_recaulculate();
 
+    int ToMinutes(const std::string& hhmm);
+
     Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT,
                        string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate,
                        bool aircraftFind, bool aicraftInFinalTimesList);
