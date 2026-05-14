@@ -46,7 +46,7 @@
 #endif
 
 #define MY_PLUGIN_NAME "CDM Plugin"
-#define MY_PLUGIN_VERSION "2.29.1"
+#define MY_PLUGIN_VERSION "2.29.2"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"
@@ -224,7 +224,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 
-    int GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2);
+    int GetDifferenceTimeHHMMSS(const std::string& time1, const std::string& time2, bool negativeValues);
 
     template <typename Out>
     void split(const string& s, char delim, Out result) {
@@ -296,11 +296,12 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT,
                        string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate,
-                       bool aircraftFind);
+                       bool aircraftFind, bool aicraftInFinalTimesList);
 
     string getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour,
                                    const string& callsign, const string& origin, const string& depRwy,
-                                   const string& timeNow, double taxiTime, const string& mySid);
+                                   const string& timeNow, double taxiTime, const string& mySid,
+                                   bool aicraftInFinalTimesList);
 
     void OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT Area);
 
