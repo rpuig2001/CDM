@@ -158,6 +158,7 @@ CDM includes the following times:
   - Automatically set as TOBT the Slot provided for Event (Example: ```<autoSetTobtFromEvSlot mode="true" />```) - Event Slot column is not required.
   - Customized Private message (Example: ```<PrivateMessage text="[CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]" />```).
   - Set the CTOT in remarks (Example: ```<remarksOptionCtot mode="true" />```).
+  - Set the loading text while times are "processing" (Example: ```<loading text="...." />```)
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
