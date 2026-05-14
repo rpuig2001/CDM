@@ -6004,15 +6004,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                         aicraftInFinalTimesList = true;
                     }
                 }
-            } else {
-                // When atotEnabled, DEPA aircraft already in atotSet keep their actual departure TTOT (set to GetTimeNow())
-                // Recalculating them from EOBT would produce an inflated future TTOT that pushes all following aircraft
-                for (size_t ai = 0; ai < atotSet.size(); ai++) {
-                    if (myCallsign == atotSet[ai]) {
-                        aicraftInFinalTimesList = true;
-                        break;
-                    }
-                }
             }
 
             // Do not calculate if has CTOT
@@ -6366,17 +6357,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                         }
                                     }
                                 }
-
-                                if (correctTTOT) {
-                                    string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-                                    if (calculatedTSATNow.substr(0, 2) == "00") {
-                                        calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
-                                    }
-                                    if (stoi(calculatedTSATNow) < stoi(timeNow)) {
-                                        TTOTFinal = calculateTime(TTOTFinal, 0.5);
-                                        correctTTOT = false;
-                                    }
-                                }
                             }
                         }
                         // Check SID Interval
@@ -6677,21 +6657,6 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
 
             correctTTOT = false;
             alreadySetTOStd = true;
-        }
-
-        if (found && correctTTOT) {
-            string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-            if (calculatedTSATNow.substr(0, 2) == "00") {
-                calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
-            }
-            if (stoi(calculatedTSATNow) < stoi(timeNow)) {
-                found = false;
-
-                TTOTFinal = bumpToNextWindowStart(TTOTFinal);
-
-                correctTTOT = false;
-                alreadySetTOStd = true;
-            }
         }
 
         if (found && sidIntervalEnabled) {
