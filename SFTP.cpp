@@ -9,7 +9,6 @@ int UploadFileFTPS(const std::string& ftpUrl, const std::string& ftpUser, const 
     CURL* curl;
     CURLcode res;
 
-    curl_global_init(CURL_GLOBAL_DEFAULT);
     curl = curl_easy_init();
     if (curl) {
         std::string fullUrl = ftpUrl + "/" + savePath;
@@ -39,6 +38,5 @@ int UploadFileFTPS(const std::string& ftpUrl, const std::string& ftpUser, const 
         return 3;
     }
 
-    curl_global_cleanup();
     return 0;
 }

@@ -67,6 +67,7 @@ string slotURL;
 string cdmServerUrl;
 string customRestrictedUrl;
 string sidIntervalUrl;
+string loadingText;
 int defTaxiTime;
 bool flashingTOBTend;
 bool flashingTSATstart;
@@ -185,6 +186,8 @@ COLORREF SU_SET_COLOR = 0xFFFFFFFF;
 CDM::CDM(void)
     : CPlugIn(EuroScopePlugIn::COMPATIBILITY_CODE, MY_PLUGIN_NAME, MY_PLUGIN_VERSION, MY_PLUGIN_DEVELOPER,
               MY_PLUGIN_COPYRIGHT) {
+    curl_global_init(CURL_GLOBAL_DEFAULT);
+
     string loadingMessage = "Version: ";
     loadingMessage += MY_PLUGIN_VERSION;
     loadingMessage += " loaded.";
@@ -410,6 +413,7 @@ CDM::CDM(void)
         string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
         pm_message = getFromXml("/CDM/PrivateMessage/@text");
         string remarksOptionCtotString = getFromXml("/CDM/remarksOptionCtot/@mode");
+        string loadingTextString = getFromXml("/CDM/loading/@text");
 
         if (ftpHost == "" && ftpUser == "") {
             ftpHost = "ftp.vatsimspain.es";
@@ -485,6 +489,11 @@ CDM::CDM(void)
         bmiMode = false;
         if (bmiModeString == "true") {
             bmiMode = true;
+        }
+
+        loadingText = "....";
+        if (loadingTextString != "") {
+            loadingText = loadingTextString;
         }
 
         eventPriorityEnabled = false;
@@ -770,7 +779,7 @@ CRadarScreen* CDM::OnRadarScreenCreated(const char* sDisplayName, bool NeedRadar
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
-CDM::~CDM() {}
+CDM::~CDM() { curl_global_cleanup(); }
 
 /*
         Custom Functions
@@ -3694,7 +3703,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 } else {
                                     ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "....");
+                                    strcpy_s(sItemString, 16, loadingText.c_str());
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
                                 if (showData) {
@@ -3731,7 +3740,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 } else {
                                     ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "....");
+                                    strcpy_s(sItemString, 16, loadingText.c_str());
                                 }
                             } else if (ItemCode == NOW_TSAT_DIFF) {
                                 if (showData) {
@@ -3782,7 +3791,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 } else {
                                     ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "....");
+                                    strcpy_s(sItemString, 16, loadingText.c_str());
                                 }
                             } else if (ItemCode == NOW_TTOT_DIFF) {
                                 if (showData) {
@@ -3898,7 +3907,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 } else {
                                     ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "....");
+                                    strcpy_s(sItemString, 16, loadingText.c_str());
                                 }
                             } else if (ItemCode == TAG_ITEM_CTOT) {
                                 if (showData) {
@@ -3926,7 +3935,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 } else {
                                     ItemRGB = TAG_GREY;
-                                    strcpy_s(sItemString, 16, "....");
+                                    strcpy_s(sItemString, 16, loadingText.c_str());
                                 }
                             } else if (ItemCode == NOW_CTOT_DIFF) {
                                 if (showData) {
@@ -8015,9 +8024,18 @@ void CDM::uploadFtp(string fileName, string airport, string type) {
     addLogLine("Called uploadFtp...");
     try {
         string saveName = "/CDM_data_" + airport + type;
-        HINTERNET hInternet = InternetOpen(NULL, INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+        HINTERNET hInternet = InternetOpen("CDM", INTERNET_OPEN_TYPE_DIRECT, NULL, NULL, 0);
+        if (!hInternet) {
+            addLogLine("ERROR: InternetOpen failed: " + std::to_string(GetLastError()));
+            return;
+        }
         HINTERNET hFtpSession = InternetConnect(hInternet, ftpHost.c_str(), INTERNET_DEFAULT_FTP_PORT, ftpUser.c_str(),
                                                 ftpPassword.c_str(), INTERNET_SERVICE_FTP, INTERNET_FLAG_PASSIVE, 0);
+        if (!hFtpSession) {
+            addLogLine("ERROR: InternetConnect failed: " + std::to_string(GetLastError()));
+            InternetCloseHandle(hInternet);
+            return;
+        }
         FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
         InternetCloseHandle(hFtpSession);
         InternetCloseHandle(hInternet);
