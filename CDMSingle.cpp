@@ -1861,7 +1861,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                     addLogLine("TRIGGER - TAG_FUNC_NEWTOBT");
                     string editedTOBT = ItemString;
                     string setBy = "NONE";
-                    if (getFlightStripInfo(fp, 2) != editedTOBT) {
                         bool hasNoNumber = true;
                         if (editedTOBT.length() == 4) {
                             for (size_t i = 0; i < editedTOBT.length(); i++) {
@@ -1953,7 +1952,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                 reqTobtTypes.push_back({fp.GetCallsign(), setBy});
                             }
                         }
-                    }
                 }
             } catch (const std::exception& ex) {
                 addLogLine(string("EXCEPTION in TAG_FUNC_NEWTOBT: ") + ex.what());
