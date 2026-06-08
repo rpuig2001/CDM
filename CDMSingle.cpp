@@ -5982,7 +5982,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
             }
 
             //Mark in aicraftInFinalTimesList, when TSAT is earlier than "now"
-            if (!aicraftInFinalTimesList && GetDifferenceTimeHHMMSS(copySlotList[i].tsat, timeNow, true) <= 0) {
+            if (!aicraftInFinalTimesList && GetDifferenceTimeHHMMSS(copySlotList[i].tsat, timeNow, true) < 5) {
                 aicraftInFinalTimesList = true;
             }
 
