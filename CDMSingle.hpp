@@ -46,7 +46,7 @@
 #endif
 
 #define MY_PLUGIN_NAME "CDM Plugin"
-#define MY_PLUGIN_VERSION "2.29.31"
+#define MY_PLUGIN_VERSION "2.29.4"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"

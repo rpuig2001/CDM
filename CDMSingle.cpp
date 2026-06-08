@@ -5982,9 +5982,9 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
             }
 
             //Mark in aicraftInFinalTimesList, when TSAT is earlier than "now"
-            if (!aicraftInFinalTimesList && GetDifferenceTimeHHMMSS(copySlotList[i].tsat, timeNow, true) <= 0) {
+            /* if (!aicraftInFinalTimesList && GetDifferenceTimeHHMMSS(copySlotList[i].tsat, timeNow, true) <= 0) {
                 aicraftInFinalTimesList = true;
-            }
+            }*/
 
             // Do not calculate if has CTOT
             // if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") aicraftInFinalTimesList = false;
@@ -6138,6 +6138,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
         bool alreadySetTOStd = false;
         bool okToLook = false;
         string timeNow = GetActualTime() + "00";
+        bool initialTSATInPast = (stoi(TSATfinal) < stoi(timeNow));
         string myFlow = "";
         EcfmpRestriction myEcfmp;
         bool hasEcfmpRestriction = false;
@@ -6313,7 +6314,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                     if (calculatedTSATNow.substr(0, 2) == "00") {
                                         calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
                                     }
-                                    if (stoi(calculatedTSATNow) < stoi(timeNow)) {
+                                    if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
                                         TTOTFinal = calculateTime(TTOTFinal, 0.5);
                                         correctTTOT = false;
                                     }
@@ -6517,6 +6518,10 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
     bool correctTTOT = true;
     bool alreadySetTOStd = false;
 
+    string initialTSATCheck = calculateLessTime(TTOTInitial, taxiTime);
+    if (initialTSATCheck.substr(0, 2) == "00") initialTSATCheck = "24" + initialTSATCheck.substr(2, 4);
+    bool initialTSATInPast = (stoi(initialTSATCheck) < stoi(timeNow));
+
     const int windowMinutes = 10;
     const int windowsPerHour = 60 / windowMinutes;
 
@@ -6626,7 +6631,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             if (calculatedTSATNow.substr(0, 2) == "00") {
                 calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
             }
-            if (stoi(calculatedTSATNow) < stoi(timeNow)) {
+            if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
                 found = false;
 
                 TTOTFinal = bumpToNextWindowStart(TTOTFinal);
