@@ -10153,10 +10153,10 @@ void CDM::getCdmServerStatus() {
                         }
                     }
                 }
-            }
-            {
-                std::lock_guard<std::mutex> lock(networkStatusMutex);
-                networkStatus = std::move(networkStatusTemp);
+                {
+                    std::lock_guard<std::mutex> lock(networkStatusMutex);
+                    networkStatus = std::move(networkStatusTemp);
+                }
             }
             addLogLine("COMPLETED - getCdmServerStatus");
         } catch (const std::exception& e) {
