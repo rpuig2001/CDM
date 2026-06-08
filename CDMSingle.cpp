@@ -153,17 +153,16 @@ std::mutex apiQueueResponseMutex;
 vector<vector<string>> deiceList;
 vector<sidInterval> sidIntervalList;
 vector<string> atotSet;
-vector<vector<string>> reqTobtTypes;
-vector<vector<string>> reqTobtTypesQueue;
 vector<vector<string>> relevantFlights;
 vector<string> messagesSent;
 vector<string> reqTobtList;
-std::mutex reqTobtTypesQueueMutex;
 std::mutex later1Mutex;
 std::mutex later2Mutex;
 std::mutex later3Mutex;
 std::mutex later4Mutex;
 std::mutex networkStatusMutex;
+std::mutex reqTobtTypesQueueMutex;
+vector<vector<string>> reqTobtTypesQueue;
 
 using namespace std;
 using namespace EuroScopePlugIn;
@@ -1517,20 +1516,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             }
 
                             // Update TOBT-setBy
-                            bool found = false;
-                            for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
-                                if (reqTobtTypes[a][0] == fp.GetCallsign()) {
-                                    found = true;
-                                    if (reqTobtTypes[a][1] != "ATC") {
-                                        reqTobtTypes[a][1] = "ATC";
-                                    }
-                                }
-                            }
-                            if (!found) {
-                                reqTobtTypes.push_back({fp.GetCallsign(), "ATC"});
+                            string prevSetBy = getFlightStripInfo(fp, 9);
+                            if (prevSetBy != "ATC") {
+                                setFlightStripInfo(fp, "ATC", 9);
                             }
 
-                            found = false;
+                            bool found = false;
                             for (string callsign : reqTobtList) {
                                 if (callsign == fp.GetCallsign()) {
                                     found = true;
@@ -1939,17 +1930,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
                         // Update TOBT-setBy
                         if (setBy != "NONE" && master && AtcMe) {
-                            bool found = false;
-                            for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
-                                if (reqTobtTypes[a][0] == fp.GetCallsign()) {
-                                    found = true;
-                                    if (reqTobtTypes[a][1] != setBy) {
-                                        reqTobtTypes[a][1] = setBy;
-                                    }
-                                }
-                            }
-                            if (!found) {
-                                reqTobtTypes.push_back({fp.GetCallsign(), setBy});
+                            string prevSetBy = getFlightStripInfo(fp, 9);
+                            if (prevSetBy != setBy) {
+                                setFlightStripInfo(fp, setBy, 9);
                             }
                         }
                 }
@@ -2167,19 +2150,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 if (!localTobtTypesQueue.empty()) {
                     bool found = false;
                     for (vector<string> s : localTobtTypesQueue) {
-                        found = false;
-                        for (int a = reqTobtTypes.size() - 1; a >= 0; --a) {
-                            if (reqTobtTypes[a][0] == s[0]) {
-                                found = true;
-                                if (reqTobtTypes[a][1] != s[1] && s[1] != "") {
-                                    reqTobtTypes[a][1] = s[1];
-                                }
-                            }
-                        }
-                        if (!found) {
-                            if (s[1] != "") {
-                                reqTobtTypes.push_back(s);
-                            }
+                        string prevSetBy = getFlightStripInfo(FlightPlan, 9);
+                        if (prevSetBy != s[1]) {
+                            setFlightStripInfo(FlightPlan, s[1], 9);
                         }
                     }
                 }
@@ -2662,12 +2635,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 ItemRGB = TAG_YELLOW;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
-                                string status = "";
-                                for (vector<string> reqTobtType : reqTobtTypes) {
-                                    if (reqTobtType[0] == callsign) {
-                                        status = reqTobtType[1];
-                                    }
-                                }
+                                string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
@@ -4050,12 +4018,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 ItemRGB = TAG_YELLOW;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
-                                string status = "";
-                                for (vector<string> reqTobtType : reqTobtTypes) {
-                                    if (reqTobtType[0] == callsign) {
-                                        status = reqTobtType[1];
-                                    }
-                                }
+                                string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
@@ -4905,12 +4868,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 ItemRGB = TAG_YELLOW;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
-                                string status = "";
-                                for (vector<string> reqTobtType : reqTobtTypes) {
-                                    if (reqTobtType[0] == callsign) {
-                                        status = reqTobtType[1];
-                                    }
-                                }
+                                string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
@@ -5105,12 +5063,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 ItemRGB = TAG_YELLOW;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
-                                string status = "";
-                                for (vector<string> reqTobtType : reqTobtTypes) {
-                                    if (reqTobtType[0] == callsign) {
-                                        status = reqTobtType[1];
-                                    }
-                                }
+                                string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
@@ -5305,12 +5258,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         ItemRGB = TAG_YELLOW;
                         strcpy_s(sItemString, 16, status.c_str());
                     } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
-                        string status = "";
-                        for (vector<string> reqTobtType : reqTobtTypes) {
-                            if (reqTobtType[0] == callsign) {
-                                status = reqTobtType[1];
-                            }
-                        }
+                        string status = getFlightStripInfo(FlightPlan, 9);
                         ItemRGB = TAG_GREEN;
                         strcpy_s(sItemString, 16, status.c_str());
                     }
@@ -7513,15 +7461,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
                 atotSet.erase(atotSet.begin() + i);
             }
         }
-        // Remove from reqTobtTypes
-        for (size_t i = 0; i < reqTobtTypes.size(); i++) {
-            if (callsign == reqTobtTypes[i][0]) {
-                if (debugMode) {
-                    sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 18");
-                }
-                reqTobtTypes.erase(reqTobtTypes.begin() + i);
-            }
-        }
         // Remove from dataSaved
         for (size_t i = 0; i < dataSaved.size(); i++) {
             if (callsign == dataSaved[i][0]) {
@@ -9100,9 +9039,9 @@ vector<string> CDM::splitString(const std::string& str, char delimiter) {
 }
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
-    if (position >= 0 && position <= 8 && FlightPlan.IsValid()) {
-        //   0    1    2    3   4     5       6       7       8
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/
+    if (position >= 0 && position <= 9 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8     9
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         vector<string> values = split(annotation, '/');
 
@@ -9114,12 +9053,12 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 }
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
-    if (position >= 0 && position <= 8 && FlightPlan.IsValid()) {
-        //   0    1    2    3   4     5       6       7       8
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/
+    if (position >= 0 && position <= 9 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8     9
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         if (annotation == "") {
-            annotation = "//////////";
+            annotation = "///////////";
         }
         vector<string> values = split(annotation, '/');
 
