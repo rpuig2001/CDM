@@ -2928,7 +2928,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                 // Check SID Interval
                                                 if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
                                                     listTTOT = slotList[t].ttot;
-                                                    double interval = getSidInterval(mySid, listSid, origin, depRwy);
+                                                    double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
                                                     if (interval > 0) {
                                                         bool found = false;
                                                         while (!found) {
@@ -6318,7 +6318,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                         // Check SID Interval
                         if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
                             listTTOT = planes[t].ttot;
-                            double interval = getSidInterval(mySid, listSid, origin, depRwy);
+                            double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
                             if (interval > 0) {
                                 bool found = false;
                                 while (!found) {
@@ -6650,7 +6650,8 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
                 CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
                 if (!listFlightPlan.IsValid()) continue;
                 string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
-                double interval = getSidInterval(mySid, listSid, origin, depRwy);
+                string listDepRwy = listFlightPlan.GetFlightPlanData().GetDepartureRwy();
+                double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
                 if (interval <= 0) continue;
                 int ttotFinalInt = stoi(TTOTFinal);
                 int listTTOTInt = stoi(listTTOT);
@@ -7681,8 +7682,14 @@ void CDM::getSidIntervalValuesUrl(string url) {
                 if (lineValue.substr(0, 1) != "#") {
                     vector<string> tempList = explode(lineValue, ',');
                     if (tempList.size() == 5) {
+                        // Old format: airport,rwy,sid1,sid2,value  (rwy2 = any)
                         sidInterval si =
-                            sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], stod(tempList[4]));
+                            sidInterval(tempList[0], tempList[1], tempList[2], "", tempList[3], stod(tempList[4]));
+                        sidIntervalList.push_back(si);
+                    } else if (tempList.size() == 6) {
+                        // New format: airport,rwy,sid1,rwy2,sid2,value
+                        sidInterval si =
+                            sidInterval(tempList[0], tempList[1], tempList[2], tempList[3], tempList[4], stod(tempList[5]));
                         sidIntervalList.push_back(si);
                     }
                 }
@@ -7692,15 +7699,17 @@ void CDM::getSidIntervalValuesUrl(string url) {
     addLogLine("FINISHED getSidIntervalValuesUrl");
 }
 
-double CDM::getSidInterval(string mySid, string listSid, string depAirport, string depRwy) {
+double CDM::getSidInterval(string mySid, string listSid, string depAirport, string depRwy, string listDepRwy) {
     if (mySid.length() > 3 && listSid.length() > 3) {
-        // substr to get only the SID point
+        // substr to get only the SID point (strip the runway designator suffix)
         string sid1 = mySid.substr(0, mySid.length() - 2);
         string sid2 = listSid.substr(0, listSid.length() - 2);
         for (sidInterval si : sidIntervalList) {
-            if (si.airport == depAirport) {
-                if (((si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2)) &&
-                    depRwy == si.rwy) {
+            if (si.airport == depAirport && si.rwy == depRwy) {
+                bool sidMatch = (si.sid1 == sid1 && si.sid2 == sid2) || (si.sid2 == sid1 && si.sid1 == sid2);
+                // rwy2 empty means the rule applies regardless of the other plane's runway
+                bool rwy2Match = si.rwy2.empty() || si.rwy2 == listDepRwy;
+                if (sidMatch && rwy2Match) {
                     return si.value;
                 }
             }

@@ -9,10 +9,11 @@ class sidInterval {
     string airport;
     string rwy;
     string sid1;
+    string rwy2;
     string sid2;
     double value;
 
-    sidInterval(string myAirport, string myRwy, string mySid1, string mySid2, double myValue)
-        : airport(myAirport), rwy(myRwy), sid1(mySid1), sid2(mySid2), value(myValue) {}
+    sidInterval(string myAirport, string myRwy, string mySid1, string myRwy2, string mySid2, double myValue)
+        : airport(myAirport), rwy(myRwy), sid1(mySid1), rwy2(myRwy2), sid2(mySid2), value(myValue) {}
     sidInterval() {};
 };

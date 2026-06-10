@@ -140,7 +140,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     void getSidIntervalValuesUrl(string url);
 
-    double getSidInterval(string mySid, string listSid, string depAirport, string depRwy);
+    double getSidInterval(string mySid, string listSid, string depAirport, string depRwy, string listDepRwy = "");
 
     bool isCdmAirport(string airport);
 
