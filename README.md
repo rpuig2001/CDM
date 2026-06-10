@@ -236,7 +236,14 @@ Note: In case of connection with the matched cid, departure and destination (wit
 
 ## Sid Interval
 ### How does it work?
-Used to seperate planes based on departure SID Ponint. Format: <ICAO_Airport>,<dep_rwy>,<SID1>,<SID2>,<seperation_minutes>
+Used to seperate planes based on departure SID Ponint. Format:
+Option1:
+<ICAO_Airport>,<dep_rwy_sid1_and_sid_2>,<SID1>,<SID2>,<seperation_minutes>
+example: LEPA,24R,ESPOR,BAVER,10
+
+Option2:
+<ICAO_Airport>,<dep_rwy_sid1>,<SID1>,<dep_rwy_sid2>,<SID2>,<seperation_minutes>
+example: LEPA,24R,ESPOR,24L,BAVER,11
 
 Notes:
 - SID are sid points. For sid LARPA4Q, "LARPA" is used as SID, and "4Q" should not be included.
@@ -246,6 +253,7 @@ Example:
 
 ```
 LEPA,24R,ESPOR,BAVER,10
+LEPA,24R,ESPOR,24L,BAVER,11
 LEPA,24R,BAVER,EPAMA,15.5
 ```
 
