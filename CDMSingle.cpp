@@ -319,13 +319,14 @@ CDM::CDM(void)
 
     std::time_t now = std::time(nullptr);
     std::tm* localTime = std::localtime(&now);
-    int day = localTime->tm_mday;
     tfad = DllPathFile;
     tfad.resize(tfad.size() - strlen("CDM.dll"));
     tfad += "logs\\";
     BuildAndEnsureLogPath(tfad);
-    tfad += "log_" + GetTimeNow().substr(0, 3) + ".txt";
-    removeLog();
+    // Build a sortable timestamp: log_YYYYMMDD_HHMMSS.txt
+    char tsBuffer[32];
+    std::strftime(tsBuffer, sizeof(tsBuffer), "%Y%m%d_%H%M%S", localTime);
+    tfad += std::string("log_") + tsBuffer + ".txt";
     addLogLine(loadingMessage);
 
     debugMode = false;
@@ -766,9 +767,28 @@ static std::string RTrimSlash(std::string s) {
 }
 
 void CDM::BuildAndEnsureLogPath(std::string& tfad) {
-    // ensure "...\logs\" exists
+    // Ensure "...\logs\" directory exists
     std::string logsDir = RTrimSlash(tfad);  // => "...\logs"
     EnsureDirExists(logsDir);
+
+    // Prune old log files, keeping only the 3 most recent.
+    // Files are named log_YYYYMMDD_HHMMSS.txt so lexicographic sort == time sort.
+    std::vector<std::string> logFiles;
+    WIN32_FIND_DATAA findData;
+    std::string searchPattern = logsDir + "\\log_*.txt";
+    HANDLE hFind = FindFirstFileA(searchPattern.c_str(), &findData);
+    if (hFind != INVALID_HANDLE_VALUE) {
+        do {
+            logFiles.push_back(logsDir + "\\" + findData.cFileName);
+        } while (FindNextFileA(hFind, &findData));
+        FindClose(hFind);
+    }
+    std::sort(logFiles.begin(), logFiles.end());
+    const int MAX_LOGS = 3;
+    while ((int)logFiles.size() >= MAX_LOGS) {
+        remove(logFiles.front().c_str());
+        logFiles.erase(logFiles.begin());
+    }
 }
 
 CRadarScreen* CDM::OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced,
