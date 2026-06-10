@@ -6091,20 +6091,14 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 }
 
                 if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") {
-                    double diffTime = GetDifferenceTimeHHMMSS(copySlotList[i].tsat, copySlotList[i].ttot, false);
-                    int candidateTTOT = stoi(calculateTime(copySlotList[i].eobt, diffTime));
-                    int maxValue = max(candidateTTOT, stoi(copySlotList[i].ctot + "00"));
-                    myTTOT = to_string(maxValue);
-                    if (myTTOT.length() == 1) {
-                        myTTOT = "00000" + myTTOT;
-                    } else if (myTTOT.length() == 2) {
-                        myTTOT = "0000" + myTTOT;
-                    } else if (myTTOT.length() == 3) {
-                        myTTOT = "000" + myTTOT;
-                    } else if (myTTOT.length() == 4) {
-                        myTTOT = "00" + myTTOT;
-                    } else if (myTTOT.length() == 5) {
-                        myTTOT = "0" + myTTOT;
+                    string ctotTTOT = copySlotList[i].ctot + "00";
+                    string ctotTSAT  = calculateLessTime(ctotTTOT, myTTime);
+                    // Only use CTOT if it doesn't push TSAT before EOBT
+                    if (stoi(ctotTSAT) >= stoi(myEOBT)) {
+                        myTTOT = ctotTTOT;
+                        myTSAT = ctotTSAT;
+                    } else {
+                        myTTOT = calculateTime(myEOBT, myTTime); // natural departure
                     }
                 }
 
