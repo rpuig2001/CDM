@@ -10451,6 +10451,21 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
                         if (atot == "") {
                             planes.push_back({callsign, tobt, type, asrt});
                         }
+
+                        // Sync informed flag into messagesSent
+                        if (data[i].isMember("informed")) {
+                            string informed = fastWriter.write(data[i]["informed"]);
+                            informed.erase(std::remove(informed.begin(), informed.end(), '"'));
+                            informed.erase(std::remove(informed.begin(), informed.end(), '\n'));
+                            informed.erase(std::remove(informed.begin(), informed.end(), '\n'));
+                            if (informed == "true" || informed == "1") {
+                                bool alreadySent = false;
+                                for (const string& s : messagesSent) {
+                                    if (s == callsign) { alreadySent = true; break; }
+                                }
+                                if (!alreadySent) messagesSent.push_back(callsign);
+                            }
+                        }
                     }
                 }
             }
@@ -11162,6 +11177,9 @@ void CDM::sendCdmMessageToPilot(string callsign) {
     }
 
     string msg = ".msg " + callsign + " " + pm_message;
+
+    std::thread t54(&CDM::setCdmSts, this, callsign, "INFORMED/1");
+    t54.detach();
 
     std::thread t458(&CDM::sendCdmPrivateMessageToPilot, this, msg);
     t458.detach();
