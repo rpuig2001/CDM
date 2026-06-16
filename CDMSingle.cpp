@@ -10630,6 +10630,7 @@ void CDM::getNetworkTobt() {
                                     }
                                     if (!found) reqTobtList.push_back(mySlotList[i].callsign);
                                     setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+                                    setFlightStripInfo(fp, "PILOT", 9);
                                     // Trigger TOBT update to update TAXI TIME
                                     // setOBTApi(plane[0], plane[1], true, false);
                                     updated = true;
@@ -10654,6 +10655,7 @@ void CDM::getNetworkTobt() {
                             }
                             if (!found) reqTobtList.push_back(plane[0]);
                             setCdmSts(plane[0], "REQTOBT/NULL/NULL");
+                            setFlightStripInfo(fp, "PILOT", 9);
                             // Trigger TOBT update to update TAXI TIME
                             //setOBTApi(plane[0], plane[1], true, false);
                             updated = true;
