@@ -86,8 +86,6 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     Rate rateForRunway(string airport, string depRwy);
 
-    int getHourlyRateForRunway(const string& airport, const string& depRwy);
-
     void PushToOtherControllers(CFlightPlan fp);
 
     void deleteFlightStrips(string callsign);
@@ -372,4 +370,5 @@ class CDM : public EuroScopePlugIn::CPlugIn {
    protected:
     Document config;
     std::map<std::pair<std::string, int>, int> customBlockCapacities;  // {runway, blockIndex} -> custom capacity
+    int currentPriority = 0;  // Priority level for current flight: 0=none, 1=reqTobt, 2=evCtots
 };

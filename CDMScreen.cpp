@@ -1066,8 +1066,15 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
 
     // Create block data structure with per-runway capacity calculation
     for (const auto& runway : uniqueRunways) {
-        // Get hourly rate for this specific runway (with fallback to config default)
-        int hourlyRate = cdm->getHourlyRateForRunway(airport, runway.c_str());
+        // Get rate for this specific runway
+        Rate rate = cdm->rateForRunway(airport, runway.c_str());
+        int hourlyRate = 6;  // Default
+
+        if (!rate.rates.empty()) {
+            try {
+                hourlyRate = std::stoi(rate.rates[0]);
+            } catch (...) {}
+        }
 
         // Calculate block capacities for this runway with evenly spaced remainder allocation
         const int baseCap = hourlyRate / windowsPerHour;      // e.g. 40/6 = 6

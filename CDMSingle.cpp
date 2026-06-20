@@ -2692,8 +2692,28 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                             }
-
+                            int currentPriority = 0;
                             if (!aircraftFind || recalculate) {
+                                // Check if this plane has event CTOTs or reqTobt status
+                                // Priority levels: 2=evCtots (highest), 1=reqTobt, 0=none (lowest)
+                                if (!aircraftFind) {
+                                    currentPriority = 0;
+                                    for (const auto& row : evCtots) {
+                                        if (row.size() >= 2 && row[0] == callsign && !row[1].empty()) {
+                                            currentPriority = 2;
+                                            break;
+                                        }
+                                    }
+                                    if (currentPriority == 0) {
+                                        for (const auto& cs : reqTobtList) {
+                                            if (cs == callsign) {
+                                                currentPriority = 1;
+                                                break;
+                                            }
+                                        }
+                                    }
+                                }
+
                                 TSAT = EOBT;
                                 // TSAT
                                 string TSATstring = TSAT;
@@ -2891,6 +2911,30 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                                                 if (!depRwyFound) {
                                                     listDepRwy = depRwy;
+                                                }
+
+                                                // Skip lower-priority planes if current plane has high priority
+                                                // Priority: 2=evCtots, 1=reqTobt, 0=none
+                                                if (currentPriority > 0) {
+                                                    int listPriority = 0;
+                                                    for (const auto& row : evCtots) {
+                                                        if (row.size() >= 2 && row[0] == listCallsign && !row[1].empty()) {
+                                                            listPriority = 2;
+                                                            break;
+                                                        }
+                                                    }
+                                                    if (listPriority == 0) {
+                                                        for (const auto& cs : reqTobtList) {
+                                                            if (cs == listCallsign) {
+                                                                listPriority = 1;
+                                                                break;
+                                                            }
+                                                        }
+                                                    }
+                                                    // Skip if list plane has lower priority
+                                                    if (listPriority < currentPriority) {
+                                                        continue;
+                                                    }
                                                 }
 
                                                 sameOrDependantRwys = false;
@@ -5908,7 +5952,7 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
                 bool foundDepRwyNo = true;
                 for (string drn : r.depRwyNo) {
                     if (drn == "*") {
-                        foundDepRwyYes = true;
+                        foundDepRwyNo = true;
                     } else {
                         bool foundIt = false;
                         for (string myRwy : myActiveRwysDep) {
@@ -5917,9 +5961,9 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
                             }
                         }
                         if (!foundIt) {
-                            foundDepRwyYes = false;
+                            foundDepRwyNo = false;
                         } else if (myActiveRwysDep.size() != r.depRwyNo.size()) {
-                            foundDepRwyYes = false;
+                            foundDepRwyNo = false;
                         }
                     }
                 }
@@ -5932,28 +5976,6 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
         }
     }
     return Rate("-1");
-}
-
-int CDM::getHourlyRateForRunway(const string& airport, const string& depRwy) {
-    // Get rate for this runway
-    Rate rate = rateForRunway(airport, depRwy);
-    
-    // If runway-specific rate found, use it
-    if (!rate.rates.empty()) {
-        try {
-            return std::stoi(rate.rates[0]);
-        } catch (...) {}
-    }
-    
-    // Fallback to default rate string from config
-    if (!rateString.empty()) {
-        try {
-            return std::stoi(rateString);
-        } catch (...) {}
-    }
-    
-    // Final fallback to reasonable default
-    return 6;
 }
 
 void CDM::RemoveMasterAirports() {
