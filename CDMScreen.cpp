@@ -821,7 +821,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
         return;
     }
 
-    // Handle block cell clicks for capacity adjustment
+    // Handle block cell clicks for capacity adjustment and callsigns display
     if (strncmp(sObjectId, "BLOCKS_CELL_", 12) == 0) {
         std::string cellStr = std::string(sObjectId + 12);
         
@@ -833,15 +833,41 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
             
             auto key = std::make_pair(runway, blockIndex);
             
+            // Right-click: toggle callsigns display for this specific runway/block
+            if (Button == 2) {
+                if (selectedBlockIndex == blockIndex && selectedBlockRunway == runway) {
+                    // Deselect if clicking same cell again
+                    selectedBlockIndex = -1;
+                    selectedBlockRunway = "";
+                } else {
+                    // Select this runway/block
+                    selectedBlockRunway = runway;
+                    selectedBlockIndex = blockIndex;
+                }
+                RequestRefresh();
+                return;
+            }
+            
+            // Check if user is master of the selected airport before allowing capacity modifications
+            if (Button == 1 || Button == 3) {
+                auto masterAirports = cdm->getMasterAirports();
+                bool isMaster = std::find(masterAirports.begin(), masterAirports.end(), selectedAirportForBlocks) != masterAirports.end();
+                
+                if (!isMaster) {
+                    // Not master, no capacity modifications allowed
+                    return;
+                }
+            }
+            
             // Get current capacity (custom or calculated)
             int currentCapacity = customBlockCapacities[key];
             if (currentCapacity == 0 && calculatedBlockCapacities.find(key) != calculatedBlockCapacities.end()) {
                 currentCapacity = calculatedBlockCapacities[key];
             }
             
-            // Left-click: increment capacity
+            // Left-click: decrease capacity (allow reducing more than default)
             if (Button == 1) {
-                int newCapacity = currentCapacity + 1;
+                int newCapacity = currentCapacity - 1;
                 customBlockCapacities[key] = newCapacity;
                 cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
                 // Force immediate update by resetting the debounce timer
@@ -850,20 +876,11 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 return;
             }
             
-            // Right-click: decrement capacity or reset to default
-            if (Button == 2) {
-                if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
-                    // Reset to default
-                    customBlockCapacities.erase(key);
-                    cdm->clearCustomBlockCapacity(runway, blockIndex);
-                } else {
-                    // Decrement from calculated
-                    if (currentCapacity > 0) {
-                        int newCapacity = currentCapacity - 1;
-                        customBlockCapacities[key] = newCapacity;
-                        cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
-                    }
-                }
+            // Middle-click: increase capacity
+            if (Button == 3) {
+                int newCapacity = currentCapacity + 1;
+                customBlockCapacities[key] = newCapacity;
+                cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
                 // Force immediate update by resetting the debounce timer
                 lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
                 RequestRefresh();
@@ -1278,4 +1295,98 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
 
         yPos += rowHeight + 2;
     }
+    
+    // Draw callsigns list for selected block
+    if (selectedBlockIndex >= 0 && !selectedBlockRunway.empty()) {
+        auto callsigns = GetCallsignsForBlock(selectedBlockRunway, selectedBlockIndex);
+        
+        if (!callsigns.empty()) {
+            int listYPos = yPos + 10;
+            int listHeight = callsigns.size() * 15 + 25;
+            RECT listHeaderRect = {blocksPanelRect.left, listYPos, blocksPanelRect.right, listYPos + 20};
+            
+            DrawRoundedRect(hDC, listHeaderRect, RGB(45, 65, 100), RGB(20, 30, 60));
+            char headerText[64];
+            sprintf_s(headerText, "Block %d (Runway %s) - %d flights", selectedBlockIndex, selectedBlockRunway.c_str(), (int)callsigns.size());
+            DrawCellTextA_Flt(hDC, headerText, listHeaderRect, DT_LEFT, RGB(200, 255, 200));
+            
+            listYPos += 22;
+            for (const auto& item : callsigns) {
+                RECT itemRect = {blocksPanelRect.left + 10, listYPos, blocksPanelRect.right - 10, listYPos + 15};
+                char itemText[64];
+                sprintf_s(itemText, "%s - %s", item.first.c_str(), item.second.c_str());
+                DrawCellTextA_Flt(hDC, itemText, itemRect, DT_LEFT, RGB(220, 220, 220));
+                listYPos += 15;
+            }
+        }
+    }
+}
+
+std::vector<std::pair<std::string, std::string>> CDMScreen::GetCallsignsForBlock(const std::string& runway, int blockIndex) {
+    std::vector<std::pair<std::string, std::string>> result;
+    
+    if (!cdm) return result;
+    
+    // Calculate time range for the block (10-minute blocks)
+    int startMin = blockIndex * 10;
+    int endMin = startMin + 10;
+    
+    // Get external slotList
+    extern std::vector<Plane> slotList;
+    
+    // Iterate through slotList and find flights in this block
+    for (const auto& plane : slotList) {
+        // Parse TTOT to get minutes
+        if (plane.ttot.length() >= 4) {
+            try {
+                int ttotMin = std::stoi(plane.ttot.substr(2, 2));
+                
+                // Check if TTOT falls in this block's time range
+                if (ttotMin >= startMin && ttotMin < endMin) {
+                    // Get flight plan to check runway
+                    CFlightPlan fp = cdm->FlightPlanSelect(plane.callsign.c_str());
+                    if (fp.IsValid()) {
+                        CFlightPlanData fpData = fp.GetFlightPlanData();
+                        std::string planeRunway = fpData.GetDepartureRwy();
+                        if (planeRunway.empty()) planeRunway = "UNK";
+                        
+                        // Check if runway matches (if filtering by runway)
+                        if (runway.empty() || planeRunway == runway) {
+                            result.push_back({plane.callsign, plane.ttot});
+                        }
+                    }
+                }
+            } catch (...) {}
+        }
+    }
+    
+    // Sort by TTOT
+    std::sort(result.begin(), result.end(), 
+        [](const auto& a, const auto& b) { return a.second < b.second; });
+    
+    return result;
+}
+
+std::vector<std::string> CDMScreen::GetBlockRunways() const {
+    std::set<std::string> runwaySet;
+    
+    if (!cdm) return std::vector<std::string>();
+    
+    extern std::vector<Plane> slotList;
+    
+    for (const auto& plane : slotList) {
+        if (plane.ttot.empty() || plane.ttot.length() < 4) continue;
+        
+        CFlightPlan fp = cdm->FlightPlanSelect(plane.callsign.c_str());
+        if (!fp.IsValid()) continue;
+        
+        CFlightPlanData fpData = fp.GetFlightPlanData();
+        if (std::string(fpData.GetOrigin()) == selectedAirportForBlocks) {
+            std::string runway = fpData.GetDepartureRwy();
+            if (runway.empty()) runway = "UNK";
+            runwaySet.insert(runway);
+        }
+    }
+    
+    return std::vector<std::string>(runwaySet.begin(), runwaySet.end());
 }
