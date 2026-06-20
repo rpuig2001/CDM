@@ -23,6 +23,14 @@ struct PendingMasterChange {
     bool adding;  // true=add, false=remove
 };
 
+// Pending block capacity change structure
+struct PendingBlockChange {
+    std::string runway;
+    int blockIndex;
+    int newCapacity;
+    int previousCapacity;  // To allow reverting changes
+};
+
 // Block occupancy data structure
 struct BlockData {
     std::string runway;
@@ -109,6 +117,12 @@ class CDMScreen : public CRadarScreen {
     std::chrono::steady_clock::time_point lastBlocksDataUpdate;  // Debounce frequent updates
     std::string selectedBlockRunway;  // For displaying callsigns of a selected block
     int selectedBlockIndex = -1;  // -1 means no block selected
+    std::vector<PendingBlockChange> pendingBlockChanges;  // Pending capacity changes waiting for APPLY
+    RECT blocksPanelApplyBtnRect;  // Rectangle for APPLY button
+    
+    // Pending block changes methods
+    void ApplyPendingBlockChanges();
+    void RevertPendingBlockChanges();
 
    private:
     CDM* cdm;
