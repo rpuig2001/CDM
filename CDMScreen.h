@@ -57,8 +57,6 @@ class CDMScreen : public CRadarScreen {
     void UpdateBlocksData(const std::string& airport);
     void RefreshBlocksData();
     void SetRunwayFilter(const std::string& runway);
-    std::vector<std::pair<std::string, std::string>> GetCallsignsForBlock(const std::string& runway, int blockIndex);
-    std::vector<std::string> GetBlockRunways() const;
 
     static constexpr int MAX_AIRPORTS_DISPLAYED = 9999;
     int CalculatePanelHeight(int airportCount) const;
@@ -107,8 +105,6 @@ class CDMScreen : public CRadarScreen {
     std::map<std::pair<std::string, int>, int> customBlockCapacities;  // {runway, blockIndex} -> custom capacity override
     std::map<std::pair<std::string, int>, int> calculatedBlockCapacities;  // {runway, blockIndex} -> default calculated capacity
     std::chrono::steady_clock::time_point lastBlocksDataUpdate;  // Debounce frequent updates
-    std::string selectedBlockRunway;  // For displaying callsigns of a selected block
-    int selectedBlockIndex = -1;  // -1 means no block selected
 
    private:
     CDM* cdm;
