@@ -86,8 +86,6 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     Rate rateForRunway(string airport, string depRwy);
 
-    int getHourlyRateForRunway(const string& airport, const string& depRwy);
-
     void PushToOtherControllers(CFlightPlan fp);
 
     void deleteFlightStrips(string callsign);

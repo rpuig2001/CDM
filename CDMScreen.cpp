@@ -859,52 +859,19 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 }
             }
             
-            // Get current capacity: pending > custom > calculated (same priority as display)
-            int currentCapacity = 0;
-            
-            // First check pending changes (highest priority)
-            bool foundPending = false;
-            for (const auto& pending : pendingBlockChanges) {
-                if (pending.runway == runway && pending.blockIndex == blockIndex) {
-                    currentCapacity = pending.newCapacity;
-                    foundPending = true;
-                    break;
-                }
-            }
-            
-            // If no pending change, check custom overrides, then calculated baseline
-            if (!foundPending) {
-                if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
-                    currentCapacity = customBlockCapacities[key];
-                } else if (calculatedBlockCapacities.find(key) != calculatedBlockCapacities.end()) {
-                    currentCapacity = calculatedBlockCapacities[key];
-                }
+            // Get current capacity (custom or calculated)
+            int currentCapacity = customBlockCapacities[key];
+            if (currentCapacity == 0 && calculatedBlockCapacities.find(key) != calculatedBlockCapacities.end()) {
+                currentCapacity = calculatedBlockCapacities[key];
             }
             
             // Left-click: decrease capacity (allow reducing more than default)
             if (Button == 1) {
                 int newCapacity = currentCapacity - 1;
-                
-                // Prevent going below 0
-                if (newCapacity < 0) {
-                    newCapacity = 0;
-                }
-                
-                // Check if this change already exists in pending list
-                bool found = false;
-                for (auto& pending : pendingBlockChanges) {
-                    if (pending.runway == runway && pending.blockIndex == blockIndex) {
-                        pending.newCapacity = newCapacity;
-                        found = true;
-                        break;
-                    }
-                }
-                
-                // If not found, add new pending change
-                if (!found) {
-                    pendingBlockChanges.push_back({runway, blockIndex, newCapacity, currentCapacity});
-                }
-                
+                customBlockCapacities[key] = newCapacity;
+                cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
+                // Force immediate update by resetting the debounce timer
+                lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
                 RequestRefresh();
                 return;
             }
@@ -912,40 +879,14 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
             // Middle-click: increase capacity
             if (Button == 3) {
                 int newCapacity = currentCapacity + 1;
-                
-                // Check if this change already exists in pending list
-                bool found = false;
-                for (auto& pending : pendingBlockChanges) {
-                    if (pending.runway == runway && pending.blockIndex == blockIndex) {
-                        pending.newCapacity = newCapacity;
-                        found = true;
-                        break;
-                    }
-                }
-                
-                // If not found, add new pending change
-                if (!found) {
-                    pendingBlockChanges.push_back({runway, blockIndex, newCapacity, currentCapacity});
-                }
-                
+                customBlockCapacities[key] = newCapacity;
+                cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
+                // Force immediate update by resetting the debounce timer
+                lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
                 RequestRefresh();
                 return;
             }
         }
-        return;
-    }
-
-    // Handle APPLY button click
-    if (strcmp(sObjectId, "BLOCKS_APPLY") == 0) {
-        ApplyPendingBlockChanges();
-        RequestRefresh();
-        return;
-    }
-
-    // Handle REVERT button click
-    if (strcmp(sObjectId, "BLOCKS_REVERT") == 0) {
-        RevertPendingBlockChanges();
-        RequestRefresh();
         return;
     }
 }
@@ -1066,8 +1007,15 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
 
     // Create block data structure with per-runway capacity calculation
     for (const auto& runway : uniqueRunways) {
-        // Get hourly rate for this specific runway (with fallback to config default)
-        int hourlyRate = cdm->getHourlyRateForRunway(airport, runway.c_str());
+        // Get rate for this specific runway
+        Rate rate = cdm->rateForRunway(airport, runway.c_str());
+        int hourlyRate = 6;  // Default
+
+        if (!rate.rates.empty()) {
+            try {
+                hourlyRate = std::stoi(rate.rates[0]);
+            } catch (...) {}
+        }
 
         // Calculate block capacities for this runway with evenly spaced remainder allocation
         const int baseCap = hourlyRate / windowsPerHour;      // e.g. 40/6 = 6
@@ -1195,27 +1143,6 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
     SetTextColor(hDC, RGB(255, 255, 255));
     DrawTextA(hDC, "X", -1, &closeBtn, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
-    // Draw APPLY button if there are pending changes
-    if (!pendingBlockChanges.empty()) {
-        RECT applyBtn = headerRect;
-        applyBtn.right = applyBtn.right - 30;
-        applyBtn.left = applyBtn.right - 80;
-        AddScreenObject(RADARSCR_OBJECT_CUSTOM, "BLOCKS_APPLY", applyBtn, true, NULL);
-        DrawRoundedRect(hDC, applyBtn, RGB(100, 180, 100), RGB(40, 80, 40));
-        SetTextColor(hDC, RGB(255, 255, 255));
-        DrawTextA(hDC, "APPLY", -1, &applyBtn, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-        blocksPanelApplyBtnRect = applyBtn;
-
-        // Draw REVERT button next to APPLY
-        RECT revertBtn = headerRect;
-        revertBtn.right = applyBtn.left - 5;
-        revertBtn.left = revertBtn.right - 75;
-        AddScreenObject(RADARSCR_OBJECT_CUSTOM, "BLOCKS_REVERT", revertBtn, true, NULL);
-        DrawRoundedRect(hDC, revertBtn, RGB(180, 100, 100), RGB(80, 40, 40));
-        SetTextColor(hDC, RGB(255, 255, 255));
-        DrawTextA(hDC, "REVERT", -1, &revertBtn, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
-    }
-
     // Group blocks by runway
     std::map<std::string, std::vector<BlockData>> blocksByRunway;
     for (const auto& block : currentBlocksData) {
@@ -1313,34 +1240,16 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             int occupancy = 0;
             int capacity = 6;
             
-            // Find occupancy and base capacity for this runway and block
+            // Find occupancy for this runway and block
             auto it = blocksByRunway.find(runway);
             if (it != blocksByRunway.end()) {
                 for (const auto& block : it->second) {
                     if (block.blockIndex == blockIdx) {
                         occupancy = block.occupancy;
-                        capacity = block.capacity;  // Base capacity from calculations
+                        capacity = block.capacity;
                         break;
                     }
                 }
-            }
-
-            // Check for pending changes for this cell (highest priority)
-            bool hasPendingChange = false;
-            auto key = std::make_pair(runway, blockIdx);
-            bool foundPending = false;
-            for (const auto& pending : pendingBlockChanges) {
-                if (pending.runway == runway && pending.blockIndex == blockIdx) {
-                    capacity = pending.newCapacity;
-                    hasPendingChange = true;
-                    foundPending = true;
-                    break;
-                }
-            }
-
-            // If no pending change, check for custom applied capacity
-            if (!foundPending && customBlockCapacities.find(key) != customBlockCapacities.end()) {
-                capacity = customBlockCapacities[key];
             }
 
             int percentage = (capacity > 0) ? (occupancy * 100) / capacity : 0;
@@ -1357,9 +1266,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             }
 
             COLORREF bgColor = (blockIdx % 2 == 0) ? RGB(60, 75, 90) : RGB(70, 85, 100);
-            // Highlight cells with pending changes with a brighter border
-            COLORREF borderColor = hasPendingChange ? RGB(100, 200, 255) : RGB(30, 40, 60);
-            DrawRoundedRect(hDC, cellRect, bgColor, borderColor);
+            DrawRoundedRect(hDC, cellRect, bgColor, RGB(30, 40, 60));
 
             // Draw occupancy bar
             int barWidth = colWidth - 8;
@@ -1381,8 +1288,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             char percentText[32];
             sprintf_s(percentText, "%d/%d", occupancy, capacity);
             RECT percentRect = {xPos + 2, yPos + 2, xPos + colWidth - 2, yPos + rowHeight - 2};
-            SetTextColor(hDC, hasPendingChange ? RGB(100, 200, 255) : RGB(255, 255, 255));  // Highlight pending text color
-            DrawCellTextA_Flt(hDC, percentText, percentRect, DT_CENTER, hasPendingChange ? RGB(100, 200, 255) : RGB(255, 255, 255));
+            DrawCellTextA_Flt(hDC, percentText, percentRect, DT_CENTER, RGB(255, 255, 255));
 
             xPos += colWidth;
         }
@@ -1414,26 +1320,6 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             }
         }
     }
-}
-
-void CDMScreen::ApplyPendingBlockChanges() {
-    // Apply all pending block capacity changes
-    for (const auto& pending : pendingBlockChanges) {
-        auto key = std::make_pair(pending.runway, pending.blockIndex);
-        customBlockCapacities[key] = pending.newCapacity;
-        cdm->setCustomBlockCapacity(pending.runway, pending.blockIndex, pending.newCapacity);
-    }
-    
-    // Clear pending changes
-    pendingBlockChanges.clear();
-    
-    // Force immediate update by resetting the debounce timer
-    lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
-}
-
-void CDMScreen::RevertPendingBlockChanges() {
-    // Clear pending changes without applying them
-    pendingBlockChanges.clear();
 }
 
 std::vector<std::pair<std::string, std::string>> CDMScreen::GetCallsignsForBlock(const std::string& runway, int blockIndex) {

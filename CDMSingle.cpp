@@ -5934,28 +5934,6 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
     return Rate("-1");
 }
 
-int CDM::getHourlyRateForRunway(const string& airport, const string& depRwy) {
-    // Get rate for this runway
-    Rate rate = rateForRunway(airport, depRwy);
-    
-    // If runway-specific rate found, use it
-    if (!rate.rates.empty()) {
-        try {
-            return std::stoi(rate.rates[0]);
-        } catch (...) {}
-    }
-    
-    // Fallback to default rate string from config
-    if (!rateString.empty()) {
-        try {
-            return std::stoi(rateString);
-        } catch (...) {}
-    }
-    
-    // Final fallback to reasonable default
-    return 6;
-}
-
 void CDM::RemoveMasterAirports() {
     if (!masterAirports.empty()) {
         string ATC_Position = myAtcCallsign;
@@ -6611,17 +6589,8 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             return customCap;
         }
         
-        // Fall back to calculated capacity with evenly-spaced remainder distribution
-        // e.g. rate=40: base=6, remainder=4, spacing=1.5 -> +1 at blocks 0,1,3,4
-        if (remainder > 0) {
-            double spacing = static_cast<double>(windowsPerHour) / remainder;
-            for (int i = 0; i < remainder; i++) {
-                if (windowIndex == static_cast<int>(i * spacing)) {
-                    return baseCap + 1;
-                }
-            }
-        }
-        return baseCap;
+        // Fall back to calculated capacity
+        return baseCap + ((windowIndex < remainder) ? 1 : 0);
     };
 
     auto inSameWindow = [&](const string& a, const string& b) -> bool {
