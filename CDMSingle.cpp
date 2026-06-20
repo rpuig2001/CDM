@@ -6524,6 +6524,28 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
     }
 }
 
+// Custom block capacity management
+void CDM::setCustomBlockCapacity(const std::string& runway, int blockIndex, int capacity) {
+    if (blockIndex >= 0 && blockIndex < 6) {
+        customBlockCapacities[{runway, blockIndex}] = capacity;
+    }
+}
+
+int CDM::getCustomBlockCapacity(const std::string& runway, int blockIndex) {
+    auto key = std::make_pair(runway, blockIndex);
+    if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
+        return customBlockCapacities[key];
+    }
+    return 0;  // Return 0 if no custom capacity set (means use default)
+}
+
+void CDM::clearCustomBlockCapacity(const std::string& runway, int blockIndex) {
+    auto key = std::make_pair(runway, blockIndex);
+    if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
+        customBlockCapacities.erase(key);
+    }
+}
+
 string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour,
                                     const string& callsign, const string& origin, const string& depRwy,
                                     const string& timeNow, double taxiTime, const string& mySid,
@@ -6560,6 +6582,14 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
         int v = stoi(windowStartTTOT);
         int mmStart = (v / 100) % 100;
         int windowIndex = mmStart / windowMinutes;
+        
+        // Check for custom capacity override first
+        auto customCap = getCustomBlockCapacity(depRwy, windowIndex);
+        if (customCap > 0) {
+            return customCap;
+        }
+        
+        // Fall back to calculated capacity
         return baseCap + ((windowIndex < remainder) ? 1 : 0);
     };
 

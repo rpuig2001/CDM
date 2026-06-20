@@ -360,8 +360,14 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     CRadarScreen* OnRadarScreenCreated(const char* sDisplayName, bool NeedRadarContent, bool GeoReferenced,
                                        bool CanBeSaved, bool CanBeCreated);
 
+    // Custom block capacity management
+    void setCustomBlockCapacity(const std::string& runway, int blockIndex, int capacity);
+    int getCustomBlockCapacity(const std::string& runway, int blockIndex);
+    void clearCustomBlockCapacity(const std::string& runway, int blockIndex);
+
     int FuncBuffer;
 
    protected:
     Document config;
+    std::map<std::pair<std::string, int>, int> customBlockCapacities;  // {runway, blockIndex} -> custom capacity
 };

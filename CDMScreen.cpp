@@ -6,10 +6,14 @@
 #include <cctype>
 #include <chrono>
 #include <map>
+#include <set>
 #include <string>
 #include <vector>
 
 #include "CDMSingle.hpp"
+
+// External global variables
+extern std::vector<Plane> slotList;
 
 #define RADARSCR_OBJECT_CUSTOM 1000
 
@@ -669,6 +673,12 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
     CheckPendingMasterChanges();
     DrawMasterAirportPanel(hDC);
 
+    // Draw blocks panel if visible
+    if (showBlocksPanel) {
+        RefreshBlocksData();
+        DrawBlocksPanel(hDC);
+    }
+
     static auto lastCallTime = std::chrono::steady_clock::now();
     auto now = std::chrono::steady_clock::now();
     auto elapsed = std::chrono::duration_cast<std::chrono::seconds>(now - lastCallTime).count();
@@ -783,7 +793,83 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
             return;
         }
 
+        extern bool bmiMode;
+
+        // Check for right-click to show blocks
+        if (Button == 2) {  // Right-click (Button 2 = VK_RBUTTON)
+            if (bmiMode) {
+                ShowBlocksWindow(apt);
+            }
+            return;
+        }
+
+        // Left-click: toggle connection (existing behavior)
         ToggleMasterAirport(apt);
+        return;
+    }
+
+    // Blocks panel interactions
+    if (strcmp(sObjectId, "BLOCKS_CLOSE") == 0) {
+        HideBlocksWindow();
+        return;
+    }
+
+    // Handle runway filter buttons
+    if (strncmp(sObjectId, "BLOCKS_RWY_", 11) == 0) {
+        std::string runway = std::string(sObjectId + 11);
+        SetRunwayFilter(runway);
+        return;
+    }
+
+    // Handle block cell clicks for capacity adjustment
+    if (strncmp(sObjectId, "BLOCKS_CELL_", 12) == 0) {
+        std::string cellStr = std::string(sObjectId + 12);
+        
+        // Format: runway_blockindex
+        size_t underscorePos = cellStr.rfind('_');
+        if (underscorePos != std::string::npos) {
+            std::string runway = cellStr.substr(0, underscorePos);
+            int blockIndex = std::atoi(cellStr.substr(underscorePos + 1).c_str());
+            
+            auto key = std::make_pair(runway, blockIndex);
+            
+            // Get current capacity (custom or calculated)
+            int currentCapacity = customBlockCapacities[key];
+            if (currentCapacity == 0 && calculatedBlockCapacities.find(key) != calculatedBlockCapacities.end()) {
+                currentCapacity = calculatedBlockCapacities[key];
+            }
+            
+            // Left-click: increment capacity
+            if (Button == 1) {
+                int newCapacity = currentCapacity + 1;
+                customBlockCapacities[key] = newCapacity;
+                cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
+                // Force immediate update by resetting the debounce timer
+                lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
+                RequestRefresh();
+                return;
+            }
+            
+            // Right-click: decrement capacity or reset to default
+            if (Button == 2) {
+                if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
+                    // Reset to default
+                    customBlockCapacities.erase(key);
+                    cdm->clearCustomBlockCapacity(runway, blockIndex);
+                } else {
+                    // Decrement from calculated
+                    if (currentCapacity > 0) {
+                        int newCapacity = currentCapacity - 1;
+                        customBlockCapacities[key] = newCapacity;
+                        cdm->setCustomBlockCapacity(runway, blockIndex, newCapacity);
+                    }
+                }
+                // Force immediate update by resetting the debounce timer
+                lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
+                RequestRefresh();
+                return;
+            }
+        }
         return;
     }
 }
@@ -805,5 +891,391 @@ void CDMScreen::OnMoveScreenObject(int ObjectType, const char* sObjectId, POINT 
         flightsPanelPos.x = Area.left;
         flightsPanelPos.y = Area.top;
         RequestRefresh();
+    }
+
+    // Drag blocks panel by its header
+    if (strcmp(sObjectId, "BLOCKS_HDR") == 0) {
+        blocksPanelPos.x = Area.left;
+        blocksPanelPos.y = Area.top;
+        RequestRefresh();
+    }
+}
+
+void CDMScreen::OnMouseMove(POINT Pt) {
+    // Optional: Add any mouse move handlers if needed in the future
+}
+
+// ===========================
+// BLOCKS PANEL IMPLEMENTATION
+// ===========================
+
+void CDMScreen::ShowBlocksWindow(const std::string& airport) {
+    if (!cdm) return;
+
+    // Check if BMI mode is enabled
+    extern bool bmiMode;
+    if (!bmiMode) {
+        return;  // BMI must be enabled to show blocks
+    }
+
+    selectedAirportForBlocks = airport;
+    selectedRunwayFilter = "";  // Reset filter when opening
+    showBlocksPanel = true;
+    UpdateBlocksData(airport);
+    RequestRefresh();
+}
+
+void CDMScreen::HideBlocksWindow() {
+    showBlocksPanel = false;
+    selectedAirportForBlocks = "";
+    selectedRunwayFilter = "";
+    currentBlocksData.clear();
+    RequestRefresh();
+}
+
+void CDMScreen::UpdateBlocksData(const std::string& airport) {
+    if (!cdm) {
+        currentBlocksData.clear();
+        return;
+    }
+
+    currentBlocksData.clear();
+
+    const int windowMinutes = 10;
+    const int windowsPerHour = 60 / windowMinutes;
+
+    // Get current time to determine window hours
+    std::string nowStr = cdm->GetTimeNow();
+    int nowHour = 0, nowMin = 0;
+    if (nowStr.length() >= 4) {
+        try {
+            nowHour = std::stoi(nowStr.substr(0, 2));
+            nowMin = std::stoi(nowStr.substr(2, 2));
+        } catch (...) {
+            return;
+        }
+    }
+
+    std::set<std::string> uniqueRunways;
+    std::map<std::pair<std::string, int>, int> blockOccupancy;
+
+    // First pass: collect runways and occupancy
+    for (const auto& plane : slotList) {
+        // Skip if no TTOT assigned
+        if (plane.ttot.empty() || plane.ttot.length() < 4) continue;
+
+        // Get the flight plan directly by callsign
+        CFlightPlan fp = cdm->FlightPlanSelect(plane.callsign.c_str());
+        if (!fp.IsValid()) continue;
+
+        CFlightPlanData fpData = fp.GetFlightPlanData();
+        
+        // Check if this flight departs from our selected airport
+        if (std::string(fpData.GetOrigin()) == airport) {
+            std::string runway = fpData.GetDepartureRwy();
+            if (runway.empty()) runway = "UNK";
+
+            // Parse TTOT to determine static window block
+            try {
+                int tobtMin = std::stoi(plane.ttot.substr(2, 2));
+                int blockIndex = tobtMin / windowMinutes;
+                if (blockIndex >= 0 && blockIndex < 6) {
+                    uniqueRunways.insert(runway);
+                    auto key = std::make_pair(runway, blockIndex);
+                    blockOccupancy[key]++;
+                }
+            } catch (...) {}
+        }
+    }
+
+    // Create block data structure with per-runway capacity calculation
+    for (const auto& runway : uniqueRunways) {
+        // Get rate for this specific runway
+        Rate rate = cdm->rateForRunway(airport, runway.c_str());
+        int hourlyRate = 6;  // Default
+
+        if (!rate.rates.empty()) {
+            try {
+                hourlyRate = std::stoi(rate.rates[0]);
+            } catch (...) {}
+        }
+
+        // Calculate block capacities for this runway with evenly spaced remainder allocation
+        const int baseCap = hourlyRate / windowsPerHour;      // e.g. 40/6 = 6
+        const int remainder = hourlyRate % windowsPerHour;    // e.g. 40%6 = 4
+
+        std::vector<int> blockCapacities(6);
+        for (int i = 0; i < 6; i++) {
+            blockCapacities[i] = baseCap;
+        }
+
+        // Distribute remainder evenly across blocks
+        if (remainder > 0) {
+            double spacing = static_cast<double>(windowsPerHour) / remainder;  // e.g., 6/4 = 1.5
+            for (int i = 0; i < remainder; i++) {
+                int blockIdx = static_cast<int>(i * spacing);  // 0, 1, 3, 4 for spacing=1.5
+                if (blockIdx < 6) {
+                    blockCapacities[blockIdx]++;
+                }
+            }
+        }
+
+        // Create BlockData for each block of this runway
+        for (int block = 0; block < 6; block++) {
+            int blockStartMin = block * windowMinutes;
+            int blockEndMin = blockStartMin + windowMinutes - 1;
+            
+            // Calculate hour for this block based on current time
+            int displayHour = nowHour;
+            int displayStartMin = blockStartMin;
+            int displayEndMin = blockEndMin;
+            
+            // If we're past this block's minute range, advance to next hour
+            if (displayStartMin < nowMin && displayEndMin < nowMin) {
+                displayHour = nowHour + 1;
+                if (displayHour >= 24) displayHour -= 24;
+            }
+
+            char timeRange[20];
+            sprintf_s(timeRange, "%02d:%02d-%02d:%02d", displayHour, displayStartMin, displayHour, displayEndMin);
+
+            auto key = std::make_pair(runway, block);
+            int calculatedCap = blockCapacities[block];
+            
+            // Store calculated capacity and check for custom override
+            calculatedBlockCapacities[key] = calculatedCap;
+            int finalCapacity = calculatedCap;
+            if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
+                finalCapacity = customBlockCapacities[key];
+            }
+
+            BlockData bd;
+            bd.runway = runway;
+            bd.blockIndex = block;
+            bd.capacity = finalCapacity;  // Use custom override if available, else calculated
+            bd.occupancy = blockOccupancy[key];
+            bd.timeRange = timeRange;
+
+            currentBlocksData.push_back(bd);
+        }
+    }
+}
+
+void CDMScreen::RefreshBlocksData() {
+    if (showBlocksPanel && !selectedAirportForBlocks.empty()) {
+        // Debounce: only update if at least 500ms has passed since last update
+        // This prevents oscillation from rapid changes
+        auto now = std::chrono::steady_clock::now();
+        auto elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(now - lastBlocksDataUpdate);
+        
+        if (elapsed.count() >= 500) {
+            UpdateBlocksData(selectedAirportForBlocks);
+            lastBlocksDataUpdate = now;
+        }
+    }
+}
+
+void CDMScreen::SetRunwayFilter(const std::string& runway) {
+    if (selectedRunwayFilter == runway) {
+        selectedRunwayFilter = "";  // Toggle off if same runway clicked
+    } else {
+        selectedRunwayFilter = runway;
+    }
+    RequestRefresh();
+}
+
+#define BLOCKS_PANEL_WIDTH 600
+#define BLOCKS_PANEL_HEIGHT 185
+#define BLOCKS_HEADER_HEIGHT 20
+#define BLOCKS_ROW_HEIGHT 24
+
+void CDMScreen::DrawBlocksPanel(HDC hDC) {
+    if (!showBlocksPanel || selectedAirportForBlocks.empty()) {
+        return;
+    }
+
+    extern bool bmiMode;
+    if (!bmiMode) {
+        showBlocksPanel = false;
+        return;
+    }
+
+    blocksPanelRect = RECT{blocksPanelPos.x, blocksPanelPos.y, blocksPanelPos.x + BLOCKS_PANEL_WIDTH,
+                           blocksPanelPos.y + BLOCKS_PANEL_HEIGHT};
+
+    RECT headerRect = {blocksPanelRect.left, blocksPanelRect.top, blocksPanelRect.right,
+                       blocksPanelRect.top + BLOCKS_HEADER_HEIGHT};
+
+    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "BLOCKS_HDR", headerRect, true, NULL);
+
+    DrawRoundedRect(hDC, blocksPanelRect, RGB(70, 85, 100));
+    DrawRoundedRect(hDC, headerRect, RGB(45, 65, 100));
+
+    SetBkMode(hDC, TRANSPARENT);
+    SetTextColor(hDC, RGB(255, 255, 255));
+
+    char headerText[64];
+    sprintf_s(headerText, "Blocks - %s (Next 60 min)", selectedAirportForBlocks.c_str());
+    DrawTextA(hDC, headerText, -1, &headerRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+    // Close button
+    RECT closeBtn = headerRect;
+    closeBtn.left = closeBtn.right - 25;
+    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "BLOCKS_CLOSE", closeBtn, true, NULL);
+    DrawRoundedRect(hDC, closeBtn, RGB(180, 100, 100), RGB(80, 40, 40));
+    SetTextColor(hDC, RGB(255, 255, 255));
+    DrawTextA(hDC, "X", -1, &closeBtn, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+
+    // Group blocks by runway
+    std::map<std::string, std::vector<BlockData>> blocksByRunway;
+    for (const auto& block : currentBlocksData) {
+        blocksByRunway[block.runway].push_back(block);
+    }
+
+    // Get sorted list of runways
+    std::vector<std::string> runways;
+    for (const auto& rwyPair : blocksByRunway) {
+        if (selectedRunwayFilter.empty() || rwyPair.first == selectedRunwayFilter) {
+            runways.push_back(rwyPair.first);
+        }
+    }
+    std::sort(runways.begin(), runways.end());
+
+    if (runways.empty()) {
+        // No runways to display
+        RECT noDataRect = {blocksPanelRect.left + 10, blocksPanelRect.top + BLOCKS_HEADER_HEIGHT + 20, 
+                          blocksPanelRect.right - 10, blocksPanelRect.top + BLOCKS_HEADER_HEIGHT + 40};
+        DrawCellTextA_Flt(hDC, "No departures in next 60 min", noDataRect, DT_LEFT, RGB(200, 200, 200));
+        return;
+    }
+
+    // Column layout: time blocks as rows, runways as columns
+    int colWidth = (blocksPanelRect.right - blocksPanelRect.left - 100) / (int)runways.size();
+    if (colWidth < 60) colWidth = 60;
+
+    int yPos = blocksPanelRect.top + BLOCKS_HEADER_HEIGHT + 8;
+    int rowHeight = 20;
+
+    // Draw column headers (runway names)
+    RECT timeHeaderRect = {blocksPanelRect.left + 8, yPos, blocksPanelRect.left + 100, yPos + rowHeight};
+    DrawCellTextA_Flt(hDC, "Time", timeHeaderRect, DT_CENTER, RGB(200, 200, 255));
+
+    int xPos = blocksPanelRect.left + 100;
+    for (const auto& runway : runways) {
+        RECT rwyHeaderRect = {xPos, yPos, xPos + colWidth, yPos + rowHeight};
+        DrawRoundedRect(hDC, rwyHeaderRect, RGB(45, 65, 100), RGB(20, 30, 60));
+        DrawCellTextA_Flt(hDC, runway, rwyHeaderRect, DT_CENTER, RGB(200, 255, 200));
+        xPos += colWidth;
+    }
+
+    yPos += rowHeight + 4;
+
+    // Get current time to determine which block to start from (closest first)
+    std::string nowStr = cdm->GetTimeNow();
+    int nowMin = 0;
+    if (nowStr.length() >= 4) {
+        try {
+            nowMin = std::stoi(nowStr.substr(2, 2));
+        } catch (...) {}
+    }
+    
+    const int windowMinutes = 10;
+    int startBlockIdx = nowMin / windowMinutes;
+    if (startBlockIdx >= 6) startBlockIdx = 0;
+
+    // Create ordered block indices: start from closest block, then cycle through
+    std::vector<int> blockOrder;
+    for (int i = 0; i < 6; i++) {
+        blockOrder.push_back((startBlockIdx + i) % 6);
+    }
+
+    // Draw time blocks as rows (ordered by closest first)
+    for (int orderIdx = 0; orderIdx < 6; orderIdx++) {
+        int blockIdx = blockOrder[orderIdx];
+        RECT timeRect = {blocksPanelRect.left + 8, yPos, blocksPanelRect.left + 100, yPos + rowHeight};
+        
+        // Get time range from first block (all blocks have same time for same blockIdx)
+        std::string timeRange = "N/A";
+        for (const auto& rwyPair : blocksByRunway) {
+            for (const auto& block : rwyPair.second) {
+                if (block.blockIndex == blockIdx) {
+                    timeRange = block.timeRange;
+                    break;
+                }
+            }
+            if (timeRange != "N/A") break;
+        }
+
+        COLORREF timeBg = (blockIdx % 2 == 0) ? RGB(60, 75, 90) : RGB(70, 85, 100);
+        DrawRoundedRect(hDC, timeRect, timeBg, RGB(30, 40, 60));
+        DrawCellTextA_Flt(hDC, timeRange, timeRect, DT_CENTER, RGB(255, 255, 255));
+
+        xPos = blocksPanelRect.left + 100;
+
+        // Draw occupancy cells for each runway
+        for (const auto& runway : runways) {
+            RECT cellRect = {xPos, yPos, xPos + colWidth, yPos + rowHeight};
+            
+            // Create unique ID for this cell: BLOCKS_CELL_runway_blockindex
+            std::string cellId = "BLOCKS_CELL_" + runway + "_" + std::to_string(blockIdx);
+            AddScreenObject(RADARSCR_OBJECT_CUSTOM, cellId.c_str(), cellRect, true, NULL);
+
+            int occupancy = 0;
+            int capacity = 6;
+            
+            // Find occupancy for this runway and block
+            auto it = blocksByRunway.find(runway);
+            if (it != blocksByRunway.end()) {
+                for (const auto& block : it->second) {
+                    if (block.blockIndex == blockIdx) {
+                        occupancy = block.occupancy;
+                        capacity = block.capacity;
+                        break;
+                    }
+                }
+            }
+
+            int percentage = (capacity > 0) ? (occupancy * 100) / capacity : 0;
+            if (percentage > 100) percentage = 100;
+
+            // Color based on occupancy percentage
+            COLORREF occColor = RGB(0, 200, 0);  // Green
+            if (percentage > 75) {
+                occColor = RGB(255, 0, 0);  // Red
+            } else if (percentage > 50) {
+                occColor = RGB(255, 165, 0);  // Orange
+            } else if (percentage > 25) {
+                occColor = RGB(200, 200, 0);  // Yellow
+            }
+
+            COLORREF bgColor = (blockIdx % 2 == 0) ? RGB(60, 75, 90) : RGB(70, 85, 100);
+            DrawRoundedRect(hDC, cellRect, bgColor, RGB(30, 40, 60));
+
+            // Draw occupancy bar
+            int barWidth = colWidth - 8;
+            int barHeight = 12;
+            int barX = xPos + 4;
+            int barY = yPos + 2;
+
+            RECT barBg = {barX, barY, barX + barWidth, barY + barHeight};
+            DrawRoundedRect(hDC, barBg, RGB(40, 40, 40), RGB(80, 80, 80));
+
+            // Draw occupancy fill
+            int fillWidth = (barWidth * percentage) / 100;
+            if (fillWidth > 0) {
+                RECT barFill = {barX, barY, barX + fillWidth, barY + barHeight};
+                DrawRoundedRect(hDC, barFill, occColor, occColor);
+            }
+
+            // Draw percentage text centered in cell
+            char percentText[32];
+            sprintf_s(percentText, "%d/%d", occupancy, capacity);
+            RECT percentRect = {xPos + 2, yPos + 2, xPos + colWidth - 2, yPos + rowHeight - 2};
+            DrawCellTextA_Flt(hDC, percentText, percentRect, DT_CENTER, RGB(255, 255, 255));
+
+            xPos += colWidth;
+        }
+
+        yPos += rowHeight + 2;
     }
 }

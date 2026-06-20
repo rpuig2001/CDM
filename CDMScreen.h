@@ -23,6 +23,15 @@ struct PendingMasterChange {
     bool adding;  // true=add, false=remove
 };
 
+// Block occupancy data structure
+struct BlockData {
+    std::string runway;
+    int blockIndex;  // 0-5 (for 60 minutes)
+    int capacity;
+    int occupancy;
+    std::string timeRange;  // e.g., "00:00-00:10"
+};
+
 class CDMScreen : public CRadarScreen {
    public:
     CDMScreen(CDM* pCDM);
@@ -40,6 +49,14 @@ class CDMScreen : public CRadarScreen {
     void OnClickScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, int Button);
     void OnMoveScreenObject(int ObjectType, const char* sObjectId, POINT Pt, RECT Area, bool Released);
     void OnMouseMove(POINT Pt);
+
+    // Blocks panel methods
+    void DrawBlocksPanel(HDC hDC);
+    void ShowBlocksWindow(const std::string& airport);
+    void HideBlocksWindow();
+    void UpdateBlocksData(const std::string& airport);
+    void RefreshBlocksData();
+    void SetRunwayFilter(const std::string& runway);
 
     static constexpr int MAX_AIRPORTS_DISPLAYED = 9999;
     int CalculatePanelHeight(int airportCount) const;
@@ -75,6 +92,19 @@ class CDMScreen : public CRadarScreen {
     RECT flightsFilterRect;
     int sortColumn;
     bool sortAscending;
+
+    // -----------------------
+    // Blocks panel state
+    // -----------------------
+    std::string selectedAirportForBlocks;
+    std::string selectedRunwayFilter;  // Empty = show all
+    bool showBlocksPanel = false;
+    POINT blocksPanelPos{1100, 100};
+    RECT blocksPanelRect{0, 0, 0, 0};
+    std::vector<BlockData> currentBlocksData;
+    std::map<std::pair<std::string, int>, int> customBlockCapacities;  // {runway, blockIndex} -> custom capacity override
+    std::map<std::pair<std::string, int>, int> calculatedBlockCapacities;  // {runway, blockIndex} -> default calculated capacity
+    std::chrono::steady_clock::time_point lastBlocksDataUpdate;  // Debounce frequent updates
 
    private:
     CDM* cdm;
