@@ -359,6 +359,43 @@ Capacities:
 4- 40–49: 7
 5- 50–59: 6
 ```
+### BMI Window
+To open the window, use the "middle click" of your mouse of the desired airport (from the CDM airport panel):
+
+<img width="124" height="117" alt="image" src="https://github.com/user-attachments/assets/445cf9e8-fe86-47b3-9d4a-78e8dee412dc" />
+
+
+If there are no CDM listed departures, the window will be displayed as:
+
+<img width="611" height="197" alt="image" src="https://github.com/user-attachments/assets/796f92c4-7cd9-4459-b036-fd84919e8f7d" />
+
+
+As soon as departures are listed the list will be correctly displayed:
+
+<img width="600" height="187" alt="image" src="https://github.com/user-attachments/assets/7d11089e-1150-4729-8a7d-65bf5d62e56e" />
+
+
+There are several actions triggered by pressing in the "window area" (red rectangle):
+
+<img width="598" height="186" alt="image" src="https://github.com/user-attachments/assets/7058871f-a247-41e5-84c5-5610642dd0cf" />
+
+- MIDDLE click: Show list of flights for the selected window:
+
+<img width="602" height="70" alt="image" src="https://github.com/user-attachments/assets/59717d7a-c62f-4cc5-8f39-7f2620b9e25a" />
+
+- LEFT click: Decrease capacity for the selected window.
+- RIGHT click: Increase capacity for the selected window.
+
+THE ABOVE (LEFT AND RIGHT CLICK) ACTIONS ARE ONLY AVAILABLE FOR THE CDM MASTER CONTROLLER. SLAVES CAN NOT MODIFY THE CAPACITY VALUES.
+
+
+After increasing/decreasing the capacity, two new actions will be available:
+
+<img width="608" height="189" alt="image" src="https://github.com/user-attachments/assets/26f09bc8-b59d-4f87-8276-933262df6c17" />
+
+- APPLY: will apply the changes with effect on the next internal refresh.
+- REVERT: will return to the previous capacity values and changes will not be applied.
+
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
