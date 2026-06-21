@@ -3739,7 +3739,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TSAT_DIFF_TOBT) {
                                 if (showData) {
                                     if (aircraftFind) {
-                                        string value = getDiffNowTime(slotList[pos].tsat, false, slotList[pos].eobt);
+                                        string value = getDiffNowTime(slotList[pos].eobt, false, slotList[pos].tsat);
                                         ItemRGB = TAG_GREENNOTACTIVE;
                                         strcpy_s(sItemString, 16, value.c_str());
                                     }
@@ -4684,7 +4684,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT_DIFF_TOBT) {
                                 if (aircraftFind) {
-                                    string value = getDiffNowTime(slotList[pos].tsat, false, slotList[pos].eobt);
+                                    string value = getDiffNowTime(slotList[pos].eobt, false, slotList[pos].tsat);
                                     ItemRGB = TAG_GREENNOTACTIVE;
                                     strcpy_s(sItemString, 16, value.c_str());
                                 }
