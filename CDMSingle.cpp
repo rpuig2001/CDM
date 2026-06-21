@@ -281,12 +281,14 @@ CDM::CDM(void)
 
     // Register Tag Item "REQTOBT-TYPE"
     RegisterTagItemType("TOBT-SET-BY", TAG_ITEM_TOBT_SETBY);
+    RegisterTagItemType("TOBT-SET-BY SHORT", TAG_ITEM_TOBT_SETBY_SHORT);
 
     // Register Tag Item "ON_TIME_STATUS"
     RegisterTagItemType("On Time Sts", TAG_ITEM_ON_TIME_STATUS);
 
     // Register Tag Item "VDGS PM SEND"
     RegisterTagItemType("VDGS PM SEND", TAG_ITEM_SEND_STATUS);
+    RegisterTagItemType("VDGS PM SEND SHORT", TAG_ITEM_SEND_STATUS_SHORT);
     RegisterTagItemFunction("Send VDGS PM", TAG_FUNC_PM_SEND);
 
     GetModuleFileNameA(HINSTANCE(&__ImageBase), DllPathFile, sizeof(DllPathFile));
@@ -2646,6 +2648,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 strcpy_s(sItemString, 16, "SEND");
+                            } else if (ItemCode == TAG_ITEM_SEND_STATUS_SHORT) {
+                                ItemRGB = TAG_RED;
+                                for (string flt : messagesSent) {
+                                    if (flt == callsign) {
+                                        ItemRGB = TAG_GREEN;
+                                    }
+                                }
+                                strcpy_s(sItemString, 16, "S");
                             } else if (ItemCode == TAG_ITEM_DEICE) {
                                 string status = "";
                                 for (vector<string> deice : deiceList) {
@@ -2658,6 +2668,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
+                                strcpy_s(sItemString, 16, status.c_str());
+                            } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
+                                string status = getFlightStripInfo(FlightPlan, 9);
+                                ItemRGB = TAG_GREEN;
+                                if (status.length() > 1) {
+                                    status = status.substr(0, 1);
+                                }
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
                         } else {
@@ -4084,6 +4101,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 strcpy_s(sItemString, 16, "SEND");
+                            } else if (ItemCode == TAG_ITEM_SEND_STATUS_SHORT) {
+                                ItemRGB = TAG_RED;
+                                for (string flt : messagesSent) {
+                                    if (flt == callsign) {
+                                        ItemRGB = TAG_GREEN;
+                                    }
+                                }
+                                strcpy_s(sItemString, 16, "S");
                             } else if (ItemCode == TAG_ITEM_DEICE) {
                                 string status = "";
                                 for (vector<string> deice : deiceList) {
@@ -4096,6 +4121,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
+                                strcpy_s(sItemString, 16, status.c_str());
+                            } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
+                                string status = getFlightStripInfo(FlightPlan, 9);
+                                ItemRGB = TAG_GREEN;
+                                if (status.length() > 1) {
+                                    status = status.substr(0, 1);
+                                }
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
 
@@ -4940,6 +4972,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 strcpy_s(sItemString, 16, "SEND");
+                            } else if (ItemCode == TAG_ITEM_SEND_STATUS_SHORT) {
+                                ItemRGB = TAG_RED;
+                                for (string flt : messagesSent) {
+                                    if (flt == callsign) {
+                                        ItemRGB = TAG_GREEN;
+                                    }
+                                }
+                                strcpy_s(sItemString, 16, "S");
                             } else if (ItemCode == TAG_ITEM_DEICE) {
                                 string status = "";
                                 for (vector<string> deice : deiceList) {
@@ -4952,6 +4992,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
+                                strcpy_s(sItemString, 16, status.c_str());
+                            } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
+                                string status = getFlightStripInfo(FlightPlan, 9);
+                                ItemRGB = TAG_GREEN;
+                                if (status.length() > 1) {
+                                    status = status.substr(0, 1);
+                                }
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
                         } else {
@@ -5135,6 +5182,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 strcpy_s(sItemString, 16, "SEND");
+                            } else if (ItemCode == TAG_ITEM_SEND_STATUS_SHORT) {
+                                ItemRGB = TAG_RED;
+                                for (string flt : messagesSent) {
+                                    if (flt == callsign) {
+                                        ItemRGB = TAG_GREEN;
+                                    }
+                                }
+                                strcpy_s(sItemString, 16, "S");
                             } else if (ItemCode == TAG_ITEM_DEICE) {
                                 string status = "";
                                 for (vector<string> deice : deiceList) {
@@ -5147,6 +5202,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
                                 ItemRGB = TAG_GREEN;
+                                strcpy_s(sItemString, 16, status.c_str());
+                            } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
+                                string status = getFlightStripInfo(FlightPlan, 9);
+                                ItemRGB = TAG_GREEN;
+                                if (status.length() > 1) {
+                                    status = status.substr(0, 1);
+                                }
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
                         }
@@ -5330,6 +5392,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             }
                         }
                         strcpy_s(sItemString, 16, "SEND");
+                    } else if (ItemCode == TAG_ITEM_SEND_STATUS_SHORT) {
+                        ItemRGB = TAG_RED;
+                        for (string flt : messagesSent) {
+                            if (flt == callsign) {
+                                ItemRGB = TAG_GREEN;
+                            }
+                        }
+                        strcpy_s(sItemString, 16, "S");
                     } else if (ItemCode == TAG_ITEM_DEICE) {
                         string status = "";
                         for (vector<string> deice : deiceList) {
@@ -5342,6 +5412,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                         string status = getFlightStripInfo(FlightPlan, 9);
                         ItemRGB = TAG_GREEN;
+                        strcpy_s(sItemString, 16, status.c_str());
+                    } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
+                        string status = getFlightStripInfo(FlightPlan, 9);
+                        ItemRGB = TAG_GREEN;
+                        if (status.length() > 1) {
+                            status = status.substr(0, 1);
+                        }
                         strcpy_s(sItemString, 16, status.c_str());
                     }
                 }
@@ -5599,6 +5676,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         }
                     }
                     strcpy_s(sItemString, 16, "SEND");
+                } else if (ItemCode == TAG_ITEM_SEND_STATUS_SHORT) {
+                    ItemRGB = TAG_RED;
+                    for (string flt : messagesSent) {
+                        if (flt == callsign) {
+                            ItemRGB = TAG_GREEN;
+                        }
+                    }
+                    strcpy_s(sItemString, 16, "S");
                 }
                 if (ItemRGB != 0xFFFFFFFF) {
                     *pColorCode = TAG_COLOR_RGB_DEFINED;
