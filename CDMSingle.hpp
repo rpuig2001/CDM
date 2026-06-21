@@ -317,7 +317,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     string getDiffTOBTTSAT(string TSAT, string TOBT);
 
-    string getDiffNowTime(string time);
+    string getDiffNowTime(string time, bool equalReturnZero, string timeNow);
 
     string GetTimedStatus(const string status);
 

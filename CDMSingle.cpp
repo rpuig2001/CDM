@@ -3739,7 +3739,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_TSAT_DIFF_TOBT) {
                                 if (showData) {
                                     if (aircraftFind) {
-                                        string value = getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+                                        string value = getDiffNowTime(slotList[pos].tsat, false, slotList[pos].eobt);
                                         ItemRGB = TAG_GREENNOTACTIVE;
                                         strcpy_s(sItemString, 16, value.c_str());
                                     }
@@ -3787,7 +3787,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == NOW_TSAT_DIFF) {
                                 if (showData) {
                                     if (aircraftFind) {
-                                        string value = getDiffNowTime(slotList[pos].tsat);
+                                        string value = getDiffNowTime(slotList[pos].tsat, true, "");
 
                                         if (SU_ISSET) {
                                             ItemRGB = SU_SET_COLOR;
@@ -3837,7 +3837,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             } else if (ItemCode == NOW_TTOT_DIFF) {
                                 if (showData) {
-                                    string value = getDiffNowTime(slotList[pos].ttot);
+                                    string value = getDiffNowTime(slotList[pos].ttot, true, "");
                                     if (notYetEOBT) {
                                         //*pColorCode = TAG_COLOR_RGB_DEFINED;
                                         ItemRGB = TAG_GREY;
@@ -3992,7 +3992,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         if (slotList[pos].hasManualCtot) {
                                             string ctotSource = slotList[pos].ttot;
                                             if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
-                                            string value = getDiffNowTime(ctotSource);
+                                            string value = getDiffNowTime(ctotSource, true, "");
                                             if (slotList[pos].ctot == "") {
                                                 ItemRGB = TAG_ORANGE;
                                             } else {
@@ -4684,7 +4684,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT_DIFF_TOBT) {
                                 if (aircraftFind) {
-                                    string value = getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+                                    string value = getDiffNowTime(slotList[pos].tsat, false, slotList[pos].eobt);
                                     ItemRGB = TAG_GREENNOTACTIVE;
                                     strcpy_s(sItemString, 16, value.c_str());
                                 }
@@ -4722,7 +4722,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             } else if (ItemCode == NOW_TSAT_DIFF) {
                                 if (aircraftFind) {
-                                    string value = getDiffNowTime(slotList[pos].tsat);
+                                    string value = getDiffNowTime(slotList[pos].tsat, true, "");
                                     if (SU_ISSET) {
                                         ItemRGB = SU_SET_COLOR;
                                         strcpy_s(sItemString, 16, value.c_str());
@@ -4766,7 +4766,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             } else if (ItemCode == NOW_TTOT_DIFF) {
                                 if (TTOTString.length() >= 4) {
-                                    string value = getDiffNowTime(TTOTString.substr(0, 4));
+                                    string value = getDiffNowTime(TTOTString.substr(0, 4), true, "");
                                     if (notYetEOBT) {
                                         ItemRGB = TAG_GREY;
                                         strcpy_s(sItemString, 16, "~");
@@ -4860,7 +4860,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                 ItemRGB = TAG_YELLOW;
                                             }
                                         }
-                                        string value = getDiffNowTime(sr.ctot);
+                                        string value = getDiffNowTime(sr.ctot, true, "");
                                         strcpy_s(sItemString, 16, value.c_str());
                                     }
                                 }
@@ -5044,7 +5044,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
                                         string ctotSource = slotList[pos].ttot;
                                         if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
-                                        string value = getDiffNowTime(ctotSource);
+                                        string value = getDiffNowTime(ctotSource, true, "");
                                         if (slotList[pos].ctot == "") {
                                             ItemRGB = TAG_ORANGE;
                                         } else {
@@ -5240,7 +5240,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
                                 string ctotSource = slotList[pos].ttot;
                                 if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
-                                string value = getDiffNowTime(ctotSource);
+                                string value = getDiffNowTime(ctotSource, true, "");
                                 if (slotList[pos].ctot == "") {
                                     ItemRGB = TAG_ORANGE;
                                 } else {
@@ -5518,7 +5518,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 } else if (ItemCode == NOW_CTOT_DIFF) {
                     for (ServerRestricted sr : serverRestrictedPlanes) {
                         if (sr.callsign == (string)FlightPlan.GetCallsign()) {
-                            string value = getDiffNowTime(sr.ctot);
+                            string value = getDiffNowTime(sr.ctot, true, "");
                             ItemRGB = TAG_CTOT;
                             for (size_t i = 0; i < myNetworkStatus.size(); i++) {
                                 if (myNetworkStatus[i][0] == callsign && myNetworkStatus[i][1] == "REA" && !ASATFound) {
@@ -8431,17 +8431,19 @@ string CDM::getDiffTOBTTSAT(string TSAT, string TOBT) {
     }
 }
 
-string CDM::getDiffNowTime(string time) {
+string CDM::getDiffNowTime(string time, bool equalReturnZero, string timeNow) {
     try {
-        string timeNow = GetTimeNow();
+        if (timeNow == "") {
+            timeNow = GetTimeNow();
+        }
         if (time == "") {
             return "";
         }
         if (time.length() < 4 || timeNow.length() < 4) {
-            return "0";
+            return equalReturnZero ? "0" : "";
         }
         if (timeNow.substr(0, 4) == time.substr(0, 4)) {
-            return "0";
+            return equalReturnZero ? "0" : "";
         }
 
         int time_hours = stoi(time.substr(0, 2));
