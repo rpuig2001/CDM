@@ -216,6 +216,7 @@ CDM::CDM(void)
     // Register Tag Item "CDM-TSAT"
     RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
     RegisterTagItemType("TSAT/TOBT-DIFF", TAG_ITEM_TSAT_TOBT_DIFF);
+    RegisterTagItemType("TSAT-TOBT DIFF", TAG_ITEM_TSAT_DIFF_TOBT);
 
     // Register Tag Item "CDM-TTOT"
     RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
@@ -3735,6 +3736,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     ItemRGB = TAG_GREY;
                                     strcpy_s(sItemString, 16, loadingText.c_str());
                                 }
+                            } else if (ItemCode == TAG_ITEM_TSAT_DIFF_TOBT) {
+                                if (showData) {
+                                    if (aircraftFind) {
+                                        string value = getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+                                        ItemRGB = TAG_GREENNOTACTIVE;
+                                        strcpy_s(sItemString, 16, value.c_str());
+                                    }
+                                } else {
+                                    ItemRGB = TAG_GREY;
+                                    strcpy_s(sItemString, 16, loadingText.c_str());
+                                }
                             } else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
                                 if (showData) {
                                     if (aircraftFind) {
@@ -4669,6 +4681,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         ItemRGB = TAG_GREENNOTACTIVE;
                                         strcpy_s(sItemString, 16, TSATString.c_str());
                                     }
+                                }
+                            } else if (ItemCode == TAG_ITEM_TSAT_DIFF_TOBT) {
+                                if (aircraftFind) {
+                                    string value = getDiffTOBTTSAT(slotList[pos].tsat, slotList[pos].eobt);
+                                    ItemRGB = TAG_GREENNOTACTIVE;
+                                    strcpy_s(sItemString, 16, value.c_str());
                                 }
                             } else if (ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
                                 if (aircraftFind) {

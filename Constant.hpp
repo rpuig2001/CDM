@@ -26,6 +26,7 @@ const int TAG_ITEM_SEND_STATUS = 24;
 const int TAG_ITEM_NETWORK_STATUS_AIRBORNE = 25;
 const int TAG_ITEM_CTOC = 26;
 const int TAG_ITEM_CTOC_SIMPLE = 27;
+const int TAG_ITEM_TSAT_DIFF_TOBT = 28;
 
 const int TAG_FUNC_EDITEOBT = 100;
 const int TAG_FUNC_NEWEOBT = 101;
