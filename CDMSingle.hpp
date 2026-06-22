@@ -46,7 +46,7 @@
 #endif
 
 #define MY_PLUGIN_NAME "CDM Plugin"
-#define MY_PLUGIN_VERSION "2.29.5"
+#define MY_PLUGIN_VERSION "2.29.5.1"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"
@@ -85,6 +85,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     bool getRate();
 
     Rate rateForRunway(string airport, string depRwy);
+
+    int getHourlyRateForRunway(const string& airport, const string& depRwy);
 
     void PushToOtherControllers(CFlightPlan fp);
 

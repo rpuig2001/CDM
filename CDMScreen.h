@@ -35,9 +35,10 @@ struct PendingBlockChange {
 struct BlockData {
     std::string runway;
     int blockIndex;  // 0-5 (for 60 minutes)
+    int blockHour;   // hour this block belongs to
     int capacity;
     int occupancy;
-    std::string timeRange;  // e.g., "00:00-00:10"
+    std::string timeRange;  // e.g., "16:30-16:39"
 };
 
 class CDMScreen : public CRadarScreen {
@@ -50,6 +51,7 @@ class CDMScreen : public CRadarScreen {
     void OnAsrContentToBeClosed(void);
     void OnAsrContentToBeSaved(void);
     void OnAsrContentLoaded(bool Loaded);
+    void OnAirportRunwayActivityChanged(void);
     void OnRefresh(HDC hDC, int Phase);
 
     void DrawMasterAirportPanel(HDC hDC);
@@ -109,6 +111,7 @@ class CDMScreen : public CRadarScreen {
     std::string selectedAirportForBlocks;
     std::string selectedRunwayFilter;  // Empty = show all
     bool showBlocksPanel = false;
+    bool blocksPanelBmiMode = true;  // true=BMI (6 blocks), false=Airport Monitoring (3 windows)
     POINT blocksPanelPos{1100, 100};
     RECT blocksPanelRect{0, 0, 0, 0};
     std::vector<BlockData> currentBlocksData;

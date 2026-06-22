@@ -202,6 +202,16 @@ void CDMScreen::OnAsrContentLoaded(bool Loaded) {
     }
 }
 
+void CDMScreen::OnAirportRunwayActivityChanged(void) {
+    // Update blocks panel if it's currently showing
+    if (showBlocksPanel && !selectedAirportForBlocks.empty()) {
+        // Update mode in case it changed
+        extern bool bmiMode;
+        blocksPanelBmiMode = bmiMode;
+        UpdateBlocksData(selectedAirportForBlocks);
+    }
+}
+
 // Called every refresh cycle or timer tick to update pending indications
 void CDMScreen::CheckPendingMasterChanges() {
     auto now = std::chrono::steady_clock::now();
@@ -795,11 +805,9 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
 
         extern bool bmiMode;
 
-        // Check for right-click to show blocks
+        // Check for right-click to show blocks/monitoring window
         if (Button == 2) {  // Right-click (Button 2 = VK_RBUTTON)
-            if (bmiMode) {
-                ShowBlocksWindow(apt);
-            }
+            ShowBlocksWindow(apt);
             return;
         }
 
@@ -832,6 +840,25 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
             int blockIndex = std::atoi(cellStr.substr(underscorePos + 1).c_str());
             
             auto key = std::make_pair(runway, blockIndex);
+            
+            // For monitoring mode (non-BMI): only allow middle-click to show flight list
+            if (!blocksPanelBmiMode) {
+                if (Button == 2) {  // Middle-click only for monitoring mode (VK_MBUTTON = 2)
+                    if (selectedBlockIndex == blockIndex && selectedBlockRunway == runway) {
+                        // Deselect if clicking same cell again
+                        selectedBlockIndex = -1;
+                        selectedBlockRunway = "";
+                    } else {
+                        // Select this runway/block to show flight list
+                        selectedBlockRunway = runway;
+                        selectedBlockIndex = blockIndex;
+                    }
+                    RequestRefresh();
+                }
+                return;  // Ignore all other clicks in monitoring mode
+            }
+            
+            // For BMI mode: allow capacity modifications and callsigns display
             
             // Right-click: toggle callsigns display for this specific runway/block
             if (Button == 2) {
@@ -909,7 +936,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 return;
             }
             
-            // Middle-click: increase capacity
+            // Middle-click: increase capacity (BMI mode only)
             if (Button == 3) {
                 int newCapacity = currentCapacity + 1;
                 
@@ -988,15 +1015,18 @@ void CDMScreen::OnMouseMove(POINT Pt) {
 void CDMScreen::ShowBlocksWindow(const std::string& airport) {
     if (!cdm) return;
 
-    // Check if BMI mode is enabled
+    // Determine mode based on current bmiMode
     extern bool bmiMode;
-    if (!bmiMode) {
-        return;  // BMI must be enabled to show blocks
-    }
+    blocksPanelBmiMode = bmiMode;
 
     selectedAirportForBlocks = airport;
     selectedRunwayFilter = "";  // Reset filter when opening
     showBlocksPanel = true;
+    
+    // Reset the debounce timer to force immediate update on next render
+    // This ensures rates are fetched after they're loaded
+    lastBlocksDataUpdate = std::chrono::steady_clock::now() - std::chrono::milliseconds(500);
+    
     UpdateBlocksData(airport);
     RequestRefresh();
 }
@@ -1017,8 +1047,10 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
 
     currentBlocksData.clear();
 
-    const int windowMinutes = 10;
+    // Determine window size based on mode
+    const int windowMinutes = blocksPanelBmiMode ? 10 : 20;  // BMI: 10min blocks, Airport Monitoring: 20min windows
     const int windowsPerHour = 60 / windowMinutes;
+    const int maxBlocks = blocksPanelBmiMode ? 6 : 3;  // BMI: 6 blocks, Airport Monitoring: 3 windows
 
     // Get current time to determine window hours
     std::string nowStr = cdm->GetTimeNow();
@@ -1033,7 +1065,11 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
     }
 
     std::set<std::string> uniqueRunways;
-    std::map<std::pair<std::string, int>, int> blockOccupancy;
+    std::map<std::tuple<std::string, int, int>, int> bmiBlockOccupancy;   // BMI: runway, hour, blockIndex -> count
+    std::map<std::pair<std::string, int>, int> monitorBlockOccupancy;     // Monitoring: runway, blockIndex -> count
+
+    // Determine current block index within the hour (BMI mode only)
+    int currentBlockIndex = nowMin / windowMinutes;
 
     // First pass: collect runways and occupancy
     for (const auto& plane : slotList) {
@@ -1051,14 +1087,36 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
             std::string runway = fpData.GetDepartureRwy();
             if (runway.empty()) runway = "UNK";
 
-            // Parse TTOT to determine static window block
+            // Parse TTOT to determine window block (HHMM format)
             try {
+                int tobtHour = std::stoi(plane.ttot.substr(0, 2));
                 int tobtMin = std::stoi(plane.ttot.substr(2, 2));
-                int blockIndex = tobtMin / windowMinutes;
-                if (blockIndex >= 0 && blockIndex < 6) {
+                
+                int blockIndex = -1;
+                
+                if (blocksPanelBmiMode) {
+                    // BMI: fixed hour blocks (0-9, 10-19, etc.)
+                    blockIndex = tobtMin / windowMinutes;
+                } else {
+                    // Monitoring: blocks relative to current time (now, now+20, now+40)
+                    int offsetMinutes = (tobtHour - nowHour) * 60 + (tobtMin - nowMin);
+                    if (offsetMinutes >= 0 && offsetMinutes < 60) {
+                        blockIndex = offsetMinutes / windowMinutes;
+                    }
+                }
+                
+                if (blockIndex >= 0 && blockIndex < maxBlocks) {
                     uniqueRunways.insert(runway);
-                    auto key = std::make_pair(runway, blockIndex);
-                    blockOccupancy[key]++;
+                    
+                    if (blocksPanelBmiMode) {
+                        // BMI: track with hour information for multi-hour display
+                        auto key = std::make_tuple(runway, tobtHour, blockIndex);
+                        bmiBlockOccupancy[key]++;
+                    } else {
+                        // Monitoring: use simple key for current time windows
+                        auto key = std::make_pair(runway, blockIndex);
+                        monitorBlockOccupancy[key]++;
+                    }
                 }
             } catch (...) {}
         }
@@ -1066,73 +1124,105 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
 
     // Create block data structure with per-runway capacity calculation
     for (const auto& runway : uniqueRunways) {
-        // Get rate for this specific runway
-        Rate rate = cdm->rateForRunway(airport, runway.c_str());
-        int hourlyRate = 6;  // Default
+        int hourlyRate = cdm->getHourlyRateForRunway(airport, runway);
 
-        if (!rate.rates.empty()) {
-            try {
-                hourlyRate = std::stoi(rate.rates[0]);
-            } catch (...) {}
+        // Calculate block/window capacities for this runway
+        int capacity_per_block = hourlyRate / maxBlocks;  // For 3 windows: 40/3 ≈ 13, for 6 blocks: 40/6 ≈ 6
+        int remainder = hourlyRate % maxBlocks;  // For 3 windows: 40%3 = 1, for 6 blocks: 40%6 = 4
+
+        std::vector<int> blockCapacities(maxBlocks);
+        for (int i = 0; i < maxBlocks; i++) {
+            blockCapacities[i] = capacity_per_block;
         }
 
-        // Calculate block capacities for this runway with evenly spaced remainder allocation
-        const int baseCap = hourlyRate / windowsPerHour;      // e.g. 40/6 = 6
-        const int remainder = hourlyRate % windowsPerHour;    // e.g. 40%6 = 4
-
-        std::vector<int> blockCapacities(6);
-        for (int i = 0; i < 6; i++) {
-            blockCapacities[i] = baseCap;
-        }
-
-        // Distribute remainder evenly across blocks
+        // Distribute remainder evenly across blocks/windows
         if (remainder > 0) {
-            double spacing = static_cast<double>(windowsPerHour) / remainder;  // e.g., 6/4 = 1.5
+            double spacing = static_cast<double>(maxBlocks) / remainder;  // e.g., 3/1 = 3.0 or 6/4 = 1.5
             for (int i = 0; i < remainder; i++) {
-                int blockIdx = static_cast<int>(i * spacing);  // 0, 1, 3, 4 for spacing=1.5
-                if (blockIdx < 6) {
+                int blockIdx = static_cast<int>(i * spacing);
+                if (blockIdx < maxBlocks) {
                     blockCapacities[blockIdx]++;
                 }
             }
         }
 
-        // Create BlockData for each block of this runway
-        for (int block = 0; block < 6; block++) {
-            int blockStartMin = block * windowMinutes;
-            int blockEndMin = blockStartMin + windowMinutes - 1;
-            
-            // Calculate hour for this block based on current time
-            int displayHour = nowHour;
-            int displayStartMin = blockStartMin;
-            int displayEndMin = blockEndMin;
-            
-            // If we're past this block's minute range, advance to next hour
-            if (displayStartMin < nowMin && displayEndMin < nowMin) {
-                displayHour = nowHour + 1;
-                if (displayHour >= 24) displayHour -= 24;
+        // Create BlockData for each block/window of this runway
+        // In BMI mode: start from current block and go forward (6 blocks total)
+        // In Monitoring mode: start from current minute with 3 time windows (ORIGINAL LOGIC)
+        
+        if (blocksPanelBmiMode) {
+            // BMI: display 6 blocks starting from current block
+            for (int i = 0; i < maxBlocks; i++) {
+                int displayBlockIdx = (currentBlockIndex + i) % maxBlocks;
+                int displayHour = nowHour;
+                if (currentBlockIndex + i >= maxBlocks) {
+                    displayHour = nowHour + ((currentBlockIndex + i) / maxBlocks);
+                    if (displayHour >= 24) displayHour -= 24;
+                }
+                
+                int blockStartMin = displayBlockIdx * windowMinutes;
+                int blockEndMin = blockStartMin + windowMinutes - 1;
+                
+                char timeRange[20];
+                sprintf_s(timeRange, "%02d:%02d-%02d:%02d", displayHour, blockStartMin, displayHour, blockEndMin);
+                
+                auto key = std::make_tuple(runway, displayHour, displayBlockIdx);
+                int calculatedCap = blockCapacities[displayBlockIdx];
+                
+                calculatedBlockCapacities[std::make_pair(runway, displayBlockIdx)] = calculatedCap;
+                int finalCapacity = calculatedCap;
+                if (customBlockCapacities.find(std::make_pair(runway, displayBlockIdx)) != customBlockCapacities.end()) {
+                    finalCapacity = customBlockCapacities[std::make_pair(runway, displayBlockIdx)];
+                }
+                
+                BlockData bd;
+                bd.runway = runway;
+                bd.blockIndex = displayBlockIdx;
+                bd.blockHour = displayHour;
+                bd.capacity = finalCapacity;
+                bd.occupancy = bmiBlockOccupancy[key];
+                bd.timeRange = timeRange;
+                
+                currentBlocksData.push_back(bd);
             }
-
-            char timeRange[20];
-            sprintf_s(timeRange, "%02d:%02d-%02d:%02d", displayHour, displayStartMin, displayHour, displayEndMin);
-
-            auto key = std::make_pair(runway, block);
-            int calculatedCap = blockCapacities[block];
-            
-            // Store calculated capacity and check for custom override
-            calculatedBlockCapacities[key] = calculatedCap;
-            int finalCapacity = calculatedCap;
-            if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
-                finalCapacity = customBlockCapacities[key];
+        } else {
+            // Monitoring mode: 3 time windows from current minute (ORIGINAL LOGIC - UNCHANGED)
+            for (int block = 0; block < maxBlocks; block++) {
+                int blockStartMin = nowMin + (block * windowMinutes);
+                int blockEndMin = blockStartMin + windowMinutes - 1;
+                
+                // Calculate start hour and minute properly
+                int displayStartHour = nowHour + (blockStartMin / 60);
+                int displayStartMinClamped = blockStartMin % 60;
+                if (displayStartHour >= 24) displayStartHour -= 24;
+                
+                // Calculate end hour and minute properly
+                int displayEndHour = nowHour + (blockEndMin / 60);
+                int displayEndMinClamped = blockEndMin % 60;
+                if (displayEndHour >= 24) displayEndHour -= 24;
+                
+                char timeRange[20];
+                sprintf_s(timeRange, "%02d:%02d-%02d:%02d", displayStartHour, displayStartMinClamped, displayEndHour, displayEndMinClamped);
+                
+                auto key = std::make_pair(runway, block);
+                int calculatedCap = blockCapacities[block];
+                
+                calculatedBlockCapacities[key] = calculatedCap;
+                int finalCapacity = calculatedCap;
+                if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
+                    finalCapacity = customBlockCapacities[key];
+                }
+                
+                BlockData bd;
+                bd.runway = runway;
+                bd.blockIndex = block;
+                bd.blockHour = displayStartHour;
+                bd.capacity = finalCapacity;
+                bd.occupancy = monitorBlockOccupancy[key];
+                bd.timeRange = timeRange;
+                
+                currentBlocksData.push_back(bd);
             }
-
-            BlockData bd;
-            bd.runway = runway;
-            bd.blockIndex = block;
-            bd.capacity = finalCapacity;  // Use custom override if available, else calculated
-            bd.occupancy = blockOccupancy[key];
-            bd.timeRange = timeRange;
-
-            currentBlocksData.push_back(bd);
         }
     }
 }
@@ -1170,14 +1260,16 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
         return;
     }
 
-    extern bool bmiMode;
-    if (!bmiMode) {
-        showBlocksPanel = false;
-        return;
-    }
+    // Determine window/block size based on mode
+    const int maxBlocks = blocksPanelBmiMode ? 6 : 3;  // BMI: 6 blocks, Airport Monitoring: 3 windows
+
+    // Calculate dynamic panel height based on number of time windows/blocks (not runways)
+    int panelHeight = BLOCKS_HEADER_HEIGHT + 8 + 20;  // Header + padding + column labels
+    panelHeight += maxBlocks * BLOCKS_ROW_HEIGHT;
+    panelHeight += 10;  // Bottom padding
 
     blocksPanelRect = RECT{blocksPanelPos.x, blocksPanelPos.y, blocksPanelPos.x + BLOCKS_PANEL_WIDTH,
-                           blocksPanelPos.y + BLOCKS_PANEL_HEIGHT};
+                           blocksPanelPos.y + panelHeight};
 
     RECT headerRect = {blocksPanelRect.left, blocksPanelRect.top, blocksPanelRect.right,
                        blocksPanelRect.top + BLOCKS_HEADER_HEIGHT};
@@ -1191,7 +1283,8 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
     SetTextColor(hDC, RGB(255, 255, 255));
 
     char headerText[64];
-    sprintf_s(headerText, "Blocks - %s (Next 60 min)", selectedAirportForBlocks.c_str());
+    const char* windowType = blocksPanelBmiMode ? "BMI" : "Monitoring";
+    sprintf_s(headerText, "%s - %s (Next 60 min)", windowType, selectedAirportForBlocks.c_str());
     DrawTextA(hDC, headerText, -1, &headerRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
 
     // Close button
@@ -1229,16 +1322,16 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
         blocksByRunway[block.runway].push_back(block);
     }
 
-    // Get sorted list of runways
-    std::vector<std::string> runways;
+    // Get sorted list of runways with data
+    std::vector<std::string> runwaysWithData;
     for (const auto& rwyPair : blocksByRunway) {
         if (selectedRunwayFilter.empty() || rwyPair.first == selectedRunwayFilter) {
-            runways.push_back(rwyPair.first);
+            runwaysWithData.push_back(rwyPair.first);
         }
     }
-    std::sort(runways.begin(), runways.end());
+    std::sort(runwaysWithData.begin(), runwaysWithData.end());
 
-    if (runways.empty()) {
+    if (runwaysWithData.empty()) {
         // No runways to display
         RECT noDataRect = {blocksPanelRect.left + 10, blocksPanelRect.top + BLOCKS_HEADER_HEIGHT + 20, 
                           blocksPanelRect.right - 10, blocksPanelRect.top + BLOCKS_HEADER_HEIGHT + 40};
@@ -1247,7 +1340,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
     }
 
     // Column layout: time blocks as rows, runways as columns
-    int colWidth = (blocksPanelRect.right - blocksPanelRect.left - 100) / (int)runways.size();
+    int colWidth = (blocksPanelRect.right - blocksPanelRect.left - 100) / (int)runwaysWithData.size();
     if (colWidth < 60) colWidth = 60;
 
     int yPos = blocksPanelRect.top + BLOCKS_HEADER_HEIGHT + 8;
@@ -1258,7 +1351,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
     DrawCellTextA_Flt(hDC, "Time", timeHeaderRect, DT_CENTER, RGB(200, 200, 255));
 
     int xPos = blocksPanelRect.left + 100;
-    for (const auto& runway : runways) {
+    for (const auto& runway : runwaysWithData) {
         RECT rwyHeaderRect = {xPos, yPos, xPos + colWidth, yPos + rowHeight};
         DrawRoundedRect(hDC, rwyHeaderRect, RGB(45, 65, 100), RGB(20, 30, 60));
         DrawCellTextA_Flt(hDC, runway, rwyHeaderRect, DT_CENTER, RGB(200, 255, 200));
@@ -1267,7 +1360,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
 
     yPos += rowHeight + 4;
 
-    // Get current time to determine which block to start from (closest first)
+    // Get current time
     std::string nowStr = cdm->GetTimeNow();
     int nowMin = 0;
     if (nowStr.length() >= 4) {
@@ -1276,19 +1369,18 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
         } catch (...) {}
     }
     
-    const int windowMinutes = 10;
-    int startBlockIdx = nowMin / windowMinutes;
-    if (startBlockIdx >= 6) startBlockIdx = 0;
-
-    // Create ordered block indices: start from closest block, then cycle through
-    std::vector<int> blockOrder;
-    for (int i = 0; i < 6; i++) {
-        blockOrder.push_back((startBlockIdx + i) % 6);
+    const int windowMinutes = blocksPanelBmiMode ? 10 : 20;  // BMI: 10min blocks, Monitoring: 20min windows
+    
+    // For BMI mode: calculate which block is "now" and show only present/future blocks
+    int startBlockIdx = 0;
+    if (blocksPanelBmiMode) {
+        startBlockIdx = nowMin / windowMinutes;
+        if (startBlockIdx >= maxBlocks) startBlockIdx = 0;
     }
 
-    // Draw time blocks as rows (ordered by closest first)
-    for (int orderIdx = 0; orderIdx < 6; orderIdx++) {
-        int blockIdx = blockOrder[orderIdx];
+    // Draw time blocks as rows in order (starting from present/future for BMI, or in sequence for monitoring)
+    for (int orderIdx = 0; orderIdx < maxBlocks; orderIdx++) {
+        int blockIdx = blocksPanelBmiMode ? ((startBlockIdx + orderIdx) % maxBlocks) : orderIdx;
         RECT timeRect = {blocksPanelRect.left + 8, yPos, blocksPanelRect.left + 100, yPos + rowHeight};
         
         // Get time range from first block (all blocks have same time for same blockIdx)
@@ -1310,7 +1402,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
         xPos = blocksPanelRect.left + 100;
 
         // Draw occupancy cells for each runway
-        for (const auto& runway : runways) {
+        for (const auto& runway : runwaysWithData) {
             RECT cellRect = {xPos, yPos, xPos + colWidth, yPos + rowHeight};
             
             // Create unique ID for this cell: BLOCKS_CELL_runway_blockindex
@@ -1448,22 +1540,48 @@ std::vector<std::pair<std::string, std::string>> CDMScreen::GetCallsignsForBlock
     
     if (!cdm) return result;
     
-    // Calculate time range for the block (10-minute blocks)
-    int startMin = blockIndex * 10;
-    int endMin = startMin + 10;
+    // Get current time
+    std::string nowStr = cdm->GetTimeNow();
+    int nowHour = 0, nowMin = 0;
+    if (nowStr.length() >= 4) {
+        try {
+            nowHour = std::stoi(nowStr.substr(0, 2));
+            nowMin = std::stoi(nowStr.substr(2, 2));
+        } catch (...) {
+            return result;
+        }
+    }
+    
+    // Determine window size based on current mode
+    const int windowMinutes = blocksPanelBmiMode ? 10 : 20;
     
     // Get external slotList
     extern std::vector<Plane> slotList;
     
     // Iterate through slotList and find flights in this block
     for (const auto& plane : slotList) {
-        // Parse TTOT to get minutes
+        // Parse TTOT (HHMM format)
         if (plane.ttot.length() >= 4) {
             try {
-                int ttotMin = std::stoi(plane.ttot.substr(2, 2));
+                int tobtHour = std::stoi(plane.ttot.substr(0, 2));
+                int tobtMin = std::stoi(plane.ttot.substr(2, 2));
                 
-                // Check if TTOT falls in this block's time range
-                if (ttotMin >= startMin && ttotMin < endMin) {
+                bool inBlock = false;
+                
+                if (blocksPanelBmiMode) {
+                    // BMI mode: fixed hour blocks (0-9, 10-19, etc.)
+                    int blockStartMin = blockIndex * windowMinutes;
+                    int blockEndMin = blockStartMin + windowMinutes;
+                    inBlock = (tobtMin >= blockStartMin && tobtMin < blockEndMin);
+                } else {
+                    // Monitoring mode: blocks relative to current time
+                    int offsetMinutes = (tobtHour - nowHour) * 60 + (tobtMin - nowMin);
+                    int blockStartMin = blockIndex * windowMinutes;
+                    int blockEndMin = blockStartMin + windowMinutes;
+                    inBlock = (offsetMinutes >= blockStartMin && offsetMinutes < blockEndMin);
+                }
+                
+                if (inBlock) {
                     // Get flight plan to check runway
                     CFlightPlan fp = cdm->FlightPlanSelect(plane.callsign.c_str());
                     if (fp.IsValid()) {

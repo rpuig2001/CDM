@@ -6081,6 +6081,38 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
     return Rate("-1");
 }
 
+int CDM::getHourlyRateForRunway(const string& airport, const string& depRwy) {
+    // Extract hourly rate using same logic as TTOT calculations
+    Rate dataRate = rateForRunway(airport, depRwy);
+    
+    if (dataRate.airport == "-1") {
+        // No matching rate found in rate.txt, fall back to XML config
+        if (!rateString.empty()) {
+            try {
+                return std::stoi(rateString);
+            } catch (...) {}
+        }
+        return 6;  // Default
+    }
+    
+    // Found matching rate - extract correct rate using runway position
+    int a = 0;
+    int dataRatePos = 0;
+    if (dataRate.rates.size() > 1) {
+        for (const string& dr : dataRate.depRwyYes) {
+            if (dr == depRwy) {
+                dataRatePos = a;
+            }
+            a++;
+        }
+    }
+    try {
+        return std::stoi(dataRate.rates[dataRatePos]);
+    } catch (...) {
+        return 6;
+    }
+}
+
 void CDM::RemoveMasterAirports() {
     if (!masterAirports.empty()) {
         string ATC_Position = myAtcCallsign;
