@@ -415,7 +415,7 @@ As soon as departures are listed the list will be correctly displayed:
 <img width="600" height="132" alt="image" src="https://github.com/user-attachments/assets/b125efca-60a8-4cae-a069-b970ee88d9c7" />
 
 
-- By pressing the MIDDLE click in the corresponding block: Show list of flights for the selected window:
+- By pressing the MIDDLE click in the corresponding block, the list of flights in the selected window will be displayed:
 
 <img width="599" height="253" alt="image" src="https://github.com/user-attachments/assets/404e39ed-c8b0-4501-a61b-1e6cddda668a" />
 
