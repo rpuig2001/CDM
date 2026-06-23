@@ -6715,7 +6715,7 @@ int CDM::getCustomBlockCapacity(const std::string& runway, int blockIndex) {
     if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
         return customBlockCapacities[key];
     }
-    return 0;  // Return 0 if no custom capacity set (means use default)
+    return -1;  // Return -1 if no custom capacity set (means use default)
 }
 
 void CDM::clearCustomBlockCapacity(const std::string& runway, int blockIndex) {
@@ -6764,7 +6764,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
         
         // Check for custom capacity override first
         auto customCap = getCustomBlockCapacity(depRwy, windowIndex);
-        if (customCap > 0) {
+        if (customCap >= 0) {  // -1 means not set, any value >= 0 is valid (including 0)
             return customCap;
         }
         

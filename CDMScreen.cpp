@@ -1443,17 +1443,20 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             }
 
             int percentage = (capacity > 0) ? (occupancy * 100) / capacity : 0;
-            if (percentage > 100) percentage = 100;
 
             // Color based on occupancy percentage
             COLORREF occColor = RGB(0, 200, 0);  // Green
-            if (percentage > 75) {
+            if (occupancy > capacity) {
+                occColor = RGB(200, 0, 200);  // Purple - overloaded
+            } else if (percentage > 75) {
                 occColor = RGB(255, 0, 0);  // Red
             } else if (percentage > 50) {
                 occColor = RGB(255, 165, 0);  // Orange
             } else if (percentage > 25) {
                 occColor = RGB(200, 200, 0);  // Yellow
             }
+            
+            if (percentage > 100) percentage = 100;
 
             COLORREF bgColor = (blockIdx % 2 == 0) ? RGB(60, 75, 90) : RGB(70, 85, 100);
             // Highlight cells with pending changes with a brighter border
