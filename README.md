@@ -396,6 +396,29 @@ After increasing/decreasing the capacity, two new actions will be available:
 - APPLY: will apply the changes with effect on the next internal refresh.
 - REVERT: will return to the previous capacity values and changes will not be applied.
 
+### Monitoring Window
+To open the window, use the "middle click" of your mouse of the desired airport (from the CDM airport panel):
+
+<img width="124" height="117" alt="image" src="https://github.com/user-attachments/assets/445cf9e8-fe86-47b3-9d4a-78e8dee412dc" />
+
+
+If there are no CDM listed departures, the window will be displayed as:
+
+<img width="602" height="133" alt="image" src="https://github.com/user-attachments/assets/66bb6a2c-5230-4db4-8dae-486c0a5588a4" />
+
+
+As soon as departures are listed the list will be correctly displayed:
+- Window1: now to now+19.
+- Window2: now+20 to now+39.
+- Window3: now+40 to now+59.
+
+<img width="600" height="132" alt="image" src="https://github.com/user-attachments/assets/b125efca-60a8-4cae-a069-b970ee88d9c7" />
+
+
+- By pressing the MIDDLE click in the corresponding block, the list of flights in the selected window will be displayed:
+
+<img width="599" height="253" alt="image" src="https://github.com/user-attachments/assets/404e39ed-c8b0-4501-a61b-1e6cddda668a" />
+
 
 ## Commands
 - ``.cdm refresh`` - Force the refresh phase to do it now.
