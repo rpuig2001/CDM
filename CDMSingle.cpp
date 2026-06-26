@@ -8026,7 +8026,7 @@ void CDM::saveData() {
                 updateCdmDataApi(myPlane);
             }
         }
-        slotListSaved = slotList;
+        slotListSaved = mySlotList;
         if (!ftpHost.empty()) {
             if (!mySlotList.empty()) {
                 for (string airport : masterAirports) {
