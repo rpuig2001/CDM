@@ -10830,8 +10830,7 @@ void CDM::getNetworkTobt() {
                                 }
 
                                 // Update TOBT
-                                string annotAsrt = getFlightStripInfo(fp, 0);
-                                if (annotAsrt.empty() && (string)fp.GetGroundState() != "STUP" &&
+                                if ((string)fp.GetGroundState() != "STUP" &&
                                     (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" &&
                                     (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
                                     addLogLine("Updating TOBT for: " + mySlotList[i].callsign +
