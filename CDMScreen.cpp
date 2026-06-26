@@ -1510,7 +1510,8 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             for (const auto& item : callsigns) {
                 RECT itemRect = {blocksPanelRect.left + 10, listYPos, blocksPanelRect.right - 10, listYPos + 15};
                 char itemText[64];
-                sprintf_s(itemText, "%s - %s", item.first.c_str(), item.second.c_str());
+                std::string secondStr = item.second.length() >= 4 ? item.second.substr(0, 4) : item.second;
+                sprintf_s(itemText, "%s - %s", item.first.c_str(), secondStr.c_str());
                 DrawCellTextA_Flt(hDC, itemText, itemRect, DT_LEFT, RGB(220, 220, 220));
                 listYPos += 15;
             }
