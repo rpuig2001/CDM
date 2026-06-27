@@ -1540,8 +1540,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
                             // Update TOBT-setBy
                             string prevSetBy = getFlightStripInfo(fp, 9);
-                            if (prevSetBy != "ATC") {
-                                setFlightStripInfo(fp, "ATC", 9);
+                            if (prevSetBy != "A") {
+                                setFlightStripInfo(fp, "A", 9);
                             }
 
                             bool found = false;
@@ -1954,6 +1954,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                         // Update TOBT-setBy
                         if (setBy != "NONE" && master && AtcMe) {
                             string prevSetBy = getFlightStripInfo(fp, 9);
+                            if (setBy.length() > 1) setBy = setBy.substr(0, 1);
                             if (prevSetBy != setBy) {
                                 setFlightStripInfo(fp, setBy, 9);
                             }
@@ -2173,9 +2174,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 if (!localTobtTypesQueue.empty()) {
                     bool found = false;
                     for (vector<string> s : localTobtTypesQueue) {
-                        string prevSetBy = getFlightStripInfo(FlightPlan, 9);
-                        if (prevSetBy != s[1]) {
-                            setFlightStripInfo(FlightPlan, s[1], 9);
+                        CFlightPlan fp1 = FlightPlanSelect(s[0].c_str());
+                        string prevSetBy = getFlightStripInfo(fp1, 9);
+                        string setBy = s[1];
+                        if (setBy.length() > 1) setBy = setBy.substr(0, 1);
+                        if (prevSetBy != setBy) {
+                            setFlightStripInfo(fp1, setBy, 9);
                         }
                     }
                 }
@@ -2667,6 +2671,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
+                                if (status == "A") status = "ATC";
+                                else if (status == "P") status = "PILOT";
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
@@ -4120,6 +4126,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
+                                if (status == "A") status = "ATC";
+                                else if (status == "P") status = "PILOT";
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
@@ -4991,6 +4999,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
+                                if (status == "A") status = "ATC";
+                                else if (status == "P") status = "PILOT";
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
@@ -5201,6 +5211,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
+                                if (status == "A") status = "ATC";
+                                else if (status == "P") status = "PILOT";
                                 ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
@@ -5411,6 +5423,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         strcpy_s(sItemString, 16, status.c_str());
                     } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                         string status = getFlightStripInfo(FlightPlan, 9);
+                        if (status == "A") status = "ATC";
+                        else if (status == "P") status = "PILOT";
                         ItemRGB = TAG_GREEN;
                         strcpy_s(sItemString, 16, status.c_str());
                     } else if (ItemCode == TAG_ITEM_TOBT_SETBY_SHORT) {
@@ -10849,7 +10863,6 @@ void CDM::getNetworkTobt() {
                                     }
                                     if (!found) reqTobtList.push_back(mySlotList[i].callsign);
                                     setCdmSts(plane[0], "REQTOBT/NULL/NULL");
-                                    setFlightStripInfo(fp, "PILOT", 9);
                                     // Trigger TOBT update to update TAXI TIME
                                     // setOBTApi(plane[0], plane[1], true, false);
                                     updated = true;
@@ -10874,7 +10887,6 @@ void CDM::getNetworkTobt() {
                             }
                             if (!found) reqTobtList.push_back(plane[0]);
                             setCdmSts(plane[0], "REQTOBT/NULL/NULL");
-                            setFlightStripInfo(fp, "PILOT", 9);
                             // Trigger TOBT update to update TAXI TIME
                             //setOBTApi(plane[0], plane[1], true, false);
                             updated = true;
