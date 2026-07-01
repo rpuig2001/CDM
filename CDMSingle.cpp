@@ -52,6 +52,7 @@ bool pilotTobt;
 bool atotEnabled;
 bool remarksOption;
 bool remarksOptionCtot;
+bool tobtReqAfterAsrtDisabledOption;
 bool invalidateTSAT_Option;
 bool invalidateTSAT_Option_asrt;
 bool invalidateTOBT_Option;
@@ -416,6 +417,7 @@ CDM::CDM(void)
         string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
         pm_message = getFromXml("/CDM/PrivateMessage/@text");
         string remarksOptionCtotString = getFromXml("/CDM/remarksOptionCtot/@mode");
+        string disableTobtReqAfterAsrt = getFromXml("/CDM/disableTobtReqAfterAsrt/@mode");
         string loadingTextString = getFromXml("/CDM/loading/@text");
 
         if (ftpHost == "" && ftpUser == "") {
@@ -581,6 +583,11 @@ CDM::CDM(void)
         remarksOptionCtot = false;
         if (remarksOptionCtotString == "true") {
             remarksOptionCtot = true;
+        }
+
+        tobtReqAfterAsrtDisabledOption = false;
+        if (disableTobtReqAfterAsrt == "true") {
+            tobtReqAfterAsrtDisabledOption = true;
         }
 
     } catch (const std::exception& e) {
@@ -10844,9 +10851,14 @@ void CDM::getNetworkTobt() {
                                 }
 
                                 // Update TOBT
-                                if ((string)fp.GetGroundState() != "STUP" &&
-                                    (string)fp.GetGroundState() != "ST-UP" && (string)fp.GetGroundState() != "PUSH" &&
-                                    (string)fp.GetGroundState() != "TAXI" && (string)fp.GetGroundState() != "DEPA") {
+                                string annotAsrt = getFlightStripInfo(fp, 0);
+                                if (((tobtReqAfterAsrtDisabledOption && annotAsrt.empty()) || !tobtReqAfterAsrtDisabledOption) &&
+                                (string)fp.GetGroundState() != "STUP" &&
+                                (string)fp.GetGroundState() != "ST-UP" && 
+                                (string)fp.GetGroundState() != "PUSH" &&
+                                (string)fp.GetGroundState() != "TAXI" && 
+                                (string)fp.GetGroundState() != "DEPA") 
+                                {
                                     addLogLine("Updating TOBT for: " + mySlotList[i].callsign +
                                                " Old: " + mySlotList[i].eobt + " New: " + plane[1] + "00");
                                     /*int posPlane = getPlanePosition(mySlotList[i].callsign);
