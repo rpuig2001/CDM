@@ -833,11 +833,13 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
     if (strncmp(sObjectId, "BLOCKS_CELL_", 12) == 0) {
         std::string cellStr = std::string(sObjectId + 12);
         
-        // Format: runway_blockindex
-        size_t underscorePos = cellStr.rfind('_');
-        if (underscorePos != std::string::npos) {
-            std::string runway = cellStr.substr(0, underscorePos);
-            int blockIndex = std::atoi(cellStr.substr(underscorePos + 1).c_str());
+        // Format: runway_hour_blockindex
+        size_t lastUnderscore = cellStr.rfind('_');
+        size_t secondLastUnderscore = cellStr.rfind('_', lastUnderscore - 1);
+        if (lastUnderscore != std::string::npos && secondLastUnderscore != std::string::npos) {
+            std::string runway = cellStr.substr(0, secondLastUnderscore);
+            int blockHour = std::atoi(cellStr.substr(secondLastUnderscore + 1, lastUnderscore - secondLastUnderscore - 1).c_str());
+            int blockIndex = std::atoi(cellStr.substr(lastUnderscore + 1).c_str());
             
             auto key = std::make_pair(runway, blockIndex);
             
@@ -892,7 +894,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
             // First check pending changes (highest priority)
             bool foundPending = false;
             for (const auto& pending : pendingBlockChanges) {
-                if (pending.runway == runway && pending.blockIndex == blockIndex) {
+                if (pending.runway == runway && pending.blockHour == blockHour && pending.blockIndex == blockIndex) {
                     currentCapacity = pending.newCapacity;
                     foundPending = true;
                     break;
@@ -901,6 +903,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
             
             // If no pending change, check custom overrides, then calculated baseline
             if (!foundPending) {
+                auto key = std::make_tuple(runway, blockHour, blockIndex);
                 if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
                     currentCapacity = customBlockCapacities[key];
                 } else if (calculatedBlockCapacities.find(key) != calculatedBlockCapacities.end()) {
@@ -920,7 +923,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 // Check if this change already exists in pending list
                 bool found = false;
                 for (auto& pending : pendingBlockChanges) {
-                    if (pending.runway == runway && pending.blockIndex == blockIndex) {
+                    if (pending.runway == runway && pending.blockHour == blockHour && pending.blockIndex == blockIndex) {
                         pending.newCapacity = newCapacity;
                         found = true;
                         break;
@@ -929,7 +932,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 
                 // If not found, add new pending change
                 if (!found) {
-                    pendingBlockChanges.push_back({runway, blockIndex, newCapacity, currentCapacity});
+                    pendingBlockChanges.push_back({runway, blockHour, blockIndex, newCapacity, currentCapacity});
                 }
                 
                 RequestRefresh();
@@ -943,7 +946,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 // Check if this change already exists in pending list
                 bool found = false;
                 for (auto& pending : pendingBlockChanges) {
-                    if (pending.runway == runway && pending.blockIndex == blockIndex) {
+                    if (pending.runway == runway && pending.blockHour == blockHour && pending.blockIndex == blockIndex) {
                         pending.newCapacity = newCapacity;
                         found = true;
                         break;
@@ -952,7 +955,7 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                 
                 // If not found, add new pending change
                 if (!found) {
-                    pendingBlockChanges.push_back({runway, blockIndex, newCapacity, currentCapacity});
+                    pendingBlockChanges.push_back({runway, blockHour, blockIndex, newCapacity, currentCapacity});
                 }
                 
                 RequestRefresh();
@@ -1169,10 +1172,10 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
                 auto key = std::make_tuple(runway, displayHour, displayBlockIdx);
                 int calculatedCap = blockCapacities[displayBlockIdx];
                 
-                calculatedBlockCapacities[std::make_pair(runway, displayBlockIdx)] = calculatedCap;
+                calculatedBlockCapacities[key] = calculatedCap;
                 int finalCapacity = calculatedCap;
-                if (customBlockCapacities.find(std::make_pair(runway, displayBlockIdx)) != customBlockCapacities.end()) {
-                    finalCapacity = customBlockCapacities[std::make_pair(runway, displayBlockIdx)];
+                if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
+                    finalCapacity = customBlockCapacities[key];
                 }
                 
                 BlockData bd;
@@ -1405,8 +1408,16 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
         for (const auto& runway : runwaysWithData) {
             RECT cellRect = {xPos, yPos, xPos + colWidth, yPos + rowHeight};
             
-            // Create unique ID for this cell: BLOCKS_CELL_runway_blockindex
-            std::string cellId = "BLOCKS_CELL_" + runway + "_" + std::to_string(blockIdx);
+            // Create unique ID for this cell: BLOCKS_CELL_runway_hour_blockindex
+            // First find the hour for this blockIdx
+            int blockHourForId = 0;
+            for (const auto& block : it->second) {
+                if (block.blockIndex == blockIdx) {
+                    blockHourForId = block.blockHour;
+                    break;
+                }
+            }
+            std::string cellId = "BLOCKS_CELL_" + runway + "_" + std::to_string(blockHourForId) + "_" + std::to_string(blockIdx);
             AddScreenObject(RADARSCR_OBJECT_CUSTOM, cellId.c_str(), cellRect, true, NULL);
 
             int occupancy = 0;
@@ -1426,10 +1437,17 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
 
             // Check for pending changes for this cell (highest priority)
             bool hasPendingChange = false;
-            auto key = std::make_pair(runway, blockIdx);
+            int blockHourForCapacity = 0;
+            for (const auto& block : it->second) {
+                if (block.blockIndex == blockIdx) {
+                    blockHourForCapacity = block.blockHour;
+                    break;
+                }
+            }
+            auto key = std::make_tuple(runway, blockHourForCapacity, blockIdx);
             bool foundPending = false;
             for (const auto& pending : pendingBlockChanges) {
-                if (pending.runway == runway && pending.blockIndex == blockIdx) {
+                if (pending.runway == runway && pending.blockHour == blockHourForCapacity && pending.blockIndex == blockIdx) {
                     capacity = pending.newCapacity;
                     hasPendingChange = true;
                     foundPending = true;
@@ -1522,9 +1540,9 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
 void CDMScreen::ApplyPendingBlockChanges() {
     // Apply all pending block capacity changes
     for (const auto& pending : pendingBlockChanges) {
-        auto key = std::make_pair(pending.runway, pending.blockIndex);
+        auto key = std::make_tuple(pending.runway, pending.blockHour, pending.blockIndex);
         customBlockCapacities[key] = pending.newCapacity;
-        cdm->setCustomBlockCapacity(pending.runway, pending.blockIndex, pending.newCapacity);
+        cdm->setCustomBlockCapacity(pending.runway, pending.blockHour, pending.blockIndex, pending.newCapacity);
     }
     
     // Clear pending changes

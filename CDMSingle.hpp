@@ -363,13 +363,13 @@ class CDM : public EuroScopePlugIn::CPlugIn {
                                        bool CanBeSaved, bool CanBeCreated);
 
     // Custom block capacity management
-    void setCustomBlockCapacity(const std::string& runway, int blockIndex, int capacity);
-    int getCustomBlockCapacity(const std::string& runway, int blockIndex);
-    void clearCustomBlockCapacity(const std::string& runway, int blockIndex);
+    void setCustomBlockCapacity(const std::string& runway, int blockHour, int blockIndex, int capacity);
+    int getCustomBlockCapacity(const std::string& runway, int blockHour, int blockIndex);
+    void clearCustomBlockCapacity(const std::string& runway, int blockHour, int blockIndex);
 
     int FuncBuffer;
 
    protected:
     Document config;
-    std::map<std::pair<std::string, int>, int> customBlockCapacities;  // {runway, blockIndex} -> custom capacity
+    std::map<std::tuple<std::string, int, int>, int> customBlockCapacities;  // {runway, hour, blockIndex} -> custom capacity
 };

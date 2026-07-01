@@ -6725,22 +6725,22 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 }
 
 // Custom block capacity management
-void CDM::setCustomBlockCapacity(const std::string& runway, int blockIndex, int capacity) {
+void CDM::setCustomBlockCapacity(const std::string& runway, int blockHour, int blockIndex, int capacity) {
     if (blockIndex >= 0 && blockIndex < 6) {
-        customBlockCapacities[{runway, blockIndex}] = capacity;
+        customBlockCapacities[std::make_tuple(runway, blockHour, blockIndex)] = capacity;
     }
 }
 
-int CDM::getCustomBlockCapacity(const std::string& runway, int blockIndex) {
-    auto key = std::make_pair(runway, blockIndex);
+int CDM::getCustomBlockCapacity(const std::string& runway, int blockHour, int blockIndex) {
+    auto key = std::make_tuple(runway, blockHour, blockIndex);
     if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
         return customBlockCapacities[key];
     }
     return -1;  // Return -1 if no custom capacity set (means use default)
 }
 
-void CDM::clearCustomBlockCapacity(const std::string& runway, int blockIndex) {
-    auto key = std::make_pair(runway, blockIndex);
+void CDM::clearCustomBlockCapacity(const std::string& runway, int blockHour, int blockIndex) {
+    auto key = std::make_tuple(runway, blockHour, blockIndex);
     if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
         customBlockCapacities.erase(key);
     }
@@ -6780,11 +6780,12 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
 
     auto capForWindowStart = [&](const string& windowStartTTOT) -> int {
         int v = stoi(windowStartTTOT);
+        int hhStart = v / 10000;
         int mmStart = (v / 100) % 100;
         int windowIndex = mmStart / windowMinutes;
         
         // Check for custom capacity override first
-        auto customCap = getCustomBlockCapacity(depRwy, windowIndex);
+        auto customCap = getCustomBlockCapacity(depRwy, hhStart, windowIndex);
         if (customCap >= 0) {  // -1 means not set, any value >= 0 is valid (including 0)
             return customCap;
         }
