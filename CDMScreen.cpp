@@ -1207,13 +1207,14 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
                 char timeRange[20];
                 sprintf_s(timeRange, "%02d:%02d-%02d:%02d", displayStartHour, displayStartMinClamped, displayEndHour, displayEndMinClamped);
                 
-                auto key = std::make_pair(runway, block);
+                auto monitor_key = std::make_pair(runway, block);
+                auto capacity_key = std::make_tuple(runway, displayStartHour, block);
                 int calculatedCap = blockCapacities[block];
                 
-                calculatedBlockCapacities[key] = calculatedCap;
+                calculatedBlockCapacities[capacity_key] = calculatedCap;
                 int finalCapacity = calculatedCap;
-                if (customBlockCapacities.find(key) != customBlockCapacities.end()) {
-                    finalCapacity = customBlockCapacities[key];
+                if (customBlockCapacities.find(capacity_key) != customBlockCapacities.end()) {
+                    finalCapacity = customBlockCapacities[capacity_key];
                 }
                 
                 BlockData bd;
@@ -1221,7 +1222,7 @@ void CDMScreen::UpdateBlocksData(const std::string& airport) {
                 bd.blockIndex = block;
                 bd.blockHour = displayStartHour;
                 bd.capacity = finalCapacity;
-                bd.occupancy = monitorBlockOccupancy[key];
+                bd.occupancy = monitorBlockOccupancy[monitor_key];
                 bd.timeRange = timeRange;
                 
                 currentBlocksData.push_back(bd);
@@ -1408,6 +1409,13 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
         for (const auto& runway : runwaysWithData) {
             RECT cellRect = {xPos, yPos, xPos + colWidth, yPos + rowHeight};
             
+            // Find occupancy and base capacity for this runway and block
+            auto it = blocksByRunway.find(runway);
+            if (it == blocksByRunway.end()) {
+                xPos += colWidth;
+                continue;
+            }
+            
             // Create unique ID for this cell: BLOCKS_CELL_runway_hour_blockindex
             // First find the hour for this blockIdx
             int blockHourForId = 0;
@@ -1423,15 +1431,12 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
             int occupancy = 0;
             int capacity = 6;
             
-            // Find occupancy and base capacity for this runway and block
-            auto it = blocksByRunway.find(runway);
-            if (it != blocksByRunway.end()) {
-                for (const auto& block : it->second) {
-                    if (block.blockIndex == blockIdx) {
-                        occupancy = block.occupancy;
-                        capacity = block.capacity;  // Base capacity from calculations
-                        break;
-                    }
+            // Find occupancy and base capacity for this runway and block in the map
+            for (const auto& block : it->second) {
+                if (block.blockIndex == blockIdx) {
+                    occupancy = block.occupancy;
+                    capacity = block.capacity;  // Base capacity from calculations
+                    break;
                 }
             }
 
