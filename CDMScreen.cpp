@@ -850,10 +850,12 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                         // Deselect if clicking same cell again
                         selectedBlockIndex = -1;
                         selectedBlockRunway = "";
+                        selectedBlockHour = -1;
                     } else {
                         // Select this runway/block to show flight list
                         selectedBlockRunway = runway;
                         selectedBlockIndex = blockIndex;
+                        selectedBlockHour = blockHour;
                     }
                     RequestRefresh();
                 }
@@ -868,10 +870,12 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
                     // Deselect if clicking same cell again
                     selectedBlockIndex = -1;
                     selectedBlockRunway = "";
+                    selectedBlockHour = -1;
                 } else {
                     // Select this runway/block
                     selectedBlockRunway = runway;
                     selectedBlockIndex = blockIndex;
+                    selectedBlockHour = blockHour;
                 }
                 RequestRefresh();
                 return;
@@ -1517,7 +1521,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
     
     // Draw callsigns list for selected block
     if (selectedBlockIndex >= 0 && !selectedBlockRunway.empty()) {
-        auto callsigns = GetCallsignsForBlock(selectedBlockRunway, selectedBlockIndex);
+        auto callsigns = GetCallsignsForBlock(selectedBlockRunway, selectedBlockHour, selectedBlockIndex);
         
         if (!callsigns.empty()) {
             int listYPos = yPos + 10;
@@ -1562,7 +1566,7 @@ void CDMScreen::RevertPendingBlockChanges() {
     pendingBlockChanges.clear();
 }
 
-std::vector<std::pair<std::string, std::string>> CDMScreen::GetCallsignsForBlock(const std::string& runway, int blockIndex) {
+std::vector<std::pair<std::string, std::string>> CDMScreen::GetCallsignsForBlock(const std::string& runway, int blockHour, int blockIndex) {
     std::vector<std::pair<std::string, std::string>> result;
     
     if (!cdm) return result;
@@ -1597,9 +1601,10 @@ std::vector<std::pair<std::string, std::string>> CDMScreen::GetCallsignsForBlock
                 
                 if (blocksPanelBmiMode) {
                     // BMI mode: fixed hour blocks (0-9, 10-19, etc.)
+                    // IMPORTANT: Must check both hour and minutes to avoid cross-hour contamination
                     int blockStartMin = blockIndex * windowMinutes;
                     int blockEndMin = blockStartMin + windowMinutes;
-                    inBlock = (tobtMin >= blockStartMin && tobtMin < blockEndMin);
+                    inBlock = (tobtHour == blockHour && tobtMin >= blockStartMin && tobtMin < blockEndMin);
                 } else {
                     // Monitoring mode: blocks relative to current time
                     int offsetMinutes = (tobtHour - nowHour) * 60 + (tobtMin - nowMin);
