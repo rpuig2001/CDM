@@ -6689,7 +6689,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             }
                         }
                         // Check API
-                        if (doRequest && TSATfinal.length() >= 4) {
+                        if (doRequest && !aicraftInFinalTimesList && TSATfinal.length() >= 4) {
                             if (serverEnabled) {
                                 string myTSATApi = TSAT;
                                 if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
