@@ -7,6 +7,7 @@
 #include "EcfmpRestriction.h"
 #include "SFTP.h"
 #include "pugixml.cpp"
+#include "src/api/CurlRestClient.h"
 #include "pugixml.hpp"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
@@ -758,6 +759,8 @@ CDM::CDM(void)
             }
         }
     }
+
+    restclient_ = std::make_shared<api::CurlRestClient>();
 }
 
 static bool EnsureDirExists(const std::string& dir) {

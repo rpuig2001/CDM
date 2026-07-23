@@ -9,6 +9,7 @@
 #include <fstream>
 #include <iostream>
 #include <map>
+#include <memory>
 #include <mutex>
 #include <regex>
 #include <sstream>
@@ -25,6 +26,7 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "sidInterval.h"
+#include "src/api/IRestClient.h"
 #define CURL_STATICLIB
 #include <dbghelp.h>
 #include <windows.h>
@@ -371,5 +373,9 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
    protected:
     Document config;
-    std::map<std::tuple<std::string, int, int>, int> customBlockCapacities;  // {runway, hour, blockIndex} -> custom capacity
+    std::map<std::tuple<std::string, int, int>, int>
+        customBlockCapacities;  // {runway, hour, blockIndex} -> custom capacity
+
+   private:
+    std::shared_ptr<interfaces::IRestClient> restclient_;
 };
