@@ -14,10 +14,6 @@ static std::size_t receiveCurlData(void* ptr, std::size_t size, std::size_t nmem
 }
 
 CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_patchRequest(), m_deleteRequest() {
-    struct curl_slist* commonHeaders = nullptr;
-    commonHeaders = curl_slist_append(commonHeaders, "Accept: application/json");
-    commonHeaders = curl_slist_append(commonHeaders, "Content-Type: application/json");
-
     // Configure GET
     curl_easy_setopt(m_getRequest.socket, CURLOPT_SSL_VERIFYPEER, 0L);
     curl_easy_setopt(m_getRequest.socket, CURLOPT_SSL_VERIFYHOST, 0L);
@@ -32,8 +28,6 @@ CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_patchReque
     curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_postRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_postRequest.socket, CURLOPT_CUSTOMREQUEST, "POST");
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_VERBOSE, 1);
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTPHEADER, commonHeaders);
 
     // Configure PUT
     curl_easy_setopt(m_putRequest.socket, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -41,8 +35,6 @@ CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_patchReque
     curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_putRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_putRequest.socket, CURLOPT_CUSTOMREQUEST, "PUT");
-    curl_easy_setopt(m_putRequest.socket, CURLOPT_VERBOSE, 1);
-    curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTPHEADER, commonHeaders);
 
     // Configure PATCH
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_SSL_VERIFYPEER, 0L);
@@ -50,8 +42,6 @@ CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_patchReque
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_CUSTOMREQUEST, "PATCH");
-    curl_easy_setopt(m_patchRequest.socket, CURLOPT_VERBOSE, 1);
-    curl_easy_setopt(m_patchRequest.socket, CURLOPT_HTTPHEADER, commonHeaders);
 
     // Configure DELETE
     curl_easy_setopt(m_deleteRequest.socket, CURLOPT_SSL_VERIFYPEER, 0L);
