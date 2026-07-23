@@ -189,6 +189,8 @@ CDM::CDM(void)
               MY_PLUGIN_COPYRIGHT) {
     curl_global_init(CURL_GLOBAL_DEFAULT);
 
+    restclient_ = std::make_shared<api::CurlRestClient>();
+
     string loadingMessage = "Version: ";
     loadingMessage += MY_PLUGIN_VERSION;
     loadingMessage += " loaded.";
@@ -8272,31 +8274,20 @@ void CDM::removeLog() {
 }
 
 int CDM::GetVersion() {
-    CURL* curl;
-    CURLcode result = CURLE_FAILED_INIT;
-    std::string readBuffer = "";
-    curl = curl_easy_init();
-    if (curl) {
-        string url = "https://raw.githubusercontent.com/rpuig2001/CDM/master/version.txt";
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-        result = curl_easy_perform(curl);
-        curl_easy_cleanup(curl);
-    }
+    const std::string url = "https://raw.githubusercontent.com/rpuig2001/CDM/master/version.txt";
+
+    const auto response = restclient_->get(url);
 
     // Check if it is not a beta version
-    /*if (string(MY_PLUGIN_VERSION).find("b") == std::string::npos) {
-            //Check version
-            if (!readBuffer.empty() && readBuffer.find(MY_PLUGIN_VERSION) == std::string::npos) {
-                    string DisplayMsg = "Please UPDATE YOUR CDM PLUGIN, version " + readBuffer + " is OUT! You have
-    version " + MY_PLUGIN_VERSION " installed, download it from vats.im/CDM"; DisplayUserMessage(MY_PLUGIN_NAME,
-    "UPDATE", DisplayMsg.c_str(), true, false, false, false, false);
-            }
-    }*/
+    // if (std::string(MY_PLUGIN_VERSION).find("b") == std::string::npos) {
+    //     // Check version
+    //     if (!response.body.empty() && response.body.find(MY_PLUGIN_VERSION) == std::string::npos) {
+    //         const std::string display_msg = "Please UPDATE YOUR CDM PLUGIN, version " + response.body +
+    //                                         " is OUT! You have version " +
+    //                                         MY_PLUGIN_VERSION " installed, download it from vats.im/CDM";
+    //         DisplayUserMessage(MY_PLUGIN_NAME, "UPDATE", display_msg.c_str(), true, false, false, false, false);
+    //     }
+    // }
 
     return -1;
 }
