@@ -98,9 +98,7 @@ interfaces::HttpResponse CurlRestClient::get(const std::string_view& url,
         std::string header = key + ": " + value;
         chunk = curl_slist_append(chunk, header.c_str());
     }
-    if (chunk) {
-        curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTPHEADER, chunk);
-    }
+    curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTPHEADER, chunk);
 
     // configure request
     curl_easy_setopt(m_getRequest.socket, CURLOPT_URL, url.data());
@@ -146,9 +144,7 @@ interfaces::HttpResponse CurlRestClient::post(const std::string_view& url, const
         std::string header = key + ": " + value;
         chunk = curl_slist_append(chunk, header.c_str());
     }
-    if (chunk) {
-        curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTPHEADER, chunk);
-    }
+    curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTPHEADER, chunk);
 
     // configure request
     curl_easy_setopt(m_postRequest.socket, CURLOPT_URL, url.data());
@@ -196,9 +192,7 @@ interfaces::HttpResponse CurlRestClient::put(const std::string_view& url, const 
         std::string header = key + ": " + value;
         chunk = curl_slist_append(chunk, header.c_str());
     }
-    if (chunk) {
-        curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTPHEADER, chunk);
-    }
+    curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTPHEADER, chunk);
 
     // configure request
     curl_easy_setopt(m_putRequest.socket, CURLOPT_URL, url.data());
@@ -246,9 +240,7 @@ interfaces::HttpResponse CurlRestClient::patch(const std::string_view& url, cons
         std::string header = key + ": " + value;
         chunk = curl_slist_append(chunk, header.c_str());
     }
-    if (chunk) {
-        curl_easy_setopt(m_patchRequest.socket, CURLOPT_HTTPHEADER, chunk);
-    }
+    curl_easy_setopt(m_patchRequest.socket, CURLOPT_HTTPHEADER, chunk);
 
     // configure request
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_URL, url.data());
@@ -296,9 +288,7 @@ interfaces::HttpResponse CurlRestClient::del(const std::string_view& url,
         std::string header = key + ": " + value;
         chunk = curl_slist_append(chunk, header.c_str());
     }
-    if (chunk) {
-        curl_easy_setopt(m_deleteRequest.socket, CURLOPT_HTTPHEADER, chunk);
-    }
+    curl_easy_setopt(m_deleteRequest.socket, CURLOPT_HTTPHEADER, chunk);
 
     // configure request
     curl_easy_setopt(m_deleteRequest.socket, CURLOPT_URL, url.data());
