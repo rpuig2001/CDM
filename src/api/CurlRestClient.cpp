@@ -2,11 +2,6 @@
 
 using namespace api;
 
-static std::string __receivedGetData;
-static std::string __receivedPostData;
-static std::string __receivedPatchData;
-static std::string __receivedDeleteData;
-
 static std::size_t receiveCurlData(void* ptr, std::size_t size, std::size_t nmemb, void* userdata) {
     std::string* buffer = static_cast<std::string*>(userdata);
     buffer->append(static_cast<char*>(ptr), size * nmemb);
