@@ -13,19 +13,19 @@ class IRestClient {
    public:
     virtual ~IRestClient() = default;
 
-    virtual HttpResponse get(const std::string_view &url,
+    virtual HttpResponse get(const std::string &url,
                              const std::unordered_map<std::string, std::string> &headers = {}) = 0;
 
-    virtual HttpResponse post(const std::string_view &url, const std::string_view &body,
+    virtual HttpResponse post(const std::string &url, const std::string_view &body,
                               const std::unordered_map<std::string, std::string> &headers = {}) = 0;
 
-    virtual HttpResponse put(const std::string_view &url, const std::string_view &body,
+    virtual HttpResponse put(const std::string &url, const std::string_view &body,
                              const std::unordered_map<std::string, std::string> &headers = {}) = 0;
 
-    virtual HttpResponse patch(const std::string_view &url, const std::string_view &body,
+    virtual HttpResponse patch(const std::string &url, const std::string_view &body,
                                const std::unordered_map<std::string, std::string> &headers = {}) = 0;
 
-    virtual HttpResponse del(const std::string_view &url,
+    virtual HttpResponse del(const std::string &url,
                              const std::unordered_map<std::string, std::string> &headers = {}) = 0;
 };
 
