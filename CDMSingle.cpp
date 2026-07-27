@@ -600,10 +600,6 @@ CDM::CDM(void)
         return;
     }
 
-    // Flow Data
-    std::thread t(&CDM::getEcfmpData, this);
-    t.detach();
-
     // Check rates
     std::thread t7(&CDM::getNetworkRates, this);
     t7.detach();
@@ -5731,28 +5727,14 @@ static size_t WriteCallback(void* contents, size_t size, size_t nmemb, void* use
 
 bool CDM::getRateFromUrl(string url) {
     vector<Rate> myRates;
-    CURL* curl;
-    CURLcode result = CURLE_FAILED_INIT;
-    string readBuffer;
-    long responseCode = 0;
-    curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-        curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-        curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-        curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-        result = curl_easy_perform(curl);
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-        curl_easy_cleanup(curl);
-    }
+    const auto response = restclient_->get(url);
+    int responseCode = response.statusCode;
 
-    if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+    if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
         // handle error 404
         addLogLine("UNABLE TO LOAD TaxiZones URL...");
     } else {
-        std::istringstream is(readBuffer);
+        std::istringstream is(response.body);
 
         // Get data from .txt file
         bool found;
@@ -7782,165 +7764,17 @@ bool CDM::flightHasCtotDisabled(string callsign) {
     return false;
 }
 
-void CDM::getEcfmpData() {
-    addLogLine("Called getEcfmpData...");
-    try {
-        if (!flowRestrictionsUrl.empty()) {
-            addLogLine("AUTO - Call getEcfmpData");
-            vector<EcfmpRestriction> flowDataTemp;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                curl_easy_setopt(curl, CURLOPT_URL, flowRestrictionsUrl.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
-
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
-                sendMessage("UNABLE TO LOAD ECFMP DATA...");
-                addLogLine("UNABLE TO LOAD ECFMP DATA: rc=" + to_string(responseCode) + " result=" + to_string(result));
-            } else {
-                Json::Reader reader;
-                Json::Value obj;
-                Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
-
-                const Json::Value& measures = obj["flow_measures"];
-                for (size_t i = 0; i < measures.size(); i++) {
-                    // Get Id
-                    int id = stoi(fastWriter.write(measures[i]["id"]));
-                    // Get Ident
-                    string ident = fastWriter.write(measures[i]["ident"]);
-                    ident.erase(std::remove(ident.begin(), ident.end(), '"'));
-                    // Get Event Id
-                    string myEvent_id = fastWriter.write(measures[i]["event_id"]);
-                    int event_id = -1;
-                    if (myEvent_id.find("null") == std::string::npos) {
-                        event_id = stoi(fastWriter.write(measures[i]["event_id"]));
-                    }
-                    // Get reason
-                    string reason = fastWriter.write(measures[i]["reason"]);
-                    reason.erase(std::remove(reason.begin(), reason.end(), '"'));
-                    // Get valid_time
-                    string timeStart = fastWriter.write(measures[i]["starttime"]);
-                    timeStart.erase(std::remove(timeStart.begin(), timeStart.end(), '"'));
-                    string timeEnd = fastWriter.write(measures[i]["endtime"]);
-                    timeEnd.erase(std::remove(timeEnd.begin(), timeEnd.end(), '"'));
-                    string valid_time =
-                        timeStart.substr(timeStart.length() - 11, 2) + timeStart.substr(timeStart.length() - 8, 2) +
-                        "-" + timeEnd.substr(timeEnd.length() - 11, 2) + timeEnd.substr(timeEnd.length() - 8, 2);
-                    string valid_date = timeStart.substr(8, 2) + "/" + timeStart.substr(5, 2);
-                    // Get withdrawn_at
-                    string withdrawn = fastWriter.write(measures[i]["withdrawn_at"]);
-                    withdrawn.erase(std::remove(withdrawn.begin(), withdrawn.end(), '"'));
-                    bool isWithdrawn = false;
-                    if (withdrawn.length() > 5) {
-                        isWithdrawn = true;
-                    }
-                    // Get type
-                    string typeMeasure = fastWriter.write(measures[i]["measure"]["type"]);
-                    typeMeasure.erase(std::remove(typeMeasure.begin(), typeMeasure.end(), '"'));
-                    // Get Value
-                    double valueMeasure = 0;
-                    if (typeMeasure.find("minimum_departure_interval") != std::string::npos) {
-                        string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
-                        if (isNumber(valueMeasureString)) {
-                            valueMeasure = stoi(valueMeasureString) / 60.0;
-                        }
-                    }
-                    if (typeMeasure.find("per_hour") != std::string::npos) {
-                        string valueMeasureString = fastWriter.write(measures[i]["measure"]["value"]);
-                        if (isNumber(valueMeasureString)) {
-                            valueMeasure = 60.0 / stoi(valueMeasureString);
-                        }
-                    }
-                    // Get Filters
-                    vector<string> ADEP;
-                    vector<string> ADES;
-                    vector<string> waypoints;
-
-                    for (size_t a = 0; a < measures[i]["filters"].size(); a++) {
-                        string typeMeasureFilter = fastWriter.write(measures[i]["filters"][a]["type"]);
-                        typeMeasureFilter.erase(std::remove(typeMeasureFilter.begin(), typeMeasureFilter.end(), '"'));
-                        if (typeMeasureFilter.find("ADEP") != std::string::npos) {
-                            for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-                                string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-                                myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
-                                boost::to_upper(myApt);
-                                ADEP.push_back(myApt);
-                            }
-                        } else if (typeMeasureFilter.find("ADES") != std::string::npos) {
-                            for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-                                string myApt = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-                                myApt.erase(std::remove(myApt.begin(), myApt.end(), '"'));
-                                boost::to_upper(myApt);
-                                ADES.push_back(myApt);
-                            }
-                        } else if (typeMeasureFilter.find("waypoint") != std::string::npos) {
-                            for (size_t z = 0; z < measures[i]["filters"][a]["value"].size(); z++) {
-                                string waypoint = fastWriter.write(measures[i]["filters"][a]["value"][z]);
-                                waypoint.erase(std::remove(waypoint.begin(), waypoint.end(), '"'));
-                                boost::to_upper(waypoint);
-                                if (waypoint.size() > 2) {
-                                    waypoint = waypoint.substr(0, waypoint.size() - 2);
-                                }
-                                waypoints.push_back(waypoint);
-                            }
-                        }
-                    }
-
-                    EcfmpRestriction flow(id, ident, event_id, reason, valid_time, valid_date, typeMeasure,
-                                          valueMeasure, ADEP, ADES, waypoints);
-                    if ((flow.type.find("minimum_departure_interval") != std::string::npos ||
-                         flow.type.find("per_hour") != std::string::npos) &&
-                        isWithdrawn == false) {
-                        flowDataTemp.push_back(flow);
-                    }
-                }
-
-                ecfmpData = flowDataTemp;
-            }
-        }
-        addLogLine("AUTO - FINISHED getEcfmpData");
-    } catch (const std::exception& e) {
-        addLogLine("ERROR: Unhandled exception getEcfmpData: " + (string)e.what());
-    } catch (...) {
-        addLogLine("ERROR: Unhandled exception getEcfmpData");
-    }
-}
-
 void CDM::getSidIntervalValuesUrl(string url) {
     addLogLine("Called getSidIntervalValuesUrl...");
-    CURL* curl;
-    CURLcode result = CURLE_FAILED_INIT;
-    string readBuffer;
-    long responseCode = 0;
-    curl = curl_easy_init();
-    if (curl) {
-        curl_easy_setopt(curl, CURLOPT_URL, url);
-        curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-        curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-        result = curl_easy_perform(curl);
-        curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-        curl_easy_cleanup(curl);
-    }
+    const auto response = restclient_->get(url);
+    int responseCode = response.statusCode;
 
-    if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+    if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
         // handle error 404
         sendMessage("UNABLE TO LOAD SidInterval URL...");
-        addLogLine("UNABLE TO LOAD SidInterval DATA: rc=" + to_string(responseCode) + " result=" + to_string(result));
+        addLogLine("UNABLE TO LOAD SidInterval DATA: rc=" + to_string(responseCode) + " result=" + to_string(response.statusCode));
     } else {
-        std::istringstream is(readBuffer);
+        std::istringstream is(response.body);
 
         // Get data from .txt file
         string lineValue;
@@ -8298,28 +8132,14 @@ bool CDM::getCtotsFromUrl(string code) {
         evCtots.clear();
         slotFile.clear();
         string vatcanUrl = code;
-        CURL* curl;
-        CURLcode result = CURLE_FAILED_INIT;
-        std::string readBuffer;
-        long responseCode = 0;
-        curl = curl_easy_init();
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, vatcanUrl.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-            result = curl_easy_perform(curl);
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-            curl_easy_cleanup(curl);
-        }
+        const auto response = restclient_->get(vatcanUrl);
+        int responseCode = response.statusCode;
 
-        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
             // handle error 404
             sendMessage("UNABLE TO LOAD SLOTs...");
         } else {
-            std::istringstream is(readBuffer);
+            std::istringstream is(response.body);
 
             // Get data from .txt file
             string lineValue;
@@ -8344,28 +8164,14 @@ bool CDM::getCtotsFromUrl(string code) {
 
 bool CDM::getTaxiZonesFromUrl(string url) {
     try {
-        CURL* curl;
-        CURLcode result = CURLE_FAILED_INIT;
-        string readBuffer;
-        long responseCode = 0;
-        curl = curl_easy_init();
-        if (curl) {
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-            result = curl_easy_perform(curl);
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-            curl_easy_cleanup(curl);
-        }
+        const auto response = restclient_->get(url);
+        int responseCode = response.statusCode;
 
-        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
             // handle error 404
             sendMessage("UNABLE TO LOAD TaxiZones URL...");
         } else {
-            std::istringstream is(readBuffer);
+            std::istringstream is(response.body);
 
             // Get data from .txt file
             string lineValue;
@@ -8659,8 +8465,6 @@ vector<string> CDM::explode(std::string const& s, char delim) {
 bool CDM::OnCompileCommand(const char* sCommandLine) {
     if (startsWith(".cdm ecfmp", sCommandLine)) {
         addLogLine(sCommandLine);
-        sendMessage("Reloading ECFMP data...");
-        multithread(&CDM::getEcfmpData);
         return true;
     }
 
@@ -9359,7 +9163,6 @@ void CDM::refreshActions1() {
 
 void CDM::refreshActions2() {
     addLogLine("[AUTO] - REFRESH ECFMP");
-    getEcfmpData();
     refresh2 = false;
 }
 
@@ -9386,33 +9189,15 @@ bool CDM::setMasterAirport(string airport, string position) {
     if (serverEnabled) {
         try {
             addLogLine("Call - Set Master airport " + airport + "(" + position + ")");
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            string url = cdmServerUrl + "/airport/setMaster?airport=" + airport + "&position=" + position;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
 
-            if ((responseCode == 404 || CURLE_OK != result) && responseCode != 401) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO CONNECT CDM-API... Master not set.");
             } else {
-                std::istringstream is(readBuffer);
+                std::istringstream is(response.body);
                 string lineValue;
                 while (getline(is, lineValue)) {
                     if (lineValue == "true") {
@@ -9457,30 +9242,12 @@ bool CDM::setMasterAirport(string airport, string position) {
 bool CDM::removeMasterAirport(string airport, string position) {
     addLogLine("Call - Remove Master airport " + airport + "(" + position + ")");
     if (serverEnabled) {
-        CURL* curl;
-        CURLcode result = CURLE_FAILED_INIT;
-        string readBuffer;
-        long responseCode = 0;
-        curl = curl_easy_init();
-        if (curl) {
-            string url = cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position;
-            string apiKeyHeader = "x-api-key: " + apikey;
-            struct curl_slist* headers = NULL;
-            headers = curl_slist_append(headers, apiKeyHeader.c_str());
-            curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-            curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-            curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-            curl_easy_setopt(curl, CURLOPT_POST, true);
-            curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-            curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-            curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-            curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-            result = curl_easy_perform(curl);
-            curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-            curl_easy_cleanup(curl);
-        }
+        string url = cdmServerUrl + "/airport/removeMaster?airport=" + airport + "&position=" + position;
+        std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+        const auto response = restclient_->post(url, /*body=*/"", headers);
+        int responseCode = response.statusCode;
 
-        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
             addLogLine("UNABLE TO CONNECT CDM-API...");
             for (int a = 0; a < masterAirports.size(); a++) {
                 if (masterAirports[a] == airport) {
@@ -9491,7 +9258,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
                 }
             }
         } else {
-            std::istringstream is(readBuffer);
+            std::istringstream is(response.body);
             // Get data from .txt file
             string lineValue;
             while (getline(is, lineValue)) {
@@ -9531,33 +9298,15 @@ bool CDM::removeAllMasterAirports(string position) {
     if (serverEnabled) {
         try {
             addLogLine("Call - Remove all masters for " + position);
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_POST, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            string url = cdmServerUrl + "/airport/removeAllMasterByPosition?position=" + position;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO CONNECT CDM-API...");
             } else {
-                std::istringstream is(readBuffer);
+                std::istringstream is(response.body);
                 string lineValue;
                 while (getline(is, lineValue)) {
                     if (lineValue == "true") {
@@ -9592,30 +9341,12 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
         addLogLine("Called removeAllMasterAirportsByAirport...");
         try {
             addLogLine("Call - Remove all masters from " + airport);
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_POST, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            string url = cdmServerUrl + "/airport/removeAllMasterByAirport?airport=" + airport;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO CONNECT CDM-API...");
             } else {
                 addLogLine("Removed masters for airport " + airport);
@@ -9636,35 +9367,17 @@ bool CDM::setEvCtot(string callsign) {
         addLogLine("Called setEvCtot...");
         try {
             addLogLine("Call - Set Event CTOT for " + callsign);
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/cidCheck?callsign=" + callsign;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            string url = cdmServerUrl + "/ifps/cidCheck?callsign=" + callsign;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 std::lock_guard<std::mutex> lock(later3Mutex);
                 checkCIDLater.push_back(callsign);
                 addLogLine("UNABLE TO CONNECT CDM-API...");
             } else {
-                std::istringstream is(readBuffer);
+                std::istringstream is(response.body);
                 // Get data from .txt file
                 string cid = "";
                 while (getline(is, cid)) {
@@ -9741,38 +9454,20 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
             vector<Plane> initialslotListTemp = slotListTemp;
             addLogLine("Call - Fetching CTOTs");
             // sendMessage("Fetching CTOTs...");
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/etfms/restricted";
-                if (customRestrictedUrl != "") url = customRestrictedUrl;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            string url = cdmServerUrl + "/etfms/restricted";
+            if (customRestrictedUrl != "") url = customRestrictedUrl;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 // handle error 404
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 // Reset all CTOTs
                 for (size_t i = 0; i < slotListTemp.size(); i++) {
@@ -9953,10 +9648,6 @@ void CDM::updateCdmDataApi(Plane p) {
     if (serverEnabled) {
         addLogLine("Called updateCdmDataApi...");
         try {
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
             string str;
             CFlightPlan fp = FlightPlanSelect(p.callsign.c_str());
             if (p.hasManualCtot && p.ctot != "" && p.ttot.length() >= 4) {
@@ -9984,31 +9675,17 @@ void CDM::updateCdmDataApi(Plane p) {
                            fp.GetFlightPlanData().GetSidName();
                 }
             }
-            result = CURLE_FAILED_INIT;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/setCdmData?" + str;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            string url = cdmServerUrl + "/ifps/setCdmData?" + str;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 std::lock_guard<std::mutex> lock(later4Mutex);
                 setCdmDatalater.push_back(p);
                 addLogLine("UNABLE TO CONNECT CDM-API...");
             } else {
-                std::istringstream is(readBuffer);
+                std::istringstream is(response.body);
                 // Get data from .txt file
                 string lineValue;
                 while (getline(is, lineValue)) {
@@ -10068,32 +9745,15 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
             obt = (obt.length() >= 4) ? obt.substr(0, 4) : "";
             string taxiTime = getTaxiTime(callsign);
 
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
+            addLogLine("Requesting OBT (" + obt + ") for " + callsign);
+            string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + obt + "/" + taxiTime;
+            if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + obt;
 
-            if (curl) {
-                addLogLine("Requesting OBT (" + obt + ") for " + callsign);
-                string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + obt + "/" + taxiTime;
-                if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + obt;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = curl_slist_append(NULL, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 Plane plane(callsign, "", obt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
                 {
                     std::lock_guard<std::mutex> lock(later1Mutex);
@@ -10104,7 +9764,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
                 if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("atfcmData") &&
                     obj["atfcmData"].isMember("mostPenalisingRegulation")) {
                     string apiCallsign = fastWriter.write(obj["callsign"]);
@@ -10221,35 +9881,18 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
         addLogLine("Called setCdmSts...");
         try {
             addLogLine("Call - Set DPI:" + cdmSts + " - for " + callsign);
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=" + cdmSts;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_POST, 1L);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
+            string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=" + cdmSts;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 std::lock_guard<std::mutex> lock(later2Mutex);
                 setCdmStslater.push_back({callsign, cdmSts});
                 addLogLine("UNABLE TO CONNECT CDM-API...");
             } else {
-                std::istringstream is(readBuffer);
+                std::istringstream is(response.body);
                 string lineValue;
                 while (getline(is, lineValue)) {
                     if (lineValue != "true") {
@@ -10297,37 +9940,19 @@ void CDM::getCdmServerStatus() {
         addLogLine("Called getCdmServerStatus...");
         try {
             vector<vector<string>> networkStatusTemp;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/allStatus";
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/ifps/allStatus";
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 networkStatusTemp.clear();
 
@@ -10377,37 +10002,19 @@ void CDM::getCdmServerOnTime() {
         addLogLine("Called getCdmServerOnTime...");
         try {
             vector<vector<string>> onTimeStatusTemp;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/allOnTime";
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/ifps/allOnTime";
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 onTimeStatusTemp.clear();
 
@@ -10454,37 +10061,19 @@ void CDM::getCdmServerMasterAirports() {
         addLogLine("Called getCdmServerMasterAirports...");
         try {
             vector<vector<string>> serverMasterAirportsTemp;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/airport";
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/airport";
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 serverMasterAirportsTemp.clear();
 
@@ -10523,37 +10112,19 @@ void CDM::getNetworkRates() {
         addLogLine("Called getNetworkRates...");
         try {
             vector<Rate> tempRate = initialRate;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/etfms/restrictions?type=DEP";
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/etfms/restrictions?type=DEP";
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 const Json::Value& data = obj;
                 for (size_t i = 0; i < data.size(); i++) {
@@ -10624,37 +10195,19 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
         addLogLine("Called getDepAirportPlanes...");
         try {
             vector<Rate> tempRate = initialRate;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/depAirport?airport=" + airport;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/ifps/depAirport?airport=" + airport;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 const Json::Value& data = obj;
                 for (size_t i = 0; i < data.size(); i++) {
@@ -10699,7 +10252,10 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
                             if (informed == "true" || informed == "1") {
                                 bool alreadySent = false;
                                 for (const string& s : messagesSent) {
-                                    if (s == callsign) { alreadySent = true; break; }
+                                    if (s == callsign) {
+                                        alreadySent = true;
+                                        break;
+                                    }
                                 }
                                 if (!alreadySent) messagesSent.push_back(callsign);
                             }
@@ -10735,37 +10291,18 @@ void CDM::getIffOffBlockTimes() {
         addLogLine("Called getIffOffBlockTimes...");
         try {
             for (string apt : airports) {
-                CURL* curl;
-                CURLcode result = CURLE_FAILED_INIT;
-                std::string readBuffer;
-                long responseCode = 0;
-                curl = curl_easy_init();
-                if (curl) {
-                    string url = cdmServerUrl + "/ifps/depAirport?airport=" + apt;
-                    string apiKeyHeader = "x-api-key: " + apikey;
-                    struct curl_slist* headers = NULL;
-                    headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                    curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                    curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                    curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                    curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                    curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                    curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                    curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                    curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                    result = curl_easy_perform(curl);
-                    curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                    curl_easy_cleanup(curl);
-                }
+                string url = cdmServerUrl + "/ifps/depAirport?airport=" + apt;
+                std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+                const auto response = restclient_->get(url, headers);
+                int responseCode = response.statusCode;
 
-                if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                    // handle error 404
+                if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                     addLogLine("UNABLE TO LOAD CDM-API URL...");
                 } else {
                     Json::Reader reader;
                     Json::Value obj;
                     Json::FastWriter fastWriter;
-                    reader.parse(readBuffer, obj);
+                    reader.parse(response.body, obj);
 
                     const Json::Value& data = obj;
                     for (size_t i = 0; i < data.size(); i++) {
@@ -10925,37 +10462,19 @@ vector<vector<string>> CDM::getAirportPlanesCdmDataSection(string airport) {
         addLogLine("Called getAirportPlanesCdmDataSection...");
         try {
             vector<Rate> tempRate = initialRate;
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/ifps/depAirport?airport=" + airport;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/ifps/depAirport?airport=" + airport;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 const Json::Value& data = obj;
                 for (size_t i = 0; i < data.size(); i++) {
@@ -11111,37 +10630,19 @@ void CDM::getCdmServerRelevantFlights() {
             } else {
                 // return;
             }
-            CURL* curl;
-            CURLcode result = CURLE_FAILED_INIT;
-            std::string readBuffer;
-            long responseCode = 0;
-            curl = curl_easy_init();
-            if (curl) {
-                string url = cdmServerUrl + "/etfms/relevant" /* ? filter = " + callsign */;
-                string apiKeyHeader = "x-api-key: " + apikey;
-                struct curl_slist* headers = NULL;
-                headers = curl_slist_append(headers, apiKeyHeader.c_str());
-                curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
-                curl_easy_setopt(curl, CURLOPT_URL, url.c_str());
-                curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, WriteCallback);
-                curl_easy_setopt(curl, CURLOPT_HTTPGET, true);
-                curl_easy_setopt(curl, CURLOPT_WRITEDATA, &readBuffer);
-                curl_easy_setopt(curl, CURLOPT_NOSIGNAL, 1L);
-                curl_easy_setopt(curl, CURLOPT_CONNECTTIMEOUT, 5);
-                curl_easy_setopt(curl, CURLOPT_TIMEOUT, 10L);
-                result = curl_easy_perform(curl);
-                curl_easy_getinfo(curl, CURLINFO_RESPONSE_CODE, &responseCode);
-                curl_easy_cleanup(curl);
-            }
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || CURLE_OK != result) {
-                // handle error 404
+            string url = cdmServerUrl + "/etfms/relevant" /* ? filter = " + callsign */;
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->get(url, headers);
+            int responseCode = response.statusCode;
+
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(readBuffer, obj);
+                reader.parse(response.body, obj);
 
                 relevantFlightsTemp.clear();
 
