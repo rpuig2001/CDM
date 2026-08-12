@@ -4206,6 +4206,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             if (!aicraftInFinalTimesList) {
                                                 p.showData = slotList[d].showData;
                                                 slotList[d] = p;
+                                            } else if (atotEnabled) {
+                                                slotList[d].ttot = p.ttot;
                                             }
                                         }
                                     }
