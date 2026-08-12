@@ -182,6 +182,7 @@ COLORREF TAG_TTOT = 0xFFFFFFFF;
 COLORREF TAG_ASRT = 0xFFFFFFFF;
 COLORREF TAG_CTOT = 0xFFFFFFFF;
 COLORREF SU_SET_COLOR = 0xFFFFFFFF;
+COLORREF BLOCKS_CALLSIGN_COLOR = RGB(220, 220, 220);
 
 // Run on Plugin Initialization
 CDM::CDM(void)
@@ -751,6 +752,9 @@ CDM::CDM(void)
                     break;
                 case 12:
                     SU_SET_COLOR = color;
+                    break;
+                case 13:
+                    BLOCKS_CALLSIGN_COLOR = color;
                     break;
                 default:
                     break;

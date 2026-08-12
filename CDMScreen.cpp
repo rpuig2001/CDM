@@ -14,6 +14,7 @@
 
 // External global variables
 extern std::vector<Plane> slotList;
+extern COLORREF BLOCKS_CALLSIGN_COLOR;
 
 #define RADARSCR_OBJECT_CUSTOM 1000
 
@@ -1539,7 +1540,7 @@ void CDMScreen::DrawBlocksPanel(HDC hDC) {
                 char itemText[64];
                 std::string secondStr = item.second.length() >= 4 ? item.second.substr(0, 4) : item.second;
                 sprintf_s(itemText, "%s - %s", item.first.c_str(), secondStr.c_str());
-                DrawCellTextA_Flt(hDC, itemText, itemRect, DT_LEFT, RGB(220, 220, 220));
+                DrawCellTextA_Flt(hDC, itemText, itemRect, DT_LEFT, BLOCKS_CALLSIGN_COLOR);
                 listYPos += 15;
             }
         }
