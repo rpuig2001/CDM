@@ -2,7 +2,7 @@
 CDM is an Euroscope plugin based on the real life CDM tool that allows us to improve the departure flows at airports.
 
 - If you want to support the development, you can do it in: https://ko-fi.com/rpuig
-- vIFF Website: https://cdm.vatsimspain.es/
+- vIFF Website: https://viffsys.com
 - vIFF Discord server: https://discord.gg/g4zj7YqT5r
 
 CDM includes the following times:
@@ -147,7 +147,7 @@ CDM includes the following times:
   - [OPTIONAL] FTP host to push CDM Data (ex. ftpHost host:"ftp.aaaaaa.com") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP user to push CDM Data (ex. ftpUser user:"username") - leave it blank to use ATFCM System.
   - [OPTIONAL] FTP password to push CDM Data (ex. ftpPassword password:"&&&&&&") - leave it blank to use ATFCM System.
-  - [OPTIONAL] Set only when issues with default provider - Set vIFF system URL. If empty or not set, default "https://viff-system.network" is used (Example: ```<viffSystem url="https://viff-system.network"```).
+  - [OPTIONAL] Set only when issues with default provider - Set vIFF system URL. If empty or not set, default "https://viff-system.network" is used (Example: ```<viffSystem url="https://api.viffsys.com"```).
   - [OPTIONAL] Set only for testing or training purposes - Set custom restrictions URL. If empty or not set, default "" is used (Example: <customRestricted url="").
   - FTP/SFTP connection (sftpConnection mode="true" or sftpConnection mode="false"). By default, SFTP connection is used ("true": SFTP / "false": FTP).
   - Server Communication, enabled/disables all server features (**DISABLED:** Server mode="false" and **ENABLED:** Server mode="true").
