@@ -614,7 +614,7 @@ CDM::CDM(void)
 
     // CDM-Server
     if (cdmServerUrl.length() <= 1) {
-        cdmServerUrl = "https://viffsys.com";
+        cdmServerUrl = "https://api.viffsys.com";
     }
 
     if (customRestrictedUrl.length() <= 1) {
