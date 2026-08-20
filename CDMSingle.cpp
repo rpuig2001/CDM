@@ -6806,12 +6806,12 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
         return getWindowStartFromTTOT(next);
     };
 
-    auto countInWindow = [&](const string& windowTTOT, bool manualMode) -> int {
+    auto countInWindow = [&](const string& windowTTOT) -> int {
         int count = 0;
         for (int t = 0; t < (int)planes.size(); t++) {
             if (planes[t].callsign == callsign) continue;
-            if (manualMode && !planes[t].hasManualCtot) continue;
-            if (!manualMode && planes[t].hasManualCtot) continue;
+            // COUNT ALL AIRCRAFT IN WINDOW, NOT JUST SAME MODE
+            // The window capacity is shared between manual and non-manual flights
 
             string listCallsign = planes[t].callsign;
             string listDepRwy = "";
@@ -6844,6 +6844,19 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             if (!depRwyFound) listDepRwy = depRwy;
 
             bool sameOrDependantRwys = (depRwy == listDepRwy);
+            
+            // Check dependent runways
+            if (!sameOrDependantRwys && origin != "" && depRwy != "") {
+                Rate dataRate = rateForRunway(origin, depRwy);
+                if (dataRate.airport != "-1") {
+                    for (string testRwy : dataRate.dependentRwy) {
+                        if (testRwy == listDepRwy) {
+                            sameOrDependantRwys = true;
+                            break;
+                        }
+                    }
+                }
+            }
 
             if (!(listAirport == origin)) continue;
             if (!sameOrDependantRwys) continue;
@@ -6861,7 +6874,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
 
         string currentWindowStart = getWindowStartFromTTOT(TTOTFinal);
 
-        int used = countInWindow(currentWindowStart, hasManualCtot);
+        int used = countInWindow(currentWindowStart);
         int capThisWindow = capForWindowStart(currentWindowStart);
 
         if (used >= capThisWindow) {
