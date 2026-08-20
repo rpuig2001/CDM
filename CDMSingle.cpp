@@ -7977,6 +7977,17 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
                 continue;
             }
             if (fp.GetFlightPlanData().GetOrigin() == airport) {
+                // Check if RadarTarget is valid before accessing it
+                CRadarTarget rt = RadarTargetSelect(plane.callsign.c_str());
+                if (!rt.IsValid()) {
+                    continue;
+                }
+                
+                // Check if the correlated flight plan is valid
+                if (!rt.GetCorrelatedFlightPlan().IsValid()) {
+                    continue;
+                }
+                
                 string tobtString = "", tsatString = "";
                 if (plane.eobt.length() >= 4) {
                     tobtString = plane.eobt;
@@ -7986,17 +7997,15 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
                 }
                 Value flight(kObjectType);
                 Value lat;
-                lat.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Latitude);
+                lat.SetDouble(rt.GetPosition().GetPosition().m_Latitude);
                 Value lon;
-                lon.SetDouble(RadarTargetSelect(plane.callsign.c_str()).GetPosition().GetPosition().m_Longitude);
-                Value icao_type(RadarTargetSelect(plane.callsign.c_str())
-                                    .GetCorrelatedFlightPlan()
+                lon.SetDouble(rt.GetPosition().GetPosition().m_Longitude);
+                Value icao_type(rt.GetCorrelatedFlightPlan()
                                     .GetFlightPlanData()
                                     .GetAircraftFPType(),
                                 document.GetAllocator());
                 Value callsign(plane.callsign.c_str(), document.GetAllocator());
-                Value destination(RadarTargetSelect(plane.callsign.c_str())
-                                      .GetCorrelatedFlightPlan()
+                Value destination(rt.GetCorrelatedFlightPlan()
                                       .GetFlightPlanData()
                                       .GetDestination(),
                                   document.GetAllocator());
@@ -8015,13 +8024,11 @@ void CDM::createJsonVDGS(vector<Plane> slotList, string fileName, string airport
                     Value ctot(plane.ttot.substr(0, 4).c_str(), document.GetAllocator());
                     flight.AddMember("ctot", ctot, document.GetAllocator());
                 }
-                Value runway(RadarTargetSelect(plane.callsign.c_str())
-                                 .GetCorrelatedFlightPlan()
+                Value runway(rt.GetCorrelatedFlightPlan()
                                  .GetFlightPlanData()
                                  .GetDepartureRwy(),
                              document.GetAllocator());
-                Value sid(RadarTargetSelect(plane.callsign.c_str())
-                              .GetCorrelatedFlightPlan()
+                Value sid(rt.GetCorrelatedFlightPlan()
                               .GetFlightPlanData()
                               .GetSidName(),
                           document.GetAllocator());
@@ -8088,7 +8095,10 @@ void CDM::uploadFtp(string fileName, string airport, string type) {
             InternetCloseHandle(hInternet);
             return;
         }
-        FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
+        BOOL ftpResult = FtpPutFile(hFtpSession, fileName.c_str(), saveName.c_str(), FTP_TRANSFER_TYPE_BINARY, 0);
+        if (!ftpResult) {
+            addLogLine("ERROR: FtpPutFile failed: " + std::to_string(GetLastError()));
+        }
         InternetCloseHandle(hFtpSession);
         InternetCloseHandle(hInternet);
     } catch (const std::exception& e) {
