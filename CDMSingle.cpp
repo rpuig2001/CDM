@@ -2868,12 +2868,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             bool correctTTOT = true;
                             bool equalTempoTTOT = true;
                             bool alreadySetTOStd = false;
+                            string mySid = FlightPlan.GetFlightPlanData().GetSidName();
 
                             if (!aircraftFind || recalculate) {
                                 // Calculate Rate
                                 int rate;
 
-                                Rate dataRate = rateForRunway(origin, depRwy);
+                                Rate dataRate = rateForRunway(origin, depRwy, mySid);
                                 if (dataRate.airport == "-1") {
                                     if (!lvo) {
                                         rate = stoi(rateString);
@@ -2900,7 +2901,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                                 double rateHour = (double)60 / rate;
                                 bool sameOrDependantRwys = false;
-                                string mySid = FlightPlan.GetFlightPlanData().GetSidName();
 
                                 while (equalTTOT) {
                                     correctTTOT = true;
@@ -2979,9 +2979,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                     sameOrDependantRwys = true;
                                                 }
 
-                                                if (dataRate.airport != "-1" && !sameOrDependantRwys) {
+                                                if (dataRate.airport != "-1") {
                                                     for (string testRwy : dataRate.dependentRwy) {
-                                                        if (testRwy == listDepRwy) {
+                                                        if (testRwy == listDepRwy || patternMatches(testRwy, listSid)) {
                                                             sameOrDependantRwys = true;
                                                         }
                                                     }
@@ -5828,7 +5828,7 @@ bool CDM::getRateFromUrl(string url) {
                 (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
                 (string)fp.GetGroundState() != "DEPA") {
                 Rate dataRate =
-                    rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+                    rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy(), fp.GetFlightPlanData().GetSidName());
                 if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo &&
                     r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy &&
                     r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes &&
@@ -5946,7 +5946,7 @@ bool CDM::getRate() {
                 (string)fp.GetGroundState() != "PUSH" && (string)fp.GetGroundState() != "TAXI" &&
                 (string)fp.GetGroundState() != "DEPA") {
                 Rate dataRate =
-                    rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy());
+                    rateForRunway(fp.GetFlightPlanData().GetOrigin(), fp.GetFlightPlanData().GetDepartureRwy(), fp.GetFlightPlanData().GetSidName());
                 if (r.airport == dataRate.airport && r.arrRwyNo == dataRate.arrRwyNo &&
                     r.arrRwyYes == dataRate.arrRwyYes && r.dependentRwy == dataRate.dependentRwy &&
                     r.depRwyNo == dataRate.depRwyNo && r.depRwyYes == dataRate.depRwyYes &&
@@ -5975,9 +5975,9 @@ bool CDM::getRate() {
     return true;
 }
 
-Rate CDM::rateForRunway(string airport, string depRwy) {
+Rate CDM::rateForRunway(string airport, string depRwy, string mySid) {
     string lineAirport, lineDepRwy;
-
+    Rate knownMyrate;
     vector<string> myActiveRwysDep;
     vector<string> myActiveRwysArr;
     string myairport;
@@ -6087,7 +6087,20 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
 
                 // Check if ok to be valid rate
                 if (foundArrRwyYes && foundArrRwyNo && foundDepRwyYes && foundDepRwyNo) {
+                    if (mySid != "" && knownMyrate.airport != "-1") {
+                        knownMyrate.rates = r.rates;
+                        knownMyrate.ratesLvo = r.ratesLvo;
+                        return knownMyrate;
+                    }
                     return r;
+                }
+            } else {
+                // Check if SID is found in dependent runway is valid
+                for (string dr : r.dependentRwy) {
+                    if (patternMatches(dr, mySid)) {
+                        knownMyrate = r;
+                        break;
+                    }
                 }
             }
         }
@@ -6097,7 +6110,7 @@ Rate CDM::rateForRunway(string airport, string depRwy) {
 
 int CDM::getHourlyRateForRunway(const string& airport, const string& depRwy) {
     // Extract hourly rate using same logic as TTOT calculations
-    Rate dataRate = rateForRunway(airport, depRwy);
+    Rate dataRate = rateForRunway(airport, depRwy, "");
     
     if (dataRate.airport == "-1") {
         // No matching rate found in rate.txt, fall back to XML config
@@ -6237,7 +6250,8 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 myEOBT = copySlotList[i].eobt;
 
                 Rate dataRate = rateForRunway(myFlightPlan.GetFlightPlanData().GetOrigin(),
-                                              myFlightPlan.GetFlightPlanData().GetDepartureRwy());
+                                              myFlightPlan.GetFlightPlanData().GetDepartureRwy(),
+                                              myFlightPlan.GetFlightPlanData().GetSidName());
 
                 bool tempAddTime_DELAY_TSAT = false;
                 bool tempAddTime_DELAY_TTOT = false;
@@ -6437,9 +6451,9 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             sameOrDependantRwys = true;
                         }
 
-                        if (dataRate.airport != "-1" && !sameOrDependantRwys) {
+                        if (dataRate.airport != "-1") {
                             for (string testRwy : dataRate.dependentRwy) {
-                                if (testRwy == listDepRwy) {
+                                if (testRwy == listDepRwy || patternMatches(testRwy, listSid)) {
                                     sameOrDependantRwys = true;
                                 }
                             }
@@ -6846,11 +6860,11 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             bool sameOrDependantRwys = (depRwy == listDepRwy);
             
             // Check dependent runways
-            if (!sameOrDependantRwys && origin != "" && depRwy != "") {
-                Rate dataRate = rateForRunway(origin, depRwy);
+            if (origin != "" && depRwy != "") {
+                Rate dataRate = rateForRunway(origin, depRwy, mySid);
                 if (dataRate.airport != "-1") {
                     for (string testRwy : dataRate.dependentRwy) {
-                        if (testRwy == listDepRwy) {
+                        if (testRwy == listDepRwy || patternMatches(testRwy, listSid)) {
                             sameOrDependantRwys = true;
                             break;
                         }
@@ -7488,6 +7502,25 @@ string CDM::calculateLessTime(string timeString, double minsToAdd) {
         addLogLine("ERROR: Unhandled exception calculateLessTime");
         return timeString;
     }
+}
+
+bool CDM::patternMatches(const string& pattern, const string& str) {
+    // Returns true if pattern matches str, where % or * in pattern match any single character
+    // Handles both exact length and prefix matching
+    
+    if (str.empty()) return false;  // SID is empty, can't match
+    
+    // Check for exact length match with wildcards
+    if (pattern.length() == str.length()) {
+        for (size_t i = 0; i < pattern.length(); i++) {
+            if (pattern[i] != '%' && pattern[i] != '*' && pattern[i] != str[i]) {
+                return false;
+            }
+        }
+        return true;
+    }
+    
+    return false;
 }
 
 bool CDM::checkIsNumber(string str) {

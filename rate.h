@@ -25,4 +25,5 @@ class Rate {
           rates(myrates),
           ratesLvo(myratesLvo) {}
     Rate(string myairport) : airport(myairport) {}
+    Rate() : airport("-1") {}
 };

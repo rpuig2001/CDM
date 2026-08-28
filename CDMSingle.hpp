@@ -86,7 +86,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     bool getRate();
 
-    Rate rateForRunway(string airport, string depRwy);
+    Rate rateForRunway(string airport, string depRwy, string mySid);
 
     int getHourlyRateForRunway(const string& airport, const string& depRwy);
 
@@ -131,6 +131,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     int getPlanePosition(string callsign);
 
     void multithread(void (CDM::*f)());
+
+    bool patternMatches(const string& pattern, const string& str);
 
     bool checkIsNumber(string str);
 
