@@ -188,14 +188,16 @@ CDM includes the following times:
 
     - NotDepRwyList -> Comma-separated list of runways. Enter * to disregard.
 
-    - DependentRwyList -> Comma-separated list of runways (it will use the same sequence order for runways selected here). Enter * to disregard.
+    - DependentRwyList -> Comma-separated list of runways or dependant SIDs (from other runways). It will use the same sequence order for runways selected here. Enter * to disregard.
 
     - Rate_RateLvo -> Normal Rate and LVO Rate. If more than one departure runways, you can define more than one rate separated by comma.
 
 
   Examples:
 
-    - `LEPA:A:24L:*:D:24R,24L:*:24L,24R:30_12` (1 arr runway, 1 dep runway, 24R/L as dependant. 1 rate defined for all departures).
+    - `LEPA:A:24L:*:D:24R,24L:*:24L,24R:30_12` (1 arr runway, 2 dep runways, 24R/L as dependant. 1 rate defined for all departures).
+
+    - `LEPA:A:24L:*:D:24L:*:26L,LOBAR%D,GRAUS%D:30_12` (1 arr runway, 2 dep runways, 26L as dependant, LOBAR%D and GRAUS%D (being 24R departures) dependant for runway 24L. 1 rate defined for all departures).
 
     - `LEPA:A:24L:24R:D:24R,24L:*:*:30_12,20_7` (1 arr runway, 1 non-arrival runway, 2 dep runway, dep runways as independant, different rates defined for both dep runways).
 
