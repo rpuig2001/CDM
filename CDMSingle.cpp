@@ -10868,6 +10868,27 @@ static void SendEnter() {
 
 // Types a string using Unicode input (reliable across layouts)
 static void TypeTextInstant(const std::string& text) {
+    // Press + and Escape first
+    INPUT plusDown{};
+    plusDown.type = INPUT_KEYBOARD;
+    plusDown.ki.wVk = VK_OEM_PLUS;
+
+    INPUT plusUp = plusDown;
+    plusUp.ki.dwFlags = KEYEVENTF_KEYUP;
+
+    SendInput(1, &plusDown, sizeof(INPUT));
+    SendInput(1, &plusUp, sizeof(INPUT));
+
+    INPUT escDown{};
+    escDown.type = INPUT_KEYBOARD;
+    escDown.ki.wVk = VK_ESCAPE;
+
+    INPUT escUp = escDown;
+    escUp.ki.dwFlags = KEYEVENTF_KEYUP;
+
+    SendInput(1, &escDown, sizeof(INPUT));
+    SendInput(1, &escUp, sizeof(INPUT));
+
     // Convert to UTF-16
     int wlen = MultiByteToWideChar(CP_UTF8, 0, text.c_str(), -1, nullptr, 0);
     if (wlen <= 1) return;
