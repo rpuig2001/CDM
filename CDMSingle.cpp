@@ -6088,8 +6088,21 @@ Rate CDM::rateForRunway(string airport, string depRwy, string mySid) {
                 // Check if ok to be valid rate
                 if (foundArrRwyYes && foundArrRwyNo && foundDepRwyYes && foundDepRwyNo) {
                     if (mySid != "" && knownMyrate.airport != "-1") {
-                        knownMyrate.rates = r.rates;
-                        knownMyrate.ratesLvo = r.ratesLvo;
+                        int a = 0;
+                        int dataRatePos = 0;
+                        if (r.rates.size() > 1) {
+                            for (const string& dr : r.depRwyYes) {
+                                if (dr == depRwy) {
+                                    dataRatePos = a;
+                                    break;
+                                }
+                                a++;
+                            }
+                        }
+                        if (dataRatePos < r.rates.size()) {
+                            knownMyrate.rates = {r.rates[dataRatePos]};
+                            knownMyrate.ratesLvo = {r.ratesLvo[dataRatePos]};
+                        }
                         return knownMyrate;
                     }
                     return r;
