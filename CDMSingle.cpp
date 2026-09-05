@@ -6220,16 +6220,15 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 }
             }
 
-            //Mark in aicraftInFinalTimesList, when TSAT is earlier than "now"
-            /* if (!aicraftInFinalTimesList && GetDifferenceTimeHHMMSS(copySlotList[i].tsat, timeNow, true) <= 0) {
-                aicraftInFinalTimesList = true;
-            }*/
+            //Mark acftInLastTsatMinutes true, when TSAT is earlier than "now" and NOT in aicraftInFinalTimesList
+            string timeNow = GetActualTime() + "00";
+            bool acftInLastTsatMinutes = (stoi(copySlotList[i].tsat) < stoi(timeNow)) && !aicraftInFinalTimesList;
 
             // Do not calculate if has CTOT
             // if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") aicraftInFinalTimesList = false;
             
             //Run always this when ATOT enabled to keep flights in sequence and keep rolling/updated TTOT in the order affecting not yet modified flights
-            if (atotEnabled || !aicraftInFinalTimesList) {
+            if ((atotEnabled || !aicraftInFinalTimesList) && !acftInLastTsatMinutes) {
                 CFlightPlan myFlightPlan = FlightPlanSelect(myCallsign.c_str());
                 if (!myFlightPlan.IsValid()) {
                     continue;
@@ -6336,7 +6335,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     // Only use CTOT if it doesn't push TSAT before EOBT
                     if (stoi(ctotTSAT) >= stoi(myEOBT)) {
                         myTTOT = ctotTTOT;
-                        myTSAT = ctotTSAT;
                     } else {
                         myTTOT = calculateTime(myEOBT, myTTime); // natural departure
                     }
@@ -6372,11 +6370,11 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
         bool alreadySetTOStd = false;
         bool okToLook = false;
         string timeNow = GetActualTime() + "00";
-        bool initialTSATInPast = (stoi(TSATfinal) < stoi(timeNow));
+        bool initialTSATInPast = (stoi(plane.tsat) < stoi(timeNow));
         string myFlow = "";
         EcfmpRestriction myEcfmp;
         bool hasEcfmpRestriction = false;
-
+        
         myFlow = plane.flowReason;
         myEcfmp = plane.ecfmpRestriction;
         hasEcfmpRestriction = plane.hasEcfmpRestriction;
@@ -6543,16 +6541,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                         }
                                     }
                                 }
-                                if (correctTTOT && !aicraftInFinalTimesList) {
-                                    string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-                                    if (calculatedTSATNow.substr(0, 2) == "00") {
-                                        calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
-                                    }
-                                    if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
-                                        TTOTFinal = calculateTime(TTOTFinal, 0.5);
-                                        correctTTOT = false;
-                                    }
-                                }
                             }
                         }
                         // Check SID Interval
@@ -6578,6 +6566,18 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                 }
                             }
                         }
+                    }
+                }
+                
+                // TSAT Check - runs independently of TTOT conflicts
+                if (!aicraftInFinalTimesList) {
+                    string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
+                    if (calculatedTSATNow.substr(0, 2) == "00") {
+                        calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
+                    }
+                    if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
+                        TTOTFinal = calculateTime(TTOTFinal, 0.5);
+                        correctTTOT = false;
                     }
                 }
 
@@ -6923,6 +6923,19 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
 
                 TTOTFinal = bumpToNextWindowStart(TTOTFinal);
 
+                correctTTOT = false;
+                alreadySetTOStd = true;
+            }
+        }
+
+        if (found && !aicraftInFinalTimesList) {
+            string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
+            if (calculatedTSATNow.substr(0, 2) == "00") {
+                calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
+            }
+            if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
+                found = false;
+                TTOTFinal = bumpToNextWindowStart(TTOTFinal);
                 correctTTOT = false;
                 alreadySetTOStd = true;
             }
