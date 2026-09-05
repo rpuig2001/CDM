@@ -6420,62 +6420,113 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 
             while (equalTTOT) {
                 correctTTOT = true;
-                if (bmiMode) {
-                    TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin,
-                                                depRwy, timeNow, taxiTime, mySid, aicraftInFinalTimesList);
-                } else {
-                    for (size_t t = 0; t < planes.size(); t++) {
-                        string listTTOT;
-                        string listCallsign = planes[t].callsign;
-                        string listDepRwy = "";
-                        CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
-                        if (!listFlightPlan.IsValid()) {
-                            continue;
-                        }
-                        string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
-                        bool depRwyFound = false;
-                        for (size_t i = 0; i < taxiTimesList.size(); i++) {
-                            if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
-                                if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
-                                    listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
-                                    depRwyFound = true;
-                                } else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
-                                    listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
-                                    depRwyFound = true;
+                // Checks if the calculated TSAT is in the past and adjusts TTOT accordingly
+                if (!aicraftInFinalTimesList) {
+                    string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
+                    if (calculatedTSATNow.substr(0, 2) == "00") {
+                        calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
+                    }
+                    if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
+                        TTOTFinal = calculateTime(TTOTFinal, 0.5);
+                        correctTTOT = false;
+                    }
+                }
+                if (correctTTOT) {
+                    if (bmiMode) {
+                        TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin,
+                                                        depRwy, timeNow, taxiTime, mySid, aicraftInFinalTimesList);
+                    } else {
+                        for (size_t t = 0; t < planes.size(); t++) {
+                            string listTTOT;
+                            string listCallsign = planes[t].callsign;
+                            string listDepRwy = "";
+                            CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
+                            if (!listFlightPlan.IsValid()) {
+                                continue;
+                            }
+                            string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
+                            bool depRwyFound = false;
+                            for (size_t i = 0; i < taxiTimesList.size(); i++) {
+                                if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
+                                    if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 3, 1) == ",") {
+                                        listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 2);
+                                        depRwyFound = true;
+                                    } else if (taxiTimesList[i].substr(taxiTimesList[i].find(",") + 4, 1) == ",") {
+                                        listDepRwy = taxiTimesList[i].substr(taxiTimesList[i].find(",") + 1, 3);
+                                        depRwyFound = true;
+                                    }
                                 }
                             }
-                        }
-                        string listAirport;
-                        for (size_t i = 0; i < planeAiportList.size(); i++) {
-                            if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
-                                listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
-                            }
-                        }
-
-                        if (!depRwyFound) {
-                            listDepRwy = depRwy;
-                        }
-
-                        sameOrDependantRwys = false;
-
-                        if (depRwy == listDepRwy) {
-                            sameOrDependantRwys = true;
-                        }
-
-                        if (dataRate.airport != "-1") {
-                            for (string testRwy : dataRate.dependentRwy) {
-                                if (testRwy == listDepRwy || patternMatches(testRwy, listSid)) {
-                                    sameOrDependantRwys = true;
+                            string listAirport;
+                            for (size_t i = 0; i < planeAiportList.size(); i++) {
+                                if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
+                                    listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
                                 }
                             }
-                        }
 
-                        if (plane.hasManualCtot) {
-                            bool found = false;
-                            while (!found) {
-                                found = true;
-                                if (planes[t].hasManualCtot) {
+                            if (!depRwyFound) {
+                                listDepRwy = depRwy;
+                            }
+
+                            sameOrDependantRwys = false;
+
+                            if (depRwy == listDepRwy) {
+                                sameOrDependantRwys = true;
+                            }
+
+                            if (dataRate.airport != "-1") {
+                                for (string testRwy : dataRate.dependentRwy) {
+                                    if (testRwy == listDepRwy || patternMatches(testRwy, listSid)) {
+                                        sameOrDependantRwys = true;
+                                    }
+                                }
+                            }
+
+                            if (plane.hasManualCtot) {
+                                bool found = false;
+                                while (!found) {
+                                    found = true;
+                                    if (planes[t].hasManualCtot) {
+                                        listTTOT = planes[t].ttot;
+
+                                        if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&
+                                            listAirport == origin) {
+                                            found = false;
+                                            if (alreadySetTOStd) {
+                                                TTOTFinal = calculateTime(TTOTFinal, 0.5);
+                                                correctTTOT = false;
+                                            } else {
+                                                TTOTFinal = calculateTime(listTTOT, 0.5);
+                                                correctTTOT = false;
+                                                alreadySetTOStd = true;
+                                            }
+                                        } else if (callsign != listCallsign && sameOrDependantRwys &&
+                                                listAirport == origin) {
+                                            if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) &&
+                                                (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
+                                                found = false;
+                                                if (alreadySetTOStd) {
+                                                    TTOTFinal = calculateTime(TTOTFinal, 0.5);
+                                                    correctTTOT = false;
+                                                } else {
+                                                    TTOTFinal = calculateTime(listTTOT, 0.5);
+                                                    correctTTOT = false;
+                                                    alreadySetTOStd = true;
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            } else {
+                                bool found = false;
+                                while (!found) {
+                                    found = true;
                                     listTTOT = planes[t].ttot;
+
+                                    if (planes[t].tsat == "999999") {
+                                        listDepRwy = depRwy;
+                                        listAirport = origin;
+                                    }
 
                                     if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&
                                         listAirport == origin) {
@@ -6488,8 +6539,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                             correctTTOT = false;
                                             alreadySetTOStd = true;
                                         }
-                                    } else if (callsign != listCallsign && sameOrDependantRwys &&
-                                               listAirport == origin) {
+                                    } else if (callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
                                         if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) &&
                                             (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
                                             found = false;
@@ -6505,79 +6555,30 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                     }
                                 }
                             }
-                        } else {
-                            bool found = false;
-                            while (!found) {
-                                found = true;
+                            // Check SID Interval
+                            if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
                                 listTTOT = planes[t].ttot;
-
-                                if (planes[t].tsat == "999999") {
-                                    listDepRwy = depRwy;
-                                    listAirport = origin;
-                                }
-
-                                if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&
-                                    listAirport == origin) {
-                                    found = false;
-                                    if (alreadySetTOStd) {
-                                        TTOTFinal = calculateTime(TTOTFinal, 0.5);
-                                        correctTTOT = false;
-                                    } else {
-                                        TTOTFinal = calculateTime(listTTOT, 0.5);
-                                        correctTTOT = false;
-                                        alreadySetTOStd = true;
-                                    }
-                                } else if (callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-                                    if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, rateHour))) &&
-                                        (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, rateHour)))) {
-                                        found = false;
-                                        if (alreadySetTOStd) {
-                                            TTOTFinal = calculateTime(TTOTFinal, 0.5);
-                                            correctTTOT = false;
-                                        } else {
-                                            TTOTFinal = calculateTime(listTTOT, 0.5);
-                                            correctTTOT = false;
-                                            alreadySetTOStd = true;
+                                double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
+                                if (interval > 0) {
+                                    bool found = false;
+                                    while (!found) {
+                                        found = true;
+                                        if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, interval))) &&
+                                            (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, interval)))) {
+                                            found = false;
+                                            if (alreadySetTOStd) {
+                                                TTOTFinal = calculateTime(TTOTFinal, 0.5);
+                                                correctTTOT = false;
+                                            } else {
+                                                TTOTFinal = calculateTime(listTTOT, 0.5);
+                                                correctTTOT = false;
+                                                alreadySetTOStd = true;
+                                            }
                                         }
                                     }
                                 }
                             }
                         }
-                        // Check SID Interval
-                        if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
-                            listTTOT = planes[t].ttot;
-                            double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
-                            if (interval > 0) {
-                                bool found = false;
-                                while (!found) {
-                                    found = true;
-                                    if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, interval))) &&
-                                        (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, interval)))) {
-                                        found = false;
-                                        if (alreadySetTOStd) {
-                                            TTOTFinal = calculateTime(TTOTFinal, 0.5);
-                                            correctTTOT = false;
-                                        } else {
-                                            TTOTFinal = calculateTime(listTTOT, 0.5);
-                                            correctTTOT = false;
-                                            alreadySetTOStd = true;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-                
-                // TSAT Check - runs independently of TTOT conflicts
-                if (!aicraftInFinalTimesList) {
-                    string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-                    if (calculatedTSATNow.substr(0, 2) == "00") {
-                        calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
-                    }
-                    if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
-                        TTOTFinal = calculateTime(TTOTFinal, 0.5);
-                        correctTTOT = false;
                     }
                 }
 
@@ -6911,34 +6912,6 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
 
             correctTTOT = false;
             alreadySetTOStd = true;
-        }
-
-        if (found && correctTTOT && !aicraftInFinalTimesList) {
-            string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-            if (calculatedTSATNow.substr(0, 2) == "00") {
-                calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
-            }
-            if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
-                found = false;
-
-                TTOTFinal = bumpToNextWindowStart(TTOTFinal);
-
-                correctTTOT = false;
-                alreadySetTOStd = true;
-            }
-        }
-
-        if (found && !aicraftInFinalTimesList) {
-            string calculatedTSATNow = calculateLessTime(TTOTFinal, taxiTime);
-            if (calculatedTSATNow.substr(0, 2) == "00") {
-                calculatedTSATNow = "24" + calculatedTSATNow.substr(2, 4);
-            }
-            if (stoi(calculatedTSATNow) < stoi(timeNow) && !initialTSATInPast) {
-                found = false;
-                TTOTFinal = bumpToNextWindowStart(TTOTFinal);
-                correctTTOT = false;
-                alreadySetTOStd = true;
-            }
         }
 
         if (found && sidIntervalEnabled) {
