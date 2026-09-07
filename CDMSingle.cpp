@@ -7590,60 +7590,78 @@ void CDM::disconnectTfcs() {
 void CDM::RemoveDataFromTfc(string callsign) {
     addLogLine("Called RemoveDataFromTfc...");
     try {
-        // Delete from vector
-        for (size_t i = 0; i < slotList.size(); i++) {
+        // Delete from vector (fix iterator invalidation: only increment if no erase)
+        for (size_t i = 0; i < slotList.size(); ) {
             if (callsign == slotList[i].callsign) {
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 1");
                 }
                 slotList.erase(slotList.begin() + i);
+                // Don't increment i - next element shifts into current position
+            } else {
+                i++;
             }
         }
-        // Delete from reaSent list
-        for (size_t i = 0; i < reaSent.size(); i++) {
+        // Delete from reaSent list (fix iterator invalidation: only increment if no erase)
+        for (size_t i = 0; i < reaSent.size(); ) {
             if (callsign == reaSent[i]) {
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 2");
                 }
                 reaSent.erase(reaSent.begin() + i);
+                // Don't increment i - next element shifts into current position
+            } else {
+                i++;
             }
         }
-        // Delete from reaCTOTSent list
-        for (size_t i = 0; i < reaCTOTSent.size(); i++) {
+        // Delete from reaCTOTSent list (fix iterator invalidation: only increment if no erase)
+        for (size_t i = 0; i < reaCTOTSent.size(); ) {
             if (callsign == reaCTOTSent[i]) {
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 3");
                 }
                 reaCTOTSent.erase(reaCTOTSent.begin() + i);
+                // Don't increment i - next element shifts into current position
+            } else {
+                i++;
             }
         }
-        // Remove Plane From airport List
-        for (size_t j = 0; j < planeAiportList.size(); j++) {
+        // Remove Plane From airport List (fix iterator invalidation: only increment if no erase)
+        for (size_t j = 0; j < planeAiportList.size(); ) {
             if (planeAiportList[j].substr(0, planeAiportList[j].find(",")) == callsign) {
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 5");
                 }
                 planeAiportList.erase(planeAiportList.begin() + j);
+                // Don't increment j - next element shifts into current position
+            } else {
+                j++;
             }
         }
 
-        // Remove Plane From finalTimesList
-        for (size_t i = 0; i < finalTimesList.size(); i++) {
+        // Remove Plane From finalTimesList (fix iterator invalidation: only increment if no erase)
+        for (size_t i = 0; i < finalTimesList.size(); ) {
             if (finalTimesList[i] == callsign) {
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 6");
                 }
                 finalTimesList.erase(finalTimesList.begin() + i);
+                // Don't increment i - next element shifts into current position
+            } else {
+                i++;
             }
         }
 
-        // Remove Taxi Times List
-        for (size_t j = 0; j < taxiTimesList.size(); j++) {
+        // Remove Taxi Times List (fix iterator invalidation: only increment if no erase)
+        for (size_t j = 0; j < taxiTimesList.size(); ) {
             if (taxiTimesList[j].substr(0, taxiTimesList[j].find(",")) == callsign) {
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 7");
                 }
                 taxiTimesList.erase(taxiTimesList.begin() + j);
+                // Don't increment j - next element shifts into current position
+            } else {
+                j++;
             }
         }
 
