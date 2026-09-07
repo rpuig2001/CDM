@@ -8,7 +8,7 @@ static std::size_t receiveCurlData(void* ptr, std::size_t size, std::size_t nmem
     return size * nmemb;
 }
 
-CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_patchRequest(), m_deleteRequest() {
+CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_putRequest(), m_patchRequest(), m_deleteRequest() {
     // Configure GET
     curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTPGET, 1L);
