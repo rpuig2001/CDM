@@ -2110,12 +2110,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 }
 
                 if (!localPlaneQueue.empty()) {
+                    bool ctotUpdated = false;
                     for (const Plane p : localPlaneQueue) {
                         for (int t = 0; t < slotList.size(); t++) {
                             if (p.callsign == slotList[t].callsign) {
+                                if (slotList[t].ctot != p.ctot) {
+                                    ctotUpdated = true;
+                                }
                                 slotList[t] = p;
                             }
                         }
+                    }
+
+                    if (ctotUpdated) {
+                        countTime = std::time(nullptr) - refreshTime;
                     }
                 }
 
