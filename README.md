@@ -129,7 +129,7 @@ CDM includes the following times:
   - Block Movement Index Mode to calculate times as "windows" (**DISABLED:** bmi mode="false" and **ENABLED:** bmi mode="true").
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
   - Auto ATOT to enable/disable automatic update TTOT when "DEPA" sts is set (**DISABLED:** autoAtot mode="false" and **ENABLED:** autoAtot mode="true").
-  - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true). By setting "asrt" it will not invalidate at TOBT+6 if ASRT is set.
+  - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true). By setting "asrt" it will not invalidate at TSAT+6 if ASRT is set.
   - Invalidate flight at tobt will invalidate flights at TOBT+5 (ex. invalidateAtTobt mode=true).
   - When Ready TOBT is pressed, automatically set the TSAC as the calculated TSAT (ex. readySetTsac mode=true).
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
