@@ -116,6 +116,19 @@ string ftpPassword;
 string vdgsFileType;
 
 vector<Plane> slotList;
+
+// Finished (text, color) result of OnGetTagItem per callsign+tag column, recomputed at most once per
+// second. EuroScope calls OnGetTagItem far more often than the underlying data actually changes, so
+// this lets OnGetTagItem just display the last computed value instead of redoing all the work.
+struct TagItemCacheEntry {
+    time_t tick = 0;
+    char text[16] = {0};
+    bool colorSet = false;
+    int colorCode = 0;
+    COLORREF rgb = 0;
+};
+std::unordered_map<string, std::unordered_map<int, TagItemCacheEntry>> tagItemDisplayCache;
+
 vector<Plane> slotListToUpdate;
 vector<Plane> slotListSaved;
 vector<vector<string>> dataSaved;
@@ -2015,6 +2028,21 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
         COLORREF ItemRGB = 0xFFFFFFFF;
         string callsign = FlightPlan.GetCallsign();
+
+        // Serve from cache if this callsign+column was already computed this second - see
+        // tagItemDisplayCache declaration for why. Falls through to the full computation below on a
+        // miss, which then refreshes the cache at the end of the function.
+        time_t tagCacheNow = std::time(nullptr);
+        auto& tagCacheForAircraft = tagItemDisplayCache[callsign];
+        auto tagCacheIt = tagCacheForAircraft.find(ItemCode);
+        if (tagCacheIt != tagCacheForAircraft.end() && tagCacheIt->second.tick == tagCacheNow) {
+            memcpy(sItemString, tagCacheIt->second.text, sizeof(tagCacheIt->second.text));
+            if (tagCacheIt->second.colorSet) {
+                *pColorCode = tagCacheIt->second.colorCode;
+                *pRGB = tagCacheIt->second.rgb;
+            }
+            return;
+        }
 
         string origin = FlightPlan.GetFlightPlanData().GetOrigin();
         boost::to_upper(origin);
@@ -5727,6 +5755,16 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 }
             }
         }
+
+        // Refresh the display cache with this call's finished result for reuse within the same second.
+        TagItemCacheEntry& cacheEntryToStore = tagItemDisplayCache[callsign][ItemCode];
+        cacheEntryToStore.tick = tagCacheNow;
+        memcpy(cacheEntryToStore.text, sItemString, sizeof(cacheEntryToStore.text));
+        cacheEntryToStore.colorSet = (ItemRGB != 0xFFFFFFFF);
+        if (cacheEntryToStore.colorSet) {
+            cacheEntryToStore.colorCode = *pColorCode;
+            cacheEntryToStore.rgb = *pRGB;
+        }
     } catch (const std::exception& e) {
         addLogLine("ERROR: Unhandled exception OnGetTagItem: " + (string)e.what());
     } catch (...) {
@@ -5986,36 +6024,42 @@ bool CDM::getRate() {
 Rate CDM::rateForRunway(string airport, string depRwy, string mySid) {
     string lineAirport, lineDepRwy;
     Rate knownMyrate;
-    vector<string> myActiveRwysDep;
-    vector<string> myActiveRwysArr;
-    string myairport;
-    for (CSectorElement runway = this->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY); runway.IsValid();
-         runway = this->SectorFileElementSelectNext(runway, SECTOR_ELEMENT_RUNWAY)) {
-        if (runway.IsElementActive(false, 1)) {
-            myairport = runway.GetAirportName();
-            if (myairport.substr(0, 4) == airport) {
-                myActiveRwysArr.push_back(runway.GetRunwayName(1));
+
+    // This function is called per-aircraft on every recalculation, but the sector file's active-runway
+    // configuration barely ever changes - walking every SECTOR_ELEMENT_RUNWAY (across ALL airports,
+    // with 4 native IsElementActive() calls each) on every single call is the actual bottleneck.
+    // Scan once and cache per airport for a few seconds instead of once per aircraft.
+    static unordered_map<string, vector<string>> activeDepRwyCache;
+    static unordered_map<string, vector<string>> activeArrRwyCache;
+    static time_t activeRwyCacheTime = 0;
+    time_t rwyCacheNow = std::time(nullptr);
+    if (rwyCacheNow - activeRwyCacheTime > 5) {
+        activeDepRwyCache.clear();
+        activeArrRwyCache.clear();
+        string myairport;
+        for (CSectorElement runway = this->SectorFileElementSelectFirst(SECTOR_ELEMENT_RUNWAY); runway.IsValid();
+             runway = this->SectorFileElementSelectNext(runway, SECTOR_ELEMENT_RUNWAY)) {
+            if (runway.IsElementActive(false, 1)) {
+                myairport = runway.GetAirportName();
+                activeArrRwyCache[myairport.substr(0, 4)].push_back(runway.GetRunwayName(1));
+            }
+            if (runway.IsElementActive(false, 0)) {
+                myairport = runway.GetAirportName();
+                activeArrRwyCache[myairport.substr(0, 4)].push_back(runway.GetRunwayName(0));
+            }
+            if (runway.IsElementActive(true, 1)) {
+                myairport = runway.GetAirportName();
+                activeDepRwyCache[myairport.substr(0, 4)].push_back(runway.GetRunwayName(1));
+            }
+            if (runway.IsElementActive(true, 0)) {
+                myairport = runway.GetAirportName();
+                activeDepRwyCache[myairport.substr(0, 4)].push_back(runway.GetRunwayName(0));
             }
         }
-        if (runway.IsElementActive(false, 0)) {
-            myairport = runway.GetAirportName();
-            if (myairport.substr(0, 4) == airport) {
-                myActiveRwysArr.push_back(runway.GetRunwayName(0));
-            }
-        }
-        if (runway.IsElementActive(true, 1)) {
-            myairport = runway.GetAirportName();
-            if (myairport.substr(0, 4) == airport) {
-                myActiveRwysDep.push_back(runway.GetRunwayName(1));
-            }
-        }
-        if (runway.IsElementActive(true, 0)) {
-            myairport = runway.GetAirportName();
-            if (myairport.substr(0, 4) == airport) {
-                myActiveRwysDep.push_back(runway.GetRunwayName(0));
-            }
-        }
+        activeRwyCacheTime = rwyCacheNow;
     }
+    vector<string>& myActiveRwysDep = activeDepRwyCache[airport];
+    vector<string>& myActiveRwysArr = activeArrRwyCache[airport];
 
     for (Rate r : rate) {
         if (r.airport == airport) {
@@ -7070,23 +7114,33 @@ string CDM::getTaxiTime(double lat, double lon, string origin, string depRwy, in
     CPosition p1, p2, p3, p4;
     smatch match;
 
+    // Compiled once (function-static) instead of re-compiled on every line of every call - regex
+    // compilation is far more expensive than matching and this function runs per-aircraft.
+    static const regex pattern1(
+        "([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+)$",
+        regex::icase);
+    static const regex pattern2(
+        "([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+)$",
+        regex::icase);
+    static const regex pattern3(
+        "([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(\\d+):([^:]+):(\\d+)"
+        "$",
+        regex::icase);
+
     try {
         for (size_t t = 0; t < TxtTimesVector.size(); t++) {
             line = TxtTimesVector[t];
-            if (regex_match(TxtTimesVector[t], match,
-                            regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(["
-                                  "^:]+):(\\d+)$",
-                                  regex::icase)) ||
 
-                regex_match(TxtTimesVector[t], match,
-                            regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(["
-                                  "^:]+):(\\d+):([^:]+)$",
-                                  regex::icase)) ||
+            // Cheap pre-filter on airport/runway before attempting the much more expensive regex match.
+            size_t firstColon = line.find(':');
+            if (firstColon == string::npos || line.compare(0, firstColon, origin) != 0) continue;
+            size_t secondColon = line.find(':', firstColon + 1);
+            if (secondColon == string::npos ||
+                line.compare(firstColon + 1, secondColon - firstColon - 1, depRwy) != 0)
+                continue;
 
-                regex_match(TxtTimesVector[t], match,
-                            regex("([A-Z]{4}):(\\d{2}[LRC]?):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):([^:]+):(["
-                                  "^:]+):(\\d+):([^:]+):(\\d+)$",
-                                  regex::icase))) {
+            if (regex_match(line, match, pattern1) || regex_match(line, match, pattern2) ||
+                regex_match(line, match, pattern3)) {
                 if (origin != match[1]) continue;
 
                 if (depRwy != match[2]) continue;
