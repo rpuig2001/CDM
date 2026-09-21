@@ -3,9 +3,11 @@
 #include "EuroScopePlugIn.h"
 #pragma warning(pop)
 #include <algorithm>
+#include <atomic>
 #include <boost/algorithm/string.hpp>
 #include <boost/format.hpp>
 #include <chrono>
+#include <condition_variable>
 #include <fstream>
 #include <iostream>
 #include <map>
@@ -14,6 +16,7 @@
 #include <regex>
 #include <sstream>
 #include <string>
+#include <thread>
 #include <unordered_set>
 #include <vector>
 
@@ -131,6 +134,34 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     int getPlanePosition(string callsign);
 
     void multithread(void (CDM::*f)());
+
+    // Runs a CDM member function on a detached background thread while keeping
+    // this object alive for the duration of the call. Every fire-and-forget
+    // thread in this plugin must go through here instead of calling
+    // std::thread(...).detach() directly: a bare detached thread that captures
+    // `this` can still be executing when EuroScope destroys the plugin object,
+    // which is a use-after-free. runDetachedTask() tracks in-flight tasks so the
+    // destructor can wait for them to finish before the object goes away.
+    template <typename Func, typename... Args>
+    void runDetachedTask(Func f, Args... args) {
+        activeAsyncTasks_.fetch_add(1, std::memory_order_relaxed);
+        std::thread([this, f, args...]() mutable {
+            try {
+                (this->*f)(args...);
+            } catch (...) {
+                // Swallow: a background task must never propagate an exception
+                // onto a detached thread (that would call std::terminate).
+            }
+            if (activeAsyncTasks_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
+                std::lock_guard<std::mutex> lock(asyncTasksMutex_);
+                asyncTasksCv_.notify_all();
+            }
+        }).detach();
+    }
+
+    // Blocks until all tasks started via runDetachedTask() have completed, or
+    // until the timeout elapses. Must be called before the object is destroyed.
+    void waitForDetachedTasks(std::chrono::milliseconds timeout = std::chrono::seconds(60));
 
     bool patternMatches(const string& pattern, const string& str);
 
@@ -380,4 +411,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
    private:
     std::shared_ptr<interfaces::IRestClient> restclient_;
+
+    std::atomic<int> activeAsyncTasks_{0};
+    std::mutex asyncTasksMutex_;
+    std::condition_variable asyncTasksCv_;
 };

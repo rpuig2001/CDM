@@ -85,8 +85,7 @@ void CDM::sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight) {
         if (relevantFlights[i][0] == flight[0]) relevantFlights[i][11] = "true";
     }
 
-    std::thread t457(&CDM::sendAtfcmPrivateMessageToPilot, this, flight);
-    t457.detach();
+    runDetachedTask(&CDM::sendAtfcmPrivateMessageToPilot, flight);
 }
 
 bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight) {
@@ -109,8 +108,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight) {
         sendMessage("You are not in a position able to send ATFCM messages to pilots.");
         return false;
     }
-    std::thread t9(&CDM::setCdmSts, this, flight[0], "INFORMED/1");
-    t9.detach();
+    runDetachedTask(&CDM::setCdmSts, flight[0], "INFORMED/1");
 
     std::string message;
 
@@ -168,11 +166,9 @@ void CDM::sendCdmMessageToPilot(string callsign) {
 
     string msg = ".msg " + callsign + " " + pm_message;
 
-    std::thread t54(&CDM::setCdmSts, this, callsign, "INFORMED/1");
-    t54.detach();
+    runDetachedTask(&CDM::setCdmSts, callsign, "INFORMED/1");
 
-    std::thread t458(&CDM::sendCdmPrivateMessageToPilot, this, msg);
-    t458.detach();
+    runDetachedTask(&CDM::sendCdmPrivateMessageToPilot, msg);
 }
 
 bool CDM::sendCdmPrivateMessageToPilot(string message) {

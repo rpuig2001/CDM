@@ -14,27 +14,32 @@ CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_putRequest
     curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTPGET, 1L);
     curl_easy_setopt(m_getRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_getRequest.socket, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(m_getRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
 
     // Configure POST
     curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_postRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_postRequest.socket, CURLOPT_CUSTOMREQUEST, "POST");
+    curl_easy_setopt(m_postRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
 
     // Configure PUT
     curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_putRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_putRequest.socket, CURLOPT_CUSTOMREQUEST, "PUT");
+    curl_easy_setopt(m_putRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
 
     // Configure PATCH
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_patchRequest.socket, CURLOPT_CUSTOMREQUEST, "PATCH");
+    curl_easy_setopt(m_patchRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
 
     // Configure DELETE
     curl_easy_setopt(m_deleteRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_deleteRequest.socket, CURLOPT_CUSTOMREQUEST, "DELETE");
     curl_easy_setopt(m_deleteRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_deleteRequest.socket, CURLOPT_TIMEOUT, 2L);
+    curl_easy_setopt(m_deleteRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
 }
 
 CurlRestClient::~CurlRestClient() {

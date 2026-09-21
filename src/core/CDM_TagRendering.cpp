@@ -79,8 +79,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             // Refresh <refreshTime> min timers
             if ((timeNow - countNetworkTobt) > refreshTime) {
                 countNetworkTobt = timeNow;
-                std::thread t(&CDM::getNetworkTobt, this);
-                t.detach();
+                runDetachedTask(&CDM::getNetworkTobt);
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
                 }
@@ -88,8 +87,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             if ((timeNow - countFetchServerTime) > 15 && !refresh3) {
                 refresh3 = true;
                 countFetchServerTime = timeNow;
-                std::thread t(&CDM::refreshActions3, this);
-                t.detach();
+                runDetachedTask(&CDM::refreshActions3);
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA 1");
                 }
@@ -97,8 +95,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             if ((timeNow - countRefreshActions4Time) > 10 && !refresh4) {
                 refresh4 = true;
                 countRefreshActions4Time = timeNow;
-                std::thread t(&CDM::refreshActions4, this);
-                t.detach();
+                runDetachedTask(&CDM::refreshActions4);
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - REFRESHING CDM API DATA 2");
                 }
@@ -238,8 +235,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     }
                     if (!evCtotFound) {
                         evCtots.push_back({callsign, ""});
-                        std::thread t(&CDM::setEvCtot, this, callsign);
-                        t.detach();
+                        runDetachedTask(&CDM::setEvCtot, callsign);
                     }
                 }
 
@@ -471,8 +467,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 if (correctState) {
                                     ASATtext = formatTime(hour + min);
                                     asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
-                                    std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
-                                    t.detach();
+                                    runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/" + ASATtext);
                                     ASATFound = true;
                                 }
                             } else {
@@ -480,8 +475,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
                                 } else if (!correctState) {
                                     asatList.erase(asatList.begin() + ASATpos);
-                                    std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
-                                    t.detach();
+                                    runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/NULL");
                                     ASATFound = false;
                                 }
                             }
@@ -941,19 +935,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                         // but less or equal to CTOT+7
                                                         string myCOBT =
                                                             calculateLessTime(slotList[pos].ctot + "00", taxiTime);
-                                                        std::thread t(&CDM::setOBTApi, this, callsign, myCOBT, true,
-                                                                      false);
-                                                        t.detach();
+                                                        runDetachedTask(&CDM::setOBTApi, callsign, myCOBT, true, false);
                                                     } else {
-                                                        std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi,
-                                                                      true, false);
-                                                        t.detach();
+                                                        runDetachedTask(&CDM::setOBTApi, callsign, myTSATApi, true, false);
                                                     }
 
                                                 } else {
-                                                    std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi, true,
-                                                                  false);
-                                                    t.detach();
+                                                    runDetachedTask(&CDM::setOBTApi, callsign, myTSATApi, true, false);
                                                 }
                                             }
                                         }
@@ -1043,8 +1031,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     setFlightStripInfo(FlightPlan, "", 3);
                                     setFlightStripInfo(FlightPlan, "", 4);
                                     // Update CDM-API
-                                    std::thread t(&CDM::setCdmSts, this, callsign, "SUSP");
-                                    t.detach();
+                                    runDetachedTask(&CDM::setCdmSts, callsign, "SUSP");
                                 }
                             }
 
@@ -1129,8 +1116,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 setFlightStripInfo(FlightPlan, "", 4);
 
                                 // Update CDM-API
-                                std::thread t(&CDM::setCdmSts, this, callsign, "SUSP");
-                                t.detach();
+                                runDetachedTask(&CDM::setCdmSts, callsign, "SUSP");
                             }
 
                             // If suspended by network Status, mark it as Invalid (I)
@@ -1211,8 +1197,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 if (correctState) {
                                     ASATtext = hour + min;
                                     asatList.push_back(callsign + "," + ASATtext);
-                                    std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
-                                    t.detach();
+                                    runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/" + ASATtext);
                                     ASATFound = true;
                                 }
                             } else {
@@ -1220,8 +1205,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
                                 } else if (!correctState) {
                                     asatList.erase(asatList.begin() + ASATpos);
-                                    std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
-                                    t.detach();
+                                    runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/NULL");
                                     ASATFound = false;
                                 }
                             }
@@ -1968,8 +1952,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                 " Planes in the list");
                                 }
 
-                                std::thread t(&CDM::refreshActions1, this);
-                                t.detach();
+                                runDetachedTask(&CDM::refreshActions1);
                             }
                         }
                     } else {
@@ -3256,8 +3239,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     if (correctState) {
                         ASATtext = formatTime(hour + min);
                         asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
-                        std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/" + ASATtext);
-                        t.detach();
+                        runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/" + ASATtext);
                         ASATFound = true;
                     }
                 } else {
@@ -3265,8 +3247,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         ASATtext = asatList[ASATpos].substr(asatList[ASATpos].length() - 4, 4);
                     } else if (!correctState) {
                         asatList.erase(asatList.begin() + ASATpos);
-                        std::thread t(&CDM::setCdmSts, this, callsign, "AOBT/NULL");
-                        t.detach();
+                        runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/NULL");
                         ASATFound = false;
                     }
                 }

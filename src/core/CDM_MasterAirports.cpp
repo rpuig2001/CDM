@@ -30,8 +30,7 @@ bool CDM::setMasterAirport(string airport, string position) {
                                 addLogLine("Successfully set master airport " + airport);
                                 lastAddedIcao = "";
                                 // Update server master list
-                                std::thread t99(&CDM::getCdmServerMasterAirports, this);
-                                t99.detach();
+                                runDetachedTask(&CDM::getCdmServerMasterAirports);
                                 return true;
                             } catch (const std::system_error& e) {
                                 addLogLine("ERROR: Unhandled exception setMasterAirport: " + (string)e.what());
@@ -96,8 +95,7 @@ bool CDM::removeMasterAirport(string airport, string position) {
                 if (masterAirports[a] == airport) {
                     masterAirports.erase(masterAirports.begin() + a);
                     // Update server master list
-                    std::thread t99(&CDM::getCdmServerMasterAirports, this);
-                    t99.detach();
+                    runDetachedTask(&CDM::getCdmServerMasterAirports);
                     return true;
                 }
             }
@@ -136,8 +134,7 @@ bool CDM::removeAllMasterAirports(string position) {
                         sendMessage("Successfully removed all master airports for " + position);
                         masterAirports.clear();
                         // Update server master list
-                        std::thread t99(&CDM::getCdmServerMasterAirports, this);
-                        t99.detach();
+                        runDetachedTask(&CDM::getCdmServerMasterAirports);
                         return true;
                     }
                 }
@@ -173,8 +170,7 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
             } else {
                 addLogLine("Removed masters for airport " + airport);
                 // Update server master list
-                std::thread t99(&CDM::getCdmServerMasterAirports, this);
-                t99.detach();
+                runDetachedTask(&CDM::getCdmServerMasterAirports);
             }
         } catch (const std::exception& e) {
             addLogLine("ERROR: Unhandled exception removeAllMasterAirportsByAirport: " + (string)e.what());

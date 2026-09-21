@@ -391,11 +391,15 @@ bool CDM::getTaxiZonesFromUrl(string url) {
 // Multithread Run Functions
 void CDM::multithread(void (CDM::*f)()) {
     try {
-        thread* mythread = new thread(f, this);
-        mythread->detach();
-    } catch (std::exception e) {
+        runDetachedTask(f);
+    } catch (const std::exception&) {
         cout << "Failed to multi-thread function";
     }
+}
+
+void CDM::waitForDetachedTasks(std::chrono::milliseconds timeout) {
+    std::unique_lock<std::mutex> lock(asyncTasksMutex_);
+    asyncTasksCv_.wait_for(lock, timeout, [this] { return activeAsyncTasks_.load(std::memory_order_acquire) == 0; });
 }
 
 // Get Data from the xml file

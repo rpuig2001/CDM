@@ -446,8 +446,7 @@ void CDM::RemoveMasterAirports() {
             ATC_Position = ControllerMyself().GetCallsign();
         }
         sendMessage("Removed master airports from previous connection.");
-        std::thread t(&CDM::removeAllMasterAirports, this, ATC_Position);
-        t.detach();
+        runDetachedTask(&CDM::removeAllMasterAirports, ATC_Position);
         myAtcCallsign = ControllerMyself().GetCallsign();
     }
 }

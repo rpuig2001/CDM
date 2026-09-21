@@ -100,10 +100,7 @@ vector<string> CDM::getMasterAirports() { return masterAirports; }
 
 vector<vector<string>> CDM::getServerMasterAirports() { return serverMasterAirports; }
 
-void CDM::fetchRelevantFlights() {
-    std::thread t78(&CDM::getCdmServerRelevantFlights, this);
-    t78.detach();
-}
+void CDM::fetchRelevantFlights() { runDetachedTask(&CDM::getCdmServerRelevantFlights); }
 
 bool CDM::setCdmServerStatusFromDialog(std::vector<std::string> flight, string request) {
     string requestToDo = "";
@@ -163,7 +160,6 @@ bool CDM::setCdmServerStatusFromDialog(std::vector<std::string> flight, string r
                     relevantFlights[i][16] = "false";
         }
     }
-    std::thread t6(&CDM::setCdmSts, this, flight[0], requestToDo);
-    t6.detach();
+    runDetachedTask(&CDM::setCdmSts, flight[0], requestToDo);
     return true;
 }

@@ -69,8 +69,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             }
                         }
                         // Set EOBT in API
-                        std::thread t(&CDM::setOBTApi, this, fp.GetCallsign(), editedEOBT, true, true);
-                        t.detach();
+                        runDetachedTask(&CDM::setOBTApi, fp.GetCallsign(), editedEOBT, true, true);
                     }
                 }
             }
@@ -113,13 +112,11 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                     }
                                 }
                                 // Set EOBT in API
-                                std::thread t(&CDM::setOBTApi, this, fp.GetCallsign(), hour + min, true, true);
-                                t.detach();
+                                runDetachedTask(&CDM::setOBTApi, fp.GetCallsign(), hour + min, true, true);
                             }
 
                             // Set REA Status
-                            std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
-                            t99.detach();
+                            runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/1");
                         }
                 }
             } catch (const std::exception& ex) {
@@ -239,8 +236,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
                     setFlightStripInfo(fp, (hour + min), 0);
                     if (FunctionId == TAG_FUNC_TOGGLEASRTREA) {
-                        std::thread t74(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
-                        t74.detach();
+                        runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/1");
                     }
                 } else {
                     setFlightStripInfo(fp, "", 0);
@@ -374,14 +370,12 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
         } else if (FunctionId == TAG_FUNC_NETWORK_SET_REA) {
             if (AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_NETWORK_SET_REA");
-                std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
-                t3.detach();
+                runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/1");
             }
         } else if (FunctionId == TAG_FUNC_NETWORK_REMOVE_REA) {
             if (AtcMe) {
                 addLogLine("TRIGGER - TAG_FUNC_NETWORK_REMOVE_REA");
-                std::thread t3(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/0");
-                t3.detach();
+                runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/0");
             }
         }
 
@@ -729,8 +723,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             if (readySetTsac) setFlightStripInfo(fp, "9999", 1);
 
                             // Set REA Status
-                            std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REA/1");
-                            t99.detach();
+                            runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/1");
                         }
                     } else if (AtcMe) {
                         addLogLine("TRIGGER - TAG_FUNC_READYTOBT_SLAVE");
@@ -753,8 +746,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             }
 
                             // Set REQ TOBT
-                            std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(), "REQTOBT/" + hour + min + "/ATC");
-                            t99.detach();
+                            runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REQTOBT/" + hour + min + "/ATC");
                         }
                     }
                 }
@@ -1016,9 +1008,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                     }
                                 }
                                 // Check API
-                                std::thread t(&CDM::setOBTApi, this, slotList[i].callsign, slotList[i].tsat, true,
-                                              false);
-                                t.detach();
+                                runDetachedTask(&CDM::setOBTApi, slotList[i].callsign, slotList[i].tsat, true, false);
                             }
 
                             if (!isCdmAirport(fp.GetFlightPlanData().GetOrigin())) {
@@ -1059,9 +1049,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                 if (!master) {
                                     if (editedTOBT.length() == 4) {
                                         // Set REQ TOBT
-                                        std::thread t99(&CDM::setCdmSts, this, fp.GetCallsign(),
-                                                        "REQTOBT/" + editedTOBT + "/ATC");
-                                        t99.detach();
+                                        runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REQTOBT/" + editedTOBT + "/ATC");
                                     }
                                 } else {
                                     int hours = stoi(editedTOBT.substr(0, 2));
@@ -1117,8 +1105,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                                         slotList[a].showData = false;
                                     }
                                 }
-                                std::thread t(&CDM::setOBTApi, this, (string)fp.GetCallsign(), "", true, false);
-                                t.detach();
+                                runDetachedTask(&CDM::setOBTApi, (string)fp.GetCallsign(), "", true, false);
                             }
                             //}
                         }

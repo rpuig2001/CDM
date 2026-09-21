@@ -428,15 +428,12 @@ CDM::CDM(void)
     }
 
     // Check rates
-    std::thread t7(&CDM::getNetworkRates, this);
-    t7.detach();
+    runDetachedTask(&CDM::getNetworkRates);
 
     // Get Server Status
-    std::thread t0(&CDM::getCdmServerStatus, this);
-    t0.detach();
+    runDetachedTask(&CDM::getCdmServerStatus);
 
-    std::thread t63(&CDM::getCdmServerOnTime, this);
-    t63.detach();
+    runDetachedTask(&CDM::getCdmServerOnTime);
 
     // CDM-Server
     if (cdmServerUrl.length() <= 1) {
@@ -448,14 +445,11 @@ CDM::CDM(void)
     }
 
     // CDM-Server Fetch restricted
-    std::thread t34(&CDM::getCdmServerRestricted, this, slotList);
-    t34.detach();
+    runDetachedTask(&CDM::getCdmServerRestricted, slotList);
 
-    std::thread t75(&CDM::getCdmServerMasterAirports, this);
-    t75.detach();
+    runDetachedTask(&CDM::getCdmServerMasterAirports);
 
-    std::thread t73(&CDM::getCdmServerRelevantFlights, this);
-    t73.detach();
+    runDetachedTask(&CDM::getCdmServerRelevantFlights);
 
     if (ftpPassword == "") {
         ftpPassword = "test";
@@ -638,7 +632,13 @@ CRadarScreen* CDM::OnRadarScreenCreated(const char* sDisplayName, bool NeedRadar
 }
 
 // Run on Plugin destruction, Ie. Closing EuroScope or unloading plugin
-CDM::~CDM() { curl_global_cleanup(); }
+CDM::~CDM() {
+    // Detached background threads (spawned via runDetachedTask/multithread) capture
+    // `this`; wait for them to finish before this object is torn down, otherwise
+    // they would touch freed memory.
+    waitForDetachedTasks();
+    curl_global_cleanup();
+}
 
 /*
         Custom Functions

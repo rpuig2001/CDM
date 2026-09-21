@@ -455,8 +455,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
                     }
                 }
             }
-            std::thread t59(&CDM::getCdmServerStatus, this);
-            t59.detach();
+            runDetachedTask(&CDM::getCdmServerStatus);
 
             addLogLine("COMPLETED setCdmSts...");
         } catch (const std::exception& e) {
@@ -1106,8 +1105,7 @@ bool CDM::addMasterAirport(string icao) {
                 }
             }
             if (!found) {
-                std::thread t(&CDM::setMasterAirport, this, icao, ATC_Position);
-                t.detach();
+                runDetachedTask(&CDM::setMasterAirport, icao, ATC_Position);
             }
         } else {
             sendMessage("NO AIRPORT SET");
@@ -1130,8 +1128,7 @@ bool CDM::clearMasterAirport(string icao) {
             int a = 0;
             for (string apt : masterAirports) {
                 if (apt == icao) {
-                    std::thread t(&CDM::removeMasterAirport, this, icao, ATC_Position);
-                    t.detach();
+                    runDetachedTask(&CDM::removeMasterAirport, icao, ATC_Position);
                     found = true;
                 }
                 a++;

@@ -87,8 +87,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
             showAtfcmList = false;
         } else {
             showAtfcmList = true;
-            std::thread t73(&CDM::getCdmServerRelevantFlights, this);
-            t73.detach();
+            runDetachedTask(&CDM::getCdmServerRelevantFlights);
         }
         return true;
     }
@@ -440,8 +439,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                         }
                     }
                     if (!found) {
-                        std::thread t(&CDM::setMasterAirport, this, addedAirport, ATC_Position);
-                        t.detach();
+                        runDetachedTask(&CDM::setMasterAirport, addedAirport, ATC_Position);
                     }
                 }
             } else {
@@ -472,8 +470,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                     int a = 0;
                     for (string apt : masterAirports) {
                         if (apt == addedAirport) {
-                            std::thread t(&CDM::removeMasterAirport, this, addedAirport, ATC_Position);
-                            t.detach();
+                            runDetachedTask(&CDM::removeMasterAirport, addedAirport, ATC_Position);
                             found = true;
                         }
                         a++;
@@ -525,8 +522,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                 string ATC_Position = ControllerMyself().GetCallsign();
                 for (size_t i = 2; i < lineAirports.size(); i++) {
                     string addedAirport = lineAirports[i];
-                    std::thread t(&CDM::removeAllMasterAirportsByAirport, this, addedAirport);
-                    t.detach();
+                    runDetachedTask(&CDM::removeAllMasterAirportsByAirport, addedAirport);
                 }
             } else {
                 sendMessage("NO AIRPORT SET");
@@ -571,8 +567,7 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                 string ATC_Position = ControllerMyself().GetCallsign();
                 for (size_t i = 2; i < lineAirports.size(); i++) {
                     string addedAirport = lineAirports[i];
-                    std::thread t(&CDM::removeAllMasterAirportsByAirport, this, addedAirport);
-                    t.detach();
+                    runDetachedTask(&CDM::removeAllMasterAirportsByAirport, addedAirport);
                     copyServerSavedData(addedAirport);
                 }
             } else {
