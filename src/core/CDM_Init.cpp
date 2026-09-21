@@ -229,7 +229,6 @@ CDM::CDM(void)
         string invalidateTOBT_OptionStr = getFromXml("/CDM/invalidateAtTobt/@mode");
         string readySetTsacOpt = getFromXml("/CDM/readySetTsac/@mode");
         string stringDebugMode = getFromXml("/CDM/Debug/@mode");
-        flowRestrictionsUrl = getFromXml("/CDM/FlowRestrictions/@url");
         vdgsFileType = getFromXml("/CDM/vdgsFileType/@type");
         ftpHost = getFromXml("/CDM/ftpHost/@host");
         ftpUser = getFromXml("/CDM/ftpUser/@user");
