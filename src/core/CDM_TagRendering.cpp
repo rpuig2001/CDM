@@ -4,7 +4,6 @@
 
 #include "src/screen/CDMScreen.h"
 #include "src/models/Delay.h"
-#include "src/models/EcfmpRestriction.h"
 #include "src/net/SFTP.h"
 #include "third_party/pugixml/pugixml.cpp"
 #include "src/api/CurlRestClient.h"
@@ -76,18 +75,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
         }
 
         if (!isVfr) {
-            // Refresh ecfmpData every 5 min
             time_t timeNow = std::time(nullptr);
-            if ((timeNow - countEcfmpTime) > 300 && !refresh2) {
-                refresh2 = true;
-                countEcfmpTime = timeNow;
-                std::thread t(&CDM::refreshActions2, this);
-                t.detach();
-                if (debugMode) {
-                    sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
-                }
-            }
-            // Refresh ecfmpData every <refreshTime> min
+            // Refresh <refreshTime> min timers
             if ((timeNow - countNetworkTobt) > refreshTime) {
                 countNetworkTobt = timeNow;
                 std::thread t(&CDM::getNetworkTobt, this);
@@ -291,73 +280,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                 // It'll calculate pilot's times after pressing READY TOBT Function
                 if (isValidToCalculateEventMode) {
-                    bool hasEcfmpRestriction = false;
-                    EcfmpRestriction myEcfmp;
-                    if (!aircraftFind) {
-                        for (size_t z = 0; z < ecfmpData.size(); z++) {
-                            bool destFound = false;
-                            for (string s : ecfmpData[z].ADES) {
-                                if (s.find(destination) != string::npos) {
-                                    destFound = true;
-                                } else if (s.substr(2, 2) == "**") {
-                                    if (destination.substr(0, 2) == s.substr(0, 2)) {
-                                        destFound = true;
-                                    } else if (s.substr(0, 2) == "**") {
-                                        destFound = true;
-                                    }
-                                }
-                            }
-                            if (destFound) {
-                                // Chech origin
-                                bool depaFound = false;
-                                for (string s : ecfmpData[z].ADEP) {
-                                    if (s.find(origin) != string::npos) {
-                                        depaFound = true;
-                                    } else if (s.substr(2, 2) == "**") {
-                                        if (origin.substr(0, 2) == s.substr(0, 2)) {
-                                            depaFound = true;
-                                        } else if (s.substr(0, 2) == "**") {
-                                            depaFound = true;
-                                        }
-                                    }
-                                }
-
-                                if (depaFound) {
-                                    bool waypointFound = false;
-                                    if (ecfmpData[z].waypoints.empty()) {
-                                        waypointFound = true;
-                                    }
-                                    for (string s : ecfmpData[z].waypoints) {
-                                        string item15 = FlightPlan.GetFlightPlanData().GetRoute();
-                                        if (item15.find(s) != string::npos) {
-                                            waypointFound = true;
-                                        }
-                                    }
-
-                                    if (waypointFound) {
-                                        // Check day && Month
-                                        string dayMonth = GetDateMonthNow();
-                                        if (stoi(dayMonth.substr(0, dayMonth.find("-"))) ==
-                                                stoi(ecfmpData[z].valid_date.substr(
-                                                    0, ecfmpData[z].valid_date.find("/"))) &&
-                                            stoi(dayMonth.substr(dayMonth.find("-") + 1)) ==
-                                                stoi(ecfmpData[z].valid_date.substr(ecfmpData[z].valid_date.find("/") +
-                                                                                    1))) {
-                                            // Check valid time
-                                            int timeNow = stoi(GetActualTime());
-                                            if (stoi(ecfmpData[z].valid_time.substr(
-                                                    0, ecfmpData[z].valid_time.find("-"))) <= timeNow &&
-                                                stoi(ecfmpData[z].valid_time.substr(ecfmpData[z].valid_time.find("-") +
-                                                                                    1)) >= timeNow) {
-                                                hasEcfmpRestriction = 1;
-                                                myEcfmp = ecfmpData[z];
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
                     // EOBT
                     EOBT = FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
                     string EOBTstring = EOBT;
@@ -961,154 +883,77 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
 
                                     if (correctTTOT) {
-                                        bool correctFlowTTOT = true;
-                                        vector<Plane> sameDestList;
-                                        sameDestList.clear();
-
-                                        // Check flow measures if exists
-                                        if (hasEcfmpRestriction) {
-                                            sameDestList.clear();
-                                            int seperationFlow = myEcfmp.value;
-                                            for (size_t z = 0; z < slotList.size(); z++) {
-                                                CFlightPlan fpSelected = FlightPlanSelect(slotList[z].callsign.c_str());
-                                                if (!fpSelected.IsValid()) {
-                                                    continue;
-                                                }
-                                                string destFound = fpSelected.GetFlightPlanData().GetDestination();
-                                                string routeFound = fpSelected.GetFlightPlanData().GetRoute();
-                                                bool validToAdd = false;
-                                                for (string apt : myEcfmp.ADES) {
-                                                    if (apt.find(destFound) != string::npos) {
-                                                        validToAdd = true;
-                                                    } else if (apt.substr(2, 2) == "**") {
-                                                        if (destFound.substr(0, 2) == apt.substr(0, 2)) {
-                                                            validToAdd = true;
-                                                        } else if (apt.substr(0, 2) == "**") {
-                                                            validToAdd = true;
-                                                        }
-                                                    }
-                                                }
-                                                if (validToAdd) {
-                                                    validToAdd = false;
-                                                    if (myEcfmp.waypoints.empty()) {
-                                                        validToAdd = true;
-                                                    }
-                                                    for (string wpt : myEcfmp.waypoints) {
-                                                        if (routeFound.find(wpt) != string::npos) {
-                                                            validToAdd = true;
-                                                        }
-                                                    }
-                                                    if (validToAdd) {
-                                                        sameDestList.push_back(slotList[z]);
-                                                    }
-                                                }
-                                            }
-
-                                            for (size_t z = 0; z < sameDestList.size(); z++) {
-                                                CFlightPlan fpList = FlightPlanSelect(slotList[z].callsign.c_str());
-                                                if (!fpList.IsValid()) {
-                                                    continue;
-                                                }
-                                                bool found = false;
-                                                string listTTOT = sameDestList[z].ttot;
-                                                string listCallsign = sameDestList[z].callsign;
-                                                string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-                                                string listAirport = fpList.GetFlightPlanData().GetOrigin();
-                                                while (!found) {
-                                                    found = true;
-                                                    if (TTOTFinal == listTTOT && callsign != listCallsign &&
-                                                        sameOrDependantRwys && listAirport == origin) {
-                                                        found = false;
-                                                        TTOTFinal = calculateTime(TTOTFinal, 1);
-                                                        correctFlowTTOT = false;
-                                                    } else if ((stoi(TTOTFinal) <
-                                                                stoi(calculateTime(listTTOT, seperationFlow))) &&
-                                                               (stoi(TTOTFinal) >
-                                                                stoi(calculateLessTime(listTTOT, seperationFlow))) &&
-                                                               callsign != listCallsign && sameOrDependantRwys &&
-                                                               listAirport == origin) {
-                                                        found = false;
-                                                        TTOTFinal = calculateTime(TTOTFinal, 1);
-                                                        correctFlowTTOT = false;
-                                                    }
+                                        equalTTOT = false;
+                                        TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+                                        /* START Check stand de-ice */
+                                        bool standDeice = false;
+                                        for (vector<string> deice : deiceList) {
+                                            if (deice[0] == callsign) {
+                                                if (deice[1] == "STND") {
+                                                    standDeice = true;
                                                 }
                                             }
                                         }
-                                        if (correctFlowTTOT) {
-                                            equalTTOT = false;
-                                            TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-                                            /* START Check stand de-ice */
-                                            bool standDeice = false;
-                                            for (vector<string> deice : deiceList) {
-                                                if (deice[0] == callsign) {
-                                                    if (deice[1] == "STND") {
-                                                        standDeice = true;
-                                                    }
-                                                }
-                                            }
-                                            if (standDeice) {
-                                                int deIceTime =
-                                                    getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc(), 0);
-                                                TSATfinal = calculateTime(TSATfinal, deIceTime);
-                                            }
-                                            /* END Check stand de-ice */
-                                            TSAT = TSATfinal.c_str();
-                                            TTOT = TTOTFinal.c_str();
-                                            bool doRequest = false;
-                                            if (aircraftFind) {
-                                                if (TTOT != slotList[pos].ttot || EOBT != slotList[pos].eobt) {
-                                                    Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot,
-                                                            slotList[pos].flowReason, myEcfmp, hasEcfmpRestriction,
-                                                            hasManualCtot, true, true);
-                                                    doRequest = true;
-                                                    slotList[pos] = p;
-                                                    setFlightStripInfo(FlightPlan, p.tsat, 3);
-                                                    setFlightStripInfo(FlightPlan, p.ttot, 4);
-                                                }
-                                            } else {
-                                                Plane p(callsign, EOBT, TSAT, TTOT, "", "", myEcfmp,
-                                                        hasEcfmpRestriction, hasManualCtot, true, true);
+                                        if (standDeice) {
+                                            int deIceTime =
+                                                getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc(), 0);
+                                            TSATfinal = calculateTime(TSATfinal, deIceTime);
+                                        }
+                                        /* END Check stand de-ice */
+                                        TSAT = TSATfinal.c_str();
+                                        TTOT = TTOTFinal.c_str();
+                                        bool doRequest = false;
+                                        if (aircraftFind) {
+                                            if (TTOT != slotList[pos].ttot || EOBT != slotList[pos].eobt) {
+                                                Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot,
+                                                        slotList[pos].flowReason, hasManualCtot, true, true);
                                                 doRequest = true;
-                                                slotList.push_back(p);
-                                                pos = getPlanePosition(callsign);
+                                                slotList[pos] = p;
                                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
                                                 setFlightStripInfo(FlightPlan, p.ttot, 4);
                                             }
-                                            // Check API
-                                            if (doRequest) {
-                                                if (serverEnabled) {
-                                                    string myTSATApi = TSAT;
-                                                    // Hide calculation
-                                                    for (size_t a = 0; a < slotList.size(); a++) {
-                                                        if (slotList[a].callsign == callsign) {
-                                                            slotList[a].showData = false;
-                                                        }
+                                        } else {
+                                            Plane p(callsign, EOBT, TSAT, TTOT, "", "", hasManualCtot, true, true);
+                                            doRequest = true;
+                                            slotList.push_back(p);
+                                            pos = getPlanePosition(callsign);
+                                            setFlightStripInfo(FlightPlan, p.tsat, 3);
+                                            setFlightStripInfo(FlightPlan, p.ttot, 4);
+                                        }
+                                        // Check API
+                                        if (doRequest) {
+                                            if (serverEnabled) {
+                                                string myTSATApi = TSAT;
+                                                // Hide calculation
+                                                for (size_t a = 0; a < slotList.size(); a++) {
+                                                    if (slotList[a].callsign == callsign) {
+                                                        slotList[a].showData = false;
                                                     }
-                                                    if (slotList[pos].hasManualCtot && slotList[pos].ctot != "" &&
-                                                        slotList[pos].ttot.length() >= 4) {
-                                                        string myTTOT = TTOT;
-                                                        myTTOT = myTTOT.substr(0, 4);
-                                                        if (stoi(myTTOT) > stoi(slotList[pos].ctot) &&
-                                                            stoi(myTTOT + "00") <=
-                                                                stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
-                                                            // Update TOBT API with TSAT if TTOT is greater than CTOT
-                                                            // but less or equal to CTOT+7
-                                                            string myCOBT =
-                                                                calculateLessTime(slotList[pos].ctot + "00", taxiTime);
-                                                            std::thread t(&CDM::setOBTApi, this, callsign, myCOBT, true,
-                                                                          false);
-                                                            t.detach();
-                                                        } else {
-                                                            std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi,
-                                                                          true, false);
-                                                            t.detach();
-                                                        }
-
-                                                    } else {
-                                                        std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi, true,
+                                                }
+                                                if (slotList[pos].hasManualCtot && slotList[pos].ctot != "" &&
+                                                    slotList[pos].ttot.length() >= 4) {
+                                                    string myTTOT = TTOT;
+                                                    myTTOT = myTTOT.substr(0, 4);
+                                                    if (stoi(myTTOT) > stoi(slotList[pos].ctot) &&
+                                                        stoi(myTTOT + "00") <=
+                                                            stoi(calculateTime(slotList[pos].ctot + "00", 7))) {
+                                                        // Update TOBT API with TSAT if TTOT is greater than CTOT
+                                                        // but less or equal to CTOT+7
+                                                        string myCOBT =
+                                                            calculateLessTime(slotList[pos].ctot + "00", taxiTime);
+                                                        std::thread t(&CDM::setOBTApi, this, callsign, myCOBT, true,
                                                                       false);
                                                         t.detach();
+                                                    } else {
+                                                        std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi,
+                                                                      true, false);
+                                                        t.detach();
                                                     }
+
+                                                } else {
+                                                    std::thread t(&CDM::setOBTApi, this, callsign, myTSATApi, true,
+                                                                  false);
+                                                    t.detach();
                                                 }
                                             }
                                         }
@@ -1882,10 +1727,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             }
                                             ItemRGB = TAG_YELLOW;
                                             strcpy_s(sItemString, 16, message.c_str());
-                                        } else if (slotList[pos].hasEcfmpRestriction) {
-                                            ItemRGB = TAG_YELLOW;
-                                            string message = slotList[pos].ecfmpRestriction.ident;
-                                            strcpy_s(sItemString, 16, message.c_str());
                                         }
                                     }
                                 } else {
@@ -1911,9 +1752,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                 }
                                             }
                                             strcpy_s(sItemString, 16, value.c_str());
-                                        } else if (slotList[pos].hasEcfmpRestriction) {
-                                            ItemRGB = TAG_RED;
-                                            strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
                                         }
                                     }
                                 } else {
@@ -2057,24 +1895,12 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
 
-                            // Update ECFMP to Slaves
-                            if (aircraftFind) {
-                                string stripEcfmp = getFlightStripInfo(FlightPlan, 6);
-                                if (stripEcfmp == "" && slotList[pos].hasEcfmpRestriction) {
-                                    setFlightStripInfo(FlightPlan, slotList[pos].ecfmpRestriction.ident, 6);
-                                } else if (stripEcfmp != "" && !slotList[pos].hasEcfmpRestriction) {
-                                    // Make ecfmp empty for slaves
-                                    setFlightStripInfo(FlightPlan, "", 6);
-                                }
-                            }
-
                             // Update Manual CTOT to Slaves
                             if (aircraftFind) {
                                 string stripManualCtot = getFlightStripInfo(FlightPlan, 7);
                                 if (stripManualCtot == "" && slotList[pos].hasManualCtot && slotList[pos].ctot == "") {
                                     setFlightStripInfo(FlightPlan, "1", 7);
                                 } else if (stripManualCtot != "" && !slotList[pos].hasManualCtot) {
-                                    // Make ecfmp empty for slaves
                                     setFlightStripInfo(FlightPlan, "", 7);
                                 }
                             }
@@ -2180,8 +2006,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             }
                         } else {
                             if (TSATFind) {
-                                Plane p(callsign, EOBT, TSATString, TTOTString, "", "", myEcfmp, hasEcfmpRestriction,
-                                        hasManualCtot, true, true);
+                                Plane p(callsign, EOBT, TSATString, TTOTString, "", "", hasManualCtot, true, true);
                                 slotList.push_back(p);
                             }
                         }
@@ -2206,21 +2031,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             if (!found && deIce != "") {
                                 // Add to main de-ice list
                                 deiceList.push_back({callsign, deIce});
-                            }
-                        }
-
-                        // Update ECFMP from Master
-                        if (aircraftFind) {
-                            string ecfmpIdent = getFlightStripInfo(FlightPlan, 6);
-                            if (ecfmpIdent != "") {
-                                for (int y = 0; y < ecfmpData.size(); y++) {
-                                    if (ecfmpData[y].ident == ecfmpIdent) {
-                                        slotList[pos].hasEcfmpRestriction = 1;
-                                        slotList[pos].ecfmpRestriction = ecfmpData[y];
-                                    }
-                                }
-                            } else if (ecfmpIdent == "" && slotList[pos].hasEcfmpRestriction) {
-                                slotList[pos].hasEcfmpRestriction = 0;
                             }
                         }
 
@@ -2960,10 +2770,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         }
                                         ItemRGB = TAG_YELLOW;
                                         strcpy_s(sItemString, 16, message.c_str());
-                                    } else if (slotList[pos].hasEcfmpRestriction) {
-                                        ItemRGB = TAG_YELLOW;
-                                        string message = slotList[pos].ecfmpRestriction.ident;
-                                        strcpy_s(sItemString, 16, message.c_str());
                                     }
                                 } else {
                                     for (ServerRestricted sr : serverRestrictedPlanes) {
@@ -2991,9 +2797,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             }
                                         }
                                         strcpy_s(sItemString, 16, value.c_str());
-                                    } else if (slotList[pos].hasEcfmpRestriction) {
-                                        ItemRGB = TAG_RED;
-                                        strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
                                     }
                                 } else {
                                     for (ServerRestricted sr : serverRestrictedPlanes) {
@@ -3018,7 +2821,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
 
                                 if (aircraftFind) {
-                                    if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
+                                    if (slotList[pos].hasManualCtot) {
                                         string ctotSource = slotList[pos].ttot;
                                         if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
                                         string value = getDiffNowTime(ctotSource, true, "");
@@ -3175,10 +2978,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                                 ItemRGB = TAG_YELLOW;
                                 strcpy_s(sItemString, 16, message.c_str());
-                            } else if (slotList[pos].hasEcfmpRestriction) {
-                                ItemRGB = TAG_YELLOW;
-                                string message = slotList[pos].ecfmpRestriction.ident;
-                                strcpy_s(sItemString, 16, message.c_str());
                             }
                         } else {
                             for (ServerRestricted sr : serverRestrictedPlanes) {
@@ -3205,9 +3004,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 strcpy_s(sItemString, 16, value.c_str());
-                            } else if (slotList[pos].hasEcfmpRestriction) {
-                                ItemRGB = TAG_RED;
-                                strcpy_s(sItemString, 16, slotList[pos].ttot.substr(0, 4).c_str());
                             }
                         } else {
                             for (ServerRestricted sr : serverRestrictedPlanes) {
@@ -3231,7 +3027,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         }
 
                         if (aircraftFind) {
-                            if (slotList[pos].hasManualCtot || slotList[pos].hasEcfmpRestriction) {
+                            if (slotList[pos].hasManualCtot) {
                                 string ctotSource = slotList[pos].ttot;
                                 if (slotList[pos].ctot != "") ctotSource = slotList[pos].ctot;
                                 string value = getDiffNowTime(ctotSource, true, "");
@@ -3398,8 +3194,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 }
 
                 if (slotListPos == -1) {
-                    EcfmpRestriction myEcfmp;
-                    Plane p(callsign, EOBTfinal, EOBTfinal, EOBTfinal, "", "", myEcfmp, false, false, true, false);
+                    Plane p(callsign, EOBTfinal, EOBTfinal, EOBTfinal, "", "", false, true, false);
                     slotList.push_back(p);
                 }
 

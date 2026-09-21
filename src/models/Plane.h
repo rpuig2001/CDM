@@ -2,7 +2,6 @@
 #include <iostream>
 #include <string>
 
-#include "src/models/EcfmpRestriction.h"
 using namespace std;
 
 class Plane {
@@ -13,23 +12,18 @@ class Plane {
     string ttot;
     string ctot;
     string flowReason;
-    EcfmpRestriction ecfmpRestriction;
-    bool hasEcfmpRestriction;
     bool hasManualCtot;
     bool showData;
     bool isCdmAirport;
 
     Plane(string mycallsign, string myeobt, string mytsat, string myttot, string myctot, string myFlowReason,
-          EcfmpRestriction myEcfmpRestriction, bool myHasEcfmpRestriction, bool myHasManualCtot, bool myShowData,
-          bool myIsCdmAirport)
+          bool myHasManualCtot, bool myShowData, bool myIsCdmAirport)
         : callsign(mycallsign),
           eobt(myeobt),
           tsat(mytsat),
           ttot(myttot),
           ctot(myctot),
           flowReason(myFlowReason),
-          ecfmpRestriction(myEcfmpRestriction),
-          hasEcfmpRestriction(myHasEcfmpRestriction),
           hasManualCtot(myHasManualCtot),
           showData(myShowData),
           isCdmAirport(myIsCdmAirport) {}

@@ -74,7 +74,6 @@ void CDM::getCdmServerRelevantFlights() {
                             mostPenalisingRegulation = "N/A";
                         }
 
-                        // Only keep sts if not affected by ecfmp restriction
                         relevantFlightsTemp.push_back({callsign, departure, arrival, eobt, tobt, taxi, ctot, aobt, eta,
                                                        mostPenalisingRegulation, atfcmStatus, informed, isCdm,
                                                        isExcluded, isRea, isSir});

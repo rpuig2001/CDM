@@ -19,7 +19,6 @@
 #include "CDMSingle.hpp"
 #include "src/screen/CDMScreen.h"
 #include "src/models/Delay.h"
-#include "src/models/EcfmpRestriction.h"
 
 inline bool blink;
 inline bool debugMode, initialSidLoad;
@@ -45,7 +44,6 @@ inline time_t countTimeNonCdm;
 inline time_t countFetchServerTime;
 inline time_t countRefreshActions4Time;
 inline time_t countTfcDisconnectionTime;
-inline time_t countEcfmpTime;
 inline time_t countNetworkTobt;
 inline int countTfcDisconnection;
 inline int refreshTime;
@@ -83,7 +81,6 @@ inline int defTaxiTime;
 inline bool flashingTOBTend;
 inline bool flashingTSATstart;
 inline bool flashingTSATend;
-inline string flowRestrictionsUrl;
 inline string cdm_api;
 inline string myAtcCallsign;
 inline bool option_su_wait;
@@ -91,7 +88,6 @@ inline string apikey = "";
 inline bool serverEnabled;
 inline bool sftpConnection;
 inline bool refresh1;
-inline bool refresh2;
 inline bool refresh3;
 inline bool refresh4;
 inline string flightsFilterText;
@@ -147,7 +143,6 @@ inline vector<Plane> slotListToUpdate;
 inline vector<Plane> slotListSaved;
 inline vector<vector<string>> dataSaved;
 inline vector<vector<string>> obtList;
-inline vector<EcfmpRestriction> ecfmpData;
 inline vector<Plane> apiCtots;
 inline vector<string> asatList;
 inline vector<string> taxiTimesList;

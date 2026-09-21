@@ -171,7 +171,6 @@ CDM::CDM(void)
     countTimeNonCdm = std::time(nullptr);
     countFetchServerTime = std::time(nullptr);
     countRefreshActions4Time = std::time(nullptr);
-    countEcfmpTime = std::time(nullptr);
     countNetworkTobt = std::time(nullptr);
     countTfcDisconnectionTime = std::time(nullptr);
     // countTime = stoi(GetTimeNow()) - refreshTime;
@@ -468,7 +467,6 @@ CDM::CDM(void)
 
     // Init refreshActions
     refresh1 = false;
-    refresh2 = false;
     refresh3 = false;
     refresh4 = false;
 

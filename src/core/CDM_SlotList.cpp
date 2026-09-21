@@ -209,13 +209,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
         bool okToLook = false;
         string timeNow = GetActualTime() + "00";
         bool initialTSATInPast = (stoi(plane.tsat) < stoi(timeNow));
-        string myFlow = "";
-        EcfmpRestriction myEcfmp;
-        bool hasEcfmpRestriction = false;
-        
-        myFlow = plane.flowReason;
-        myEcfmp = plane.ecfmpRestriction;
-        hasEcfmpRestriction = plane.hasEcfmpRestriction;
+        string myFlow = plane.flowReason;
 
         // Calculate Rate
         int rate;
@@ -280,152 +274,77 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                 }
 
                 if (correctTTOT) {
-                    bool correctFlowTTOT = true;
-                    bool correctCAD = true;
-                    vector<Plane> sameDestList;
-                    sameDestList.clear();
-
-                    // Check flow measures if exists
-                    if (hasEcfmpRestriction) {
-                        sameDestList.clear();
-                        int seperationFlow = myEcfmp.value;
-                        for (size_t z = 0; z < planes.size(); z++) {
-                            CFlightPlan fpSelected = FlightPlanSelect(planes[z].callsign.c_str());
-                            if (!fpSelected.IsValid()) {
-                                continue;
-                            }
-                            string destFound = fpSelected.GetFlightPlanData().GetDestination();
-                            string routeFound = fpSelected.GetFlightPlanData().GetRoute();
-                            bool validToAdd = false;
-                            for (string apt : myEcfmp.ADES) {
-                                if (apt.find(destFound) != string::npos) {
-                                    validToAdd = true;
-                                } else if (apt.substr(2, 2) == "**") {
-                                    if (destFound.substr(0, 2) == apt.substr(0, 2)) {
-                                        validToAdd = true;
-                                    } else if (apt.substr(0, 2) == "**") {
-                                        validToAdd = true;
-                                    }
-                                }
-                            }
-                            if (validToAdd) {
-                                validToAdd = false;
-                                if (myEcfmp.waypoints.empty()) {
-                                    validToAdd = true;
-                                }
-                                for (string wpt : myEcfmp.waypoints) {
-                                    if (routeFound.find(wpt) != string::npos) {
-                                        validToAdd = true;
-                                    }
-                                }
-                                if (validToAdd) {
-                                    sameDestList.push_back(planes[z]);
-                                }
-                            }
-                        }
-
-                        for (size_t z = 0; z < sameDestList.size(); z++) {
-                            CFlightPlan fpList = FlightPlanSelect(sameDestList[z].callsign.c_str());
-                            if (!fpList.IsValid()) {
-                                continue;
-                            }
-                            bool found = false;
-                            string listTTOT = sameDestList[z].ttot;
-                            string listCallsign = sameDestList[z].callsign;
-                            string listDepRwy = fpList.GetFlightPlanData().GetDepartureRwy();
-                            string listAirport = fpList.GetFlightPlanData().GetOrigin();
-                            while (!found) {
-                                found = true;
-                                if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&
-                                    listAirport == origin) {
-                                    found = false;
-                                    TTOTFinal = calculateTime(TTOTFinal, 1);
-                                    correctFlowTTOT = false;
-                                } else if ((stoi(TTOTFinal) < stoi(calculateTime(listTTOT, seperationFlow))) &&
-                                           (stoi(TTOTFinal) > stoi(calculateLessTime(listTTOT, seperationFlow))) &&
-                                           callsign != listCallsign && sameOrDependantRwys && listAirport == origin) {
-                                    found = false;
-                                    TTOTFinal = calculateTime(TTOTFinal, 1);
-                                    correctFlowTTOT = false;
-                                }
+                    bool doRequest = false;
+                    equalTTOT = false;
+                    TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+                    /* START Check stand de-ice */
+                    bool standDeice = false;
+                    for (vector<string> deice : deiceList) {
+                        if (deice[0] == callsign) {
+                            if (deice[1] == "STND") {
+                                standDeice = true;
                             }
                         }
                     }
-                    if (correctFlowTTOT) {
-                        bool doRequest = false;
-                        equalTTOT = false;
-                        TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
-                        /* START Check stand de-ice */
-                        bool standDeice = false;
-                        for (vector<string> deice : deiceList) {
-                            if (deice[0] == callsign) {
-                                if (deice[1] == "STND") {
-                                    standDeice = true;
-                                }
-                            }
-                        }
-                        if (standDeice) {
-                            int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc(), 0);
-                            TSATfinal = calculateTime(TSATfinal, deIceTime);
-                        }
-                        /* END Check stand de-ice */
-                        string TSAT = TSATfinal.c_str();
-                        string TTOT = TTOTFinal.c_str();
-                        if (plane.hasManualCtot) {
-                            if (aircraftFind) {
-                                if (TTOT != plane.ttot && TTOT.length() >= 4) {
-                                    Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp,
-                                            hasEcfmpRestriction, plane.hasManualCtot, true, true);
-                                    plane = p;
-                                    doRequest = true;
-                                    setFlightStripInfo(FlightPlan, p.tsat, 3);
-                                    setFlightStripInfo(FlightPlan, p.ttot, 4);
-                                }
-                            } else if (TTOT.length() >= 4) {
-                                Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction,
-                                        plane.hasManualCtot, true, true);
+                    if (standDeice) {
+                        int deIceTime = getDeIceTime(FlightPlan.GetFlightPlanData().GetAircraftWtc(), 0);
+                        TSATfinal = calculateTime(TSATfinal, deIceTime);
+                    }
+                    /* END Check stand de-ice */
+                    string TSAT = TSATfinal.c_str();
+                    string TTOT = TTOTFinal.c_str();
+                    if (plane.hasManualCtot) {
+                        if (aircraftFind) {
+                            if (TTOT != plane.ttot && TTOT.length() >= 4) {
+                                Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true,
+                                        true);
                                 plane = p;
+                                doRequest = true;
                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
                                 setFlightStripInfo(FlightPlan, p.ttot, 4);
                             }
-                        } else {
-                            if (aircraftFind) {
-                                if (TTOT != plane.ttot && TTOT.length() >= 4) {
-                                    Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp,
-                                            hasEcfmpRestriction, plane.hasManualCtot, true, true);
-                                    plane = p;
-                                    doRequest = true;
-                                    setFlightStripInfo(FlightPlan, p.tsat, 3);
-                                    setFlightStripInfo(FlightPlan, p.ttot, 4);
-                                }
-                            } else if (TTOT.length() >= 4) {
-                                Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, myEcfmp, hasEcfmpRestriction,
-                                        plane.hasManualCtot, true, true);
+                        } else if (TTOT.length() >= 4) {
+                            Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true, true);
+                            plane = p;
+                            setFlightStripInfo(FlightPlan, p.tsat, 3);
+                            setFlightStripInfo(FlightPlan, p.ttot, 4);
+                        }
+                    } else {
+                        if (aircraftFind) {
+                            if (TTOT != plane.ttot && TTOT.length() >= 4) {
+                                Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true,
+                                        true);
                                 plane = p;
+                                doRequest = true;
                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
                                 setFlightStripInfo(FlightPlan, p.ttot, 4);
                             }
+                        } else if (TTOT.length() >= 4) {
+                            Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true, true);
+                            plane = p;
+                            setFlightStripInfo(FlightPlan, p.tsat, 3);
+                            setFlightStripInfo(FlightPlan, p.ttot, 4);
                         }
-                        // Check API
-                        if (doRequest && !aicraftInFinalTimesList && TSATfinal.length() >= 4) {
-                            if (serverEnabled) {
-                                string myTSATApi = TSAT;
-                                if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
-                                    string myTTOT = TTOT;
-                                    myTTOT = myTTOT.substr(0, 4);
-                                    if (stoi(myTTOT) > stoi(plane.ctot) &&
-                                        stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
-                                        // Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to
-                                        // CTOT+7
-                                        string myCOBT = calculateLessTime(plane.ctot + "00", taxiTime);
-                                        setOBTApi(callsign, myCOBT, false, false);
-                                    } else {
-                                        setOBTApi(callsign, myTSATApi, false, false);
-                                    }
-
+                    }
+                    // Check API
+                    if (doRequest && !aicraftInFinalTimesList && TSATfinal.length() >= 4) {
+                        if (serverEnabled) {
+                            string myTSATApi = TSAT;
+                            if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
+                                string myTTOT = TTOT;
+                                myTTOT = myTTOT.substr(0, 4);
+                                if (stoi(myTTOT) > stoi(plane.ctot) &&
+                                    stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
+                                    // Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to
+                                    // CTOT+7
+                                    string myCOBT = calculateLessTime(plane.ctot + "00", taxiTime);
+                                    setOBTApi(callsign, myCOBT, false, false);
                                 } else {
                                     setOBTApi(callsign, myTSATApi, false, false);
                                 }
+
+                            } else {
+                                setOBTApi(callsign, myTSATApi, false, false);
                             }
                         }
                     }

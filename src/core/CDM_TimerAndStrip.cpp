@@ -84,11 +84,6 @@ void CDM::refreshActions1() {
     refresh1 = false;
 }
 
-void CDM::refreshActions2() {
-    addLogLine("[AUTO] - REFRESH ECFMP");
-    refresh2 = false;
-}
-
 void CDM::refreshActions3() {
     addLogLine("[AUTO] - REFRESH API 1");
     getCdmServerRestricted(slotList);

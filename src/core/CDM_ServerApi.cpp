@@ -36,9 +36,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
                         slotListTemp[i].hasManualCtot = false;
                     }
                     slotListTemp[i].ctot = "";
-                    if (!slotListTemp[i].hasEcfmpRestriction) {
-                        slotListTemp[i].flowReason = "";
-                    }
+                    slotListTemp[i].flowReason = "";
                 }
 
                 serverRestrictedPlanesTemp.clear();
@@ -69,16 +67,13 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
 
                         if (ctot.size() == 4) {
                             for (size_t z = 0; z < slotListTemp.size(); z++) {
-                                if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign) &&
-                                    !slotListTemp[z].hasEcfmpRestriction) {
+                                if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign)) {
                                     slotListTemp[z] = {callsign,
                                                        slotListTemp[z].eobt,
                                                        slotListTemp[z].tsat,
                                                        slotListTemp[z].ttot,
                                                        ctot,
                                                        reason,
-                                                       slotListTemp[z].ecfmpRestriction,
-                                                       slotListTemp[z].hasEcfmpRestriction,
                                                        true,
                                                        true,
                                                        true};
@@ -315,7 +310,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
             int responseCode = response.statusCode;
 
             if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
-                Plane plane(callsign, "", obt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser, useEobt);
+                Plane plane(callsign, "", obt, "", "", "", false, triggeredByUser, useEobt);
                 {
                     std::lock_guard<std::mutex> lock(later1Mutex);
                     setOBTlater.push_back(plane);  // Safely modify setOBTlater
@@ -353,8 +348,6 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                                                        slotListTemp[i].ttot,
                                                        ctot,
                                                        reason,
-                                                       slotListTemp[i].ecfmpRestriction,
-                                                       slotListTemp[i].hasEcfmpRestriction,
                                                        true,
                                                        true,
                                                        true};
@@ -373,8 +366,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                         }
                     }
                 } else {
-                    Plane plane(callsign, "", obt, "", "", "", EcfmpRestriction(), false, false, triggeredByUser,
-                                useEobt);
+                    Plane plane(callsign, "", obt, "", "", "", false, triggeredByUser, useEobt);
                     {
                         std::lock_guard<std::mutex> lock(later1Mutex);
                         setOBTlater.push_back(plane);
@@ -532,16 +524,7 @@ void CDM::getCdmServerStatus() {
                         cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
                         cdmSts.erase(std::remove(cdmSts.begin(), cdmSts.end(), '\n'));
 
-                        // Only keep sts if not affected by ecfmp restriction
-                        bool hasEcfmpRestriction = false;
-                        for (int i = 0; i < slotList.size(); i++) {
-                            if (slotList[i].callsign == callsign && slotList[i].hasEcfmpRestriction) {
-                                hasEcfmpRestriction = true;
-                            }
-                        }
-                        if (!hasEcfmpRestriction) {
-                            networkStatusTemp.push_back({callsign, cdmSts});
-                        }
+                        networkStatusTemp.push_back({callsign, cdmSts});
                     }
                 }
                 {
@@ -594,16 +577,7 @@ void CDM::getCdmServerOnTime() {
                         onTime.erase(std::remove(onTime.begin(), onTime.end(), '\n'));
                         onTime.erase(std::remove(onTime.begin(), onTime.end(), '\n'));
 
-                        // Only keep sts if not affected by ecfmp restriction
-                        bool hasEcfmpRestriction = false;
-                        for (int i = 0; i < slotList.size(); i++) {
-                            if (slotList[i].callsign == callsign && slotList[i].hasEcfmpRestriction) {
-                                hasEcfmpRestriction = true;
-                            }
-                        }
-                        if (!hasEcfmpRestriction) {
-                            onTimeStatusTemp.push_back({callsign, onTime});
-                        }
+                        onTimeStatusTemp.push_back({callsign, onTime});
                     }
                 }
             }
@@ -652,8 +626,7 @@ void CDM::getCdmServerMasterAirports() {
                         position.erase(std::remove(position.begin(), position.end(), '"'));
                         position.erase(std::remove(position.begin(), position.end(), '\n'));
                         position.erase(std::remove(position.begin(), position.end(), '\n'));
-
-                        // Only keep sts if not affected by ecfmp restriction
+                        
                         serverMasterAirportsTemp.push_back({icao, position});
                     }
                 }
@@ -1110,8 +1083,7 @@ void CDM::copyServerSavedData(string airport) {
                 }
             }
             if (!updated) {
-                Plane plane = Plane(newplane[0], newplane[1], newplane[2], newplane[3], "", "", EcfmpRestriction(),
-                                    false, false, false, true);
+                Plane plane = Plane(newplane[0], newplane[1], newplane[2], newplane[3], "", "", false, false, true);
                 setFlightStripInfo(fp, formatTime(plane.eobt), 2);
                 setFlightStripInfo(fp, plane.tsat, 3);
                 setFlightStripInfo(fp, plane.ttot, 4);

@@ -7,11 +7,6 @@
 #include <thread>
 
 bool CDM::OnCompileCommand(const char* sCommandLine) {
-    if (startsWith(".cdm ecfmp", sCommandLine)) {
-        addLogLine(sCommandLine);
-        return true;
-    }
-
     if (startsWith(".cdm refresh", sCommandLine)) {
         addLogLine(sCommandLine);
         sendMessage("Refreshing Now...");

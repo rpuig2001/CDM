@@ -142,8 +142,6 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     bool flightHasCtotDisabled(string callsign);
 
-    void getEcfmpData();
-
     void getSidIntervalValuesUrl(string url);
 
     double getSidInterval(string mySid, string listSid, string depAirport, string depRwy, string listDepRwy = "");
@@ -348,8 +346,6 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     void setFlightStripInfo(CFlightPlan FlightPlan, string text, int position);
 
     void refreshActions1();
-
-    void refreshActions2();
 
     void refreshActions3();
 

@@ -65,7 +65,7 @@ void CDM::saveData() {
                 }
             }
             if (!found) {
-                Plane myPlane(planeSaved.callsign, "", "", "", "", "", EcfmpRestriction(), false, false, false, true);
+                Plane myPlane(planeSaved.callsign, "", "", "", "", "", false, false, true);
                 updateCdmDataApi(myPlane);
             }
         }
