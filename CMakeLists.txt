@@ -41,9 +41,24 @@ ADD_DEFINITIONS(-D_CRT_SECURE_NO_WARNINGS)
 
 SET(SOURCE_FILES
     src/api/CurlRestClient.cpp
-    CDMScreen.cpp
-    CDMSingle.cpp
-    SFTP.cpp
+    src/core/CDM_TimeUtils.cpp
+    src/core/CDM_Init.cpp
+    src/core/CDM_FunctionCall.cpp
+    src/core/CDM_Rates.cpp
+    src/core/CDM_SlotList.cpp
+    src/core/CDM_TaxiDeice.cpp
+    src/core/CDM_FlightTracking.cpp
+    src/core/CDM_DataPersistence.cpp
+    src/core/CDM_MiscHelpers.cpp
+    src/core/CDM_Commands.cpp
+    src/core/CDM_TimerAndStrip.cpp
+    src/core/CDM_MasterAirports.cpp
+    src/core/CDM_ServerApi.cpp
+    src/core/CDM_RelevantFlights.cpp
+    src/core/CDM_Messaging.cpp
+    src/core/CDM_TagRendering.cpp
+    src/screen/CDMScreen.cpp
+    src/net/SFTP.cpp
 )
 
 INCLUDE(external/CMakeLists.txt)
@@ -66,7 +81,7 @@ TARGET_LINK_LIBRARIES(${PROJECT_NAME}_static PUBLIC
 # Create shared library target - used for Euroscope
 ADD_LIBRARY(${PROJECT_NAME}_shared SHARED)
 SET_TARGET_PROPERTIES(${PROJECT_NAME}_shared PROPERTIES OUTPUT_NAME ${PROJECT_NAME})
-TARGET_SOURCES(${PROJECT_NAME}_shared PRIVATE CDM.cpp)
+TARGET_SOURCES(${PROJECT_NAME}_shared PRIVATE src/CDM.cpp)
 
 TARGET_LINK_LIBRARIES(${PROJECT_NAME}_shared PRIVATE
     ${PROJECT_NAME}_static

@@ -17,15 +17,15 @@
 #include <unordered_set>
 #include <vector>
 
-#include "Constant.hpp"
-#include "Plane.h"
-#include "Rate.h"
-#include "ServerRestricted.h"
+#include "src/models/Constant.hpp"
+#include "src/models/Plane.h"
+#include "src/models/Rate.h"
+#include "src/models/ServerRestricted.h"
 #include "json/json.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "sidInterval.h"
+#include "src/models/sidInterval.h"
 #include "src/api/IRestClient.h"
 #define CURL_STATICLIB
 #include <dbghelp.h>
@@ -305,6 +305,10 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     Plane refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPlan, string callsign, string EOBT,
                        string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate,
                        bool aircraftFind, bool aicraftInFinalTimesList);
+
+    string getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour,
+                          const string& callsign, const string& origin, const string& depRwy,
+                          const string& timeNow, double taxiTime, const string& mySid, Rate dataRate, bool& sameOrDependantRwysOut);
 
     string getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, const vector<Plane>& planes, int rateHour,
                                    const string& callsign, const string& origin, const string& depRwy,

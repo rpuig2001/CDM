@@ -3,7 +3,7 @@
 #pragma warning(push, 0)
 #include "EuroScopePlugIn.h"
 #pragma warning(pop)
-#include "CDMSingle.hpp"
+#include "src/core/CDMSingle.hpp"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 

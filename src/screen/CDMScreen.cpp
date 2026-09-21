@@ -10,7 +10,7 @@
 #include <string>
 #include <vector>
 
-#include "CDMSingle.hpp"
+#include "src/core/CDMSingle.hpp"
 
 // External global variables
 extern std::vector<Plane> slotList;
