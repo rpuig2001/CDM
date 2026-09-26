@@ -81,6 +81,7 @@ inline int defTaxiTime;
 inline bool flashingTOBTend;
 inline bool flashingTSATstart;
 inline bool flashingTSATend;
+inline int nonCdmEarlyClearenceColor;
 inline string cdm_api;
 inline string myAtcCallsign;
 inline bool option_su_wait;
@@ -201,4 +202,5 @@ inline COLORREF TAG_ASRT = 0xFFFFFFFF;
 inline COLORREF TAG_CTOT = 0xFFFFFFFF;
 inline COLORREF SU_SET_COLOR = 0xFFFFFFFF;
 inline COLORREF BLOCKS_CALLSIGN_COLOR = RGB(220, 220, 220);
+inline COLORREF TAG_NON_CDM_EARLY_CLEARENCE = RGB(128, 0, 128);
 

@@ -3269,6 +3269,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             break;
                         }
                     }
+                    if (nonCdmEarlyClearenceColor > 0) {
+                        // Highlight when EOBT is more than nonCdmEarlyClearenceColor minutes ahead of now
+                        if (eobtValue.length() == 4) {
+                            string diffTime = getDiffNowTime(eobtValue, true, "");
+                            if (stoi(diffTime) < -nonCdmEarlyClearenceColor) {
+                                ItemRGB = TAG_NON_CDM_EARLY_CLEARENCE;
+                            }
+                        }
+                    }
                     strcpy_s(sItemString, 16, eobtValue.c_str());
                 }
                 if (ItemCode == TAG_ITEM_ETOBT) {
@@ -3286,6 +3295,15 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         if (obtItem[0] == callsign && obtItem[1] != "") {
                             eobtValue = obtItem[1];
                             break;
+                        }
+                    }
+                    if (nonCdmEarlyClearenceColor > 0) {
+                        // Highlight when EOBT is more than nonCdmEarlyClearenceColor minutes ahead of now
+                        if (eobtValue.length() == 4) {
+                            string diffTime = getDiffNowTime(eobtValue, true, "");
+                            if (stoi(diffTime) < -nonCdmEarlyClearenceColor) {
+                                ItemRGB = TAG_NON_CDM_EARLY_CLEARENCE;
+                            }
                         }
                     }
                     strcpy_s(sItemString, 16, eobtValue.c_str());

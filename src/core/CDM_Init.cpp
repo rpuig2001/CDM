@@ -248,6 +248,7 @@ CDM::CDM(void)
         string remarksOptionCtotString = getFromXml("/CDM/remarksOptionCtot/@mode");
         string disableTobtReqAfterAsrt = getFromXml("/CDM/disableTobtReqAfterAsrt/@mode");
         string loadingTextString = getFromXml("/CDM/loading/@text");
+        string nonCdmEarlyClearenceColorString = getFromXml("/CDM/nonCdmEarlyClearenceColor/@minutes");
 
         apikey = "TEST";
         if (ftpHost == "" && ftpUser == "") {
@@ -320,6 +321,11 @@ CDM::CDM(void)
         if (flashingTOBTendString == "true") flashingTOBTend = true;
         if (flashingTSATstartString == "true") flashingTSATstart = true;
         if (flashingTSATendString == "true") flashingTSATend = true;
+        if (nonCdmEarlyClearenceColorString != "") {
+            nonCdmEarlyClearenceColor = stoi(nonCdmEarlyClearenceColorString);
+        } else {
+            nonCdmEarlyClearenceColor = 0;
+        }
 
         bmiMode = false;
         if (bmiModeString == "true") {
@@ -574,6 +580,9 @@ CDM::CDM(void)
                     break;
                 case 13:
                     BLOCKS_CALLSIGN_COLOR = color;
+                    break;
+                case 14:
+                    TAG_NON_CDM_EARLY_CLEARENCE = color;
                     break;
                 default:
                     break;
