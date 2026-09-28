@@ -211,6 +211,13 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                     string hour = to_string(ptm.tm_hour % 24);
                     string min = to_string(ptm.tm_min);
 
+                    if (stoi(min) < 10) {
+                        min = "0" + min;
+                    }
+                    if (stoi(hour) < 10) {
+                        hour = "0" + hour.substr(0, 1);
+                    }
+
                     int difTime = difftime(stoi(d.time), stoi(hour + min));
 
                     if (difTime > 0) {
@@ -299,6 +306,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                     gmtime_s(&ptm, &rawtime);
                     string hour = to_string(ptm.tm_hour % 24);
                     string min = to_string(ptm.tm_min);
+                    if (stoi(min) < 10) {
+                        min = "0" + min;
+                    }
+                    if (stoi(hour) < 10) {
+                        hour = "0" + hour.substr(0, 1);
+                    }
 
                     int difTime = difftime(stoi(d.time), stoi(hour + min));
 
