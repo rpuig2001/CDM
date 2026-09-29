@@ -967,22 +967,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 if (SU_ISSET) {
                                     string myASRTText = getFlightStripInfo(FlightPlan, 0);
                                     if (myASRTText.empty()) {
-                                        // Get Time now
-                                        time_t rawtime;
-                                        struct tm ptm;
-                                        time(&rawtime);
-                                        gmtime_s(&ptm, &rawtime);
-                                        string hour = to_string(ptm.tm_hour % 24);
-                                        string min = to_string(ptm.tm_min);
-
-                                        if (stoi(min) < 10) {
-                                            min = "0" + min;
-                                        }
-                                        if (stoi(hour) < 10) {
-                                            hour = "0" + hour.substr(0, 1);
-                                        }
-
-                                        setFlightStripInfo(FlightPlan, (hour + min), 0);
+                                        string timeNow = GetActualTime();
+                                        setFlightStripInfo(FlightPlan, timeNow, 0);
                                     }
                                 }
                             }
@@ -3208,21 +3194,8 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     }
                 }
 
-                // Get Time NOW
-                time_t rawtime;
-                struct tm ptm;
-                time(&rawtime);
-                gmtime_s(&ptm, &rawtime);
-                string hour = to_string(ptm.tm_hour % 24);
-                string min = to_string(ptm.tm_min);
-
-                if (stoi(min) < 10) {
-                    min = "0" + min;
-                }
-                if (stoi(hour) < 10) {
-                    hour = "0" + hour.substr(0, 1);
-                }
-
+                
+                string timeNow = GetActualTime();
                 // Set/Remove AOBT automaically base on state
                 bool ASATFound = false;
                 int ASATpos = 0;
@@ -3244,7 +3217,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                 if (!ASATFound) {
                     if (correctState) {
-                        ASATtext = formatTime(hour + min);
+                        ASATtext = timeNow;
                         asatList.push_back(callsign + "," + ASATtext.substr(0, 4));
                         runDetachedTask(&CDM::setCdmSts, callsign, "AOBT/" + ASATtext);
                         ASATFound = true;

@@ -90,33 +90,19 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
                         if (getFlightStripInfo(fp, 2) != formatTime(GetActualTime())) {
                             setFlightStripInfo(fp, formatTime(GetActualTime()), 2);
+                            string timeNow = GetActualTime();
 
-                            // Get Time now
-                            time_t rawtime;
-                            struct tm ptm;
-                            time(&rawtime);
-                            gmtime_s(&ptm, &rawtime);
-                            string hour = to_string(ptm.tm_hour % 24);
-                            string min = to_string(ptm.tm_min);
-
-                            if (stoi(min) < 10) {
-                                min = "0" + min;
-                            }
-                            if (stoi(hour) < 10) {
-                                hour = "0" + hour.substr(0, 1);
-                            }
-
-                            fp.GetFlightPlanData().SetEstimatedDepartureTime((hour + min).c_str());
+                            fp.GetFlightPlanData().SetEstimatedDepartureTime(timeNow.c_str());
                             fp.GetFlightPlanData().AmendFlightPlan();
-                            if ((hour + min).length() == 4) {
+                            if (timeNow.length() == 4) {
                                 for (int u = 0; u < obtList.size(); u++) {
                                     if (obtList[u][0] == fp.GetCallsign()) {
-                                        obtList[u][1] = hour + min;
+                                        obtList[u][1] = timeNow;
                                         break;
                                     }
                                 }
                                 // Set EOBT in API
-                                runDetachedTask(&CDM::setOBTApi, fp.GetCallsign(), hour + min, true, true);
+                                runDetachedTask(&CDM::setOBTApi, fp.GetCallsign(), timeNow, true, true);
                             }
 
                             // Set REA Status
@@ -223,22 +209,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                 addLogLine("TRIGGER - TAG_FUNC_READYSTARTUP");
                 string annotAsrt = getFlightStripInfo(fp, 0);
                 if (annotAsrt.empty()) {
-                    // Get Time now
-                    time_t rawtime;
-                    struct tm ptm;
-                    time(&rawtime);
-                    gmtime_s(&ptm, &rawtime);
-                    string hour = to_string(ptm.tm_hour % 24);
-                    string min = to_string(ptm.tm_min);
+                    string timeNow = GetActualTime();
 
-                    if (stoi(min) < 10) {
-                        min = "0" + min;
-                    }
-                    if (stoi(hour) < 10) {
-                        hour = "0" + hour.substr(0, 1);
-                    }
-
-                    setFlightStripInfo(fp, (hour + min), 0);
+                    setFlightStripInfo(fp, timeNow, 0);
                     if (FunctionId == TAG_FUNC_TOGGLEASRTREA) {
                         runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/1");
                     }
@@ -687,25 +660,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
                         if (getFlightStripInfo(fp, 2) != formatTime(GetActualTime())) {
                             setFlightStripInfo(fp, formatTime(GetActualTime()), 2);
-
-                            // Get Time now
-                            time_t rawtime;
-                            struct tm ptm;
-                            time(&rawtime);
-                            gmtime_s(&ptm, &rawtime);
-                            string hour = to_string(ptm.tm_hour % 24);
-                            string min = to_string(ptm.tm_min);
-
-                            if (stoi(min) < 10) {
-                                min = "0" + min;
-                            }
-                            if (stoi(hour) < 10) {
-                                hour = "0" + hour.substr(0, 1);
-                            }
-
+                            string timeNow = GetActualTime();
                             string annotAsrt = getFlightStripInfo(fp, 0);
                             if (annotAsrt.empty()) {
-                                setFlightStripInfo(fp, (hour + min), 0);
+                                setFlightStripInfo(fp, timeNow, 0);
                             }
 
                             // Update TOBT-setBy
@@ -733,24 +691,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                         addLogLine("TRIGGER - TAG_FUNC_READYTOBT_SLAVE");
                         if (getFlightStripInfo(fp, 2) != formatTime(GetActualTime())) {
                             setFlightStripInfo(fp, formatTime(GetActualTime()), 2);
-
-                            // Get Time now
-                            time_t rawtime;
-                            struct tm ptm;
-                            time(&rawtime);
-                            gmtime_s(&ptm, &rawtime);
-                            string hour = to_string(ptm.tm_hour % 24);
-                            string min = to_string(ptm.tm_min);
-
-                            if (stoi(min) < 10) {
-                                min = "0" + min;
-                            }
-                            if (stoi(hour) < 10) {
-                                hour = "0" + hour.substr(0, 1);
-                            }
+                            string timeNow = GetActualTime();
 
                             // Set REQ TOBT
-                            runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REQTOBT/" + hour + min + "/ATC");
+                            runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REQTOBT/" + timeNow + "/ATC");
                         }
                     }
                 }

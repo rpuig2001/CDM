@@ -10,22 +10,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         vector<Plane> tempSlotList;
         vector<Plane> copySlotList = slotList;
         addLogLine("[AUTO] - Starting CDM recalculation process");
-        // Get Time NOW
-        time_t rawtime;
-        struct tm ptm;
-        time(&rawtime);
-        gmtime_s(&ptm, &rawtime);
-        string hour = to_string(ptm.tm_hour % 24);
-        string min = to_string(ptm.tm_min);
-        string timeNow = GetActualTime() + "00";
-
-        if (stoi(min) < 10) {
-            min = "0" + min;
-        }
-        if (stoi(hour) < 10) {
-            hour = "0" + hour.substr(0, 1);
-        }
-
         for (size_t i = 0; i < copySlotList.size(); i++) {
             // Update TSAT in scratchpad if enabled remarksOption
             if (remarksOption || remarksOptionCtot) {

@@ -202,23 +202,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                     }
                 } else {
                     Delay d = Delay(apt, rwy, myTime, "tsat");
-
-                    // Get Time now
-                    time_t rawtime;
-                    struct tm ptm;
-                    time(&rawtime);
-                    gmtime_s(&ptm, &rawtime);
-                    string hour = to_string(ptm.tm_hour % 24);
-                    string min = to_string(ptm.tm_min);
-
-                    if (stoi(min) < 10) {
-                        min = "0" + min;
-                    }
-                    if (stoi(hour) < 10) {
-                        hour = "0" + hour.substr(0, 1);
-                    }
-
-                    int difTime = difftime(stoi(d.time), stoi(hour + min));
+                    string timeNow = GetActualTime();
+                    int difTime = difftime(stoi(d.time), stoi(timeNow));
 
                     if (difTime > 0) {
                         // Remove existing delay for the same airport and runway
@@ -298,22 +283,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                     }
                 } else {
                     Delay d = Delay(apt, rwy, myTime, "ttot");
-
-                    // Get Time now
-                    time_t rawtime;
-                    struct tm ptm;
-                    time(&rawtime);
-                    gmtime_s(&ptm, &rawtime);
-                    string hour = to_string(ptm.tm_hour % 24);
-                    string min = to_string(ptm.tm_min);
-                    if (stoi(min) < 10) {
-                        min = "0" + min;
-                    }
-                    if (stoi(hour) < 10) {
-                        hour = "0" + hour.substr(0, 1);
-                    }
-
-                    int difTime = difftime(stoi(d.time), stoi(hour + min));
+                    string timeNow = GetActualTime();
+                    int difTime = difftime(stoi(d.time), stoi(timeNow));
 
                     if (difTime > 0) {
                         // Remove existing delay for the same airport and runway
