@@ -58,18 +58,22 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                         hasNoNumber = false;
                     }
                 }
-                if (hasNoNumber) {
-                    fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
-                    fp.GetFlightPlanData().AmendFlightPlan();
-                    if (editedEOBT.length() == 4) {
-                        for (int u = 0; u < obtList.size(); u++) {
-                            if (obtList[u][0] == fp.GetCallsign()) {
-                                obtList[u][1] = editedEOBT;
-                                break;
+                if (hasNoNumber && editedEOBT.length() == 4) {
+                    int hours = stoi(editedEOBT.substr(0, 2));
+                    int minutes = stoi(editedEOBT.substr(2, 2));
+                    if (hours >= 0 && hours <= 23 && minutes >= 0 && minutes <= 59) {
+                        fp.GetFlightPlanData().SetEstimatedDepartureTime(editedEOBT.c_str());
+                        fp.GetFlightPlanData().AmendFlightPlan();
+                        if (editedEOBT.length() == 4) {
+                            for (int u = 0; u < obtList.size(); u++) {
+                                if (obtList[u][0] == fp.GetCallsign()) {
+                                    obtList[u][1] = editedEOBT;
+                                    break;
+                                }
                             }
+                            // Set EOBT in API
+                            runDetachedTask(&CDM::setOBTApi, fp.GetCallsign(), editedEOBT, true, true);
                         }
-                        // Set EOBT in API
-                        runDetachedTask(&CDM::setOBTApi, fp.GetCallsign(), editedEOBT, true, true);
                     }
                 }
             }
