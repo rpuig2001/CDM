@@ -3276,11 +3276,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             break;
                         }
                     }
-                    if (nonCdmEarlyClearenceColor > 0) {
-                        // Highlight when EOBT is more than nonCdmEarlyClearenceColor minutes ahead of now
+                    if (nonCdmEarlyClearenceColor > 0 && ItemRGB != TAG_RED) {
+                        // Highlight when EOBT is more than nonCdmEarlyClearenceColor minutes ahead of now or more than 5 min in the past
                         if (eobtValue.length() == 4) {
                             string diffTime = getDiffNowTime(eobtValue, true, "");
-                            if (stoi(diffTime) < -nonCdmEarlyClearenceColor) {
+                            if (stoi(diffTime) < -nonCdmEarlyClearenceColor || stoi(diffTime) > 5) {
                                 ItemRGB = TAG_NON_CDM_EARLY_CLEARENCE;
                             }
                         }
@@ -3304,11 +3304,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             break;
                         }
                     }
-                    if (nonCdmEarlyClearenceColor > 0) {
+                    if (nonCdmEarlyClearenceColor > 0 && ItemRGB != TAG_RED) {
                         // Highlight when EOBT is more than nonCdmEarlyClearenceColor minutes ahead of now
                         if (eobtValue.length() == 4) {
                             string diffTime = getDiffNowTime(eobtValue, true, "");
-                            if (stoi(diffTime) < -nonCdmEarlyClearenceColor) {
+                            if (stoi(diffTime) < -nonCdmEarlyClearenceColor || stoi(diffTime) > -5) {
                                 ItemRGB = TAG_NON_CDM_EARLY_CLEARENCE;
                             }
                         }
