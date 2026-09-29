@@ -159,6 +159,7 @@ CDM includes the following times:
   - Set the CTOT in remarks (Example: ```<remarksOptionCtot mode="true" />```).
   - Configures if TOBT updates after setting ASRT should be processed or not (TRUE: NOT PROCESSED / FALSE: PROCESSED) (Example: ```<disableTobtReqAfterAsrt mode="true" />```).
   - Set the loading text while times are "processing" (Example: ```<loading text="...." />```)
+  - [OPTIONAL] Display the EOBT with ```color14``` to indicate that the EOBT is in the far future or in the past. The configured color will be displayed when nonCdmEarlyClearenceColor > 0 AND is not FLS AND Clearence Flag is not set. Between EOBT-5 and EOBT+nonCdmEarlyClearenceColor the color will not be displayed (Example: ```<nonCdmEarlyClearenceColor minutes="30" />`).
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
