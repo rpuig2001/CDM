@@ -104,8 +104,9 @@ CDM::CDM(void)
 
     // Register Tag Item and functions "NETWORK STATUS"
     RegisterTagItemType("Network Sts", TAG_ITEM_NETWORK_STATUS);
-    RegisterTagItemType("Network Sts Airborne", TAG_ITEM_NETWORK_STATUS_AIRBORNE);
+    RegisterTagItemType("Network Sts Comply/Airborne", TAG_ITEM_NETWORK_STATUS_AIRBORNE);
     RegisterTagItemFunction("Network Sts Options", TAG_FUNC_NETWORK_STATUS_OPTIONS);
+    RegisterTagItemType("Network Sts Non-Comply/Airborne", TAG_ITEM_NETWORK_STATUS_NON_COMPLY);
 
     // Register Tag Item "CDM-DEICE"
     RegisterTagItemType("DE-ICE", TAG_ITEM_DEICE);

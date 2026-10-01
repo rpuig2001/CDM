@@ -598,6 +598,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         strcpy_s(sItemString, 16, status.c_str());
                                     }
                                 }
+                            } else if (ItemCode == TAG_ITEM_NETWORK_STATUS_NON_COMPLY) {
+                                string status = "";
+                                for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+                                    if (myNetworkStatus[i][0] == callsign) {
+                                        status = myNetworkStatus[i][1];
+                                    }
+                                }
+                                if (status != "") {
+                                    ItemRGB = TAG_RED;
+                                    if (status == "AIRB") {
+                                        status = "A";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    } else if (status != "COMPLY") {
+                                        status = "N";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    }
+                                }
                             } else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
                                 string status = "";
                                 for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -1807,6 +1824,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         strcpy_s(sItemString, 16, status.c_str());
                                     }
                                 }
+                            } else if (ItemCode == TAG_ITEM_NETWORK_STATUS_NON_COMPLY) {
+                                string status = "";
+                                for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+                                    if (myNetworkStatus[i][0] == callsign) {
+                                        status = myNetworkStatus[i][1];
+                                    }
+                                }
+                                if (status != "") {
+                                    ItemRGB = TAG_RED;
+                                    if (status == "AIRB") {
+                                        status = "A";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    } else if (status != "COMPLY") {
+                                        status = "N";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    }
+                                }
                             } else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
                                 string status = "";
                                 for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -2653,6 +2687,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         strcpy_s(sItemString, 16, status.c_str());
                                     }
                                 }
+                            } else if (ItemCode == TAG_ITEM_NETWORK_STATUS_NON_COMPLY) {
+                                string status = "";
+                                for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+                                    if (myNetworkStatus[i][0] == callsign) {
+                                        status = myNetworkStatus[i][1];
+                                    }
+                                }
+                                if (status != "") {
+                                    ItemRGB = TAG_RED;
+                                    if (status == "AIRB") {
+                                        status = "A";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    } else if (status != "COMPLY") {
+                                        status = "N";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    }
+                                }
                             } else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
                                 string status = "";
                                 for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -2858,6 +2909,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         strcpy_s(sItemString, 16, status.c_str());
                                     }
                                 }
+                            } else if (ItemCode == TAG_ITEM_NETWORK_STATUS_NON_COMPLY) {
+                                string status = "";
+                                for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+                                    if (myNetworkStatus[i][0] == callsign) {
+                                        status = myNetworkStatus[i][1];
+                                    }
+                                }
+                                if (status != "") {
+                                    ItemRGB = TAG_RED;
+                                    if (status == "AIRB") {
+                                        status = "A";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    } else if (status != "COMPLY") {
+                                        status = "N";
+                                        strcpy_s(sItemString, 16, status.c_str());
+                                    }
+                                }
                             } else if (ItemCode == TAG_ITEM_ON_TIME_STATUS) {
                                 string status = "";
                                 for (size_t i = 0; i < onTimeStatus.size(); i++) {
@@ -3060,6 +3128,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (status == "AIRB") {
                                 ItemRGB = TAG_RED;
                                 status = "A";
+                                strcpy_s(sItemString, 16, status.c_str());
+                            }
+                        }
+                    } else if (ItemCode == TAG_ITEM_NETWORK_STATUS_NON_COMPLY) {
+                        string status = "";
+                        for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+                            if (myNetworkStatus[i][0] == callsign) {
+                                status = myNetworkStatus[i][1];
+                            }
+                        }
+                        if (status != "") {
+                            ItemRGB = TAG_RED;
+                            if (status == "AIRB") {
+                                status = "A";
+                                strcpy_s(sItemString, 16, status.c_str());
+                            } else if (status != "COMPLY") {
+                                status = "N";
                                 strcpy_s(sItemString, 16, status.c_str());
                             }
                         }
@@ -3355,6 +3440,23 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         } else if (status == "AIRB") {
                             ItemRGB = TAG_RED;
                             status = "A";
+                            strcpy_s(sItemString, 16, status.c_str());
+                        }
+                    }
+                } else if (ItemCode == TAG_ITEM_NETWORK_STATUS_NON_COMPLY) {
+                    string status = "";
+                    for (size_t i = 0; i < myNetworkStatus.size(); i++) {
+                        if (myNetworkStatus[i][0] == callsign) {
+                            status = myNetworkStatus[i][1];
+                        }
+                    }
+                    if (status != "") {
+                        ItemRGB = TAG_RED;
+                        if (status == "AIRB") {
+                            status = "A";
+                            strcpy_s(sItemString, 16, status.c_str());
+                        } else if (status != "COMPLY") {
+                            status = "N";
                             strcpy_s(sItemString, 16, status.c_str());
                         }
                     }
