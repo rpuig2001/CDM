@@ -27,11 +27,13 @@ CDM includes the following times:
 
     or
 
-  ![image](https://i.gyazo.com/928f2e35f0a4248e17442bba552d72e0.png)
+  <img width="429" height="101" alt="image" src="https://github.com/user-attachments/assets/3805fdd1-1854-4a60-b334-1442c093ea47" />
+
 
 - E
 
-  ![image](https://i.gyazo.com/436e8eb7b20b00d2c39a483319d03425.png)
+  <img width="420" height="101" alt="image" src="https://github.com/user-attachments/assets/c1992494-eb94-4076-b275-2098d6aae09d" />
+
 
 - TOBT
 
@@ -39,15 +41,18 @@ CDM includes the following times:
 
     or
 
-  ![image](https://i.gyazo.com/ad6344055e7de91ab8a386f7153d19e1.png)
+  <img width="420" height="94" alt="image" src="https://github.com/user-attachments/assets/54aaf31a-e7cc-4039-94fa-160e95fee4a5" />
+
 
 - TSAT
 
-  ![image](https://i.gyazo.com/37b0ad531fc4a32dfaffbf7db83c5546.png)
+  <img width="418" height="99" alt="image" src="https://github.com/user-attachments/assets/e3aab239-ced6-4346-b768-19be7e12f117" />
+
 
 - TTOT
 
-  ![image](https://i.gyazo.com/4533873ef8d8342cb5b35ed381bb0f47.png)
+  <img width="420" height="99" alt="image" src="https://github.com/user-attachments/assets/9fabf56d-f1b8-45a4-934a-b705f97dfc4c" />
+
 
 - TSAC
 
@@ -55,11 +60,13 @@ CDM includes the following times:
 
     or
 
-  ![image](https://i.gyazo.com/8f9d55ec477a8c21ddb63df3b4da15a1.png)
+  <img width="418" height="97" alt="image" src="https://github.com/user-attachments/assets/87d6a387-9769-428a-85d1-16b45aa0e675" />
+
 
 - ASAT
 
-  ![image](https://i.gyazo.com/cf08823153ce9e99e1936659c07ad67d.png)
+  <img width="421" height="102" alt="image" src="https://github.com/user-attachments/assets/2ebd1c98-79e6-4b2e-8f29-b9b9d1ad805b" />
+
 
 - ASRT
 
@@ -71,7 +78,8 @@ CDM includes the following times:
 
     or
 
-  ![image](https://i.gyazo.com/775e1bf69fac29e2e3a776d35e67952a.png)
+  <img width="417" height="97" alt="image" src="https://github.com/user-attachments/assets/57eddfc6-96d7-49d9-b5ae-e57faefe490e" />
+
  
 - Network Status
   
@@ -87,7 +95,8 @@ CDM includes the following times:
 
 - Ready Start-up
 
-  ![image](https://i.gyazo.com/842144f7bddf11f3c9165c42ef0f940e.png)
+  <img width="430" height="101" alt="image" src="https://github.com/user-attachments/assets/71329668-45d3-41d0-a0b5-5b3608ca7516" />
+
 
 - Extra (All CDM Option in one Menu)
 
@@ -159,7 +168,7 @@ CDM includes the following times:
   - Set the CTOT in remarks (Example: ```<remarksOptionCtot mode="true" />```).
   - Configures if TOBT updates after setting ASRT should be processed or not (TRUE: NOT PROCESSED / FALSE: PROCESSED) (Example: ```<disableTobtReqAfterAsrt mode="true" />```).
   - Set the loading text while times are "processing" (Example: ```<loading text="...." />```)
-  - [OPTIONAL] Display the EOBT with ```color14``` to indicate that the EOBT is in the far future or in the past. The configured color will be displayed when nonCdmEarlyClearenceColor > 0 AND is not FLS AND Clearence Flag is not set. Between EOBT-5 and EOBT+nonCdmEarlyClearenceColor the color will not be displayed (Example: ```<nonCdmEarlyClearenceColor minutes="30" />`).
+  - [OPTIONAL] Display the EOBT with ```color14``` to indicate that the EOBT is in the far future or in the past. The configured color will be displayed when nonCdmEarlyClearenceColor > 0 AND is not FLS AND Clearence Flag is not set. Between EOBT-5 and EOBT+nonCdmEarlyClearenceColor the color will not be displayed (Example: ```<nonCdmEarlyClearenceColor minutes="30" />```).
  
 ### taxizones.txt
   - You can define a zone with an specific taxiTime with the following specifications:
