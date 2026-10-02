@@ -48,6 +48,7 @@ SET(SOURCE_FILES
     src/core/CDM_SlotList.cpp
     src/core/CDM_TaxiDeice.cpp
     src/core/CDM_FlightTracking.cpp
+    src/core/CDM_NonCdmExot.cpp
     src/core/CDM_DataPersistence.cpp
     src/core/CDM_MiscHelpers.cpp
     src/core/CDM_Commands.cpp

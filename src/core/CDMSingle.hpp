@@ -51,7 +51,7 @@
 #endif
 
 #define MY_PLUGIN_NAME "CDM Plugin"
-#define MY_PLUGIN_VERSION "2.30.2b"
+#define MY_PLUGIN_VERSION "2.30.3b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"
@@ -256,6 +256,19 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     bool getTaxiZonesFromUrl(string url);
 
     bool getCtotsFromUrl(string url);
+
+    // Non-CDM airport EXOT taxi time support
+    bool hasNonCdmTaxiZones(string airport);
+
+    int getNonCdmTaxiTime(string airport);
+
+    int getNonCdmTaxiTime(string airport, string runway);
+
+    int getNonCdmTaxiTimeWithPolygonMatch(string airport, string runway, double flightLat, double flightLon);
+
+    void processNonCdmExotFlights();
+
+    bool sendNonCdmExotMessage(string callsign, string airport, int taxiTimeMinutes);
 
     int GetdifferenceTime(string hour1, string min1, string hour2, string min2);
 

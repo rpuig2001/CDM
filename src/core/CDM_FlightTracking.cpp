@@ -285,6 +285,22 @@ void CDM::RemoveDataFromTfc(string callsign) {
             }
         }
 
+        // Remove from non-CDM EXOT flights list
+        {
+            std::lock_guard<std::mutex> lock(nonCdmExotFlightsMutex);
+            for (size_t i = 0; i < nonCdmExotFlights.size(); ) {
+                if (nonCdmExotFlights[i].callsign == callsign) {
+                    if (debugMode) {
+                        sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED from NonCdmExotFlights");
+                    }
+                    nonCdmExotFlights.erase(nonCdmExotFlights.begin() + i);
+                    // Don't increment i - next element shifts into current position
+                } else {
+                    i++;
+                }
+            }
+        }
+
         deleteFlightStrips(callsign);
     } catch (const std::exception& e) {
         addLogLine("ERROR: Unhandled exception removeDataFromTfc: " + (string)e.what());

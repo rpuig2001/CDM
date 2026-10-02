@@ -19,6 +19,7 @@
 #include "CDMSingle.hpp"
 #include "src/screen/CDMScreen.h"
 #include "src/models/Delay.h"
+#include "src/models/NonCdmExotFlight.h"
 
 inline bool blink;
 inline bool debugMode, initialSidLoad;
@@ -171,6 +172,11 @@ inline vector<Plane> setCdmDatalater;
 inline vector<string> suWaitList;
 inline vector<string> checkCIDLater;
 inline vector<string> disabledCtots;
+inline vector<NonCdmExotFlight> nonCdmExotFlights;
+inline std::mutex nonCdmExotFlightsMutex;
+inline time_t nonCdmExotLastCheckTime;
+inline int nonCdmExotRetryIntervalSeconds = 30;  // Retry every 30 seconds
+inline int nonCdmExotMaxAttempts = 5;            // Stop retrying after 5 failed attempts
 inline vector<vector<string>> networkStatus;
 inline vector<vector<string>> onTimeStatus;
 inline vector<Plane> apiQueueResponse;

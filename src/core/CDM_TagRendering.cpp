@@ -80,6 +80,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             if ((timeNow - countNetworkTobt) > refreshTime) {
                 countNetworkTobt = timeNow;
                 runDetachedTask(&CDM::getNetworkTobt);
+                runDetachedTask(&CDM::processNonCdmExotFlights);
                 if (debugMode) {
                     sendMessage("[DEBUG MESSAGE] - REFRESHING FLOW DATA");
                 }
@@ -310,21 +311,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         stsDepa = true;
                         setFlightStripInfo(FlightPlan, "", 3);
                         setFlightStripInfo(FlightPlan, "", 4);
-                    }
-
-                    // Get airport
-                    bool aptFind = false;
-                    for (size_t i = 0; i < planeAiportList.size(); i++) {
-                        if (planeAiportList[i].substr(0, planeAiportList[i].find(",")) == callsign) {
-                            aptFind = true;
-                            if (planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4) != origin) {
-                                planeAiportList[i] = callsign + "," + origin;
-                            }
-                        }
-                    }
-
-                    if (!aptFind) {
-                        planeAiportList.push_back(callsign + "," + origin);
                     }
 
                     bool master = false;
@@ -3212,6 +3198,22 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     *pRGB = ItemRGB;
                 }
             } else {
+                {
+                    std::lock_guard<std::mutex> lock(nonCdmExotFlightsMutex);
+                    bool aptFind = false;
+                    for (size_t i = 0; i < planeAiportList.size(); i++) {
+                        if (planeAiportList[i].substr(0, planeAiportList[i].find(",")) == callsign) {
+                            aptFind = true;
+                            if (planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4) != origin) {
+                                planeAiportList[i] = callsign + "," + origin;
+                            }
+                        }
+                    }
+                    if (!aptFind) {
+                        planeAiportList.push_back(callsign + "," + origin);
+                    }
+                }
+
                 // Check if update in the queue
                 std::vector<Plane> localPlaneQueue;
                 {
