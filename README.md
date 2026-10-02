@@ -232,7 +232,15 @@ CDM includes the following times:
 
 *Examples can be found in the givenfiles.*
 
+## Advanced Airports (Non-ACDM) - Not yet available.
+  ### What are Advanced airports within vIFF/CDM?
+  Advanced airports are non-acdm, but as a difference from "standard airports" (non-ACDM and non-Advanced) they provide some information to the centralised vIFF network. In vIFF/CDM, only a more precise taxi time is provided.
 
+  ### Required definitions within CDM Plugin
+  - Taxi Zones can be configured as for CDM Airports. The only requirement, is to not configure the airports in the rate.txt file.
+  - Taxizones specifications: De-ice and Extra event times are not required (as they will not affect the non-acdm handling).
+  - EXOT will be provided to vIFF at the moment of connection and in case runway is changed (In Euroscope).
+  - In case of no specific row found but taxizones for that airport are defined (while is not ACDM - not configured in rates.txt), the default taxi-time will be provided.
 
 ## Event SLOTs
 ### How does it work?
