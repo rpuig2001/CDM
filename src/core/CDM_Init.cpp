@@ -590,8 +590,6 @@ CDM::CDM(void)
             }
         }
     }
-
-    restclient_ = std::make_shared<api::CurlRestClient>();
 }
 
 static bool EnsureDirExists(const std::string& dir) {
