@@ -76,6 +76,8 @@ void CDM::addVatcanCtotToEvCTOT(string line) {
 
 bool CDM::getPanelStatus() { return showPanel; }
 
+bool CDM::getOnlyCdmAirportsMaster() { return onlyCdmAirportsMaster; }
+
 bool CDM::getAtfcmList() { return showAtfcmList; }
 
 vector<string> CDM::explode(std::string const& s, char delim) {

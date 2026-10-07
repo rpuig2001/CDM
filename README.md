@@ -132,6 +132,7 @@ CDM includes the following times:
   - color12 = CHANGES TOBT, TSAT and ASAT to the defined color WHEN S/U STATUS IS SET
  
 ### CDMconfig.xml
+  - [OPTIONAL] Hide the airport panel's `+` button for adding master airports with `<OnlyCdmAirportsMaster mode="true" />` inside `<CDM>`. Defaults to `false` when omitted; `<OnlyCdmAirportsMaster mode="false" />` keeps the button visible.
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").

@@ -95,6 +95,7 @@ inline bool refresh4;
 inline string flightsFilterText;
 
 inline bool showPanel;
+inline bool onlyCdmAirportsMaster = false;
 inline bool showAtfcmList;
 
 inline CDMScreen* cs;

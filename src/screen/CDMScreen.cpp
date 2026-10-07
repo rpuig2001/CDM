@@ -149,9 +149,9 @@ static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF 
 // Helper to calculate panel height based on airports count
 int CDMScreen::CalculatePanelHeight(int airportCount) const {
     int displayCount = min(airportCount, MAX_AIRPORTS_DISPLAYED);
-    int totalBtns = displayCount + 1;  // plus button
+    int totalBtns = displayCount + (cdm->getOnlyCdmAirportsMaster() ? 0 : 1);
     int rows = (totalBtns + PER_ROW - 1) / PER_ROW;
-    int btnsAreaHeight = rows * BTN_HEIGHT + (rows - 1) * BTN_GAP_Y;
+    int btnsAreaHeight = rows * BTN_HEIGHT + (rows > 0 ? (rows - 1) * BTN_GAP_Y : 0);
     return PANEL_HEADER_HEIGHT + 7 + btnsAreaHeight + 7;
 }
 
@@ -657,6 +657,11 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         masterAirportBtnRects[i] = {0, 0, 0, 0};
     }
 
+    plusBtnRect = {0, 0, 0, 0};
+    if (cdm->getOnlyCdmAirportsMaster()) {
+        return;
+    }
+
     int plusIndex = static_cast<int>(std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED));
     int col = plusIndex % PER_ROW;
     int row = plusIndex / PER_ROW;
@@ -794,7 +799,9 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
         return;
     }
     if (strcmp(sObjectId, "APTBTN_PLUS") == 0) {
-        cdm->OpenPopupEdit(Area, TAG_FUNC_NEW_MASTER_AIRPORT, "");
+        if (!cdm->getOnlyCdmAirportsMaster()) {
+            cdm->OpenPopupEdit(Area, TAG_FUNC_NEW_MASTER_AIRPORT, "");
+        }
         return;
     }
     if (strncmp(sObjectId, "APTBTN_", 7) == 0) {

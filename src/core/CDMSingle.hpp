@@ -51,7 +51,7 @@
 #endif
 
 #define MY_PLUGIN_NAME "CDM Plugin"
-#define MY_PLUGIN_VERSION "2.30.3b"
+#define MY_PLUGIN_VERSION "2.30.4b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"
@@ -376,6 +376,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     void addVatcanCtotToEvCTOT(string line);
 
     bool getPanelStatus();
+
+    bool getOnlyCdmAirportsMaster();
 
     bool getAtfcmList();
 
