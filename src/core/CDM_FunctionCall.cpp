@@ -33,7 +33,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
         }
         AtcMe = false;
         string position = ControllerMyself().GetCallsign();
-        bool isPositionOk = position.find("_DEL") != string::npos || position.find("_GND") != string::npos ||
+        bool isPositionOk = position.find("_DEL") != string::npos || position.find("_GND") != string::npos || position.find("_RMP") != string::npos ||
                             position.find("_TWR") != string::npos || position.find("_APP") != string::npos ||
                             position.find("_CTR") != string::npos || position.find("_FMP") != string::npos;
         if ((fp.GetTrackingControllerIsMe() || strlen(fp.GetTrackingControllerId()) == 0) && isPositionOk) {
