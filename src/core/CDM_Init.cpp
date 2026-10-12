@@ -246,6 +246,8 @@ CDM::CDM(void)
         string eventPriorityString = getFromXml("/CDM/eventPriority/@mode");
         string autoSetTobtFromEvSlotString = getFromXml("/CDM/autoSetTobtFromEvSlot/@mode");
         pm_message = getFromXml("/CDM/PrivateMessage/@text");
+        atfcm_fls_message = getFromXml("/CDM/AtfcmPrivateMessage/@fls");
+        atfcm_slot_message = getFromXml("/CDM/AtfcmPrivateMessage/@slot");
         string remarksOptionCtotString = getFromXml("/CDM/remarksOptionCtot/@mode");
         string disableTobtReqAfterAsrt = getFromXml("/CDM/disableTobtReqAfterAsrt/@mode");
         string loadingTextString = getFromXml("/CDM/loading/@text");
@@ -276,6 +278,12 @@ CDM::CDM(void)
 
         if (pm_message == "") {
             pm_message = "[CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]";
+        }
+        if (atfcm_fls_message == "") {
+            atfcm_fls_message = "[ATFCM MSG] OFF-BLOCK TIME EXPIRED - {CALLSIGN} ({EOBT} - {TOBT}). PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR FUTHER UPDATES. [END OF ATFCM MSG - TRIAL IN PROGRESS]";
+        }
+        if (atfcm_slot_message == "") {
+            atfcm_slot_message = "[ATFCM MSG] SLOT ALLOCATION MESSAGE - {CALLSIGN} ({EOBT} - {TOBT}) CTOT:{CTOT} REGUL:{REGUL} RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER CTOT UPDATES AND START-UP TIME INFORMATION. [END OF ATFCM MSG - TRIAL IN PROGRESS]";
         }
 
         deIceTimeL = 5;

@@ -12,7 +12,7 @@ void CDM::PushToOtherControllers(CFlightPlan fp) {
         if (c.IsController()) {
             callsign = c.GetCallsign();
             if (callsign.size() > 3) {
-                if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos ||
+                if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos || callsign.find("_RMP") != string::npos ||
                     callsign.find("_TWR") != string::npos || callsign.find("_APP") != string::npos ||
                     callsign.find("_CTR") != string::npos || callsign.find("_FMP") != string::npos) {
                     fp.PushFlightStrip(c.GetCallsign());

@@ -7,6 +7,14 @@
 
 #include <thread>
 
+static void replaceMessageToken(std::string& message, const std::string& token, const std::string& value) {
+    size_t position = 0;
+    while ((position = message.find(token, position)) != std::string::npos) {
+        message.replace(position, token.length(), value);
+        position += value.length();
+    }
+}
+
 static void SendUnicodeChar(wchar_t ch) {
     INPUT in[2]{};
     in[0].type = INPUT_KEYBOARD;
@@ -95,7 +103,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight) {
         if (ControllerMyself().IsController()) {
             callsign = ControllerMyself().GetCallsign();
             if (callsign.size() > 3) {
-                if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos ||
+                if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos || callsign.find("_RMP") != string::npos ||
                     callsign.find("_TWR") != string::npos || callsign.find("_APP") != string::npos ||
                     callsign.find("_CTR") != string::npos || callsign.find("_FMP") != string::npos) {
                     correctPosition = true;
@@ -108,27 +116,30 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight) {
         sendMessage("You are not in a position able to send ATFCM messages to pilots.");
         return false;
     }
-    runDetachedTask(&CDM::setCdmSts, flight[0], "INFORMED/1");
+    runDetachedTask(&CDM::setCdmSts, flight[0], "ATFCMINFORMED/1");
 
     std::string message;
 
     const std::string& status = flight[10];
 
     if (status.find("FLS") != std::string::npos) {
-        message = ".msg " + flight[0] + " [ATFCM MSG] OFF-BLOCK TIME EXPIRED - " + flight[0] + " (" + flight[1] +
-                  " - " + flight[2] +
-                  "). PLEASE, UPDATE YOUR NEW OFF-BLOCK TIME IN https://vats.im/vdgs AND MONITOR THE VDGS PANEL FOR "
-                  "FUTHER UPDATES. [END OF ATFCM MSG - TRIAL IN PROGRESS]";
+        message = atfcm_fls_message;
+        replaceMessageToken(message, "{CALLSIGN}", flight[0]);
+        replaceMessageToken(message, "{EOBT}", flight[1]);
+        replaceMessageToken(message, "{TOBT}", flight[2]);
     } else if (flight[6] != "") {
-        message = ".msg " + flight[0] + " [ATFCM MSG] SLOT ALLOCATION MESSAGE - " + flight[0] + " (" + flight[1] +
-                  " - " + flight[2] + ") CTOT:" + flight[6] + " REGUL:" + flight[9] +
-                  " RMK:PLEASE, MONITOR https://vats.im/vdgs FOR FURTHER CTOT UPDATES AND START-UP TIME INFORMATION. "
-                  "[END OF ATFCM MSG - TRIAL IN PROGRESS]";
+        message = atfcm_slot_message;
+        replaceMessageToken(message, "{CALLSIGN}", flight[0]);
+        replaceMessageToken(message, "{EOBT}", flight[1]);
+        replaceMessageToken(message, "{TOBT}", flight[2]);
+        replaceMessageToken(message, "{CTOT}", flight[6]);
+        replaceMessageToken(message, "{REGUL}", flight[9]);
     } else {
         sendMessage("Unable to identify ATFCM status for flight " + flight[0] + ". Message not sent.");
         return false;
     }
 
+    message = ".msg " + flight[0] + " " + message;
     TypeTextInstant(message);
     SendEnter();
 
@@ -142,7 +153,7 @@ void CDM::sendCdmMessageToPilot(string callsign) {
         if (ControllerMyself().IsController()) {
             position = ControllerMyself().GetCallsign();
             if (position.size() > 3) {
-                if (position.find("_DEL") != string::npos || position.find("_GND") != string::npos ||
+                if (position.find("_DEL") != string::npos || position.find("_GND") != string::npos || position.find("_RMP") != string::npos ||
                     position.find("_TWR") != string::npos || position.find("_APP") != string::npos ||
                     position.find("_CTR") != string::npos || position.find("_FMP") != string::npos) {
                     correctPosition = true;

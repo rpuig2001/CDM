@@ -39,6 +39,8 @@ inline string tfad;
 inline string rateString;
 inline string lvoRateString;
 inline string pm_message;
+inline string atfcm_fls_message;
+inline string atfcm_slot_message;
 inline bool defaultRate;
 inline time_t countTime;
 inline time_t countTimeNonCdm;
