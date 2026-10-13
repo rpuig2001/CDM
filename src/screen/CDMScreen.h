@@ -87,7 +87,6 @@ class CDMScreen : public CRadarScreen {
     // -----------------------
     RECT masterAirportPanelRect;
     RECT masterAirportBtnRects[MAX_AIRPORTS_DISPLAYED];
-    RECT plusBtnRect;
     RECT minBtnRect;
 
     std::vector<std::string> cached_airports;

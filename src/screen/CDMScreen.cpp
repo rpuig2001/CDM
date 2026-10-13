@@ -149,8 +149,7 @@ static void DrawSmallTextQuality(HDC hDC, const char* text, RECT rect, COLORREF 
 // Helper to calculate panel height based on airports count
 int CDMScreen::CalculatePanelHeight(int airportCount) const {
     int displayCount = min(airportCount, MAX_AIRPORTS_DISPLAYED);
-    int totalBtns = displayCount + (cdm->getOnlyCdmAirportsMaster() ? 0 : 1);
-    int rows = (totalBtns + PER_ROW - 1) / PER_ROW;
+    int rows = (displayCount + PER_ROW - 1) / PER_ROW;
     int btnsAreaHeight = rows * BTN_HEIGHT + (rows > 0 ? (rows - 1) * BTN_GAP_Y : 0);
     return PANEL_HEADER_HEIGHT + 7 + btnsAreaHeight + 7;
 }
@@ -161,7 +160,6 @@ CDMScreen::CDMScreen(CDM* pCDM) : cdm(pCDM), panelPosition({40, 560}), minimized
     for (int i = 0; i < MAX_AIRPORTS_DISPLAYED; ++i) {
         masterAirportBtnRects[i] = {0, 0, 0, 0};
     }
-    plusBtnRect = {0, 0, 0, 0};
     minBtnRect = {0, 0, 0, 0};
     cached_airports.clear();
     pendingMasterChanges.clear();
@@ -657,22 +655,6 @@ void CDMScreen::DrawMasterAirportPanel(HDC hDC) {
         masterAirportBtnRects[i] = {0, 0, 0, 0};
     }
 
-    plusBtnRect = {0, 0, 0, 0};
-    if (cdm->getOnlyCdmAirportsMaster()) {
-        return;
-    }
-
-    int plusIndex = static_cast<int>(std::min<size_t>(airports.size(), MAX_AIRPORTS_DISPLAYED));
-    int col = plusIndex % PER_ROW;
-    int row = plusIndex / PER_ROW;
-    int x = xStart + col * (BTN_WIDTH + BTN_GAP_X);
-    int y = yStart + row * (BTN_HEIGHT + BTN_GAP_Y);
-    plusBtnRect = {x, y, x + BTN_WIDTH, y + BTN_HEIGHT};
-    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "APTBTN_PLUS", plusBtnRect, true, NULL);
-    DrawRoundedRect(hDC, plusBtnRect, RGB(40, 180, 255), RGB(40, 120, 200));
-    SetBkMode(hDC, TRANSPARENT);
-    SetTextColor(hDC, RGB(255, 255, 255));
-    DrawTextA(hDC, "+", -1, &plusBtnRect, DT_CENTER | DT_VCENTER | DT_SINGLELINE);
 }
 
 void CDMScreen::OnRefresh(HDC hDC, int Phase) {
@@ -796,12 +778,6 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
     // Existing airport panel
     if (strcmp(sObjectId, "APTBTN_MINIMIZE") == 0) {
         minimized = !minimized;
-        return;
-    }
-    if (strcmp(sObjectId, "APTBTN_PLUS") == 0) {
-        if (!cdm->getOnlyCdmAirportsMaster()) {
-            cdm->OpenPopupEdit(Area, TAG_FUNC_NEW_MASTER_AIRPORT, "");
-        }
         return;
     }
     if (strncmp(sObjectId, "APTBTN_", 7) == 0) {

@@ -377,8 +377,6 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     bool getPanelStatus();
 
-    bool getOnlyCdmAirportsMaster();
-
     bool getAtfcmList();
 
     bool OnCompileCommand(const char* sCommandLine);

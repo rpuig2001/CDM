@@ -252,7 +252,6 @@ CDM::CDM(void)
         string disableTobtReqAfterAsrt = getFromXml("/CDM/disableTobtReqAfterAsrt/@mode");
         string loadingTextString = getFromXml("/CDM/loading/@text");
         string nonCdmEarlyClearenceColorString = getFromXml("/CDM/nonCdmEarlyClearenceColor/@minutes");
-        onlyCdmAirportsMaster = (getFromXml("/CDM/OnlyCdmAirportsMaster/@mode") == "true");
 
         apikey = "TEST";
         if (ftpHost == "" && ftpUser == "") {
