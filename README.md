@@ -165,6 +165,12 @@ CDM includes the following times:
   - Event Priority over non CTOT flights. CTOT flights will still have priority over event (Example: ```<eventPriority mode="true" />```) - Event Slot column is not required.
   - Automatically set as TOBT the Slot provided for Event (Example: ```<autoSetTobtFromEvSlot mode="true" />```) - Event Slot column is not required.
   - Customized Private message (Example: ```<PrivateMessage text="[CDM MSG] PLEASE, MONITOR https://vats.im/vdgs FOR CDM AND ATFCM UPDATES. [END OF CDM MSG]" />```).
+  - [OPTIONAL] Customized ATFCM panel private messages. `fls` for expired-slot messages and `slot` for slot-allocation messages. Supported placeholders are `{CALLSIGN}`, `{EOBT}`, `{TOBT}`, `{CTOT}` and `{REGUL}`. Example:
+    ```xml
+    <AtfcmPrivateMessage
+        fls="[ATFCM MSG] OFF-BLOCK TIME EXPIRED - {CALLSIGN} ({EOBT} - {TOBT}). Please update your off-block time."
+        slot="[ATFCM MSG] SLOT ALLOCATION - {CALLSIGN} ({EOBT} - {TOBT}) CTOT:{CTOT} REGUL:{REGUL}. Please monitor for updates." />
+    ```
   - Set the CTOT in remarks (Example: ```<remarksOptionCtot mode="true" />```).
   - Configures if TOBT updates after setting ASRT should be processed or not (TRUE: NOT PROCESSED / FALSE: PROCESSED) (Example: ```<disableTobtReqAfterAsrt mode="true" />```).
   - Set the loading text while times are "processing" (Example: ```<loading text="...." />```)
