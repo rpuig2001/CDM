@@ -274,6 +274,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                 } else if (getFlightStripInfo(FlightPlan, 7) == "1") {
                     hasManualCtot = true;
                 }
+                const bool hasManualSlot = hasManualCtot && (!aircraftFind || slotList[pos].ctot.empty());
 
                 // It'll calculate pilot's times after pressing READY TOBT Function
                 if (isValidToCalculateEventMode) {
@@ -867,13 +868,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                                 while (equalTTOT) {
                                     correctTTOT = true;
-                                    if (!hasManualCtot) {
+                                    if (!hasManualSlot) {
                                         if (bmiMode) {
                                             TTOTFinal = getCorrectTTOT_Windowed(
-                                                TTOTFinal, hasManualCtot, slotList, rate, callsign, origin, depRwy,
+                                                TTOTFinal, hasManualSlot, slotList, rate, callsign, origin, depRwy,
                                                 GetActualTime() + "00", taxiTime, mySid, false);
                                         } else {
-                                            TTOTFinal = getCorrectTTOT(TTOTFinal, hasManualCtot, slotList, rate, callsign,
+                                            TTOTFinal = getCorrectTTOT(TTOTFinal, hasManualSlot, slotList, rate, callsign,
                                                                origin, depRwy, GetActualTime() + "00", taxiTime, mySid,
                                                                dataRate, sameOrDependantRwys);
                                         }
@@ -3519,4 +3520,3 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
         addLogLine("ERROR: Unhandled exception OnGetTagItem");
     }
 }
-

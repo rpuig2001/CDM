@@ -158,17 +158,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") {
-                    string ctotTTOT = copySlotList[i].ctot + "00";
-                    string ctotTSAT  = calculateLessTime(ctotTTOT, myTTime);
-                    // Only use CTOT if it doesn't push TSAT before EOBT
-                    if (stoi(ctotTSAT) >= stoi(myEOBT)) {
-                        myTTOT = ctotTTOT;
-                    } else {
-                        myTTOT = calculateTime(myEOBT, myTTime); // natural departure
-                    }
-                }
-
                 Plane item = refreshTimes(copySlotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
                                  myAirport, myTTime, myDepRwy, dataRate, true, aicraftInFinalTimesList);
                 tempSlotList.push_back(item);
@@ -256,10 +245,10 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                 }
                 if (correctTTOT) {
                     if (bmiMode) {
-                        TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin,
+                        TTOTFinal = getCorrectTTOT_Windowed(TTOTFinal, plane.hasManualSlot(), planes, rate, plane.callsign, origin,
                                                         depRwy, timeNow, taxiTime, mySid, aicraftInFinalTimesList);
                     } else {
-                        TTOTFinal = getCorrectTTOT(TTOTFinal, plane.hasManualCtot, planes, rate, plane.callsign, origin,
+                        TTOTFinal = getCorrectTTOT(TTOTFinal, plane.hasManualSlot(), planes, rate, plane.callsign, origin,
                                                         depRwy, timeNow, taxiTime, mySid, dataRate, sameOrDependantRwys);
                     }
                 }
@@ -435,7 +424,7 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                 bool found = false;
                 while (!found) {
                     found = true;
-                    if (planes[t].hasManualCtot) {
+                    if (planes[t].hasManualSlot()) {
                         listTTOT = planes[t].ttot;
 
                         if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&

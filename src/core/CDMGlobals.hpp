@@ -169,6 +169,8 @@ inline vector<vector<string>> evCtots;
 inline vector<Delay> delayList;
 inline vector<ServerRestricted> serverRestrictedPlanes;
 inline vector<Plane> setOBTlater;
+inline std::mutex obtRequestMutex;
+inline std::map<std::pair<string, bool>, string> lastSuccessfulObtRequests;
 inline vector<vector<string>> setCdmStslater;
 inline vector<Plane> setCdmDatalater;
 inline vector<string> suWaitList;
@@ -211,4 +213,3 @@ inline COLORREF TAG_CTOT = 0xFFFFFFFF;
 inline COLORREF SU_SET_COLOR = 0xFFFFFFFF;
 inline COLORREF BLOCKS_CALLSIGN_COLOR = RGB(220, 220, 220);
 inline COLORREF TAG_NON_CDM_EARLY_CLEARENCE = RGB(128, 0, 128);
-

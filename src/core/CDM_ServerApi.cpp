@@ -301,10 +301,27 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
             obt = (obt.length() >= 4) ? obt.substr(0, 4) : "";
             string taxiTime = getTaxiTime(callsign);
 
-            addLogLine("Requesting OBT (" + obt + ") for " + callsign);
             string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + obt + "/" + taxiTime;
             if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + obt;
 
+            // Serialize the check and send so concurrent tag/background updates cannot send duplicates.
+            std::lock_guard<std::mutex> requestLock(obtRequestMutex);
+            const auto requestKey = std::make_pair(callsign, useEobt);
+            const auto previousRequest = lastSuccessfulObtRequests.find(requestKey);
+            if (previousRequest != lastSuccessfulObtRequests.end() && previousRequest->second == url) {
+                // addLogLine("Skipping unchanged OBT request for " + callsign);
+                // Callers may have hidden the flight while waiting for this update.
+                for (Plane& p : slotList) {
+                    if (p.callsign == callsign) {
+                        p.showData = true;
+                        break;
+                    }
+                }
+                return;
+            }
+            // An unsuccessful changed request may still have reached the server.
+            lastSuccessfulObtRequests.erase(requestKey);
+            addLogLine("Requesting OBT (" + obt + ") for " + callsign);
             std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
             const auto response = restclient_->post(url, /*body=*/"", headers);
             int responseCode = response.statusCode;
@@ -323,6 +340,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                 reader.parse(response.body, obj);
                 if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("atfcmData") &&
                     obj["atfcmData"].isMember("mostPenalisingRegulation")) {
+                    lastSuccessfulObtRequests[requestKey] = url;
                     string apiCallsign = fastWriter.write(obj["callsign"]);
                     apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
                     apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
