@@ -321,21 +321,11 @@ Rate CDM::rateForRunway(string airport, string depRwy, string mySid) {
                 }
 
                 bool foundArrRwyNo = true;
-                for (string arn : r.arrRwyNo) {
-                    if (arn == "*") {
-                        foundArrRwyNo = true;
-                    } else {
-                        bool foundIt = false;
-                        for (string arrRwy : myActiveRwysArr) {
-                            if (arrRwy != arn) {
-                                foundIt = true;
-                            }
-                        }
-                        if (!foundIt) {
-                            foundArrRwyNo = false;
-                        } else if (myActiveRwysArr.size() != r.arrRwyNo.size()) {
-                            foundArrRwyNo = false;
-                        }
+                for (const string& arn : r.arrRwyNo) {
+                    if (arn != "*" &&
+                        std::find(myActiveRwysArr.begin(), myActiveRwysArr.end(), arn) != myActiveRwysArr.end()) {
+                        foundArrRwyNo = false;
+                        break;
                     }
                 }
 
@@ -353,21 +343,11 @@ Rate CDM::rateForRunway(string airport, string depRwy, string mySid) {
                 }
 
                 bool foundDepRwyNo = true;
-                for (string drn : r.depRwyNo) {
-                    if (drn == "*") {
-                        foundDepRwyNo = true;
-                    } else {
-                        bool foundIt = false;
-                        for (string myRwy : myActiveRwysDep) {
-                            if (myRwy != drn) {
-                                foundIt = true;
-                            }
-                        }
-                        if (!foundIt) {
-                            foundDepRwyNo = false;
-                        } else if (myActiveRwysDep.size() != r.depRwyNo.size()) {
-                            foundDepRwyNo = false;
-                        }
+                for (const string& drn : r.depRwyNo) {
+                    if (drn != "*" &&
+                        std::find(myActiveRwysDep.begin(), myActiveRwysDep.end(), drn) != myActiveRwysDep.end()) {
+                        foundDepRwyNo = false;
+                        break;
                     }
                 }
 
