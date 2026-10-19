@@ -59,11 +59,6 @@ void CDM::disconnectTfcs() {
 void CDM::RemoveDataFromTfc(string callsign) {
     addLogLine("Called RemoveDataFromTfc...");
     try {
-        {
-            std::lock_guard<std::mutex> lock(obtRequestMutex);
-            lastSuccessfulObtRequests.erase(std::make_pair(callsign, false));
-            lastSuccessfulObtRequests.erase(std::make_pair(callsign, true));
-        }
         // Delete from vector (fix iterator invalidation: only increment if no erase)
         for (size_t i = 0; i < slotList.size(); ) {
             if (callsign == slotList[i].callsign) {

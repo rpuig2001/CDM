@@ -16,11 +16,6 @@ class Plane {
     bool showData;
     bool isCdmAirport;
 
-    bool hasManualSlot() const {
-        // The legacy flag also marks vIFF CTOTs, which populate ctot instead of a manual slot.
-        return hasManualCtot && ctot.empty();
-    }
-
     Plane(string mycallsign, string myeobt, string mytsat, string myttot, string myctot, string myFlowReason,
           bool myHasManualCtot, bool myShowData, bool myIsCdmAirport)
         : callsign(mycallsign),

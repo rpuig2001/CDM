@@ -178,7 +178,7 @@ void CDM::addTimeToList(int timeToAdd, string minTSAT) {
         vector<Plane> mySlotList = slotList;
 
         for (size_t i = 0; i < mySlotList.size(); i++) {
-            if (!mySlotList[i].hasManualSlot()) {
+            if (!mySlotList[i].hasManualCtot) {
                 CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
                 if (!myFp.IsValid()) {
                     continue;
@@ -225,7 +225,7 @@ void CDM::addTimeToListForSpecificAirportAndRunway(int timeToAdd, string minTSAT
         vector<Plane> mySlotList = slotList;
 
         for (size_t i = 0; i < mySlotList.size(); i++) {
-            if (!mySlotList[i].hasManualSlot()) {
+            if (!mySlotList[i].hasManualCtot) {
                 CFlightPlan myFp = FlightPlanSelect(mySlotList[i].callsign.c_str());
                 if (!myFp.IsValid()) {
                     continue;
@@ -309,7 +309,12 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
             }
 
             // 1. Manual CTOT first
-            if (a.hasManualSlot() != b.hasManualSlot()) return a.hasManualSlot() > b.hasManualSlot();
+            if (a.hasManualCtot != b.hasManualCtot) return a.hasManualCtot > b.hasManualCtot;
+
+            // 2. Both manual CTOT AND both CTOTs present → order by CTOT
+            if (a.hasManualCtot && b.hasManualCtot && !a.ctot.empty() && !b.ctot.empty()) {
+                return std::stoi(a.ctot) < std::stoi(b.ctot);
+            }
 
             // 3) Event SLOT present (found in evCtots with non-empty value) before those without SLOT
             if (eventPriorityEnabled) {
