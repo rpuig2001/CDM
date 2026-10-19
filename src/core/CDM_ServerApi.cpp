@@ -275,99 +275,120 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 
         addLogLine("Call - Set OBT (" + obt + ") for " + callsign + " with triggeredByUser=" +
                    (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
+        bool createRequest = false;
+
+        if (obt != "") {
+            for (Plane p : slotListTemp) {
+                if (p.callsign == callsign) {
+                    // Only create request if TOBT is manually triggered (or initially triggered or when no ctot), to
+                    // avoid update set TSAT when syncing from CTOT
+                    if ((p.ctot != "" && triggeredByUser) || p.ctot == "") {
+                        createRequest = true;
+                        break;
+                    } else {
+                        createRequest = false;
+                        break;
+                    }
+                }
+            }
+        } else {
+            createRequest = true;
+        }
 
         if (isFligthSusp(callsign)) createRequest = false;
 
-        obt = (obt.length() >= 4) ? obt.substr(0, 4) : "";
-        string taxiTime = getTaxiTime(callsign);
+        if (createRequest) {
+            obt = (obt.length() >= 4) ? obt.substr(0, 4) : "";
+            string taxiTime = getTaxiTime(callsign);
 
-        string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + obt + "/" + taxiTime;
-        if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + obt;
+            string url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=OBT/" + obt + "/" + taxiTime;
+            if (useEobt) url = cdmServerUrl + "/ifps/dpi?callsign=" + callsign + "&value=EOBT/" + obt;
 
-        // Serialize the check and send so concurrent tag/background updates cannot send duplicates.
-        std::lock_guard<std::mutex> requestLock(obtRequestMutex);
-        const auto requestKey = std::make_pair(callsign, useEobt);
-        const auto previousRequest = lastSuccessfulObtRequests.find(requestKey);
-        if (previousRequest != lastSuccessfulObtRequests.end() && previousRequest->second == url) {
-            // addLogLine("Skipping unchanged OBT request for " + callsign);
-            // Callers may have hidden the flight while waiting for this update.
-            for (Plane& p : slotList) {
-                if (p.callsign == callsign) {
-                    p.showData = true;
-                    break;
+            // Serialize the check and send so concurrent tag/background updates cannot send duplicates.
+            std::lock_guard<std::mutex> requestLock(obtRequestMutex);
+            const auto requestKey = std::make_pair(callsign, useEobt);
+            const auto previousRequest = lastSuccessfulObtRequests.find(requestKey);
+            if (previousRequest != lastSuccessfulObtRequests.end() && previousRequest->second == url) {
+                // addLogLine("Skipping unchanged OBT request for " + callsign);
+                // Callers may have hidden the flight while waiting for this update.
+                for (Plane& p : slotList) {
+                    if (p.callsign == callsign) {
+                        p.showData = true;
+                        break;
+                    }
                 }
+                return;
             }
-            return;
-        }
-        // An unsuccessful changed request may still have reached the server.
-        lastSuccessfulObtRequests.erase(requestKey);
-        addLogLine("Requesting OBT (" + obt + ") for " + callsign);
-        std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
-        const auto response = restclient_->post(url, /*body=*/"", headers);
-        int responseCode = response.statusCode;
+            // An unsuccessful changed request may still have reached the server.
+            lastSuccessfulObtRequests.erase(requestKey);
+            addLogLine("Requesting OBT (" + obt + ") for " + callsign);
+            std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
+            const auto response = restclient_->post(url, /*body=*/"", headers);
+            int responseCode = response.statusCode;
 
-        if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
-            Plane plane(callsign, "", obt, "", "", "", false, triggeredByUser, useEobt);
-            {
-                std::lock_guard<std::mutex> lock(later1Mutex);
-                setOBTlater.push_back(plane);  // Safely modify setOBTlater
-            }
-            addLogLine("UNABLE TO CONNECT CDM-API...");
-        } else {
-            Json::Reader reader;
-            Json::Value obj;
-            Json::FastWriter fastWriter;
-            reader.parse(response.body, obj);
-            if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("atfcmData") &&
-                obj["atfcmData"].isMember("mostPenalisingRegulation")) {
-                lastSuccessfulObtRequests[requestKey] = url;
-                string apiCallsign = fastWriter.write(obj["callsign"]);
-                apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
-                apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
+            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
+                Plane plane(callsign, "", obt, "", "", "", false, triggeredByUser, useEobt);
+                {
+                    std::lock_guard<std::mutex> lock(later1Mutex);
+                    setOBTlater.push_back(plane);  // Safely modify setOBTlater
+                }
+                addLogLine("UNABLE TO CONNECT CDM-API...");
+            } else {
+                Json::Reader reader;
+                Json::Value obj;
+                Json::FastWriter fastWriter;
+                reader.parse(response.body, obj);
+                if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("atfcmData") &&
+                    obj["atfcmData"].isMember("mostPenalisingRegulation")) {
+                    lastSuccessfulObtRequests[requestKey] = url;
+                    string apiCallsign = fastWriter.write(obj["callsign"]);
+                    apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
+                    apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
 
-                string ctot = fastWriter.write(obj["ctot"]);
-                ctot.erase(remove(ctot.begin(), ctot.end(), '"'), ctot.end());
-                ctot.erase(remove(ctot.begin(), ctot.end(), '\n'), ctot.end());
+                    string ctot = fastWriter.write(obj["ctot"]);
+                    ctot.erase(remove(ctot.begin(), ctot.end(), '"'), ctot.end());
+                    ctot.erase(remove(ctot.begin(), ctot.end(), '\n'), ctot.end());
 
-                string reason = fastWriter.write(obj["atfcmData"]["mostPenalisingRegulation"]);
-                reason.erase(remove(reason.begin(), reason.end(), '"'), reason.end());
-                reason.erase(remove(reason.begin(), reason.end(), '\n'), reason.end());
+                    string reason = fastWriter.write(obj["atfcmData"]["mostPenalisingRegulation"]);
+                    reason.erase(remove(reason.begin(), reason.end(), '"'), reason.end());
+                    reason.erase(remove(reason.begin(), reason.end(), '\n'), reason.end());
 
-                for (size_t i = 0; i < slotListTemp.size(); i++) {
-                    if (slotListTemp[i].callsign == apiCallsign) {
-                        addLogLine(apiCallsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason +
-                                   "]");
-                        if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
-                            // Update with thread-safe access
-                            {
-                                slotListTemp[i] = {apiCallsign,
-                                                   slotListTemp[i].eobt,
-                                                   slotListTemp[i].tsat,
-                                                   slotListTemp[i].ttot,
-                                                   ctot,
-                                                   reason,
-                                                   true,
-                                                   true,
-                                                   true};
-                            }
-                        } else {
-                            if (slotListTemp[i].ctot != "") {
-                                // Reset CTOT
+                    for (size_t i = 0; i < slotListTemp.size(); i++) {
+                        if (slotListTemp[i].callsign == apiCallsign) {
+                            addLogLine(apiCallsign + " returned with CTOT: [" + ctot + "] and reason: [" + reason +
+                                       "]");
+                            if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
+                                // Update with thread-safe access
                                 {
-                                    slotListTemp[i].ctot = "";
-                                    slotListTemp[i].flowReason = "";
-                                    slotListTemp[i].hasManualCtot = false;
-                                    slotListTemp[i].showData = true;
+                                    slotListTemp[i] = {apiCallsign,
+                                                       slotListTemp[i].eobt,
+                                                       slotListTemp[i].tsat,
+                                                       slotListTemp[i].ttot,
+                                                       ctot,
+                                                       reason,
+                                                       true,
+                                                       true,
+                                                       true};
+                                }
+                            } else {
+                                if (slotListTemp[i].ctot != "") {
+                                    // Reset CTOT
+                                    {
+                                        slotListTemp[i].ctot = "";
+                                        slotListTemp[i].flowReason = "";
+                                        slotListTemp[i].hasManualCtot = false;
+                                        slotListTemp[i].showData = true;
+                                    }
                                 }
                             }
                         }
                     }
-                }
-            } else {
-                Plane plane(callsign, "", obt, "", "", "", false, triggeredByUser, useEobt);
-                {
-                    std::lock_guard<std::mutex> lock(later1Mutex);
-                    setOBTlater.push_back(plane);
+                } else {
+                    Plane plane(callsign, "", obt, "", "", "", false, triggeredByUser, useEobt);
+                    {
+                        std::lock_guard<std::mutex> lock(later1Mutex);
+                        setOBTlater.push_back(plane);
+                    }
                 }
             }
         }
