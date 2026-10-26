@@ -7,6 +7,10 @@
 #include <thread>
 
 void CDM::refreshMasterAirports() {
+    if (GetConnectionType() != CONNECTION_TYPE_DIRECT) {
+        return;
+    }
+
     static auto lastCheck = std::chrono::steady_clock::time_point{};
     const auto now = std::chrono::steady_clock::now();
     if (now - lastCheck < std::chrono::seconds(1)) {
