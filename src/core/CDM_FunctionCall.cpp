@@ -690,6 +690,7 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                     } else if (AtcMe) {
                         addLogLine("TRIGGER - TAG_FUNC_READYTOBT_SLAVE");
                         if (getFlightStripInfo(fp, 2) != formatTime(GetActualTime())) {
+                            string timeNow = GetActualTime();
                             // Set REQ TOBT
                             runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REQTOBT/" + timeNow + "/ATC");
                         }
