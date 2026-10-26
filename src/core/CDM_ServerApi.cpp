@@ -601,36 +601,34 @@ void CDM::getCdmServerMasterAirports() {
             const auto response = restclient_->get(url, headers);
             int responseCode = response.statusCode;
 
-            if (responseCode == 404 || responseCode == 401 || responseCode == 502 || responseCode == -1) {
+            if (responseCode < 200 || responseCode >= 300) {
                 addLogLine("UNABLE TO LOAD CDM-API URL...");
-            } else {
-                Json::Reader reader;
-                Json::Value obj;
-                Json::FastWriter fastWriter;
-                reader.parse(response.body, obj);
-
-                serverMasterAirportsTemp.clear();
-
-                const Json::Value& data = obj;
-                for (size_t i = 0; i < data.size(); i++) {
-                    if (data[i].isMember("icao") && data[i].isMember("position")) {
-                        // Get callsign
-                        string icao = fastWriter.write(data[i]["icao"]);
-                        icao.erase(std::remove(icao.begin(), icao.end(), '"'));
-                        icao.erase(std::remove(icao.begin(), icao.end(), '\n'));
-                        icao.erase(std::remove(icao.begin(), icao.end(), '\n'));
-
-                        // Get CTOT
-                        string position = fastWriter.write(data[i]["position"]);
-                        position.erase(std::remove(position.begin(), position.end(), '"'));
-                        position.erase(std::remove(position.begin(), position.end(), '\n'));
-                        position.erase(std::remove(position.begin(), position.end(), '\n'));
-                        
-                        serverMasterAirportsTemp.push_back({icao, position});
-                    }
-                }
+                return;
             }
+
+            Json::Reader reader;
+            Json::Value data;
+            if (!reader.parse(response.body, data) || !data.isArray()) {
+                addLogLine("UNABLE TO PARSE CDM-API AIRPORTS...");
+                return;
+            }
+
+            for (const auto& airport : data) {
+                if (!airport.isObject() || !airport["icao"].isString() ||
+                    !airport.isMember("position") ||
+                    (!airport["position"].isString() && !airport["position"].isNull())) {
+                    addLogLine("INVALID CDM-API AIRPORT ENTRY...");
+                    return;
+                }
+                serverMasterAirportsTemp.push_back({airport["icao"].asString(), airport["position"].asString()});
+            }
+
             serverMasterAirports = serverMasterAirportsTemp;
+            {
+                std::lock_guard<std::mutex> lock(pendingMasterAirportsMutex);
+                pendingMasterAirports = std::move(serverMasterAirportsTemp);
+                hasPendingMasterAirports = true;
+            }
             addLogLine("COMPLETED - getCdmServerMasterAirports");
         } catch (const std::exception& e) {
             addLogLine("ERROR: Unhandled exception getCdmServerMasterAirports: " + (string)e.what());

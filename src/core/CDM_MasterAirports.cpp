@@ -6,6 +6,61 @@
 
 #include <thread>
 
+void CDM::refreshMasterAirports() {
+    static auto lastCheck = std::chrono::steady_clock::time_point{};
+    const auto now = std::chrono::steady_clock::now();
+    if (now - lastCheck < std::chrono::seconds(1)) {
+        return;
+    }
+    lastCheck = now;
+
+    vector<vector<string>> airports;
+    bool updateMasterAirports = false;
+    {
+        std::lock_guard<std::mutex> lock(pendingMasterAirportsMutex);
+        if (hasPendingMasterAirports) {
+            airports.swap(pendingMasterAirports);
+            hasPendingMasterAirports = false;
+            updateMasterAirports = serverEnabled;
+        }
+    }
+    if (updateMasterAirports) {
+        vector<string> assignedAirports;
+        const auto controller = ControllerMyself();
+        if (controller.IsValid() && controller.IsController()) {
+            const string position = controller.GetCallsign();
+            for (const auto& airport : airports) {
+                if (!position.empty() && !airport[0].empty() && airport[1] == position &&
+                    std::find(assignedAirports.begin(), assignedAirports.end(), airport[0]) == assignedAirports.end()) {
+                    assignedAirports.push_back(airport[0]);
+                }
+            }
+        }
+        for (const auto& airport : masterAirports) {
+            if (std::find(assignedAirports.begin(), assignedAirports.end(), airport) == assignedAirports.end()) {
+                addLogLine("Automatically removed master airport " + airport);
+                sendMessage("Automatically removed master airport " + airport);
+            }
+        }
+        for (const auto& airport : assignedAirports) {
+            if (std::find(masterAirports.begin(), masterAirports.end(), airport) == masterAirports.end()) {
+                addLogLine("Automatically set master airport " + airport);
+                sendMessage("Automatically set master airport " + airport);
+            }
+        }
+        if (masterAirports != assignedAirports) {
+            tagItemDisplayCache.clear();
+        }
+        masterAirports = std::move(assignedAirports);
+    }
+
+    static auto lastFetch = std::chrono::steady_clock::time_point{};
+    if (serverEnabled && now - lastFetch >= std::chrono::seconds(15)) {
+        lastFetch = now;
+        runDetachedTask(&CDM::getCdmServerMasterAirports);
+    }
+}
+
 bool CDM::setMasterAirport(string airport, string position) {
     addLogLine("Called setMasterAirport...");
     if (serverEnabled) {

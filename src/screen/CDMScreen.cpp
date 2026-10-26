@@ -662,6 +662,10 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
         return;
     }
 
+    if (cdm) {
+        cdm->refreshMasterAirports();
+    }
+
     DrawRelevantFlightsPanel(hDC);
 
     if (!cdm || !cdm->getPanelStatus()) {
