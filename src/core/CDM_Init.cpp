@@ -653,6 +653,7 @@ CDM::~CDM() {
     // `this`; wait for them to finish before this object is torn down, otherwise
     // they would touch freed memory.
     waitForDetachedTasks();
+    restclient_.reset();
     curl_global_cleanup();
 }
 

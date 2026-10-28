@@ -51,7 +51,7 @@
 #endif
 
 #define MY_PLUGIN_NAME "CDM Plugin"
-#define MY_PLUGIN_VERSION "2.31b"
+#define MY_PLUGIN_VERSION "2.31.1b"
 #define MY_PLUGIN_DEVELOPER "Roger Puig"
 #define MY_PLUGIN_COPYRIGHT "GPL v3"
 #define MY_PLUGIN_VIEW_AVISO "Euroscope CDM"
@@ -144,24 +144,48 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     // destructor can wait for them to finish before the object goes away.
     template <typename Func, typename... Args>
     void runDetachedTask(Func f, Args... args) {
-        activeAsyncTasks_.fetch_add(1, std::memory_order_relaxed);
-        std::thread([this, f, args...]() mutable {
-            try {
-                (this->*f)(args...);
-            } catch (...) {
-                // Swallow: a background task must never propagate an exception
-                // onto a detached thread (that would call std::terminate).
+        {
+            std::lock_guard<std::mutex> lock(asyncTasksMutex_);
+            if (shuttingDown_) {
+                return;
             }
-            if (activeAsyncTasks_.fetch_sub(1, std::memory_order_acq_rel) == 1) {
-                std::lock_guard<std::mutex> lock(asyncTasksMutex_);
+            ++activeAsyncTasks_;
+        }
+
+        auto completeTask = [this] {
+            std::lock_guard<std::mutex> lock(asyncTasksMutex_);
+            if (--activeAsyncTasks_ == 0) {
                 asyncTasksCv_.notify_all();
             }
-        }).detach();
+        };
+
+        std::thread worker;
+        try {
+            worker = std::thread([this, f, completeTask, args...]() mutable {
+                try {
+                    (this->*f)(args...);
+                } catch (...) {
+                    // A detached task must not propagate exceptions to the process.
+                }
+                completeTask();
+            });
+        } catch (...) {
+            completeTask();
+            throw;
+        }
+
+        try {
+            worker.detach();
+        } catch (...) {
+            if (worker.joinable()) {
+                worker.join();
+            }
+            throw;
+        }
     }
 
-    // Blocks until all tasks started via runDetachedTask() have completed, or
-    // until the timeout elapses. Must be called before the object is destroyed.
-    void waitForDetachedTasks(std::chrono::milliseconds timeout = std::chrono::seconds(60));
+    // Stops accepting tasks and waits for all started tasks to finish.
+    void waitForDetachedTasks();
 
     bool patternMatches(const string& pattern, const string& str);
 
@@ -427,7 +451,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
    private:
     std::shared_ptr<interfaces::IRestClient> restclient_;
 
-    std::atomic<int> activeAsyncTasks_{0};
+    std::size_t activeAsyncTasks_ = 0;
+    bool shuttingDown_ = false;
     std::mutex asyncTasksMutex_;
     std::condition_variable asyncTasksCv_;
 };

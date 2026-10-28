@@ -37,14 +37,14 @@ LONG WINAPI VectoredHandler(EXCEPTION_POINTERS* pExceptionInfo) {
 
     if (code == 0xE06D7363 ||  // C++ throw
         code == 0x40010006 ||  // OutputDebugString
+        code == 0x4001000A ||  // OutputDebugStringW
         code == 0x406D1388 ||  // Thread naming
         code == 0x80000003 ||  // Breakpoint
         code == 0x80000004)    // Single step
         return EXCEPTION_CONTINUE_SEARCH;
 
-    static bool handled = false;
-    if (handled) return EXCEPTION_CONTINUE_SEARCH;
-    handled = true;
+    static volatile LONG handled = 0;
+    if (InterlockedCompareExchange(&handled, 1, 0) != 0) return EXCEPTION_CONTINUE_SEARCH;
 
     std::string dumpPath;
     HANDLE hFile = CreateDumpFile(dumpPath);

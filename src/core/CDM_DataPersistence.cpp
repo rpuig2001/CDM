@@ -397,9 +397,10 @@ void CDM::multithread(void (CDM::*f)()) {
     }
 }
 
-void CDM::waitForDetachedTasks(std::chrono::milliseconds timeout) {
+void CDM::waitForDetachedTasks() {
     std::unique_lock<std::mutex> lock(asyncTasksMutex_);
-    asyncTasksCv_.wait_for(lock, timeout, [this] { return activeAsyncTasks_.load(std::memory_order_acquire) == 0; });
+    shuttingDown_ = true;
+    asyncTasksCv_.wait(lock, [this] { return activeAsyncTasks_ == 0; });
 }
 
 // Get Data from the xml file
