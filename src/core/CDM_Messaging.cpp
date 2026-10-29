@@ -104,6 +104,7 @@ bool CDM::sendAtfcmPrivateMessageToPilot(std::vector<std::string> flight) {
             callsign = ControllerMyself().GetCallsign();
             if (callsign.size() > 3) {
                 if (callsign.find("_DEL") != string::npos || callsign.find("_GND") != string::npos || callsign.find("_RMP") != string::npos ||
+                    callsign.find("_DEP") != string::npos ||
                     callsign.find("_TWR") != string::npos || callsign.find("_APP") != string::npos ||
                     callsign.find("_CTR") != string::npos || callsign.find("_FMP") != string::npos) {
                     correctPosition = true;
@@ -154,6 +155,7 @@ void CDM::sendCdmMessageToPilot(string callsign) {
             position = ControllerMyself().GetCallsign();
             if (position.size() > 3) {
                 if (position.find("_DEL") != string::npos || position.find("_GND") != string::npos || position.find("_RMP") != string::npos ||
+                    position.find("_DEP") != string::npos ||
                     position.find("_TWR") != string::npos || position.find("_APP") != string::npos ||
                     position.find("_CTR") != string::npos || position.find("_FMP") != string::npos) {
                     correctPosition = true;
