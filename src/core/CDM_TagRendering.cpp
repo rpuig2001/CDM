@@ -865,18 +865,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 double rateHour = (double)60 / rate;
                                 bool sameOrDependantRwys = false;
 
+                                // Server CTOTs are stale after a TOBT change: sequence as a normal flight, send that
+                                // TSAT to the server and only regain CTOT priority once the new CTOT comes back.
+                                const bool keepCtot = hasManualCtot && getFlightStripInfo(FlightPlan, 7) == "1";
+
                                 while (equalTTOT) {
                                     correctTTOT = true;
-                                    if (!hasManualCtot) {
-                                        if (bmiMode) {
-                                            TTOTFinal = getCorrectTTOT_Windowed(
-                                                TTOTFinal, hasManualCtot, slotList, rate, callsign, origin, depRwy,
-                                                GetActualTime() + "00", taxiTime, mySid, false);
-                                        } else {
-                                            TTOTFinal = getCorrectTTOT(TTOTFinal, hasManualCtot, slotList, rate, callsign,
-                                                               origin, depRwy, GetActualTime() + "00", taxiTime, mySid,
-                                                               dataRate, sameOrDependantRwys);
-                                        }
+                                    if (bmiMode) {
+                                        TTOTFinal = getCorrectTTOT_Windowed(
+                                            TTOTFinal, keepCtot, slotList, rate, callsign, origin, depRwy,
+                                            GetActualTime() + "00", taxiTime, mySid, false);
+                                    } else {
+                                        TTOTFinal = getCorrectTTOT(TTOTFinal, keepCtot, slotList, rate, callsign,
+                                                           origin, depRwy, GetActualTime() + "00", taxiTime, mySid,
+                                                           dataRate, sameOrDependantRwys);
                                     }
 
                                     if (correctTTOT) {
@@ -902,15 +904,17 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         bool doRequest = false;
                                         if (aircraftFind) {
                                             if (TTOT != slotList[pos].ttot || EOBT != slotList[pos].eobt) {
-                                                Plane p(callsign, EOBT, TSAT, TTOT, slotList[pos].ctot,
-                                                        slotList[pos].flowReason, hasManualCtot, true, true);
+                                                Plane p(callsign, EOBT, TSAT, TTOT,
+                                                        keepCtot ? slotList[pos].ctot : "",
+                                                        keepCtot ? slotList[pos].flowReason : "", keepCtot, true,
+                                                        true);
                                                 doRequest = true;
                                                 slotList[pos] = p;
                                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
                                                 setFlightStripInfo(FlightPlan, p.ttot, 4);
                                             }
                                         } else {
-                                            Plane p(callsign, EOBT, TSAT, TTOT, "", "", hasManualCtot, true, true);
+                                            Plane p(callsign, EOBT, TSAT, TTOT, "", "", keepCtot, true, true);
                                             doRequest = true;
                                             slotList.push_back(p);
                                             pos = getPlanePosition(callsign);

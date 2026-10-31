@@ -4,6 +4,14 @@
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
 
+// Frozen = ground state set (finalTimesList) or TSAT already passed; these are never recalculated.
+static bool isFrozenSlot(const Plane& p, const string& timeNow) {
+    for (const string& cs : finalTimesList) {
+        if (cs == p.callsign) return true;
+    }
+    return p.tsat.length() >= 4 && isdigit((unsigned char)p.tsat[0]) && stoi(p.tsat) < stoi(timeNow);
+}
+
 vector<Plane> CDM::backgroundProcess_recaulculate() {
     addLogLine("Called backgroundProcess_recaulculate...");
     try {
@@ -185,7 +193,15 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                Plane item = refreshTimes(copySlotList[i], tempSlotList, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
+                // Frozen flights later in the list won't move, so they must be visible to this flight's checks.
+                vector<Plane> planesToCheck = tempSlotList;
+                for (size_t j = i + 1; j < copySlotList.size(); j++) {
+                    if (isFrozenSlot(copySlotList[j], timeNow)) {
+                        planesToCheck.push_back(copySlotList[j]);
+                    }
+                }
+
+                Plane item = refreshTimes(copySlotList[i], planesToCheck, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
                                  myAirport, myTTime, myDepRwy, dataRate, true, aicraftInFinalTimesList);
                 tempSlotList.push_back(item);
                 // refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks,
@@ -451,7 +467,7 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                 bool found = false;
                 while (!found) {
                     found = true;
-                    if (planes[t].hasManualCtot) {
+                    if (planes[t].hasManualCtot || isFrozenSlot(planes[t], timeNow)) {
                         listTTOT = planes[t].ttot;
 
                         if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&
