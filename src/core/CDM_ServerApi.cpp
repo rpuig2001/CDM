@@ -231,6 +231,12 @@ void CDM::updateCdmDataApi(Plane p) {
                            fp.GetFlightPlanData().GetSidName();
                 }
             }
+            if (fp.IsValid()) {
+                const string deiceInfo = getFlightStripInfo(fp, 5);
+                if (!deiceInfo.empty()) {
+                    str += "&deice=" + (deiceInfo == "STND" ? string("STAND") : "REMOTE/" + deiceInfo);
+                }
+            }
             string url = cdmServerUrl + "/ifps/setCdmData?" + str;
             std::unordered_map<std::string, std::string> headers = {{"x-api-key", apikey}};
             const auto response = restclient_->post(url, /*body=*/"", headers);
