@@ -61,8 +61,6 @@ inline bool eventMode;
 inline int eventModeTime;
 inline bool pilotTobt;
 inline bool atotEnabled;
-inline std::unordered_set<string> autoStartupEnabledCallsigns;
-inline std::unordered_set<string> autoStupAssignedCallsigns;
 inline bool remarksOption;
 inline bool remarksOptionCtot;
 inline bool tobtReqAfterAsrtDisabledOption;

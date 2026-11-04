@@ -150,7 +150,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     }
                 }
 
-                if (aircraftFind && autoStartupEnabledCallsigns.find(callsign) != autoStartupEnabledCallsigns.end()) {
+                if (aircraftFind && getFlightStripInfo(FlightPlan, 10) == "1") {
                     tryAutoSetStup(FlightPlan, slotList[pos]);
                 }
 
@@ -3513,8 +3513,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
         }
 
         if (ItemCode == TAG_ITEM_AUTO_STARTUP) {
-            const bool enabled = autoStartupEnabledCallsigns.find(callsign) != autoStartupEnabledCallsigns.end();
-            strcpy_s(sItemString, 16, enabled ? "[X]" : "[ ]");
+            const string autoStartup = getFlightStripInfo(FlightPlan, 10);
+            const bool enabled = autoStartup == "1" || autoStartup == "2";
+            strcpy_s(sItemString, 16, enabled ? "S" : "");
             ItemRGB = enabled ? TAG_GREEN : TAG_GREY;
             *pColorCode = TAG_COLOR_RGB_DEFINED;
             *pRGB = ItemRGB;

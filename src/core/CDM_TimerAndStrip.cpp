@@ -6,9 +6,7 @@
 #include "src/core/CDMGlobals.hpp"
 
 void CDM::tryAutoSetStup(CFlightPlan fp, Plane flight) {
-    if (autoStartupEnabledCallsigns.find(flight.callsign) == autoStartupEnabledCallsigns.end() ||
-        !fp.IsValid() || !fp.GetClearenceFlag() ||
-        autoStupAssignedCallsigns.find(flight.callsign) != autoStupAssignedCallsigns.end()) {
+    if (!fp.IsValid() || !fp.GetClearenceFlag() || getFlightStripInfo(fp, 10) != "1") {
         return;
     }
     if (!flight.isCdmAirport || !flight.showData ||
@@ -41,10 +39,17 @@ void CDM::tryAutoSetStup(CFlightPlan fp, Plane flight) {
         return;
     }
 
-    autoStupAssignedCallsigns.insert(flight.callsign);
-    if (!fp.GetControllerAssignedData().SetScratchPadString("STUP")) {
-        autoStupAssignedCallsigns.erase(flight.callsign);
+    setFlightStripInfo(fp, "2", 10);
+    try {
+        if (!fp.GetControllerAssignedData().SetScratchPadString("STUP")) {
+            setFlightStripInfo(fp, "1", 10);
+            return;
+        }
+    } catch (...) {
+        setFlightStripInfo(fp, "1", 10);
+        throw;
     }
+    PushToOtherControllers(fp);
 }
 
 vector<string> CDM::splitString(const std::string& str, char delimiter) {
@@ -60,9 +65,9 @@ vector<string> CDM::splitString(const std::string& str, char delimiter) {
 }
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
-    if (position >= 0 && position <= 9 && FlightPlan.IsValid()) {
-        //   0    1    2    3   4     5       6       7       8     9
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/
+    if (position >= 0 && position <= 10 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8     9       10
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/autoStartup (1=armed, 2=assigned)
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         vector<string> values = split(annotation, '/');
 
@@ -74,9 +79,9 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 }
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
-    if (position >= 0 && position <= 9 && FlightPlan.IsValid()) {
-        //   0    1    2    3   4     5       6       7       8     9
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/
+    if (position >= 0 && position <= 10 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8     9       10
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/autoStartup (1=armed, 2=assigned)
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         if (annotation == "") {
             annotation = "///////////";

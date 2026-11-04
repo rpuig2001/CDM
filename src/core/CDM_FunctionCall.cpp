@@ -44,12 +44,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
         if (FunctionId == TAG_FUNC_TOGGLE_AUTO_STARTUP) {
             if (master && AtcMe) {
                 const string callsign = fp.GetCallsign();
-                if (autoStartupEnabledCallsigns.erase(callsign) == 0) {
-                    autoStartupEnabledCallsigns.insert(callsign);
-                } else {
-                    autoStupAssignedCallsigns.erase(callsign);
-                }
+                const string autoStartup = getFlightStripInfo(fp, 10);
+                setFlightStripInfo(fp, autoStartup == "1" || autoStartup == "2" ? "" : "1", 10);
                 tagItemDisplayCache.erase(callsign);
+                PushToOtherControllers(fp);
             }
         } else if (FunctionId == TAG_FUNC_PM_SEND) {
             sendCdmMessageToPilot(fp.GetCallsign());
