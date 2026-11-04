@@ -150,6 +150,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     }
                 }
 
+                if (aircraftFind && autoStartupEnabledCallsigns.find(callsign) != autoStartupEnabledCallsigns.end()) {
+                    tryAutoSetStup(FlightPlan, slotList[pos]);
+                }
+
                 // Get Taxi times
                 int TaxiTimePos = 0;
                 bool planeHasTaxiTimeAssigned = false;
@@ -3506,6 +3510,14 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     *pRGB = ItemRGB;
                 }
             }
+        }
+
+        if (ItemCode == TAG_ITEM_AUTO_STARTUP) {
+            const bool enabled = autoStartupEnabledCallsigns.find(callsign) != autoStartupEnabledCallsigns.end();
+            strcpy_s(sItemString, 16, enabled ? "[X]" : "[ ]");
+            ItemRGB = enabled ? TAG_GREEN : TAG_GREY;
+            *pColorCode = TAG_COLOR_RGB_DEFINED;
+            *pRGB = ItemRGB;
         }
 
         // Refresh the display cache with this call's finished result for reuse within the same second.

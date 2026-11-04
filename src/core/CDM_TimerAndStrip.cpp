@@ -1,21 +1,49 @@
-// OnTimer blink counter, flight-strip annotation get/set, and the periodic background
+// Automatic startup, flight-strip annotation get/set, and the periodic background
 // refresh actions 1-4. Moved verbatim out of CDMSingle.cpp.
 // See src/core/CDMGlobals.hpp for the shared-state rationale.
 
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
 
-void CDM::OnTimer(int Counter) {
-    FuncBuffer = 0;
+void CDM::tryAutoSetStup(CFlightPlan fp, Plane flight) {
+    if (autoStartupEnabledCallsigns.find(flight.callsign) == autoStartupEnabledCallsigns.end() ||
+        !fp.IsValid() || !fp.GetClearenceFlag() ||
+        autoStupAssignedCallsigns.find(flight.callsign) != autoStupAssignedCallsigns.end()) {
+        return;
+    }
+    if (!flight.isCdmAirport || !flight.showData ||
+        (flight.tsat.length() != 4 && flight.tsat.length() != 6) ||
+        flight.tsat.find_first_not_of("0123456789") != string::npos) {
+        return;
+    }
 
-    blink = !blink;
+    const int tsatHours = stoi(flight.tsat.substr(0, 2));
+    const int tsatMinutes = stoi(flight.tsat.substr(2, 2));
+    if (tsatHours > 23 || tsatMinutes > 59) {
+        return;
+    }
+    const int nowMinutes = ToMinutes(GetActualTime());
+    const int difference = (nowMinutes - (tsatHours * 60 + tsatMinutes) + 2160) % 1440 - 720;
+    if (difference < -5 || difference > 6) {
+        return;
+    }
 
-    if (blink) {
-        if (disCount < 3) {
-            disCount++;
-        } else {
-            disCount = 0;
-        }
+    const string origin = fp.GetFlightPlanData().GetOrigin();
+    if (std::find(masterAirports.begin(), masterAirports.end(), origin) == masterAirports.end()) {
+        return;
+    }
+    if (string(fp.GetTrackingControllerCallsign()) != "" && !fp.GetTrackingControllerIsMe()) {
+        return;
+    }
+    const string groundState = fp.GetGroundState();
+    if (groundState == "STUP" || groundState == "ST-UP" || groundState == "PUSH" ||
+        groundState == "TAXI" || groundState == "DEPA") {
+        return;
+    }
+
+    autoStupAssignedCallsigns.insert(flight.callsign);
+    if (!fp.GetControllerAssignedData().SetScratchPadString("STUP")) {
+        autoStupAssignedCallsigns.erase(flight.callsign);
     }
 }
 

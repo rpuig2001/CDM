@@ -41,7 +41,17 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             AtcMe = true;
         }
 
-        if (FunctionId == TAG_FUNC_PM_SEND) {
+        if (FunctionId == TAG_FUNC_TOGGLE_AUTO_STARTUP) {
+            if (master && AtcMe) {
+                const string callsign = fp.GetCallsign();
+                if (autoStartupEnabledCallsigns.erase(callsign) == 0) {
+                    autoStartupEnabledCallsigns.insert(callsign);
+                } else {
+                    autoStupAssignedCallsigns.erase(callsign);
+                }
+                tagItemDisplayCache.erase(callsign);
+            }
+        } else if (FunctionId == TAG_FUNC_PM_SEND) {
             sendCdmMessageToPilot(fp.GetCallsign());
         } else if (FunctionId == TAG_FUNC_EDITEOBT) {
             // Can be modified as non-master

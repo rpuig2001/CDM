@@ -504,6 +504,8 @@ As soon as departures are listed the list will be correctly displayed:
     - C: EOBT is less than 35min and TOBT hasn't expired (TOBT+6) or TSAT hasn't expired (TSAT+6).
     - I: TSAT has expired.
 
+- Column autoStartup: Add the `autoStartup` item and bind its click action to `Toggle autoStartup`. The per-flight checkbox is unchecked (`[ ]`) by default; click to enable (`[X]`). When checked, a cleared flight automatically receives STUP within TSAT-5 to TSAT+6 minutes (inclusive). When unchecked, no automatic startup action occurs. Applies to visible CDM slots at your master airports, untracked flights or flights tracked by you, without an existing STUP/ST-UP, PUSH, TAXI or DEPA status. Automatic assignment happens only once per activation: clearing STUP or changing TSAT alone does not rearm it, but unchecking and checking autoStartup again allows another assignment when the conditions are met. Reloading the plugin resets the checkboxes and assignment history. No XML configuration is required.
+
 - Column TSAT: It is the TTOT - the taxi time defined in the taxizones.txt, otherwise it sets 15min.
   - Functions:
     - NO FUNCTIONS.

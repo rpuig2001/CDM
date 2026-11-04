@@ -405,7 +405,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     bool OnCompileCommand(const char* sCommandLine);
 
-    void OnTimer(int Count);
+    void tryAutoSetStup(CFlightPlan fp, Plane flight);
 
     vector<string> splitString(const std::string& str, char delimiter);
 
