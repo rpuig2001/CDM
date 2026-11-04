@@ -49,8 +49,8 @@ CDM::CDM(void)
     RegisterTagItemType("TSAT", TAG_ITEM_TSAT);
     RegisterTagItemType("TSAT/TOBT-DIFF", TAG_ITEM_TSAT_TOBT_DIFF);
     RegisterTagItemType("TSAT-TOBT DIFF", TAG_ITEM_TSAT_DIFF_TOBT);
-    RegisterTagItemType("autoStartup", TAG_ITEM_AUTO_STARTUP);
-    RegisterTagItemFunction("Toggle autoStartup", TAG_FUNC_TOGGLE_AUTO_STARTUP);
+    RegisterTagItemType("Auto Start-up", TAG_ITEM_AUTO_STARTUP);
+    RegisterTagItemFunction("Toggle Auto Start-up", TAG_FUNC_TOGGLE_AUTO_STARTUP);
 
     // Register Tag Item "CDM-TTOT"
     RegisterTagItemType("TTOT", TAG_ITEM_TTOT);
