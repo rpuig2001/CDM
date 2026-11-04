@@ -504,7 +504,7 @@ As soon as departures are listed the list will be correctly displayed:
     - C: EOBT is less than 35min and TOBT hasn't expired (TOBT+6) or TSAT hasn't expired (TSAT+6).
     - I: TSAT has expired.
 
-- Column autoStartup: Add the `autoStartup` item and bind its click action to `Toggle autoStartup`. The master can toggle it: green `S` means enabled, and blank means disabled (the default). The enabled state and assignment history are synchronized between master and slaves through flight-strip data. When enabled, a cleared flight automatically receives STUP within TSAT-5 to TSAT+6 minutes (inclusive). When disabled, no automatic startup action occurs. Applies only to flights without an existing STUP/ST-UP, PUSH, TAXI or DEPA status. Automatic assignment happens only once per activation: clearing STUP or changing TSAT alone does not rearm it, but disabling and enabling autoStartup again allows another assignment when the conditions are met. No configuration is required.
+- Column autoStartup: Add the `autoStartup` item and bind its click action to `Toggle autoStartup`. Click to enable (`S`). When checked, a cleared flight automatically receives STUP within TSAT-5 to TSAT+6 minutes (inclusive). When unchecked, no automatic startup action occurs. Applies only to flights without an existing STUP/ST-UP, PUSH, TAXI or DEPA status. Automatic assignment happens only once per activation: clearing STUP or changing TSAT alone does not rearm it, but unchecking and checking autoStartup again allows another assignment when the conditions are met. No configuration is required.
 
 - Column TSAT: It is the TTOT - the taxi time defined in the taxizones.txt, otherwise it sets 15min.
   - Functions:
