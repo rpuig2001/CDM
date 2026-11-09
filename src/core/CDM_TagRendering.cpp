@@ -926,7 +926,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             setFlightStripInfo(FlightPlan, p.ttot, 4);
                                         }
                                         // Check API
-                                        if (doRequest) {
+                                        if (doRequest && recalculateOnTobtUpdate && recalculate && tobt.length() == 4) {
+                                            if (serverEnabled) {
+                                                std::lock_guard<std::mutex> lock(pendingTobtApiUpdatesMutex);
+                                                pendingTobtApiUpdates[callsign] = "";
+                                            }
+                                            countTime = std::time(nullptr) - refreshTime - 1;
+                                        } else if (doRequest) {
                                             if (serverEnabled) {
                                                 string myTSATApi = TSAT;
                                                 // Hide calculation
@@ -1936,6 +1942,19 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             if (!aicraftInFinalTimesList) {
                                                 p.showData = slotList[d].showData;
                                                 slotList[d] = p;
+                                                string pendingTobtApi;
+                                                {
+                                                    std::lock_guard<std::mutex> lock(pendingTobtApiUpdatesMutex);
+                                                    auto pending = pendingTobtApiUpdates.find(p.callsign);
+                                                    if (pending != pendingTobtApiUpdates.end()) {
+                                                        pendingTobtApi = pending->second;
+                                                        pendingTobtApiUpdates.erase(pending);
+                                                    }
+                                                }
+                                                if (!pendingTobtApi.empty() && serverEnabled) {
+                                                    slotList[d].showData = false;
+                                                    runDetachedTask(&CDM::setOBTApi, p.callsign, pendingTobtApi, false, false);
+                                                }
                                             } else if (atotEnabled) {
                                                 slotList[d].ttot = p.ttot;
                                             }

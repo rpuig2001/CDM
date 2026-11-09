@@ -349,10 +349,18 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             setFlightStripInfo(FlightPlan, p.ttot, 4);
                         }
                     }
+                    bool pendingTobtApiUpdate = false;
+                    {
+                        std::lock_guard<std::mutex> lock(pendingTobtApiUpdatesMutex);
+                        pendingTobtApiUpdate = pendingTobtApiUpdates.find(callsign) != pendingTobtApiUpdates.end();
+                    }
+                    if (pendingTobtApiUpdate) doRequest = true;
+
                     // Check API
                     if (doRequest && !aicraftInFinalTimesList && TSATfinal.length() >= 4) {
                         if (serverEnabled) {
                             string myTSATApi = TSAT;
+                            string obtToSend = myTSATApi;
                             if (plane.hasManualCtot && plane.ctot != "" && plane.ttot.length() >= 4) {
                                 string myTTOT = TTOT;
                                 myTTOT = myTTOT.substr(0, 4);
@@ -360,14 +368,14 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                     stoi(myTTOT + "00") <= stoi(calculateTime(plane.ctot + "00", 7))) {
                                     // Update TOBT API with TSAT if TTOT is greater than CTOT but less or equal to
                                     // CTOT+7
-                                    string myCOBT = calculateLessTime(plane.ctot + "00", taxiTime);
-                                    setOBTApi(callsign, myCOBT, false, false);
-                                } else {
-                                    setOBTApi(callsign, myTSATApi, false, false);
+                                    obtToSend = calculateLessTime(plane.ctot + "00", taxiTime);
                                 }
-
+                            }
+                            if (pendingTobtApiUpdate) {
+                                std::lock_guard<std::mutex> lock(pendingTobtApiUpdatesMutex);
+                                pendingTobtApiUpdates[callsign] = obtToSend;
                             } else {
-                                setOBTApi(callsign, myTSATApi, false, false);
+                                setOBTApi(callsign, obtToSend, false, false);
                             }
                         }
                     }

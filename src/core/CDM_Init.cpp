@@ -231,6 +231,7 @@ CDM::CDM(void)
         string invalidateTSAT_OptionStr = getFromXml("/CDM/invalidateAtTsat/@mode");
         string invalidateTOBT_OptionStr = getFromXml("/CDM/invalidateAtTobt/@mode");
         string readySetTsacOpt = getFromXml("/CDM/readySetTsac/@mode");
+        string recalculateOnTobtUpdateOpt = getFromXml("/CDM/recalculateOnTobtUpdate/@mode");
         string stringDebugMode = getFromXml("/CDM/Debug/@mode");
         vdgsFileType = getFromXml("/CDM/vdgsFileType/@type");
         ftpHost = getFromXml("/CDM/ftpHost/@host");
@@ -425,6 +426,8 @@ CDM::CDM(void)
         if (readySetTsacOpt == "false") {
             readySetTsac = false;
         }
+
+        recalculateOnTobtUpdate = recalculateOnTobtUpdateOpt == "true";
 
         
         remarksOptionCtot = false;

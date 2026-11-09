@@ -141,6 +141,7 @@ CDM includes the following times:
   - Invalidate flight at tsat will invalidate flights at TSAT+6 (ex. invalidateAtTsat mode=true). By setting "asrt" it will not invalidate at TSAT+6 if ASRT is set.
   - Invalidate flight at tobt will invalidate flights at TOBT+5 (ex. invalidateAtTobt mode=true).
   - When Ready TOBT is pressed, automatically set the TSAC as the calculated TSAT (ex. readySetTsac mode=true).
+  - [OPTIONAL] Recalculate the background sequence immediately after a TOBT update and send the resulting OBT once (DISABLED by default; enable with recalculateOnTobtUpdate mode="true").
   - [OPTIONAL] Rates URL (ex. Rates url="https://........"), if no URL needed, just leave it blank (ex. Rates url="") and the file will be used.
   - [OPTIONAL] Taxizones URL (ex. Taxizones url="https://........"), if no URL needed, just leave it blank (ex. Taxizones url="") and the file will be used.
   - [OPTIONAL] Event SLOTs URL to the TXT file - Format is defined below (ex. Slot url:"https://...."), if no URL needed, just leave it blank (ex. Slots url="").
