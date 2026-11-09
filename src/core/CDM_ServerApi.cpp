@@ -234,7 +234,11 @@ void CDM::updateCdmDataApi(Plane p) {
             if (fp.IsValid()) {
                 const string deiceInfo = getFlightStripInfo(fp, 5);
                 if (!deiceInfo.empty()) {
-                    str += "&deice=" + (deiceInfo == "STND" ? string("STAND") : "REMOTE/" + deiceInfo);
+                    string deiceValue = deiceInfo == "STND" ? "STAND" : "REMOTE/" + deiceInfo;
+                    for (size_t pos = 0; (pos = deiceValue.find(' ', pos)) != string::npos; pos += 3) {
+                        deiceValue.replace(pos, 1, "%20");
+                    }
+                    str += "&deice=" + deiceValue;
                 }
             }
             string url = cdmServerUrl + "/ifps/setCdmData?" + str;
