@@ -41,7 +41,7 @@ void CDM::getCdmServerRelevantFlights() {
                         data[i].isMember("tobt") && data[i].isMember("taxi") && data[i].isMember("ctot") &&
                         data[i].isMember("aobt") && data[i].isMember("atot") && data[i].isMember("eta") &&
                         data[i].isMember("atfcmData") && data[i]["atfcmData"].isMember("mostPenalisingRegulation") &&
-                        data[i].isMember("informed") && data[i].isMember("isCdm")) {
+                        data[i]["atfcmData"].isMember("informed") && data[i].isMember("isCdm")) {
                         auto cleanString = [&](const Json::Value& val) -> std::string {
                             std::string s = fastWriter.write(val);
                             s.erase(std::remove(s.begin(), s.end(), '"'), s.end());
@@ -63,7 +63,7 @@ void CDM::getCdmServerRelevantFlights() {
                         std::string mostPenalisingRegulation =
                             cleanString(data[i]["atfcmData"]["mostPenalisingRegulation"]);
                         std::string atfcmStatus = cleanString(data[i]["atfcmStatus"]);
-                        std::string informed = cleanString(data[i]["informed"]);
+                        std::string informed = cleanString(data[i]["atfcmData"]["informed"]);
                         std::string isCdm = cleanString(data[i]["isCdm"]);
                         const Json::Value& atfcm = data[i]["atfcmData"];
                         std::string isExcluded = cleanString(atfcm["excluded"]);
