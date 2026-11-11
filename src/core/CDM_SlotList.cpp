@@ -4,12 +4,13 @@
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
 
-// Frozen = ground state set (finalTimesList) or TSAT already passed; these are never recalculated.
+// CTOT flights remain eligible after TSAT passes until a ground state is set.
 static bool isFrozenSlot(const Plane& p, const string& timeNow) {
     for (const string& cs : finalTimesList) {
         if (cs == p.callsign) return true;
     }
-    return p.tsat.length() >= 4 && isdigit((unsigned char)p.tsat[0]) && stoi(p.tsat) < stoi(timeNow);
+    return !(p.hasManualCtot && !p.ctot.empty()) && p.tsat.length() >= 4 &&
+           isdigit((unsigned char)p.tsat[0]) && stoi(p.tsat) < stoi(timeNow);
 }
 
 vector<Plane> CDM::backgroundProcess_recaulculate() {
@@ -57,12 +58,8 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 }
             }
 
-            //Mark acftInLastTsatMinutes true, when TSAT is earlier than "now" and NOT in aicraftInFinalTimesList
             string timeNow = GetActualTime() + "00";
-            bool acftInLastTsatMinutes = (stoi(copySlotList[i].tsat) < stoi(timeNow)) && !aicraftInFinalTimesList;
-
-            // Do not calculate if has CTOT
-            // if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") aicraftInFinalTimesList = false;
+            bool acftInLastTsatMinutes = isFrozenSlot(copySlotList[i], timeNow) && !aicraftInFinalTimesList;
             
             //Run always this when ATOT enabled to keep flights in sequence and keep rolling/updated TTOT in the order affecting not yet modified flights
             if ((atotEnabled || !aicraftInFinalTimesList) && !acftInLastTsatMinutes) {
