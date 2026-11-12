@@ -419,6 +419,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     void refreshMasterAirports();
 
+    void refreshFlightTimes();
+
     void refreshActions4();
 
     bool setMasterAirport(string airport, string position);
@@ -450,6 +452,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
    private:
     std::shared_ptr<interfaces::IRestClient> restclient_;
+    std::chrono::steady_clock::time_point lastFlightTimesRefresh_{};
 
     std::size_t activeAsyncTasks_ = 0;
     bool shuttingDown_ = false;

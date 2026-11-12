@@ -16,6 +16,42 @@ using namespace std;
 using namespace EuroScopePlugIn;
 using namespace pugi;
 
+void CDM::refreshFlightTimes() {
+    if (GetConnectionType() == CONNECTION_TYPE_NO) {
+        return;
+    }
+
+    const auto now = std::chrono::steady_clock::now();
+    if (now - lastFlightTimesRefresh_ < std::chrono::seconds(1)) {
+        return;
+    }
+    lastFlightTimesRefresh_ = now;
+
+    try {
+        for (auto flightPlan = FlightPlanSelectFirst(); flightPlan.IsValid();
+             flightPlan = FlightPlanSelectNext(flightPlan)) {
+            if (strcmp(flightPlan.GetFlightPlanData().GetPlanType(), "V") > -1) {
+                continue;
+            }
+            string origin = flightPlan.GetFlightPlanData().GetOrigin();
+            boost::to_upper(origin);
+            if (std::find(CDMairports.begin(), CDMairports.end(), origin) == CDMairports.end()) {
+                continue;
+            }
+
+            char text[16] = {};
+            int colorCode = 0;
+            COLORREF color = 0;
+            double fontSize = 0;
+            OnGetTagItem(flightPlan, CRadarTarget(), TAG_ITEM_TSAT, 0, text, &colorCode, &color, &fontSize);
+        }
+    } catch (const std::exception& error) {
+        addLogLine("ERROR: Unhandled exception refreshFlightTimes: " + string(error.what()));
+    } catch (...) {
+        addLogLine("ERROR: Unhandled exception refreshFlightTimes");
+    }
+}
+
 // Tag-item rendering for EuroScope tag columns (OnGetTagItem). This is the last remaining piece
 // of the original monolithic CDMSingle.cpp; all other functionality was split into src/core/*.cpp.
 
