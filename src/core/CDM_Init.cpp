@@ -255,12 +255,12 @@ CDM::CDM(void)
         string disableTobtReqAfterAsrt = getFromXml("/CDM/disableTobtReqAfterAsrt/@mode");
         string loadingTextString = getFromXml("/CDM/loading/@text");
         string nonCdmEarlyClearenceColorString = getFromXml("/CDM/nonCdmEarlyClearenceColor/@minutes");
-        string erwtMinutesString = getFromXml("/CDM/erwt/@minutes");
+        string runwayPressureMinutesString = getFromXml("/CDM/runwayPressure/@minutes");
 
         apikey = "TEST";
-        erwtMinutes = erwtMinutesString.empty() ? 0 : stoi(erwtMinutesString);
-        if (erwtMinutes < 0) {
-            throw invalid_argument("ERWT minutes cannot be negative");
+        runwayPressureMinutes = runwayPressureMinutesString.empty() ? 0 : stoi(runwayPressureMinutesString);
+        if (runwayPressureMinutes < 0) {
+            throw invalid_argument("Runway Pressure minutes cannot be negative");
         }
 
         if (ftpHost == "" && ftpUser == "") {

@@ -43,12 +43,12 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
         sendMessage(
             "CDM Commands: .cdm ctot - .cdm panel - .cdm master {airport} - .cdm slave {airport} - .cdm refreshtime "
             "{seconds} - .cdm startupdelay {icao}/{rwy} {start_time} - .cdm departuredelay {icao}/{rwy} {start_time} - "
-            ".cdm erwt {minutes|icao/rwy minutes|icao/rwy default} - .cdm lvo - .cdm realmode - .cdm server - "
+            ".cdm runwaypressure {minutes|icao/rwy minutes|icao/rwy default} - .cdm lvo - .cdm realmode - .cdm server - "
             ".cdm remarks - .cdm rate - .cdm help");
         return true;
     }
 
-    if (startsWith(".cdm erwt", sCommandLine)) {
+    if (startsWith(".cdm runwaypressure", sCommandLine)) {
         addLogLine(sCommandLine);
         try {
             std::istringstream command(sCommandLine);
@@ -58,8 +58,8 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
             string value;
             string extra;
             command >> commandPrefix >> commandName >> target;
-            if (commandPrefix != ".cdm" || commandName != "erwt" || target.empty()) {
-                sendMessage("Usage: .cdm erwt {minutes} | .cdm erwt {icao}/{rwy} {minutes|default}");
+            if (commandPrefix != ".cdm" || commandName != "runwaypressure" || target.empty()) {
+                sendMessage("Usage: .cdm runwaypressure {minutes} | .cdm runwaypressure {icao}/{rwy} {minutes|default}");
                 return true;
             }
 
@@ -67,47 +67,47 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                 size_t slash = target.find('/');
                 if (command >> extra || slash != 4 || target.find('/', slash + 1) != string::npos ||
                     slash + 1 == target.length()) {
-                    sendMessage("Usage: .cdm erwt {minutes} | .cdm erwt {icao}/{rwy} {minutes|default}");
+                    sendMessage("Usage: .cdm runwaypressure {minutes} | .cdm runwaypressure {icao}/{rwy} {minutes|default}");
                     return true;
                 }
 
                 boost::to_upper(target);
                 string key = target;
                 boost::to_upper(value);
-                std::lock_guard<std::mutex> lock(erwtRunwayOverridesMutex);
+                std::lock_guard<std::mutex> lock(runwayPressureOverridesMutex);
                 if (value == "DEFAULT") {
-                    erwtRunwayOverrides.erase(key);
-                    sendMessage("ERWT for " + target + " reset to its rate/config default");
+                    runwayPressureOverrides.erase(key);
+                    sendMessage("Runway Pressure for " + target + " reset to its rate/config default");
                 } else if (value.find_first_not_of("0123456789") == string::npos) {
-                    int runwayErwtMinutes = stoi(value);
-                    erwtRunwayOverrides[key] = runwayErwtMinutes;
-                    string message = "ERWT for " + target + " set to " + to_string(runwayErwtMinutes) + " minutes";
-                    if (erwtMinutes == 0) message += "; ERWT remains disabled while the default is 0";
+                    int runwayPressureValue = stoi(value);
+                    runwayPressureOverrides[key] = runwayPressureValue;
+                    string message = "Runway Pressure for " + target + " set to " + to_string(runwayPressureValue) + " minutes";
+                    if (runwayPressureMinutes == 0) message += "; Runway Pressure remains disabled while the default is 0";
                     sendMessage(message);
                 } else {
-                    sendMessage("ERWT must be zero or more minutes, or default");
+                    sendMessage("Runway Pressure must be zero or more minutes, or default");
                     return true;
                 }
             } else {
                 if (target.find_first_not_of("0123456789") != string::npos) {
-                    sendMessage("Usage: .cdm erwt {minutes} | .cdm erwt {icao}/{rwy} {minutes|default}");
+                    sendMessage("Usage: .cdm runwaypressure {minutes} | .cdm runwaypressure {icao}/{rwy} {minutes|default}");
                     return true;
                 }
-                erwtMinutes = stoi(target);
-                sendMessage("Default ERWT set to " + to_string(erwtMinutes) + " minutes");
+                runwayPressureMinutes = stoi(target);
+                sendMessage("Default Runway Pressure set to " + to_string(runwayPressureMinutes) + " minutes");
             }
 
-            if (erwtMinutes < 0) {
-                sendMessage("ERWT must be zero or more minutes");
+            if (runwayPressureMinutes < 0) {
+                sendMessage("Runway Pressure must be zero or more minutes");
                 return true;
             }
             countTime = std::time(nullptr) - refreshTime;
         } catch (const std::exception& e) {
-            addLogLine("ERROR: Unhandled exception .cdm erwt: " + (string)e.what());
-            sendMessage("Usage: .cdm erwt {minutes} | .cdm erwt {icao}/{rwy} {minutes|default}");
+            addLogLine("ERROR: Unhandled exception .cdm runwaypressure: " + (string)e.what());
+            sendMessage("Usage: .cdm runwaypressure {minutes} | .cdm runwaypressure {icao}/{rwy} {minutes|default}");
         } catch (...) {
-            addLogLine("ERROR: Unhandled exception .cdm erwt");
-            sendMessage("Usage: .cdm erwt {minutes} | .cdm erwt {icao}/{rwy} {minutes|default}");
+            addLogLine("ERROR: Unhandled exception .cdm runwaypressure");
+            sendMessage("Usage: .cdm runwaypressure {minutes} | .cdm runwaypressure {icao}/{rwy} {minutes|default}");
         }
         return true;
     }
