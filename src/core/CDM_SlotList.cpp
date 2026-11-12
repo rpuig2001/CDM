@@ -67,12 +67,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 if (!myFlightPlan.IsValid()) {
                     continue;
                 }
-
-                for (size_t s = 0; s < planeAiportList.size(); s++) {
-                    if (myCallsign == planeAiportList[s].substr(0, planeAiportList[s].find(","))) {
-                        myAirport = planeAiportList[s].substr(planeAiportList[s].find(",") + 1, 4);
-                    }
-                }
+                myAirport = myFlightPlan.GetFlightPlanData().GetOrigin();
 
                 bool depRwyFound = false;
                 for (size_t t = 0; t < taxiTimesList.size(); t++) {
@@ -466,6 +461,7 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                 continue;
             }
             string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
+            string listAirport = listFlightPlan.GetFlightPlanData().GetOrigin();
             bool depRwyFound = false;
             for (size_t i = 0; i < taxiTimesList.size(); i++) {
                 if (listCallsign == taxiTimesList[i].substr(0, taxiTimesList[i].find(","))) {
@@ -478,13 +474,6 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                     }
                 }
             }
-            string listAirport;
-            for (size_t i = 0; i < planeAiportList.size(); i++) {
-                if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
-                    listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
-                }
-            }
-
             if (!depRwyFound) {
                 listDepRwy = depRwy;
             }
@@ -503,6 +492,13 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                 }
             }
             sameOrDependantRwysOut = sameOrDependantRwys;
+            listTTOT = planes[t].ttot;
+
+            if (TTOTFinal == listTTOT && callsign != listCallsign && listAirport == origin) {
+                TTOTFinal = calculateTime(TTOTFinal, 0.5);
+                correctTTOT = false;
+                continue;
+            }
 
             if (hasManualCtot) {
                 bool found = false;
@@ -672,6 +668,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
         return getWindowStartFromTTOT(next);
     };
 
+    bool exactTtotConflict = false;
     auto countInWindow = [&](const string& windowTTOT) -> int {
         int count = 0;
         for (int t = 0; t < (int)planes.size(); t++) {
@@ -700,12 +697,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
                 }
             }
 
-            string listAirport;
-            for (size_t i = 0; i < planeAiportList.size(); i++) {
-                if (listCallsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
-                    listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
-                }
-            }
+            string listAirport = listFlightPlan.GetFlightPlanData().GetOrigin();
 
             if (!depRwyFound) listDepRwy = depRwy;
 
@@ -725,6 +717,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             }
 
             if (!(listAirport == origin)) continue;
+            if (planes[t].ttot == TTOTFinal) exactTtotConflict = true;
             if (!sameOrDependantRwys) continue;
 
             if (inSameWindow(windowTTOT, planes[t].ttot)) {
@@ -737,13 +730,19 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
     bool found = false;
     while (!found) {
         found = true;
+        exactTtotConflict = false;
 
         string currentWindowStart = getWindowStartFromTTOT(TTOTFinal);
 
         int used = countInWindow(currentWindowStart);
         int capThisWindow = capForWindowStart(currentWindowStart);
 
-        if (used >= capThisWindow) {
+        if (exactTtotConflict) {
+            found = false;
+            TTOTFinal = calculateTime(TTOTFinal, 0.5);
+            correctTTOT = false;
+            alreadySetTOStd = true;
+        } else if (used >= capThisWindow) {
             found = false;
 
             TTOTFinal = bumpToNextWindowStart(TTOTFinal);
@@ -755,17 +754,12 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
         if (found && sidIntervalEnabled) {
             for (int t = 0; t < (int)planes.size(); t++) {
                 if (planes[t].callsign == callsign) continue;
-                string listAirport;
-                for (size_t i = 0; i < planeAiportList.size(); i++) {
-                    if (planes[t].callsign == planeAiportList[i].substr(0, planeAiportList[i].find(","))) {
-                        listAirport = planeAiportList[i].substr(planeAiportList[i].find(",") + 1, 4);
-                    }
-                }
+                CFlightPlan listFlightPlan = FlightPlanSelect(planes[t].callsign.c_str());
+                if (!listFlightPlan.IsValid()) continue;
+                string listAirport = listFlightPlan.GetFlightPlanData().GetOrigin();
                 if (listAirport != origin) continue;
                 string listCallsign = planes[t].callsign;
                 string listTTOT = planes[t].ttot;
-                CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
-                if (!listFlightPlan.IsValid()) continue;
                 string listSid = listFlightPlan.GetFlightPlanData().GetSidName();
                 string listDepRwy = listFlightPlan.GetFlightPlanData().GetDepartureRwy();
                 double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
