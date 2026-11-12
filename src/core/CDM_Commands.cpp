@@ -82,25 +82,26 @@ bool CDM::OnCompileCommand(const char* sCommandLine) {
                     int runwayPressureValue = stoi(value);
                     runwayPressureOverrides[key] = runwayPressureValue;
                     string message = "Runway Pressure for " + target + " set to " + to_string(runwayPressureValue) + " minutes";
-                    if (runwayPressureMinutes == 0) message += "; Runway Pressure remains disabled while the default is 0";
+                    if (runwayPressureMinutes == -1) message += "; Runway Pressure remains disabled while the default is -1";
                     sendMessage(message);
                 } else {
                     sendMessage("Runway Pressure must be zero or more minutes, or default");
                     return true;
                 }
             } else {
-                if (target.find_first_not_of("0123456789") != string::npos) {
+                if (target != "-1" && target.find_first_not_of("0123456789") != string::npos) {
                     sendMessage("Usage: .cdm runwaypressure {minutes} | .cdm runwaypressure {icao}/{rwy} {minutes|default}");
                     return true;
                 }
-                runwayPressureMinutes = stoi(target);
+                int defaultRunwayPressure = stoi(target);
+                if (defaultRunwayPressure < -1) {
+                    sendMessage("Default Runway Pressure must be -1 or zero or more minutes");
+                    return true;
+                }
+                runwayPressureMinutes = defaultRunwayPressure;
                 sendMessage("Default Runway Pressure set to " + to_string(runwayPressureMinutes) + " minutes");
             }
 
-            if (runwayPressureMinutes < 0) {
-                sendMessage("Runway Pressure must be zero or more minutes");
-                return true;
-            }
             countTime = std::time(nullptr) - refreshTime;
         } catch (const std::exception& e) {
             addLogLine("ERROR: Unhandled exception .cdm runwaypressure: " + (string)e.what());

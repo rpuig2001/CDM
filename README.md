@@ -134,7 +134,7 @@ CDM includes the following times:
 ### CDMconfig.xml
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
-  - Default Runway Pressure in minutes (ex. `<runwayPressure minutes="15"/>`). This is used when a rate.txt runway entry omits its runway pressure value. Set it to 0 to disable runway pressure for all runways; rate.txt and runtime runway overrides are ignored until the default is positive.
+  - Default Runway Pressure in minutes (ex. `<runwayPressure minutes="15"/>`). Use `-1` to disable runway pressure everywhere. With a default of `0` or greater, a positive rate.txt runway value or runtime runway override can enable pressure; omitted values use the default.
   - Real Mode to calculate times automatically from the sent EOBT (**DISABLED:** realMode mode="false" and **ENABLED:** realMode mode="true").
   - Block Movement Index Mode to calculate times as "windows" (**DISABLED:** bmi mode="false" and **ENABLED:** bmi mode="true").
   - Pilot Tobt to enable/disable the automatic update of TOBT by Pilots (**DISABLED:** pilotTobt mode="false" and **ENABLED:** pilotTobt mode="true").
@@ -207,7 +207,7 @@ CDM includes the following times:
 
     - DependentRwyList -> Comma-separated list of runways or dependant SIDs (from other runways). It will use the same sequence order for runways selected here. Enter * to disregard.
 
-    - `Rate_RateLvo` or `Rate_RateLvo_RUNWAYPRESSURE` -> Normal rate and LVO rate, with optional runway pressure in minutes. Both forms are supported. If more than one departure runway has its own rate, define one tuple per runway separated by commas. Omitting the runway pressure value uses the CDMconfig.xml default (or the value set by `.cdm runwaypressure`). A default of `0` disables runway pressure globally, so per-runway rate.txt and runtime overrides are ignored. With a positive default, an individual runway value of `0` disables runway pressure for that runway.
+    - `Rate_RateLvo` or `Rate_RateLvo_RUNWAYPRESSURE` -> Normal rate and LVO rate, with optional runway pressure in minutes. Both forms are supported. If more than one departure runway has its own rate, define one tuple per runway separated by commas. Omitting the runway pressure value uses the CDMconfig.xml default (or the value set by `.cdm runwaypressure`). A default of `-1` disables runway pressure globally. With a default of `0` or greater, rate.txt values and runtime overrides apply; an individual runway value of `0` disables pressure for that runway unless a runtime override is set.
 
 
   Examples:
@@ -401,7 +401,7 @@ startup wait = max(0, estimated queue delay - runway pressure)
 
 For example, at 38 departures per hour, the spacing is `60 / 38 = 1.58` minutes. With runway pressure set to 15 minutes, `15 / 1.58 = 9.5`, so 9 aircraft fit within the runway pressure window without an additional startup wait. A 16-minute queue delay gives a 1-minute wait; an 18-minute delay gives a 3-minute wait. If the delay is 10 minutes, runway pressure adds no wait, and TSAT is no earlier than now or EOBT/TOBT.
 
-The default runway pressure is configured with `<runwayPressure minutes="15"/>` in CDMconfig.xml. A default of `0` disables runway pressure globally, even if rate.txt or a runtime runway override contains a positive value. With a positive default, a runway-specific value in rate.txt can override it; a runway-specific runtime command takes precedence over rate.txt. A value of `0` for an individual runway disables runway pressure for that runway.
+The default runway pressure is configured with `<runwayPressure minutes="15"/>` in CDMconfig.xml. Set the default to `-1` to disable runway pressure globally, even if rate.txt or a runtime runway override contains a positive value. With a default of `0` or greater, a runway-specific rate.txt value can override it; a runway-specific runtime command takes precedence over rate.txt. A value of `0` for an individual runway disables runway pressure for that runway.
 
 Use `.cdm runwaypressure {minutes}` to change the default at runtime, or `.cdm runwaypressure {icao}/{rwy} {minutes}` to set a runway-specific pressure value. Use `.cdm runwaypressure {icao}/{rwy} default` to remove that runtime override and return to the rate.txt value or XML default.
 
@@ -480,7 +480,7 @@ As soon as departures are listed the list will be correctly displayed:
 - ``.cdm remarks`` - Toggle set TSAT to Euroscope scratchpad ON or OFF.
 - ``.cdm rmkctot`` - Toggle set CTOT to Euroscope scratchpad ON or OFF (as ".C1234).
 - ``.cdm rate`` - Updates rates values from rate.txt.
-- ``.cdm runwaypressure {minutes}`` - Changes the default runway pressure at runtime; set 0 to disable it globally, regardless of runway overrides.
+- ``.cdm runwaypressure {minutes}`` - Changes the default runway pressure at runtime; set -1 to disable it globally, regardless of rate.txt values or runway overrides. A default of 0 allows a positive rate.txt value or runway override to enable it.
 - ``.cdm runwaypressure {icao}/{rwy} {minutes}`` - Sets a runtime runway pressure value for one runway. This takes precedence over rate.txt and the XML default.
 - ``.cdm runwaypressure {icao}/{rwy} default`` - Removes that runway's runtime override and restores its rate.txt value or XML default.
 - ``.cdm flow`` - Reloads the flow data (Otherwise it's automatically reloaded every 5 min).

@@ -257,8 +257,9 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
             }
         }
 
-        int runwayPressureValue = runwayPressureMinutes;
-        if (runwayPressureMinutes > 0) {
+        int runwayPressureValue = 0;
+        if (runwayPressureMinutes >= 0) {
+            runwayPressureValue = runwayPressureMinutes;
             if (dataRatePos < dataRate.ratesRunwayPressure.size() && !dataRate.ratesRunwayPressure[dataRatePos].empty()) {
                 try {
                     int configuredRunwayPressure = stoi(dataRate.ratesRunwayPressure[dataRatePos]);

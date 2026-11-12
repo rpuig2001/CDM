@@ -259,8 +259,8 @@ CDM::CDM(void)
 
         apikey = "TEST";
         runwayPressureMinutes = runwayPressureMinutesString.empty() ? 0 : stoi(runwayPressureMinutesString);
-        if (runwayPressureMinutes < 0) {
-            throw invalid_argument("Runway Pressure minutes cannot be negative");
+        if (runwayPressureMinutes < -1) {
+            throw invalid_argument("Runway Pressure minutes must be -1 or zero or more");
         }
 
         if (ftpHost == "" && ftpUser == "") {
