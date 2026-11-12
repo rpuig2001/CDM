@@ -57,6 +57,7 @@ bool CDM::getRateFromUrl(string url) {
                 vector<string> ratesFromData = explode(data[8], ',');
                 vector<string> ratesFromDataRate;
                 vector<string> ratesFromDataRateLvo;
+                vector<string> ratesFromDataErwt;
                 if (ratesFromData.size() == 0) {
                     ratesFromData.push_back(data[8]);
                 } else {
@@ -64,11 +65,12 @@ bool CDM::getRateFromUrl(string url) {
                         vector<string> tempCompleteRate = explode(completeRate, '_');
                         ratesFromDataRate.push_back(tempCompleteRate[0]);
                         ratesFromDataRateLvo.push_back(tempCompleteRate[1]);
+                        ratesFromDataErwt.push_back(tempCompleteRate.size() > 2 ? tempCompleteRate[2] : "");
                     }
                 }
 
                 Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList,
-                            ratesFromDataRate, ratesFromDataRateLvo);
+                            ratesFromDataRate, ratesFromDataRateLvo, ratesFromDataErwt);
 
                 myRates.push_back(myRate);
 
@@ -84,9 +86,14 @@ bool CDM::getRateFromUrl(string url) {
             }
         }
     }
+    bool erwtChanged = false;
     vector<Rate> ratesChanged;
     for (Rate r1 : rate) {
         for (Rate r2 : myRates) {
+            if (r1.airport == r2.airport && r1.arrRwyNo == r2.arrRwyNo && r1.arrRwyYes == r2.arrRwyYes &&
+                r1.dependentRwy == r2.dependentRwy && r1.depRwyNo == r2.depRwyNo && r1.depRwyYes == r2.depRwyYes) {
+                if (r1.ratesErwt != r2.ratesErwt) erwtChanged = true;
+            }
             if (r1.airport == r2.airport && r1.arrRwyNo == r2.arrRwyNo && r1.arrRwyYes == r2.arrRwyYes &&
                 r1.dependentRwy == r2.dependentRwy && r1.depRwyNo == r2.depRwyNo && r1.depRwyYes == r2.depRwyYes &&
                 r1.rates.size() == r2.rates.size() && r1.ratesLvo.size() == r2.ratesLvo.size()) {
@@ -133,6 +140,7 @@ bool CDM::getRateFromUrl(string url) {
 
     rate = myRates;
     initialRate = rate;
+    if (erwtChanged) countTime = std::time(nullptr) - refreshTime;
 
     return true;
 }
@@ -176,6 +184,7 @@ bool CDM::getRate() {
             vector<string> ratesFromData = explode(data[8], ',');
             vector<string> ratesFromDataRate;
             vector<string> ratesFromDataRateLvo;
+            vector<string> ratesFromDataErwt;
             if (ratesFromData.size() == 0) {
                 ratesFromData.push_back(data[8]);
             } else {
@@ -183,11 +192,12 @@ bool CDM::getRate() {
                     vector<string> tempCompleteRate = explode(completeRate, '_');
                     ratesFromDataRate.push_back(tempCompleteRate[0]);
                     ratesFromDataRateLvo.push_back(tempCompleteRate[1]);
+                    ratesFromDataErwt.push_back(tempCompleteRate.size() > 2 ? tempCompleteRate[2] : "");
                 }
             }
 
             Rate myRate(myRateDataAirport, ArrRwyList, NotArrRwyList, DepRwyList, NotDepRwyList, DependentRwyList,
-                        ratesFromDataRate, ratesFromDataRateLvo);
+                        ratesFromDataRate, ratesFromDataRateLvo, ratesFromDataErwt);
 
             myRates.push_back(myRate);
 
@@ -202,9 +212,14 @@ bool CDM::getRate() {
             }
         }
     }
+    bool erwtChanged = false;
     vector<Rate> ratesChanged;
     for (Rate r1 : rate) {
         for (Rate r2 : myRates) {
+            if (r1.airport == r2.airport && r1.arrRwyNo == r2.arrRwyNo && r1.arrRwyYes == r2.arrRwyYes &&
+                r1.dependentRwy == r2.dependentRwy && r1.depRwyNo == r2.depRwyNo && r1.depRwyYes == r2.depRwyYes) {
+                if (r1.ratesErwt != r2.ratesErwt) erwtChanged = true;
+            }
             if (r1.airport == r2.airport && r1.arrRwyNo == r2.arrRwyNo && r1.arrRwyYes == r2.arrRwyYes &&
                 r1.dependentRwy == r2.dependentRwy && r1.depRwyNo == r2.depRwyNo && r1.depRwyYes == r2.depRwyYes &&
                 r1.rates.size() == r2.rates.size() && r1.ratesLvo.size() == r2.ratesLvo.size()) {
@@ -251,6 +266,7 @@ bool CDM::getRate() {
 
     rate = myRates;
     initialRate = rate;
+    if (erwtChanged) countTime = std::time(nullptr) - refreshTime;
 
     return true;
 }
@@ -368,6 +384,9 @@ Rate CDM::rateForRunway(string airport, string depRwy, string mySid) {
                         if (dataRatePos < r.rates.size()) {
                             knownMyrate.rates = {r.rates[dataRatePos]};
                             knownMyrate.ratesLvo = {r.ratesLvo[dataRatePos]};
+                            if (dataRatePos < r.ratesErwt.size()) {
+                                knownMyrate.ratesErwt = {r.ratesErwt[dataRatePos]};
+                            }
                         }
                         return knownMyrate;
                     }

@@ -233,6 +233,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
 
         // Calculate Rate
         int rate;
+        int dataRatePos = 0;
         if (dataRate.airport == "-1") {
             if (!lvo) {
                 rate = stoi(rateString);
@@ -241,7 +242,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
             }
         } else {
             int a = 0;
-            int dataRatePos = 0;
             if (dataRate.rates.size() > 1) {
                 for (string dr : dataRate.depRwyYes) {
                     if (dr == depRwy) {
@@ -254,6 +254,24 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                 rate = stoi(dataRate.rates[dataRatePos]);
             } else {
                 rate = stoi(dataRate.ratesLvo[dataRatePos]);
+            }
+        }
+
+        int runwayErwtMinutes = erwtMinutes;
+        if (erwtMinutes > 0) {
+            if (dataRatePos < dataRate.ratesErwt.size() && !dataRate.ratesErwt[dataRatePos].empty()) {
+                try {
+                    int configuredErwt = stoi(dataRate.ratesErwt[dataRatePos]);
+                    if (configuredErwt >= 0) runwayErwtMinutes = configuredErwt;
+                } catch (...) {
+                }
+            }
+            string erwtRunwayKey = origin + "/" + depRwy;
+            boost::to_upper(erwtRunwayKey);
+            {
+                std::lock_guard<std::mutex> lock(erwtRunwayOverridesMutex);
+                auto runwayOverride = erwtRunwayOverrides.find(erwtRunwayKey);
+                if (runwayOverride != erwtRunwayOverrides.end()) runwayErwtMinutes = runwayOverride->second;
             }
         }
 
@@ -297,6 +315,24 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                     bool doRequest = false;
                     equalTTOT = false;
                     TSATfinal = calculateLessTime(TTOTFinal, taxiTime);
+                    if (runwayErwtMinutes > 0) {
+                        auto secondsSinceMidnight = [](const string& time) {
+                            string normalizedTime = time;
+                            if (normalizedTime.length() == 4) normalizedTime += "00";
+                            return stoi(normalizedTime.substr(0, 2)) * 3600 +
+                                   stoi(normalizedTime.substr(2, 2)) * 60 + stoi(normalizedTime.substr(4, 2));
+                        };
+                        int queueDelaySeconds = secondsSinceMidnight(TSATfinal) - secondsSinceMidnight(EOBT);
+                        if (queueDelaySeconds < -43200) queueDelaySeconds += 86400;
+                        if (queueDelaySeconds > 43200) queueDelaySeconds -= 86400;
+
+                        int allowedQueueWaitSeconds = max(0, queueDelaySeconds - runwayErwtMinutes * 60);
+                        string earliestTsat = calculateTime(EOBT, allowedQueueWaitSeconds / 60.0);
+                        int delayFromNowSeconds = secondsSinceMidnight(earliestTsat) - secondsSinceMidnight(timeNow);
+                        if (delayFromNowSeconds < -43200) delayFromNowSeconds += 86400;
+                        if (delayFromNowSeconds > 43200) delayFromNowSeconds -= 86400;
+                        TSATfinal = delayFromNowSeconds < 0 ? timeNow : earliestTsat;
+                    }
                     /* START Check stand de-ice */
                     bool standDeice = false;
                     for (vector<string> deice : deiceList) {
@@ -315,7 +351,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                     string TTOT = TTOTFinal.c_str();
                     if (plane.hasManualCtot) {
                         if (aircraftFind) {
-                            if (TTOT != plane.ttot && TTOT.length() >= 4) {
+                            if ((TTOT != plane.ttot || TSAT != plane.tsat) && TTOT.length() >= 4 && TSAT.length() >= 4) {
                                 Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true,
                                         true);
                                 plane = p;
@@ -331,7 +367,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                         }
                     } else {
                         if (aircraftFind) {
-                            if (TTOT != plane.ttot && TTOT.length() >= 4) {
+                            if ((TTOT != plane.ttot || TSAT != plane.tsat) && TTOT.length() >= 4 && TSAT.length() >= 4) {
                                 Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true,
                                         true);
                                 plane = p;

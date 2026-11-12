@@ -13,9 +13,11 @@ class Rate {
     vector<string> dependentRwy;
     vector<string> rates;
     vector<string> ratesLvo;
+      vector<string> ratesErwt;
 
     Rate(string myairport, vector<string> myarrRwyYes, vector<string> myarrRwyNo, vector<string> mydepRwyYes,
-         vector<string> mydepRwyNo, vector<string> mydependentRwy, vector<string> myrates, vector<string> myratesLvo)
+         vector<string> mydepRwyNo, vector<string> mydependentRwy, vector<string> myrates, vector<string> myratesLvo,
+         vector<string> myratesErwt)
         : airport(myairport),
           arrRwyYes(myarrRwyYes),
           arrRwyNo(myarrRwyNo),
@@ -23,7 +25,8 @@ class Rate {
           depRwyNo(mydepRwyNo),
           dependentRwy(mydependentRwy),
           rates(myrates),
-          ratesLvo(myratesLvo) {}
+          ratesLvo(myratesLvo),
+          ratesErwt(myratesErwt) {}
     Rate(string myairport) : airport(myairport) {}
     Rate() : airport("-1") {}
 };
