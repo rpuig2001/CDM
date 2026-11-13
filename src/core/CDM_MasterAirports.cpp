@@ -240,6 +240,10 @@ void CDM::removeAllMasterAirportsByAirport(string airport) {
 }
 
 bool CDM::setEvCtot(string callsign) {
+    if (!isFlightWithinControllerRange(callsign)) {
+        addLogLine("Skipping Event CTOT lookup outside controller range for " + callsign);
+        return false;
+    }
     if (serverEnabled) {
         addLogLine("Called setEvCtot...");
         try {

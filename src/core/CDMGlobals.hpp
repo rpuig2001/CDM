@@ -74,6 +74,8 @@ inline bool readySetTsac;
 inline bool recalculateOnTobtUpdate;
 inline std::unordered_map<string, string> pendingTobtApiUpdates;
 inline std::mutex pendingTobtApiUpdatesMutex;
+inline std::unordered_map<string, bool> flightWithinControllerRange;
+inline std::mutex flightWithinControllerRangeMutex;
 inline bool sidIntervalEnabled;
 inline bool readyToUpdateList;
 inline bool autoSetTobtFromEvSlot;

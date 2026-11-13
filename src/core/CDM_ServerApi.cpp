@@ -201,6 +201,10 @@ void CDM::sendCheckCIDLater() {
 }
 
 void CDM::updateCdmDataApi(Plane p) {
+    if (!isFlightWithinControllerRange(p.callsign)) {
+        addLogLine("Skipping CDM data update outside controller range for " + p.callsign);
+        return;
+    }
     if (serverEnabled) {
         addLogLine("Called updateCdmDataApi...");
         try {
@@ -285,6 +289,10 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
 
         addLogLine("Call - Set OBT (" + obt + ") for " + callsign + " with triggeredByUser=" +
                    (triggeredByUser ? "true" : "false") + " and useEobt=" + (useEobt ? "true" : "false"));
+        if (!isFlightWithinControllerRange(callsign)) {
+            addLogLine("Skipping OBT update outside controller range for " + callsign);
+            return;
+        }
         bool createRequest = false;
 
         if (obt != "") {
@@ -440,6 +448,10 @@ string CDM::getTaxiTime(string callsign) {
 }
 
 void CDM::setCdmSts(string callsign, string cdmSts) {
+    if (!isFlightWithinControllerRange(callsign)) {
+        addLogLine("Skipping CDM status update outside controller range for " + callsign);
+        return;
+    }
     if (serverEnabled) {
         addLogLine("Called setCdmSts...");
         try {
@@ -896,7 +908,7 @@ void CDM::getNetworkTobt() {
             if (plane.size() == 4) {
                 if (plane[3] != "" && plane[0] != "") {
                     CFlightPlan fp1 = FlightPlanSelect(plane[0].c_str());
-                    if (fp1.IsValid()) {
+                    if (fp1.IsValid() && isFlightWithinControllerRange(plane[0])) {
                         // Update ASRT
                         string prevAsrt = getFlightStripInfo(fp1, 0);
                         if ((string)fp1.GetGroundState() != "STUP" && (string)fp1.GetGroundState() != "ST-UP" &&
@@ -921,7 +933,7 @@ void CDM::getNetworkTobt() {
                                      (mySlotList[i].hasManualCtot && mySlotList[i].ctot != "")) {
                                 found = true;
                                 CFlightPlan fp = FlightPlanSelect(mySlotList[i].callsign.c_str());
-                                if (!fp.IsValid()) {
+                                if (!fp.IsValid() || !isFlightWithinControllerRange(mySlotList[i].callsign)) {
                                     continue;
                                 }
 
@@ -961,7 +973,7 @@ void CDM::getNetworkTobt() {
                         if (plane[1] != "") {
                             addLogLine("Updating TOBT for: " + plane[0] + " Old: outdated New: " + plane[1] + "00");
                             CFlightPlan fp = FlightPlanSelect(plane[0].c_str());
-                            if (!fp.IsValid()) {
+                            if (!fp.IsValid() || !isFlightWithinControllerRange(plane[0])) {
                                 continue;
                             }
                             setFlightStripInfo(fp, plane[1], 2);
@@ -1075,7 +1087,7 @@ void CDM::copyServerSavedData(string airport) {
         for (vector<string> newplane : newplanes) {
             bool updated = false;
             CFlightPlan fp = FlightPlanSelect(newplane[0].c_str());
-            if (!fp.IsValid()) {
+            if (!fp.IsValid() || !isFlightWithinControllerRange(newplane[0])) {
                 continue;
             }
             for (Plane plane : slotList) {

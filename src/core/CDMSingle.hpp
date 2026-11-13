@@ -95,6 +95,10 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     void PushToOtherControllers(CFlightPlan fp);
 
+    bool updateFlightRange(CFlightPlan FlightPlan, CRadarTarget RadarTarget);
+
+    bool isFlightWithinControllerRange(const string& callsign);
+
     void deleteFlightStrips(string callsign);
 
     string EobtPlusTime(string EOBT, int time);

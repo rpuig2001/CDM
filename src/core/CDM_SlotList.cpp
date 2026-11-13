@@ -20,6 +20,11 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
         vector<Plane> copySlotList = slotList;
         addLogLine("[AUTO] - Starting CDM recalculation process");
         for (size_t i = 0; i < copySlotList.size(); i++) {
+            if (!isFlightWithinControllerRange(copySlotList[i].callsign)) {
+                tempSlotList.push_back(copySlotList[i]);
+                continue;
+            }
+
             // Update TSAT in scratchpad if enabled remarksOption
             if (remarksOption || remarksOptionCtot) {
                 CFlightPlan fplSelect = FlightPlanSelect(copySlotList[i].callsign.c_str());
@@ -222,6 +227,10 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                         string TSATfinal, string TTOTFinal, string origin, int taxiTime, string depRwy, Rate dataRate,
                         bool aircraftFind, bool aicraftInFinalTimesList) {
     try {
+        if (!isFlightWithinControllerRange(callsign)) {
+            return plane;
+        }
+
         bool equalTTOT = true;
         bool correctTTOT = true;
         bool equalTempoTTOT = true;

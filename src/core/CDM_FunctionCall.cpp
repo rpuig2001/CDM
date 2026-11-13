@@ -23,6 +23,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
         if (!fp.IsValid()) {
             return;
         }
+        if (!updateFlightRange(fp, CRadarTarget())) {
+            return;
+        }
         bool AtcMe = false;
         bool master = false;
 
@@ -1090,6 +1093,10 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
 
 void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
     if (FlightPlan.IsValid()) {
+        {
+            std::lock_guard<std::mutex> lock(flightWithinControllerRangeMutex);
+            flightWithinControllerRange[FlightPlan.GetCallsign()] = false;
+        }
         string tsat = getFlightStripInfo(FlightPlan, 3);
         if (tsat != "") {
             disconnectionList.push_back(FlightPlan.GetCallsign());
@@ -1099,4 +1106,35 @@ void CDM::OnFlightPlanDisconnect(CFlightPlan FlightPlan) {
             RemoveDataFromTfc(FlightPlan.GetCallsign());
         }
     }
+}
+
+bool CDM::updateFlightRange(CFlightPlan FlightPlan, CRadarTarget RadarTarget) {
+    bool withinRange = false;
+    if (FlightPlan.IsValid()) {
+        CController controller = ControllerMyself();
+        if (controller.IsValid()) {
+            const int range = controller.GetRange();
+            if (range > 0) {
+                if (!RadarTarget.IsValid()) {
+                    RadarTarget = RadarTargetSelect(FlightPlan.GetCallsign());
+                }
+                if (RadarTarget.IsValid()) {
+                    const CRadarTargetPositionData position = RadarTarget.GetPosition();
+                    if (position.IsValid()) {
+                        withinRange = controller.GetPosition().DistanceTo(position.GetPosition()) <= range;
+                    }
+                }
+            }
+        }
+
+        std::lock_guard<std::mutex> lock(flightWithinControllerRangeMutex);
+        flightWithinControllerRange[FlightPlan.GetCallsign()] = withinRange;
+    }
+    return withinRange;
+}
+
+bool CDM::isFlightWithinControllerRange(const string& callsign) {
+    std::lock_guard<std::mutex> lock(flightWithinControllerRangeMutex);
+    auto flightRange = flightWithinControllerRange.find(callsign);
+    return flightRange != flightWithinControllerRange.end() && flightRange->second;
 }

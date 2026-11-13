@@ -39,11 +39,16 @@ void CDM::refreshFlightTimes() {
                 continue;
             }
 
+            CRadarTarget radarTarget = RadarTargetSelect(flightPlan.GetCallsign());
+            if (!updateFlightRange(flightPlan, radarTarget)) {
+                continue;
+            }
+
             char text[16] = {};
             int colorCode = 0;
             COLORREF color = 0;
             double fontSize = 0;
-            OnGetTagItem(flightPlan, CRadarTarget(), TAG_ITEM_TSAT, 0, text, &colorCode, &color, &fontSize);
+            OnGetTagItem(flightPlan, radarTarget, TAG_ITEM_TSAT, 0, text, &colorCode, &color, &fontSize);
         }
     } catch (const std::exception& error) {
         addLogLine("ERROR: Unhandled exception refreshFlightTimes: " + string(error.what()));
@@ -71,6 +76,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
         COLORREF ItemRGB = 0xFFFFFFFF;
         string callsign = FlightPlan.GetCallsign();
+        if (!updateFlightRange(FlightPlan, RadarTarget)) {
+            sItemString[0] = '\0';
+            return;
+        }
 
         // Serve from cache if this callsign+column was already computed this second - see
         // tagItemDisplayCache declaration for why. Falls through to the full computation below on a
@@ -964,6 +973,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                         // Check API
                                         if (doRequest && recalculateOnTobtUpdate && recalculate && tobt.length() == 4) {
                                             if (serverEnabled) {
+                                                slotList[pos].showData = false;
                                                 std::lock_guard<std::mutex> lock(pendingTobtApiUpdatesMutex);
                                                 pendingTobtApiUpdates[callsign] = "";
                                             }
