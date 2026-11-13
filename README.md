@@ -401,6 +401,23 @@ startup wait = max(0, estimated queue delay - runway pressure)
 
 For example, at 38 departures per hour, the spacing is `60 / 38 = 1.58` minutes. With runway pressure set to 15 minutes, `15 / 1.58 = 9.5`, so 9 aircraft fit within the runway pressure window without an additional startup wait. A 16-minute queue delay gives a 1-minute wait; an 18-minute delay gives a 3-minute wait. If the delay is 10 minutes, runway pressure adds no wait, and TSAT is no earlier than now or EOBT/TOBT.
 
+#### CTOT Flights
+For CTOT flights, the startup advance uses the average planned runway wait of nearby non-CTOT departures, rather than automatically subtracting the full runway pressure.
+
+A departure contributes to the average only if it:
+- Departs from the same airport, using the same runway or a dependent runway/SID as defined in the rate configuration.
+- Has no CTOT.
+- Has a TTOT between the CTOT flight's TTOT minus the configured runway pressure and that flight's TTOT, inclusive. For TTOT 12:00 and pressure 10 minutes, the window is 11:50 through 12:00. If TTOT differs from CTOT, the window follows TTOT.
+
+Each qualifying departure contributes its own planned wait, using its own EXOT:
+```
+planned runway wait = max(0, TTOT - TSAT - EXOT)
+startup advance = min(configured runway pressure, average planned runway wait)
+CTOT flight TSAT = max(now, EOBT/TOBT, TTOT - EXOT - startup advance)
+```
+
+For example, a flight has CTOT/TTOT 12:00, EXOT 15 minutes and a runway pressure threshold of 10 minutes. Three qualifying non-CTOT departures in the 11:50-12:00 window have planned runway waits of 3, 5 and 7 minutes. Their average is 5 minutes, so the CTOT flight's TSAT becomes `12:00 - 15 - 5 = 11:40`, not 11:35. If now is already 11:42, its TSAT becomes 11:42 instead. An average of 12 minutes would be capped at the 10-minute threshold.
+
 The default runway pressure is configured with `<runwayPressure minutes="15"/>` in CDMconfig.xml. Set the default to `-1` to disable runway pressure globally, even if rate.txt or a runtime runway override contains a positive value. With a default of `0` or greater, a runway-specific rate.txt value can override it; a runway-specific runtime command takes precedence over rate.txt. A value of `0` for an individual runway disables runway pressure for that runway.
 
 Use `.cdm runwaypressure {minutes}` to change the default at runtime, or `.cdm runwaypressure {icao}/{rwy} {minutes}` to set a runway-specific pressure value. Use `.cdm runwaypressure {icao}/{rwy} default` to remove that runtime override and return to the rate.txt value or XML default.

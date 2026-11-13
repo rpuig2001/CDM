@@ -327,7 +327,52 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                         if (queueDelaySeconds < -43200) queueDelaySeconds += 86400;
                         if (queueDelaySeconds > 43200) queueDelaySeconds -= 86400;
 
-                        int allowedQueueWaitSeconds = max(0, queueDelaySeconds - runwayPressureValue * 60);
+                        int pressureSeconds = runwayPressureValue * 60;
+                        if (plane.hasManualCtot && !plane.ctot.empty()) {
+                            unordered_map<string, const Plane*> queuePeers;
+                            for (const Plane& peer : slotList) queuePeers[peer.callsign] = &peer;
+                            for (const Plane& peer : planes) queuePeers[peer.callsign] = &peer;
+                            long long totalQueueWaitSeconds = 0;
+                            int queuePeerCount = 0;
+                            for (const auto& entry : queuePeers) {
+                                const Plane& peer = *entry.second;
+                                if (peer.callsign == callsign || peer.hasManualCtot || !peer.ctot.empty() ||
+                                    (peer.ttot.length() != 4 && peer.ttot.length() != 6) ||
+                                    (peer.tsat.length() != 4 && peer.tsat.length() != 6) ||
+                                    peer.ttot.find_first_not_of("0123456789") != string::npos ||
+                                    peer.tsat.find_first_not_of("0123456789") != string::npos) continue;
+
+                                int timeToSlotSeconds = secondsSinceMidnight(TTOTFinal) - secondsSinceMidnight(peer.ttot);
+                                if (timeToSlotSeconds < -43200) timeToSlotSeconds += 86400;
+                                if (timeToSlotSeconds > 43200) timeToSlotSeconds -= 86400;
+                                if (timeToSlotSeconds < 0 || timeToSlotSeconds > pressureSeconds) continue;
+
+                                CFlightPlan peerFlightPlan = FlightPlanSelect(peer.callsign.c_str());
+                                if (!peerFlightPlan.IsValid() ||
+                                    string(peerFlightPlan.GetFlightPlanData().GetOrigin()) != origin) continue;
+                                string peerRunway = peerFlightPlan.GetFlightPlanData().GetDepartureRwy();
+                                string peerSid = peerFlightPlan.GetFlightPlanData().GetSidName();
+                                bool sharesQueue = peerRunway == depRwy;
+                                if (dataRate.airport != "-1") {
+                                    for (const string& dependentRunway : dataRate.dependentRwy) {
+                                        if (dependentRunway == peerRunway || patternMatches(dependentRunway, peerSid)) {
+                                            sharesQueue = true;
+                                        }
+                                    }
+                                }
+                                if (!sharesQueue) continue;
+
+                                int peerQueueWaitSeconds = secondsSinceMidnight(peer.ttot) - secondsSinceMidnight(peer.tsat);
+                                if (peerQueueWaitSeconds < -43200) peerQueueWaitSeconds += 86400;
+                                if (peerQueueWaitSeconds > 43200) peerQueueWaitSeconds -= 86400;
+                                peerQueueWaitSeconds -= stoi(getTaxiTime(peer.callsign)) * 60;
+                                totalQueueWaitSeconds += max(0, peerQueueWaitSeconds);
+                                queuePeerCount++;
+                            }
+                            pressureSeconds = queuePeerCount == 0 ? 0 :
+                                min(pressureSeconds, static_cast<int>(totalQueueWaitSeconds / queuePeerCount));
+                        }
+                        int allowedQueueWaitSeconds = max(0, queueDelaySeconds - pressureSeconds);
                         string earliestTsat = calculateTime(EOBT, allowedQueueWaitSeconds / 60.0);
                         int delayFromNowSeconds = secondsSinceMidnight(earliestTsat) - secondsSinceMidnight(timeNow);
                         if (delayFromNowSeconds < -43200) delayFromNowSeconds += 86400;
