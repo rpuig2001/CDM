@@ -258,7 +258,7 @@ CDM::CDM(void)
         string runwayPressureMinutesString = getFromXml("/CDM/runwayPressure/@minutes");
 
         apikey = "TEST";
-        runwayPressureMinutes = runwayPressureMinutesString.empty() ? 0 : stoi(runwayPressureMinutesString);
+        runwayPressureMinutes = runwayPressureMinutesString.empty() ? -1 : stoi(runwayPressureMinutesString);
         if (runwayPressureMinutes < -1) {
             throw invalid_argument("Runway Pressure minutes must be -1 or zero or more");
         }
