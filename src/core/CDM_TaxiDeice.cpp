@@ -331,8 +331,10 @@ std::vector<Plane> CDM::recalculateSlotList(std::vector<Plane> mySlotList) {
                 if (aHasReqTobt != bHasReqTobt) return aHasReqTobt > bHasReqTobt;
             }
 
-            // 4. Fallback → order by TTOT
-            return std::stoi(a.ttot) < std::stoi(b.ttot);
+            // 4. Fallback → order by recorded ATOT, then planned TTOT.
+            const string& aTime = atotEnabled && !a.atot.empty() ? a.atot : a.ttot;
+            const string& bTime = atotEnabled && !b.atot.empty() ? b.atot : b.ttot;
+            return std::stoi(aTime) < std::stoi(bTime);
         });
     } catch (const std::exception& e) {
         addLogLine("ERROR: Unhandled exception recalculateSlotList: " + std::string(e.what()));

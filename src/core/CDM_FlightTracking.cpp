@@ -239,15 +239,6 @@ void CDM::RemoveDataFromTfc(string callsign) {
                 deiceList.erase(deiceList.begin() + i);
             }
         }
-        // Remove from atotSet
-        for (size_t i = 0; i < atotSet.size(); i++) {
-            if (callsign == atotSet[i]) {
-                if (debugMode) {
-                    sendMessage("[DEBUG MESSAGE] - " + callsign + " REMOVED 17");
-                }
-                atotSet.erase(atotSet.begin() + i);
-            }
-        }
         // Remove from dataSaved
         for (size_t i = 0; i < dataSaved.size(); i++) {
             if (callsign == dataSaved[i][0]) {

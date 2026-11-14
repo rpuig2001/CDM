@@ -68,6 +68,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
                         if (ctot.size() == 4) {
                             for (size_t z = 0; z < slotListTemp.size(); z++) {
                                 if (slotListTemp[z].callsign == callsign && !flightHasCtotDisabled(callsign)) {
+                                    const string atot = slotListTemp[z].atot;
                                     slotListTemp[z] = {callsign,
                                                        slotListTemp[z].eobt,
                                                        slotListTemp[z].tsat,
@@ -77,6 +78,7 @@ void CDM::getCdmServerRestricted(vector<Plane> slotListTemp) {
                                                        true,
                                                        true,
                                                        true};
+                                    slotListTemp[z].atot = atot;
                                 }
                             }
                         }
@@ -360,6 +362,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                             if (!ctot.empty() && !flightHasCtotDisabled(apiCallsign)) {
                                 // Update with thread-safe access
                                 {
+                                    const string atot = slotListTemp[i].atot;
                                     slotListTemp[i] = {apiCallsign,
                                                        slotListTemp[i].eobt,
                                                        slotListTemp[i].tsat,
@@ -369,6 +372,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                                                        true,
                                                        true,
                                                        true};
+                                    slotListTemp[i].atot = atot;
                                 }
                             } else {
                                 if (slotListTemp[i].ctot != "") {

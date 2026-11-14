@@ -196,7 +196,6 @@ inline vector<Plane> apiQueueResponse;
 inline std::mutex apiQueueResponseMutex;
 inline vector<vector<string>> deiceList;
 inline vector<sidInterval> sidIntervalList;
-inline vector<string> atotSet;
 inline vector<vector<string>> relevantFlights;
 inline vector<string> messagesSent;
 inline vector<string> reqTobtList;
