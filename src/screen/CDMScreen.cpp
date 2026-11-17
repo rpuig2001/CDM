@@ -388,14 +388,14 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC) {
     chkLabel3.left = chkBox3.right + 6;
 
     AddScreenObject(RADARSCR_OBJECT_CUSTOM, "FLT_CHK_ATC", chkRow3, true,
-                    "Unchecked: only departures confirmed without local ATC or ATIS. Refreshed every 5 minutes.");
+                    "Unchecked: only departures confirmed without local ATC. Refreshed every 5 minutes.");
     DrawRoundedRect(hDC, chkBox3, RGB(90, 90, 110), RGB(30, 30, 30));
     if (showAtfcmWithAtc) {
         SetBkMode(hDC, TRANSPARENT);
         SetTextColor(hDC, RGB(255, 255, 255));
         DrawTextA(hDC, "X", -1, &chkBox3, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
     }
-    DrawCellTextA_Flt(hDC, "Show departures with local ATC / ATIS", chkLabel3, DT_LEFT, RGB(255, 255, 255));
+    DrawCellTextA_Flt(hDC, "Show departures with local ATC", chkLabel3, DT_LEFT, RGB(255, 255, 255));
 
     // Filter row (click to edit)
     RECT filterRow = flightsPanelRect;
