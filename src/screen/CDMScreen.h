@@ -101,6 +101,7 @@ class CDMScreen : public CRadarScreen {
     RECT flightsHeaderRect{0, 0, 0, 0};
     bool showAtfcmAllFlights = false;
     bool showAtfcmAllCdmFlights = false;
+    bool showAtfcmWithAtc = true;
     RECT flightsFilterRect;
     int sortColumn;
     bool sortAscending;

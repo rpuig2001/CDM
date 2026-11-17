@@ -24,6 +24,7 @@
 #include "src/models/Plane.h"
 #include "src/models/Rate.h"
 #include "src/models/ServerRestricted.h"
+#include "src/models/VatsimAtcStatus.h"
 #include "json/json.h"
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
@@ -64,6 +65,8 @@ using namespace rapidjson;
 using namespace EuroScopePlugIn;
 
 class CDM : public EuroScopePlugIn::CPlugIn {
+    VatsimAtcStatus vatsimAtcStatus_;
+
    public:
     CDM();
     virtual ~CDM();
@@ -74,6 +77,7 @@ class CDM : public EuroScopePlugIn::CPlugIn {
     vector<string> getMasterAirports();
     vector<vector<string>> getServerMasterAirports();
     void fetchRelevantFlights();
+    bool isDepartureAtcOffline(const string& airport) const;
     bool setCdmServerStatusFromDialog(std::vector<std::string> flight, string request);
     void sendAtfcmPrivateMessageToPilotCon(std::vector<std::string> flight);
     bool sendAtfcmPrivateMessageToPilot(vector<string> flight);

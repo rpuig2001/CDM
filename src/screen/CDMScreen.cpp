@@ -271,6 +271,8 @@ std::vector<std::vector<std::string>> CDMScreen::GetFilteredRelevantFlightsRows(
             if (isCdm) continue;
         }
 
+        if (!showAtfcmWithAtc && !cdm->isDepartureAtcOffline(GetColSafe(row, 1))) continue;
+
         std::string flightsFilterText = cdm->getFilterFlightsText();
 
         // text filter: match any column
@@ -314,7 +316,7 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC) {
     int bodyH = rows * FLT_ROW_HEIGHT + (rows > 0 ? (rows - 1) * FLT_ROW_GAP : 0);
 
     // header + gap + checkbox row + gap + checkbox row + gap + filter row + gap + column header + gap + list + gap
-    int panelH = FLT_HEADER_HEIGHT + 6 + 18 + 6 + 18 + 6 + 18 + 6 + 18 + 6 + bodyH + 6;
+    int panelH = FLT_HEADER_HEIGHT + 6 + 18 + 6 + 18 + 6 + 18 + 6 + 18 + 6 + 18 + 6 + bodyH + 6;
 
     flightsPanelRect =
         RECT{flightsPanelPos.x, flightsPanelPos.y, flightsPanelPos.x + FLT_PANEL_WIDTH, flightsPanelPos.y + panelH};
@@ -377,9 +379,27 @@ void CDMScreen::DrawRelevantFlightsPanel(HDC hDC) {
 
     DrawCellTextA_Flt(hDC, "Show CDM AND non-CDM.", chkLabel2, DT_LEFT, RGB(255, 255, 255));
 
+    RECT chkRow3 = chkRow2;
+    chkRow3.top = chkRow2.bottom + 6;
+    chkRow3.bottom = chkRow3.top + 18;
+    RECT chkBox3 = chkRow3;
+    chkBox3.right = chkBox3.left + 18;
+    RECT chkLabel3 = chkRow3;
+    chkLabel3.left = chkBox3.right + 6;
+
+    AddScreenObject(RADARSCR_OBJECT_CUSTOM, "FLT_CHK_ATC", chkRow3, true,
+                    "Unchecked: only departures confirmed without local ATC or ATIS. Refreshed every 5 minutes.");
+    DrawRoundedRect(hDC, chkBox3, RGB(90, 90, 110), RGB(30, 30, 30));
+    if (showAtfcmWithAtc) {
+        SetBkMode(hDC, TRANSPARENT);
+        SetTextColor(hDC, RGB(255, 255, 255));
+        DrawTextA(hDC, "X", -1, &chkBox3, DT_CENTER | DT_VCENTER | DT_SINGLELINE | DT_NOPREFIX);
+    }
+    DrawCellTextA_Flt(hDC, "Show departures with local ATC / ATIS", chkLabel3, DT_LEFT, RGB(255, 255, 255));
+
     // Filter row (click to edit)
     RECT filterRow = flightsPanelRect;
-    filterRow.top = chkRow2.bottom + 6;
+    filterRow.top = chkRow3.bottom + 6;
     filterRow.bottom = filterRow.top + 18;
     filterRow.left += 6;
     filterRow.right -= 6;
@@ -713,6 +733,13 @@ void CDMScreen::OnClickScreenObject(int ObjectType, const char* sObjectId, POINT
     // Flights: checkbox (CDM / non-CDM)
     if (strcmp(sObjectId, "FLT_CHK_CDM") == 0) {
         showAtfcmAllCdmFlights = !showAtfcmAllCdmFlights;
+        RequestRefresh();
+        return;
+    }
+
+    if (strcmp(sObjectId, "FLT_CHK_ATC") == 0) {
+        showAtfcmWithAtc = !showAtfcmWithAtc;
+        cdm->fetchRelevantFlights();
         RequestRefresh();
         return;
     }

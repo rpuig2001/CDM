@@ -16,6 +16,18 @@ CDM includes the following times:
 - CTOT: Calculated Take Off Time.
 
 
+## ATFCM Local ATC Filter
+
+In the `.cdm atfcm` panel, uncheck **Show departures with local ATC** to
+show only flights whose departure has no matching controller or ATIS. The first
+four callsign characters are matched to the departure ICAO, including positions
+such as `EDDM_2_GND`. All facilities are included.
+
+The VATSIM data feed is checked every five minutes while the ATFCM panel is in
+use. Until a successful check, or if the last successful check is over five
+minutes old, the filtered view hides flights rather than assuming ATC is offline.
+The checkbox is checked by default to preserve the existing view.
+
 ## How to use:
 - Load up the plugin.
 - If there is no master controller, you should use the command ``.cdm master {airport}`` of the airport you want to become the master. You can have as many airports as you want, but there can ony be **1 MASTER at the same time** (The MASTER should be DELIVERY or the lowest ATC position to have access to all CDM actions).

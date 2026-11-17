@@ -11,6 +11,7 @@ void CDM::getCdmServerRelevantFlights() {
     if (serverEnabled && showAtfcmList) {
         addLogLine("Called getCdmServerRelevantFlights...");
         try {
+            vatsimAtcStatus_.refresh(*restclient_);
             vector<vector<string>> relevantFlightsTemp;
             string callsign = ControllerMyself().GetCallsign();
             if (callsign.length() > 4) {
@@ -95,6 +96,10 @@ vector<string> CDM::getCDMAirports() { return CDMairports; }
 string CDM::getFilterFlightsText() { return flightsFilterText; }
 
 vector<vector<string>> CDM::returnRelevantFlights() { return relevantFlights; }
+
+bool CDM::isDepartureAtcOffline(const string& airport) const {
+    return vatsimAtcStatus_.isConfirmedOffline(airport);
+}
 
 vector<string> CDM::getMasterAirports() { return masterAirports; }
 
