@@ -195,10 +195,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     }
                 }
 
-                if (aircraftFind) {
-                    syncAtotFromFlightStrip(FlightPlan, slotList[pos]);
-                }
-
                 if (aircraftFind && getFlightStripInfo(FlightPlan, 10) == "1") {
                     tryAutoSetStup(FlightPlan, slotList[pos]);
                 }
@@ -363,9 +359,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                     if ((string)FlightPlan.GetGroundState() == "DEPA") {
                         stsDepa = true;
                         setFlightStripInfo(FlightPlan, "", 3);
-                        if (!atotEnabled) {
-                            setFlightStripInfo(FlightPlan, "", 4);
-                        }
+                        setFlightStripInfo(FlightPlan, "", 4);
                     }
 
                     bool master = false;
@@ -396,19 +390,18 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         // Atot check
                         if (atotEnabled) {
                             if ((string)FlightPlan.GetGroundState() == "DEPA") {
-                                Plane atotState(callsign, EOBT, "", getFlightStripInfo(FlightPlan, 4), "", "", false,
-                                                true, true);
-                                syncAtotFromFlightStrip(FlightPlan, atotState);
-                                const bool captureAtot = atotState.atot.empty();
-                                if (captureAtot) {
-                                    atotState.atot = GetTimeNow();
-                                    syncAtotToFlightStrip(FlightPlan, atotState);
+                                bool atotFound = false;
+                                for (size_t i = 0; i < atotSet.size(); i++) {
+                                    if (callsign == atotSet[i]) {
+                                        atotFound = true;
+                                    }
                                 }
-                                if (aircraftFind) {
-                                    slotList[pos].atot = atotState.atot;
-                                    if (captureAtot) slotList[pos].ttot = atotState.atot;
-                                } else if (captureAtot || getFlightStripInfo(FlightPlan, 4).empty()) {
-                                    setFlightStripInfo(FlightPlan, atotState.atot, 4);
+                                if (!atotFound) {
+                                    atotSet.push_back(callsign);
+                                    // set TTOT to now
+                                    if (aircraftFind) {
+                                        slotList[pos].ttot = GetTimeNow();
+                                    }
                                 }
                             }
                         }
@@ -964,7 +957,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                                         keepCtot ? slotList[pos].ctot : "",
                                                         keepCtot ? slotList[pos].flowReason : "", keepCtot, true,
                                                         true);
-                                                p.atot = slotList[pos].atot;
                                                 doRequest = true;
                                                 slotList[pos] = p;
                                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
@@ -975,7 +967,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             doRequest = true;
                                             slotList.push_back(p);
                                             pos = getPlanePosition(callsign);
-                                            syncAtotFromFlightStrip(FlightPlan, slotList[pos]);
                                             setFlightStripInfo(FlightPlan, p.tsat, 3);
                                             setFlightStripInfo(FlightPlan, p.ttot, 4);
                                         }
@@ -1024,13 +1015,10 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
                                 // Sync TTOT
                                 if (aircraftFind) {
-                                    if (!stsDepa && getFlightStripInfo(FlightPlan, 3) != slotList[pos].tsat) {
+                                    if (string(TSAT) != slotList[pos].tsat || string(TTOT) != slotList[pos].ttot) {
                                         setFlightStripInfo(FlightPlan, slotList[pos].tsat, 3);
-                                    }
-                                    if (getFlightStripInfo(FlightPlan, 4) != slotList[pos].ttot) {
                                         setFlightStripInfo(FlightPlan, slotList[pos].ttot, 4);
                                     }
-                                    syncAtotToFlightStrip(FlightPlan, slotList[pos]);
                                 } else if (aircraftFind && !stsDepa) {
                                     string myTSAT = TSAT;
                                     string myTTOT = TTOT;
@@ -1999,9 +1987,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                             }
                                             if (!aicraftInFinalTimesList) {
                                                 p.showData = slotList[d].showData;
-                                                if (p.atot.empty()) p.atot = slotList[d].atot;
                                                 slotList[d] = p;
-                                                syncAtotToFlightStrip(FlightPlanSelect(p.callsign.c_str()), slotList[d]);
                                                 string pendingTobtApi;
                                                 {
                                                     std::lock_guard<std::mutex> lock(pendingTobtApiUpdatesMutex);
@@ -2065,11 +2051,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         bool TSATFind = true;
                         string TSATString = getFlightStripInfo(FlightPlan, 3);
                         string TTOTString = getFlightStripInfo(FlightPlan, 4);
-                        if (aircraftFind && pos < slotList.size()) {
-                            syncAtotFromFlightStrip(FlightPlan, slotList[pos]);
-                        }
-                        if (TSATString == "" &&
-                            (!atotEnabled || getFlightStripInfo(FlightPlan, 11).empty())) {
+                        if (TSATString == "") {
                             TSATFind = false;
                         }
 
@@ -2087,7 +2069,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         } else {
                             if (TSATFind) {
                                 Plane p(callsign, EOBT, TSATString, TTOTString, "", "", hasManualCtot, true, true);
-                                syncAtotFromFlightStrip(FlightPlan, p);
                                 slotList.push_back(p);
                             }
                         }

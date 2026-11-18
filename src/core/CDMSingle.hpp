@@ -421,10 +421,6 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     void setFlightStripInfo(CFlightPlan FlightPlan, string text, int position);
 
-    void syncAtotFromFlightStrip(CFlightPlan FlightPlan, Plane& plane);
-
-    void syncAtotToFlightStrip(CFlightPlan FlightPlan, Plane& plane);
-
     void refreshActions1();
 
     void refreshActions3();

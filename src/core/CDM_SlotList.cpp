@@ -13,10 +13,6 @@ static bool isFrozenSlot(const Plane& p, const string& timeNow) {
            isdigit((unsigned char)p.tsat[0]) && stoi(p.tsat) < stoi(timeNow);
 }
 
-static const string& sequencingTtot(const Plane& plane) {
-    return atotEnabled && !plane.atot.empty() ? plane.atot : plane.ttot;
-}
-
 vector<Plane> CDM::backgroundProcess_recaulculate() {
     addLogLine("Called backgroundProcess_recaulculate...");
     try {
@@ -76,7 +72,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                 if (!myFlightPlan.IsValid()) {
                     continue;
                 }
-                syncAtotFromFlightStrip(myFlightPlan, copySlotList[i]);
 
                 for (size_t s = 0; s < planeAiportList.size(); s++) {
                     if (myCallsign == planeAiportList[s].substr(0, planeAiportList[s].find(","))) {
@@ -127,15 +122,8 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                const bool isDeparted = atotEnabled && (string)myFlightPlan.GetGroundState() == "DEPA";
-                if (isDeparted) {
-                    myTTOT = copySlotList[i].atot.length() >= 4 ? copySlotList[i].atot : copySlotList[i].ttot;
-                    myTSAT = myTTOT.length() >= 4 ? calculateLessTime(myTTOT, myTTime) : myEOBT;
-                    if (myTTOT.empty()) myTTOT = calculateTime(myEOBT, myTTime);
-                } else {
-                    myTSAT = myEOBT;
-                    myTTOT = calculateTime(myEOBT, myTTime);
-                }
+                myTSAT = myEOBT;
+                myTTOT = calculateTime(myEOBT, myTTime);
                 if ((addTime || tempAddTime_DELAY_TSAT || tempAddTime_DELAY_TTOT) && !aicraftInFinalTimesList) {
                     if (tempAddTime_DELAY_TSAT || tempAddTime_DELAY_TTOT) {
                         string timeToUse = myTimeToAddTemp_DELAY;
@@ -180,7 +168,7 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     }
                 }
 
-                if (!isDeparted && copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") {
+                if (copySlotList[i].hasManualCtot && copySlotList[i].ctot != "") {
                     string ctotTTOT = copySlotList[i].ctot + "00";
                     string ctotTSAT  = calculateLessTime(ctotTTOT, myTTime);
                     // Only use CTOT if it doesn't push TSAT before EOBT
@@ -217,7 +205,6 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
 
                 Plane item = refreshTimes(copySlotList[i], planesToCheck, myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT,
                                  myAirport, myTTime, myDepRwy, dataRate, true, aicraftInFinalTimesList);
-                item.atot = copySlotList[i].atot;
                 tempSlotList.push_back(item);
                 // refreshTimes(myFlightPlan, myCallsign, myEOBT, myTSAT, myTTOT, myAirport, myTTime, myRemarks,
                 // myDepRwy, dataRate, myhasCTOT, myCtotPos, i, true);
@@ -358,14 +345,13 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             int queuePeerCount = 0;
                             for (const auto& entry : queuePeers) {
                                 const Plane& peer = *entry.second;
-                                const string& peerAtot = sequencingTtot(peer);
                                 if (peer.callsign == callsign || peer.hasManualCtot || !peer.ctot.empty() ||
-                                    (peerAtot.length() != 4 && peerAtot.length() != 6) ||
+                                    (peer.ttot.length() != 4 && peer.ttot.length() != 6) ||
                                     (peer.tsat.length() != 4 && peer.tsat.length() != 6) ||
-                                    peerAtot.find_first_not_of("0123456789") != string::npos ||
+                                    peer.ttot.find_first_not_of("0123456789") != string::npos ||
                                     peer.tsat.find_first_not_of("0123456789") != string::npos) continue;
 
-                                int timeToSlotSeconds = secondsSinceMidnight(TTOTFinal) - secondsSinceMidnight(peerAtot);
+                                int timeToSlotSeconds = secondsSinceMidnight(TTOTFinal) - secondsSinceMidnight(peer.ttot);
                                 if (timeToSlotSeconds < -43200) timeToSlotSeconds += 86400;
                                 if (timeToSlotSeconds > 43200) timeToSlotSeconds -= 86400;
                                 if (timeToSlotSeconds < 0 || timeToSlotSeconds > pressureSeconds) continue;
@@ -385,7 +371,7 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                                 }
                                 if (!sharesQueue) continue;
 
-                                int peerQueueWaitSeconds = secondsSinceMidnight(peerAtot) - secondsSinceMidnight(peer.tsat);
+                                int peerQueueWaitSeconds = secondsSinceMidnight(peer.ttot) - secondsSinceMidnight(peer.tsat);
                                 if (peerQueueWaitSeconds < -43200) peerQueueWaitSeconds += 86400;
                                 if (peerQueueWaitSeconds > 43200) peerQueueWaitSeconds -= 86400;
                                 peerQueueWaitSeconds -= stoi(getTaxiTime(peer.callsign)) * 60;
@@ -423,7 +409,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             if ((TTOT != plane.ttot || TSAT != plane.tsat) && TTOT.length() >= 4 && TSAT.length() >= 4) {
                                 Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true,
                                         true);
-                                p.atot = plane.atot;
                                 plane = p;
                                 doRequest = true;
                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
@@ -431,7 +416,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             }
                         } else if (TTOT.length() >= 4) {
                             Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true, true);
-                            p.atot = plane.atot;
                             plane = p;
                             setFlightStripInfo(FlightPlan, p.tsat, 3);
                             setFlightStripInfo(FlightPlan, p.ttot, 4);
@@ -441,7 +425,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             if ((TTOT != plane.ttot || TSAT != plane.tsat) && TTOT.length() >= 4 && TSAT.length() >= 4) {
                                 Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true,
                                         true);
-                                p.atot = plane.atot;
                                 plane = p;
                                 doRequest = true;
                                 setFlightStripInfo(FlightPlan, p.tsat, 3);
@@ -449,7 +432,6 @@ Plane CDM::refreshTimes(Plane plane, vector<Plane> planes, CFlightPlan FlightPla
                             }
                         } else if (TTOT.length() >= 4) {
                             Plane p(callsign, EOBT, TSAT, TTOT, plane.ctot, myFlow, plane.hasManualCtot, true, true);
-                            p.atot = plane.atot;
                             plane = p;
                             setFlightStripInfo(FlightPlan, p.tsat, 3);
                             setFlightStripInfo(FlightPlan, p.ttot, 4);
@@ -582,7 +564,7 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                 while (!found) {
                     found = true;
                     if (planes[t].hasManualCtot || isFrozenSlot(planes[t], timeNow)) {
-                        listTTOT = sequencingTtot(planes[t]);
+                        listTTOT = planes[t].ttot;
 
                         if (TTOTFinal == listTTOT && callsign != listCallsign && sameOrDependantRwys &&
                             listAirport == origin) {
@@ -615,7 +597,7 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
                 bool found = false;
                 while (!found) {
                     found = true;
-                    listTTOT = sequencingTtot(planes[t]);
+                    listTTOT = planes[t].ttot;
 
                     if (planes[t].tsat == "999999") {
                         listDepRwy = depRwy;
@@ -651,7 +633,7 @@ string CDM::getCorrectTTOT(string TTOTInitial, bool hasManualCtot, const vector<
             }
             // Check SID Interval
             if (correctTTOT && sidIntervalEnabled && callsign != listCallsign) {
-                listTTOT = sequencingTtot(planes[t]);
+                listTTOT = planes[t].ttot;
                 double interval = getSidInterval(mySid, listSid, origin, depRwy, listDepRwy);
                 if (interval > 0) {
                     bool found = false;
@@ -800,7 +782,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
             if (!(listAirport == origin)) continue;
             if (!sameOrDependantRwys) continue;
 
-            if (inSameWindow(windowTTOT, sequencingTtot(planes[t]))) {
+            if (inSameWindow(windowTTOT, planes[t].ttot)) {
                 count++;
             }
         }
@@ -836,7 +818,7 @@ string CDM::getCorrectTTOT_Windowed(string TTOTInitial, bool hasManualCtot, cons
                 }
                 if (listAirport != origin) continue;
                 string listCallsign = planes[t].callsign;
-                string listTTOT = sequencingTtot(planes[t]);
+                string listTTOT = planes[t].ttot;
                 CFlightPlan listFlightPlan = FlightPlanSelect(listCallsign.c_str());
                 if (!listFlightPlan.IsValid()) continue;
                 string listSid = listFlightPlan.GetFlightPlanData().GetSidName();

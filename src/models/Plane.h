@@ -10,7 +10,6 @@ class Plane {
     string eobt;
     string tsat;
     string ttot;
-    string atot;
     string ctot;
     string flowReason;
     bool hasManualCtot;
@@ -23,7 +22,6 @@ class Plane {
           eobt(myeobt),
           tsat(mytsat),
           ttot(myttot),
-          atot(""),
           ctot(myctot),
           flowReason(myFlowReason),
           hasManualCtot(myHasManualCtot),
