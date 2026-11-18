@@ -65,9 +65,9 @@ vector<string> CDM::splitString(const std::string& str, char delimiter) {
 }
 
 string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
-    if (position >= 0 && position <= 10 && FlightPlan.IsValid()) {
-        //   0    1    2    3   4     5       6       7       8     9       10
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/autoStartup (1=armed, 2=assigned)
+    if (position >= 0 && position <= 11 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8     9       10          11
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/autoStartup/ATOT
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         vector<string> values = split(annotation, '/');
 
@@ -79,9 +79,9 @@ string CDM::getFlightStripInfo(CFlightPlan FlightPlan, int position) {
 }
 
 void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) {
-    if (position >= 0 && position <= 10 && FlightPlan.IsValid()) {
-        //   0    1    2    3   4     5       6       7       8     9       10
-        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/autoStartup (1=armed, 2=assigned)
+    if (position >= 0 && position <= 11 && FlightPlan.IsValid()) {
+        //   0    1    2    3   4     5       6       7       8     9       10          11
+        // ASRT/TSAC/TOBT/TSAT/TTOT/deIce/ecfmpId/manualCtot/CTOC/setBy/autoStartup/ATOT
         string annotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
         if (annotation == "") {
             annotation = "///////////";
@@ -102,6 +102,44 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
             }
         }
         FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str());
+    }
+}
+
+void CDM::syncAtotFromFlightStrip(CFlightPlan FlightPlan, Plane& plane) {
+    if (!atotEnabled) {
+        plane.atot.clear();
+        return;
+    }
+    if (!FlightPlan.IsValid()) return;
+
+    const string marker = getFlightStripInfo(FlightPlan, 11);
+    const vector<string> values = split(marker, '|');
+    const string identity = string(FlightPlan.GetCallsign()) + "~" +
+                            FlightPlan.GetFlightPlanData().GetOrigin() + "~" +
+                            FlightPlan.GetFlightPlanData().GetDestination() + "~" +
+                            FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
+    if (values.size() == 3 && values[0] == "CDM_ATOT" && values[2] == identity) {
+        plane.atot = values[1];
+    } else {
+        plane.atot.clear();
+        if (marker.rfind("CDM_ATOT|", 0) == 0) {
+            setFlightStripInfo(FlightPlan, "", 11);
+        }
+    }
+}
+
+void CDM::syncAtotToFlightStrip(CFlightPlan FlightPlan, Plane& plane) {
+    if (!atotEnabled) return;
+    if (!FlightPlan.IsValid() || plane.atot.empty()) return;
+
+    const string identity = string(FlightPlan.GetCallsign()) + "~" +
+                            FlightPlan.GetFlightPlanData().GetOrigin() + "~" +
+                            FlightPlan.GetFlightPlanData().GetDestination() + "~" +
+                            FlightPlan.GetFlightPlanData().GetEstimatedDepartureTime();
+    const string marker = "CDM_ATOT|" + plane.atot + "|" + identity;
+    if (getFlightStripInfo(FlightPlan, 11) != marker) {
+        setFlightStripInfo(FlightPlan, marker, 11);
+        PushToOtherControllers(FlightPlan);
     }
 }
 
