@@ -256,6 +256,7 @@ void CDM::updateCdmDataApi(Plane p) {
                 std::lock_guard<std::mutex> lock(later4Mutex);
                 setCdmDatalater.push_back(p);
                 addLogLine("UNABLE TO CONNECT CDM-API...");
+                if (responseCode == -1) addLogLine("POST failed or skipped: " + response.body);
             } else {
                 std::istringstream is(response.body);
                 // Get data from .txt file
@@ -336,13 +337,16 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                     setOBTlater.push_back(plane);  // Safely modify setOBTlater
                 }
                 addLogLine("UNABLE TO CONNECT CDM-API...");
+                if (responseCode == -1) addLogLine("POST failed or skipped: " + response.body);
             } else {
                 Json::Reader reader;
                 Json::Value obj;
                 Json::FastWriter fastWriter;
-                reader.parse(response.body, obj);
-                if (obj.isMember("callsign") && obj.isMember("ctot") && obj.isMember("atfcmData") &&
-                    obj["atfcmData"].isMember("mostPenalisingRegulation")) {
+                const bool validResponse = reader.parse(response.body, obj) && obj.isObject() &&
+                                           obj.isMember("callsign") && obj.isMember("ctot") &&
+                                           obj.isMember("atfcmData") && obj["atfcmData"].isObject() &&
+                                           obj["atfcmData"].isMember("mostPenalisingRegulation");
+                if (validResponse) {
                     string apiCallsign = fastWriter.write(obj["callsign"]);
                     apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '"'), apiCallsign.end());
                     apiCallsign.erase(remove(apiCallsign.begin(), apiCallsign.end(), '\n'), apiCallsign.end());
@@ -470,6 +474,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
                 std::lock_guard<std::mutex> lock(later2Mutex);
                 setCdmStslater.push_back({callsign, cdmSts});
                 addLogLine("UNABLE TO CONNECT CDM-API...");
+                if (responseCode == -1) addLogLine("POST failed or skipped: " + response.body);
             } else {
                 std::istringstream is(response.body);
                 string lineValue;

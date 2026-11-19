@@ -22,6 +22,7 @@ CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_putRequest
     curl_easy_setopt(m_postRequest.socket, CURLOPT_CUSTOMREQUEST, "POST");
     curl_easy_setopt(m_postRequest.socket, CURLOPT_TIMEOUT, 30L);
     curl_easy_setopt(m_postRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
+    curl_easy_setopt(m_postRequest.socket, CURLOPT_NOSIGNAL, 1L);
 
     // Configure PUT
     curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
@@ -125,8 +126,14 @@ interfaces::HttpResponse CurlRestClient::get(const std::string& url,
 
 interfaces::HttpResponse CurlRestClient::post(const std::string& url, const std::string_view& body,
                                               const std::unordered_map<std::string, std::string>& headers) {
-    std::lock_guard guard(this->m_postRequest.lock);
+    std::unique_lock<std::mutex> guard(this->m_postRequest.lock, std::try_to_lock);
     interfaces::HttpResponse response;
+
+    if (!guard.owns_lock()) {
+        response.statusCode = -1;
+        response.body = "POST skipped because another request is in progress.";
+        return response;
+    }
 
     if (nullptr == this->m_postRequest.socket) {
         response.statusCode = -1;

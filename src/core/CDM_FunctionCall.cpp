@@ -1051,10 +1051,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             // if (!realMode) {
                             // Check API
                             setBy = "";
-                            for (int z = 0; z < reqTobtList.size(); z++) {
-                                reqTobtList.erase(reqTobtList.begin() + z);
-                                break;
-                            }
+                            const string callsign = fp.GetCallsign();
+                            reqTobtList.erase(std::remove(reqTobtList.begin(), reqTobtList.end(), callsign),
+                                              reqTobtList.end());
 
                             if (serverEnabled) {
                                 // Hide calculation
