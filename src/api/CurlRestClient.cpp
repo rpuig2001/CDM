@@ -8,21 +8,13 @@ static std::size_t receiveCurlData(void* ptr, std::size_t size, std::size_t nmem
     return size * nmemb;
 }
 
-CurlRestClient::CurlRestClient() : m_getRequest(), m_postRequest(), m_putRequest(), m_patchRequest(), m_deleteRequest() {
+CurlRestClient::CurlRestClient() : m_getRequest(), m_putRequest(), m_patchRequest(), m_deleteRequest() {
     // Configure GET
     curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
     curl_easy_setopt(m_getRequest.socket, CURLOPT_HTTPGET, 1L);
     curl_easy_setopt(m_getRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
     curl_easy_setopt(m_getRequest.socket, CURLOPT_TIMEOUT, 2L);
     curl_easy_setopt(m_getRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
-
-    // Configure POST
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_WRITEFUNCTION, receiveCurlData);
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_CUSTOMREQUEST, "POST");
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_TIMEOUT, 30L);
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_CONNECTTIMEOUT, 30L);
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_NOSIGNAL, 1L);
 
     // Configure PUT
     curl_easy_setopt(m_putRequest.socket, CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
@@ -51,12 +43,6 @@ CurlRestClient::~CurlRestClient() {
         std::lock_guard guard(m_getRequest.lock);
         curl_easy_cleanup(m_getRequest.socket);
         m_getRequest.socket = nullptr;
-    }
-
-    if (nullptr != m_postRequest.socket) {
-        std::lock_guard guard(m_postRequest.lock);
-        curl_easy_cleanup(m_postRequest.socket);
-        m_postRequest.socket = nullptr;
     }
 
     if (nullptr != m_putRequest.socket) {
@@ -126,20 +112,21 @@ interfaces::HttpResponse CurlRestClient::get(const std::string& url,
 
 interfaces::HttpResponse CurlRestClient::post(const std::string& url, const std::string_view& body,
                                               const std::unordered_map<std::string, std::string>& headers) {
-    std::unique_lock<std::mutex> guard(this->m_postRequest.lock, std::try_to_lock);
     interfaces::HttpResponse response;
 
-    if (!guard.owns_lock()) {
+    std::unique_ptr<CURL, decltype(&curl_easy_cleanup)> socket(curl_easy_init(), curl_easy_cleanup);
+    if (!socket) {
         response.statusCode = -1;
-        response.body = "POST skipped because another request is in progress.";
+        response.body = "Internal client error: POST CURL handle initialization failed.";
         return response;
     }
 
-    if (nullptr == this->m_postRequest.socket) {
-        response.statusCode = -1;
-        response.body = "Internal client error: POST CURL handle not initialized.";
-        return response;
-    }
+    curl_easy_setopt(socket.get(), CURLOPT_HTTP_VERSION, static_cast<long>(CURL_HTTP_VERSION_1_1));
+    curl_easy_setopt(socket.get(), CURLOPT_WRITEFUNCTION, receiveCurlData);
+    curl_easy_setopt(socket.get(), CURLOPT_CUSTOMREQUEST, "POST");
+    curl_easy_setopt(socket.get(), CURLOPT_TIMEOUT, 30L);
+    curl_easy_setopt(socket.get(), CURLOPT_CONNECTTIMEOUT, 30L);
+    curl_easy_setopt(socket.get(), CURLOPT_NOSIGNAL, 1L);
 
     std::string responseBody;
 
@@ -149,20 +136,20 @@ interfaces::HttpResponse CurlRestClient::post(const std::string& url, const std:
         std::string header = key + ": " + value;
         chunk = curl_slist_append(chunk, header.c_str());
     }
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_HTTPHEADER, chunk);
+    curl_easy_setopt(socket.get(), CURLOPT_HTTPHEADER, chunk);
 
     // configure request
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_URL, url.c_str());
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_POSTFIELDS, body.data());
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
-    curl_easy_setopt(m_postRequest.socket, CURLOPT_WRITEDATA, &responseBody);
+    curl_easy_setopt(socket.get(), CURLOPT_URL, url.c_str());
+    curl_easy_setopt(socket.get(), CURLOPT_POSTFIELDS, body.data());
+    curl_easy_setopt(socket.get(), CURLOPT_POSTFIELDSIZE, static_cast<long>(body.size()));
+    curl_easy_setopt(socket.get(), CURLOPT_WRITEDATA, &responseBody);
 
     // perform request
-    CURLcode result = curl_easy_perform(m_postRequest.socket);
+    CURLcode result = curl_easy_perform(socket.get());
 
     if (CURLE_OK == result) {
         long statusCode = 0;
-        curl_easy_getinfo(m_postRequest.socket, CURLINFO_RESPONSE_CODE, &statusCode);
+        curl_easy_getinfo(socket.get(), CURLINFO_RESPONSE_CODE, &statusCode);
 
         response.statusCode = static_cast<int>(statusCode);
         response.body = responseBody;

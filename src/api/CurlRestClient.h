@@ -37,7 +37,6 @@ class CurlRestClient : public interfaces::IRestClient {
         Communication() : lock(), socket(curl_easy_init()) {}
     };
     Communication m_getRequest;
-    Communication m_postRequest;
     Communication m_putRequest;
     Communication m_patchRequest;
     Communication m_deleteRequest;

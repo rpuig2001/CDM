@@ -256,7 +256,7 @@ void CDM::updateCdmDataApi(Plane p) {
                 std::lock_guard<std::mutex> lock(later4Mutex);
                 setCdmDatalater.push_back(p);
                 addLogLine("UNABLE TO CONNECT CDM-API...");
-                if (responseCode == -1) addLogLine("POST failed or skipped: " + response.body);
+                if (responseCode == -1) addLogLine("POST failed: " + response.body);
             } else {
                 std::istringstream is(response.body);
                 // Get data from .txt file
@@ -337,7 +337,7 @@ void CDM::setOBTApi(string callsign, string obt, bool triggeredByUser, bool useE
                     setOBTlater.push_back(plane);  // Safely modify setOBTlater
                 }
                 addLogLine("UNABLE TO CONNECT CDM-API...");
-                if (responseCode == -1) addLogLine("POST failed or skipped: " + response.body);
+                if (responseCode == -1) addLogLine("POST failed: " + response.body);
             } else {
                 Json::Reader reader;
                 Json::Value obj;
@@ -474,7 +474,7 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
                 std::lock_guard<std::mutex> lock(later2Mutex);
                 setCdmStslater.push_back({callsign, cdmSts});
                 addLogLine("UNABLE TO CONNECT CDM-API...");
-                if (responseCode == -1) addLogLine("POST failed or skipped: " + response.body);
+                if (responseCode == -1) addLogLine("POST failed: " + response.body);
             } else {
                 std::istringstream is(response.body);
                 string lineValue;
