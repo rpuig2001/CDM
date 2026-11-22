@@ -9,6 +9,7 @@
 #include "src/api/CurlRestClient.h"
 #include "third_party/pugixml/pugixml.hpp"
 #include "src/core/CDMGlobals.hpp"
+#include "src/core/StartupRequests.hpp"
 
 extern "C" IMAGE_DOS_HEADER __ImageBase;
 
@@ -85,9 +86,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
         // tagItemDisplayCache declaration for why. Falls through to the full computation below on a
         // miss, which then refreshes the cache at the end of the function.
         time_t tagCacheNow = std::time(nullptr);
+        const auto startupVersion = startupRequestsVersion.load();
         auto& tagCacheForAircraft = tagItemDisplayCache[callsign];
         auto tagCacheIt = tagCacheForAircraft.find(ItemCode);
-        if (tagCacheIt != tagCacheForAircraft.end() && tagCacheIt->second.tick == tagCacheNow) {
+        if (tagCacheIt != tagCacheForAircraft.end() && tagCacheIt->second.tick == tagCacheNow &&
+            (ItemCode != TAG_ITEM_STARTUP_REQUEST || tagCacheIt->second.startupRequestsVersion == startupVersion)) {
             memcpy(sItemString, tagCacheIt->second.text, sizeof(tagCacheIt->second.text));
             if (tagCacheIt->second.colorSet) {
                 *pColorCode = tagCacheIt->second.colorCode;
@@ -3596,6 +3599,26 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             }
         }
 
+        if (ItemCode == TAG_ITEM_STARTUP_REQUEST) {
+            sItemString[0] = '\0';
+            StartupRequestState state = StartupRequestState::None;
+            if (serverEnabled) {
+                std::lock_guard<std::mutex> lock(startupRequestsMutex);
+                auto airportRequests = startupRequests.find(origin);
+                if (airportRequests != startupRequests.end()) {
+                    auto request = airportRequests->second.find(callsign);
+                    if (request != airportRequests->second.end()) state = startupRequestState(request->second);
+                }
+            }
+            if (state != StartupRequestState::None) {
+                strcpy_s(sItemString, 16, "RST");
+                ItemRGB = state == StartupRequestState::Requested ? TAG_STARTUP_REQUEST :
+                          (TAG_GREEN == 0xFFFFFFFF ? RGB(0, 192, 0) : TAG_GREEN);
+                *pColorCode = TAG_COLOR_RGB_DEFINED;
+                *pRGB = ItemRGB;
+            }
+        }
+
         if (ItemCode == TAG_ITEM_AUTO_STARTUP) {
             const string autoStartup = getFlightStripInfo(FlightPlan, 10);
             const bool enabled = autoStartup == "1" || autoStartup == "2";
@@ -3608,6 +3631,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
         // Refresh the display cache with this call's finished result for reuse within the same second.
         TagItemCacheEntry& cacheEntryToStore = tagItemDisplayCache[callsign][ItemCode];
         cacheEntryToStore.tick = tagCacheNow;
+        cacheEntryToStore.startupRequestsVersion = startupVersion;
         memcpy(cacheEntryToStore.text, sItemString, sizeof(cacheEntryToStore.text));
         cacheEntryToStore.colorSet = (ItemRGB != 0xFFFFFFFF);
         if (cacheEntryToStore.colorSet) {

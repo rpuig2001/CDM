@@ -109,6 +109,8 @@ The checkbox is checked by default to preserve the existing view.
 
   <img width="430" height="101" alt="image" src="https://github.com/user-attachments/assets/71329668-45d3-41d0-a0b5-5b3608ca7516" />
 
+- Start-up Request: add the `Start-up Request` tag item and assign `Start-up Request Options` to its click action. `RST` is blue for a pilot request and green after the server reports a clearance. The airport's CDM master can click green `RST` to see the assigned frequency or select another configured frequency. Selecting a frequency sends `REQUEST/CLR-<frequency>` and sets the EuroScope start-up ground state. Server mode must be enabled.
+
 
 - Extra (All CDM Option in one Menu)
 
@@ -142,8 +144,25 @@ The checkbox is checked by default to preserve the existing view.
   - color10 = ASRT STATIC COLOR
   - color11 = CTOT STATIC COLOR
   - color12 = CHANGES TOBT, TSAT and ASAT to the defined color WHEN S/U STATUS IS SET
+  - color15 = START-UP REQUEST COLOR (default light blue, `color15:64,160,255`). Cleared requests use color1 (green).
  
 ### CDMconfig.xml
+  - [OPTIONAL] Configure start-up clearance frequencies by airport. Airports without entries have no frequency menu. The plugin polls configured airports and master airports for start-up requests, independently of `pilotTobt`.
+
+    ```xml
+    <StartupFrequencies>
+      <Airport icao="EDDF">
+        <Frequency value="121.855" />
+        <Frequency value="121.655" />
+        <Frequency value="121.955" />
+        <Frequency value="121.755" />
+        <Frequency value="121.925" />
+      </Airport>
+      <Airport icao="EDDS">
+        <Frequency value="121.705" />
+      </Airport>
+    </StartupFrequencies>
+    ```
   - Normal Visibility Operations Rate/hour (ex. rate ops="40").
   - Low Visibility Operations Rate/hour (ex. rateLvo ops="10").
   - Default Runway Pressure in minutes (ex. `<runwayPressure minutes="15"/>`). Use `-1` to disable runway pressure everywhere. With a default of `0` or greater, a positive rate.txt runway value or runtime runway override can enable pressure; omitted values use the default.
