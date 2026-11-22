@@ -83,6 +83,8 @@ CDM::CDM(void)
     // Register Tag Item "CDM-ASAT"
     RegisterTagItemType("Ready Start-up", TAG_ITEM_READYSTARTUP);
     RegisterTagItemFunction("Toggle Ready Start-up", TAG_FUNC_READYSTARTUP);
+    RegisterTagItemType("Start-up Request", TAG_ITEM_STARTUP_REQUEST);
+    RegisterTagItemFunction("Start-up Request Options", TAG_FUNC_STARTUP_REQUEST);
 
     // Register Tag Item "CDM-E"
     RegisterTagItemType("E", TAG_ITEM_E);
@@ -201,6 +203,21 @@ CDM::CDM(void)
     }
 
     try {
+        xml_document startupConfig;
+        if (startupConfig.load_file(pfad.c_str())) {
+            startupFrequencies.clear();
+            for (const auto& airport : startupConfig.child("CDM").child("StartupFrequencies").children("Airport")) {
+                string icao = airport.attribute("icao").as_string();
+                boost::to_upper(icao);
+                if (icao.empty()) continue;
+                for (const auto& frequency : airport.children("Frequency")) {
+                    string value = frequency.attribute("value").as_string();
+                    if (regex_match(value, regex("^[0-9]{3}\\.[0-9]{3}$"))) {
+                        startupFrequencies[icao].push_back(value);
+                    }
+                }
+            }
+        }
         defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
         string deIceLight = getFromXml("/CDM/DeIceTimes/@light");
         string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
@@ -603,6 +620,9 @@ CDM::CDM(void)
                     break;
                 case 14:
                     TAG_NON_CDM_EARLY_CLEARENCE = color;
+                    break;
+                case 15:
+                    TAG_STARTUP_REQUEST = color;
                     break;
                 default:
                     break;
