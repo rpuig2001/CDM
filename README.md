@@ -109,7 +109,7 @@ The checkbox is checked by default to preserve the existing view.
 
   <img width="430" height="101" alt="image" src="https://github.com/user-attachments/assets/71329668-45d3-41d0-a0b5-5b3608ca7516" />
 
-- Start-up Request: add the `Start-up Request` tag item and assign `Start-up Request Options` to its click action. `RST` is blue for a pilot request and green after the server reports a clearance. The airport's CDM master can click green `RST` to see the assigned frequency or select another configured frequency. Selecting a frequency sends `REQUEST/CLR-<frequency>` and sets the EuroScope start-up ground state. Server mode must be enabled.
+- [2.32 WIP] Start-up Request: add the `Start-up Request` tag item and assign `Start-up Request Options` to its click action. `RST` is blue for a pilot request and green after the server reports a clearance. The airport's CDM master can click green `RST` to see the assigned frequency or select another configured frequency. Selecting a frequency sends `REQUEST/CLR-<frequency>` and sets the EuroScope start-up ground state. Server mode must be enabled.
 
 
 - Extra (All CDM Option in one Menu)
@@ -147,7 +147,7 @@ The checkbox is checked by default to preserve the existing view.
   - color15 = START-UP REQUEST COLOR (default light blue, `color15:64,160,255`). Cleared requests use color1 (green).
  
 ### CDMconfig.xml
-  - [OPTIONAL] Configure start-up clearance frequencies by airport. Airports without entries have no frequency menu. The plugin polls configured airports and master airports for start-up requests, independently of `pilotTobt`.
+  - [2.32 WIP] [OPTIONAL] Configure start-up clearance frequencies by airport. Airports without entries have no frequency menu. The plugin polls configured airports and master airports for start-up requests, independently of `pilotTobt`.
 
     ```xml
     <StartupFrequencies>
