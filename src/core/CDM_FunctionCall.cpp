@@ -3,6 +3,7 @@
 
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
+#include "src/core/StartupRequests.hpp"
 
 #include <thread>
 
@@ -44,7 +45,49 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             AtcMe = true;
         }
 
-        if (FunctionId == TAG_FUNC_TOGGLE_AUTO_STARTUP) {
+        if (FunctionId == TAG_FUNC_STARTUP_REQUEST || FunctionId == TAG_FUNC_STARTUP_CLEAR) {
+            string origin = fp.GetFlightPlanData().GetOrigin();
+            boost::to_upper(origin);
+            const auto frequencies = startupFrequencies.find(origin);
+            string startupRequest;
+            {
+                std::lock_guard<std::mutex> lock(startupRequestsMutex);
+                const auto airportRequests = startupRequests.find(origin);
+                if (airportRequests != startupRequests.end()) {
+                    const auto request = airportRequests->second.find(fp.GetCallsign());
+                    if (request != airportRequests->second.end()) startupRequest = request->second;
+                }
+            }
+            const StartupRequestState state = startupRequestState(startupRequest);
+            const string assignedFrequency = startupClearedFrequency(startupRequest);
+            if (serverEnabled && master && state != StartupRequestState::None) {
+                if (FunctionId == TAG_FUNC_STARTUP_REQUEST) {
+                    if (state == StartupRequestState::Requested && (!AtcMe || frequencies == startupFrequencies.end())) return;
+                    OpenPopupList(Area, "Start-up frequency", 1);
+                    bool selectedAdded = false;
+                    if (state == StartupRequestState::Cleared) {
+                        const string display = "Assigned: " + (assignedFrequency.empty() ? string("unavailable") : assignedFrequency);
+                        AddPopupListElement(display.c_str(), "", TAG_FUNC_STARTUP_CLEAR, false, 2, true);
+                    }
+                    if (frequencies != startupFrequencies.end()) {
+                        for (const string& frequency : frequencies->second) {
+                            const bool selected = !selectedAdded && frequency == assignedFrequency;
+                            AddPopupListElement(frequency.c_str(), "", TAG_FUNC_STARTUP_CLEAR, selected, 2, !AtcMe);
+                            if (selected) selectedAdded = true;
+                        }
+                    }
+                } else if (AtcMe && frequencies != startupFrequencies.end() && ItemString &&
+                           find(frequencies->second.begin(), frequencies->second.end(), ItemString) != frequencies->second.end() &&
+                           assignedFrequency != ItemString) {
+                    const string groundState = fp.GetGroundState();
+                    if (groundState != "PUSH" && groundState != "TAXI" && groundState != "DEPA" &&
+                        (groundState == "STUP" || groundState == "ST-UP" ||
+                         fp.GetControllerAssignedData().SetScratchPadString("STUP"))) {
+                        runDetachedTask(&CDM::setCdmSts, string(fp.GetCallsign()), string("REQUEST/CLR-") + ItemString);
+                    }
+                }
+            }
+        } else if (FunctionId == TAG_FUNC_TOGGLE_AUTO_STARTUP) {
             if (master && AtcMe) {
                 const string callsign = fp.GetCallsign();
                 const string autoStartup = getFlightStripInfo(fp, 10);
