@@ -256,6 +256,7 @@ CDM::CDM(void)
         ftpPassword = getFromXml("/CDM/ftpPassword/@password");
         string sftpConnectionString = getFromXml("/CDM/sftpConnection/@mode");
         string cdmserver = getFromXml("/CDM/Server/@mode");
+        vsidRequestsEnabled = getFromXml("/CDM/vSidRequests/@mode") == "true";
         string opt_su_wait = getFromXml("/CDM/Su_Wait/@mode");
         cdmServerUrl = getFromXml("/CDM/viffSystem/@url");
         customRestrictedUrl = getFromXml("/CDM/customRestricted/@url");

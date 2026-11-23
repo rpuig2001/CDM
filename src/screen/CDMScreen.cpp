@@ -684,6 +684,7 @@ void CDMScreen::OnRefresh(HDC hDC, int Phase) {
 
     if (cdm) {
         cdm->refreshMasterAirports();
+        cdm->processVsidRequests();
         cdm->refreshFlightTimes();
     }
 

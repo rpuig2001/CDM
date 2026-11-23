@@ -4,6 +4,108 @@
 
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
+#include "src/core/StartupRequests.hpp"
+
+namespace {
+struct VsidScratchUpdate {
+    string airport;
+    string request;
+    string message;
+    string previous;
+    std::chrono::steady_clock::time_point started;
+    bool acknowledged = false;
+};
+
+std::unordered_map<string, VsidScratchUpdate> vsidScratchUpdates;
+std::unordered_map<string, string> vsidDispatchedRequests;
+}
+
+void CDM::OnFlightPlanControllerAssignedDataUpdate(CFlightPlan flightPlan, int dataType) {
+    if (dataType != CTR_DATA_TYPE_SCRATCH_PAD_STRING || !flightPlan.IsValid()) return;
+    auto update = vsidScratchUpdates.find(flightPlan.GetCallsign());
+    if (update != vsidScratchUpdates.end() &&
+        string(flightPlan.GetControllerAssignedData().GetScratchPadString()) == update->second.message) {
+        update->second.acknowledged = true;
+    }
+}
+
+void CDM::processVsidRequests() {
+    const auto now = std::chrono::steady_clock::now();
+    for (auto update = vsidScratchUpdates.begin(); update != vsidScratchUpdates.end();) {
+        CFlightPlan flightPlan = FlightPlanSelect(update->first.c_str());
+        const bool expired = now - update->second.started >= std::chrono::seconds(5);
+        if (!flightPlan.IsValid()) {
+            update = vsidScratchUpdates.erase(update);
+            continue;
+        }
+        const string current = flightPlan.GetControllerAssignedData().GetScratchPadString();
+        const auto action = vsidScratchAction(current, update->second.message, update->second.previous,
+                                              update->second.acknowledged, expired);
+        if (action == VsidScratchAction::Wait) {
+            ++update;
+            continue;
+        }
+        const VsidScratchUpdate completed = update->second;
+        const string callsign = update->first;
+        update = vsidScratchUpdates.erase(update);
+        if (completed.acknowledged) vsidDispatchedRequests[completed.airport + "|" + callsign] = completed.request;
+        if (action == VsidScratchAction::Restore) {
+            flightPlan.GetControllerAssignedData().SetScratchPadString(completed.previous.c_str());
+        }
+    }
+
+    if (!vsidRequestsEnabled || !serverEnabled || GetConnectionType() == CONNECTION_TYPE_NO ||
+        !ControllerMyself().IsController()) {
+        vsidDispatchedRequests.clear();
+        return;
+    }
+
+    static auto lastRequestCheck = std::chrono::steady_clock::time_point{};
+    if (now - lastRequestCheck < std::chrono::seconds(1)) return;
+    lastRequestCheck = now;
+
+    std::unordered_map<string, std::unordered_map<string, string>> requests;
+    {
+        std::lock_guard<std::mutex> lock(startupRequestsMutex);
+        requests = vsidRequests;
+    }
+    for (auto sent = vsidDispatchedRequests.begin(); sent != vsidDispatchedRequests.end();) {
+        const auto separator = sent->first.find('|');
+        const string airport = sent->first.substr(0, separator);
+        const string callsign = sent->first.substr(separator + 1);
+        const auto airportRequests = requests.find(airport);
+        if (find(masterAirports.begin(), masterAirports.end(), airport) == masterAirports.end() ||
+            airportRequests == requests.end() || airportRequests->second.find(callsign) == airportRequests->second.end() ||
+            airportRequests->second.at(callsign) != sent->second) {
+            sent = vsidDispatchedRequests.erase(sent);
+        } else {
+            ++sent;
+        }
+    }
+
+    for (const auto& airport : requests) {
+        if (find(masterAirports.begin(), masterAirports.end(), airport.first) == masterAirports.end()) continue;
+        for (const auto& request : airport.second) {
+            const string key = airport.first + "|" + request.first;
+            if (vsidDispatchedRequests.find(key) != vsidDispatchedRequests.end() ||
+                vsidScratchUpdates.find(request.first) != vsidScratchUpdates.end()) continue;
+            CFlightPlan flightPlan = FlightPlanSelect(request.first.c_str());
+            if (!flightPlan.IsValid() || !updateFlightRange(flightPlan, CRadarTarget()) ||
+                string(flightPlan.GetFlightPlanData().GetOrigin()) != airport.first) continue;
+            const string groundState = flightPlan.GetGroundState();
+            if (request.second == "STUP" && (groundState == "STUP" || groundState == "ST-UP" ||
+                groundState == "PUSH" || groundState == "TAXI" || groundState == "DEPA")) continue;
+            const string previous = flightPlan.GetControllerAssignedData().GetScratchPadString();
+            if (!previous.empty() && previous[0] == '.') continue;
+            const string message = vsidRequestScratchpad(request.second, std::time(nullptr));
+            if (message.empty()) continue;
+            vsidScratchUpdates[request.first] = {airport.first, request.second, message, previous, now, false};
+            if (!flightPlan.GetControllerAssignedData().SetScratchPadString(message.c_str())) {
+                vsidScratchUpdates.erase(request.first);
+            }
+        }
+    }
+}
 
 void CDM::tryAutoSetStup(CFlightPlan fp, Plane flight) {
     if (!fp.IsValid() || !fp.GetClearenceFlag() || getFlightStripInfo(fp, 10) != "1") {

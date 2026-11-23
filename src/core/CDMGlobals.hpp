@@ -211,6 +211,8 @@ inline std::mutex reqTobtTypesQueueMutex;
 inline vector<vector<string>> reqTobtTypesQueue;
 inline std::unordered_map<string, vector<string>> startupFrequencies;
 inline std::unordered_map<string, std::unordered_map<string, string>> startupRequests;
+inline bool vsidRequestsEnabled = false;
+inline std::unordered_map<string, std::unordered_map<string, string>> vsidRequests;
 inline std::mutex startupRequestsMutex;
 inline std::atomic<std::uint64_t> startupRequestsVersion{0};
 inline std::mutex networkTobtPollMutex;

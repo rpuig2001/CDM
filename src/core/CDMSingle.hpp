@@ -433,6 +433,10 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     void refreshFlightTimes();
 
+    void processVsidRequests();
+
+    void OnFlightPlanControllerAssignedDataUpdate(CFlightPlan flightPlan, int dataType);
+
     void refreshActions4();
 
     bool setMasterAirport(string airport, string position);

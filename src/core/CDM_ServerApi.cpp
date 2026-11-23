@@ -784,7 +784,9 @@ vector<vector<string>> CDM::getDepAirportPlanes(string airport) {
 
                 {
                     auto requests = startupRequestsFromFlights(obj);
+                    auto pushTaxiRequests = vsidRequestsFromFlights(obj);
                     std::lock_guard<std::mutex> lock(startupRequestsMutex);
+                    vsidRequests[airport] = std::move(pushTaxiRequests);
                     if (startupRequestsVersion.load() == requestVersion) {
                         startupRequests[airport] = std::move(requests);
                         ++startupRequestsVersion;

@@ -147,7 +147,8 @@ The checkbox is checked by default to preserve the existing view.
   - color15 = START-UP REQUEST COLOR (default light blue, `color15:64,160,255`). Cleared requests use color1 (green).
  
 ### CDMconfig.xml
-  - [2.32 WIP] [OPTIONAL] Configure start-up clearance frequencies by airport. Airports without entries have no frequency menu. The plugin polls configured airports and master airports for start-up requests, independently of `pilotTobt`.
+  - [2.32 WIP] [OPTIONAL] Enable `<vSidRequests mode="true" />` to forward pilot `STUP`, `PUSH` and `TAXI` requests to vSID as startup, pushback and taxi requests. Disabled by default. This requires vSID to be loaded with the departure airport active and its startup, pushback and taxi request lists enabled. The CDM master sends each request once; server mode and an active radar screen are required.
+  - [2.32 WIP] [OPTIONAL] Configure start-up clearance frequencies by airport. Airports without entries have no frequency menu. The plugin polls configured airports and master airports for start-up requests.
 
     ```xml
     <StartupFrequencies>

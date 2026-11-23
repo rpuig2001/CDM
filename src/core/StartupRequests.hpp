@@ -1,5 +1,6 @@
 #pragma once
 
+#include <ctime>
 #include <string>
 #include <unordered_map>
 
@@ -31,6 +32,37 @@ inline bool applyConfirmedStartupClearance(std::unordered_map<std::string, std::
     if (request == requests.end() || startupRequestState(request->second) == StartupRequestState::None) return false;
     request->second = dpi.substr(8);
     return true;
+}
+
+inline std::string vsidRequestScratchpad(const std::string& request, std::time_t timestamp) {
+    if (request == "STUP") return ".VSID_REQ_STARTUP/" + std::to_string(timestamp);
+    if (request == "PUSH") return ".VSID_REQ_PUSHBACK/" + std::to_string(timestamp);
+    if (request == "TAXI") return ".VSID_REQ_TAXI/" + std::to_string(timestamp);
+    return "";
+}
+
+enum class VsidScratchAction { Wait, Restore, Preserve };
+
+inline VsidScratchAction vsidScratchAction(const std::string& current, const std::string& message,
+                                           const std::string& previous, bool acknowledged, bool expired) {
+    if (!acknowledged && !expired && (current == message || current == previous)) return VsidScratchAction::Wait;
+    return current == message ? VsidScratchAction::Restore : VsidScratchAction::Preserve;
+}
+
+inline std::unordered_map<std::string, std::string> vsidRequestsFromFlights(const Json::Value& flights) {
+    std::unordered_map<std::string, std::string> requests;
+    if (!flights.isArray()) return requests;
+    for (const auto& flight : flights) {
+        if (!flight.isObject() || !flight["callsign"].isString() || !flight["cdmData"].isObject()) continue;
+        const auto& atot = flight["atot"];
+        if (!atot.isNull() && (!atot.isString() || !atot.asString().empty())) continue;
+        const auto& request = flight["cdmData"]["request"];
+        if (request.isString() && (request.asString() == "STUP" || request.asString() == "PUSH" ||
+                       request.asString() == "TAXI")) {
+            requests[flight["callsign"].asString()] = request.asString();
+        }
+    }
+    return requests;
 }
 
 inline std::unordered_map<std::string, std::string> startupRequestsFromFlights(const Json::Value& flights) {
