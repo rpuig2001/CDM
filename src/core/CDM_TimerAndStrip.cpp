@@ -248,7 +248,6 @@ void CDM::syncAtotToFlightStrip(CFlightPlan FlightPlan, Plane& plane) {
 void CDM::refreshActions1() {
     refresh1 = true;
     readyToUpdateList = false;
-    saveData();
     // Execute background process in the background
     slotListToUpdate = backgroundProcess_recaulculate();
     // Check rates

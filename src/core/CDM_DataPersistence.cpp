@@ -10,6 +10,10 @@
 using namespace pugi;
 
 void CDM::saveData() {
+    static std::mutex saveDataMutex;
+    std::unique_lock<std::mutex> lock(saveDataMutex, std::try_to_lock);
+    if (!lock.owns_lock()) return;
+
     addLogLine("Called saveData...");
     try {
         bool found = false;

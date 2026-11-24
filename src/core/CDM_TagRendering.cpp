@@ -124,6 +124,11 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
         if (!isVfr) {
             time_t timeNow = std::time(nullptr);
+            static time_t countSaveData = 0;
+            if ((timeNow - countSaveData) >= 5) {
+                countSaveData = timeNow;
+                runDetachedTask(&CDM::saveData);
+            }
             // Refresh <refreshTime> min timers
             if ((timeNow - countNetworkTobt) > refreshTime) {
                 countNetworkTobt = timeNow;
