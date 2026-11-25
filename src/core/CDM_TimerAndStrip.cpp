@@ -203,8 +203,7 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
                 finalString += "/";
             }
         }
-        FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str());
-        if (position == 0) {
+        if (FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str()) && position == 0) {
             const string callsign = FlightPlan.GetCallsign();
             std::lock_guard<std::mutex> lock(asrtListMutex);
             for (size_t i = 0; i < asrtList.size();) {
