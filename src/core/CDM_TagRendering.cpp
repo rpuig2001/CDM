@@ -737,6 +737,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 ItemRGB = TAG_YELLOW;
+                                if (status == "STND" && isStandDeiceReady(FlightPlan)) ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
@@ -1979,6 +1980,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 ItemRGB = TAG_YELLOW;
+                                if (status == "STND" && isStandDeiceReady(FlightPlan)) ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
@@ -2862,6 +2864,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 ItemRGB = TAG_YELLOW;
+                                if (status == "STND" && isStandDeiceReady(FlightPlan)) ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
@@ -3084,6 +3087,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                     }
                                 }
                                 ItemRGB = TAG_YELLOW;
+                                if (status == "STND" && isStandDeiceReady(FlightPlan)) ItemRGB = TAG_GREEN;
                                 strcpy_s(sItemString, 16, status.c_str());
                             } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                                 string status = getFlightStripInfo(FlightPlan, 9);
@@ -3306,6 +3310,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             }
                         }
                         ItemRGB = TAG_YELLOW;
+                        if (status == "STND" && isStandDeiceReady(FlightPlan)) ItemRGB = TAG_GREEN;
                         strcpy_s(sItemString, 16, status.c_str());
                     } else if (ItemCode == TAG_ITEM_TOBT_SETBY) {
                         string status = getFlightStripInfo(FlightPlan, 9);

@@ -221,6 +221,11 @@ CDM::CDM(void)
             }
         }
         defTaxiTime = stoi(getFromXml("/CDM/DefaultTaxiTime/@minutes"));
+        string deIceStandStartMinutesString = getFromXml("/CDM/DeIceStandStart/@minutes");
+        deIceStandStartMinutes = deIceStandStartMinutesString.empty() ? 5 : stoi(deIceStandStartMinutesString);
+        if (deIceStandStartMinutes < -1) {
+            throw invalid_argument("DeIceStandStart minutes must be -1 or greater");
+        }
         string deIceLight = getFromXml("/CDM/DeIceTimes/@light");
         string deIceMedium = getFromXml("/CDM/DeIceTimes/@medium");
         string deIceHeavy = getFromXml("/CDM/DeIceTimes/@heavy");

@@ -49,6 +49,36 @@ int CDM::getDeIceTime(char wtc, int remNum) {
     return deIceTimeM;
 }
 
+bool CDM::isStandDeiceReady(CFlightPlan flightPlan) {
+    if (deIceStandStartMinutes < 0 || !flightPlan.IsValid() || getFlightStripInfo(flightPlan, 5) != "STND") {
+        return false;
+    }
+
+    string scheduledTsat = getFlightStripInfo(flightPlan, 3);
+    const int position = getPlanePosition(flightPlan.GetCallsign());
+    if (position >= 0 && position < static_cast<int>(slotList.size()) &&
+        slotList[position].callsign == flightPlan.GetCallsign() && !slotList[position].tsat.empty()) {
+        scheduledTsat = slotList[position].tsat;
+    }
+    if (scheduledTsat.size() < 4 || scheduledTsat.substr(0, 4).find_first_not_of("0123456789") != string::npos) {
+        return false;
+    }
+    const int tsatHour = stoi(scheduledTsat.substr(0, 2));
+    const int tsatMinute = stoi(scheduledTsat.substr(2, 2));
+    if (tsatHour > 23 || tsatMinute > 59) return false;
+
+    const string startTime = calculateLessTime(
+        scheduledTsat.substr(0, 4) + "00",
+        getDeIceTime(flightPlan.GetFlightPlanData().GetAircraftWtc(), 0) + deIceStandStartMinutes);
+    const string currentTime = GetTimeNow();
+    if (currentTime.size() < 4) return false;
+
+    int minutesFromStart = GetDifferenceTimeHHMMSS(currentTime.substr(0, 4) + "00", startTime, true);
+    if (minutesFromStart > 720) minutesFromStart -= 1440;
+    else if (minutesFromStart < -720) minutesFromStart += 1440;
+    return minutesFromStart >= 0;
+}
+
 void CDM::addVatcanCtotToEvCTOT(string line) {
     // Expected:
     //  - "vatcan,ctot"

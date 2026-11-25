@@ -399,6 +399,8 @@ class CDM : public EuroScopePlugIn::CPlugIn {
 
     int getDeIceTime(char wtc, int remNum);
 
+    bool isStandDeiceReady(CFlightPlan flightPlan);
+
     string getDiffTOBTTSAT(string TSAT, string TOBT);
 
     string getDiffNowTime(string time, bool equalReturnZero, string timeNow);

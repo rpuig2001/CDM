@@ -181,6 +181,7 @@ The checkbox is checked by default to preserve the existing view.
   - [OPTIONAL] sidInterval URL to the TXT file - Format is defined below (ex. sidInterval url:"https://...."), if no URL needed, just leave it blank to disable the sidInterval functionallity (ex. sidInterval url="").
   - Default Taxi time in minutes if taxi time not found in the taxizones.txt file (ex. DefaultTaxiTime minutes="15").
   - [OPTIONAL] DeIceTimes by Wtc definition (ex. "<DeIceTimes light="5" medium="9" heavy="12" super="15"/>") If no defined, values 5, 9, 12 and 15 are used internally.
+  - [OPTIONAL] Configure when the DE-ICE tag indicates that stand de-icing can start (ex. `<DeIceStandStart minutes="5"/>`). The readiness time is scheduled TSAT minus the WTC-specific DeIceTime and this value. Default 5 minutes (TSAT-5-DeIceTimeWtc), -1 to disable the indication.
   - [OPTIONAL] DeIce Remote Additional Taxi Time and name definition (ex. "<DeIceRemTaxi rem1Name= "REM1" rem1="10" rem2Name= "REM2" rem2="10" rem3Name= "REM3" rem3="10" rem4Name= "REM4" rem4="10" rem5Name= "REM5" rem5="10"/>") If not defined, extra 0 minutes are used. In case of empty remXName, the option will be disabled in the popup menu of Euroscope (Example: By setting rem2Name= "", rem2 will not be available in Euroscope).
   - Event Mode minutes, it specifies the amount of minutes to add to all flights by default (if not configured EVENT_EXTRA_TIME in taxizones) when event mode is enabled (by command) (ex. eventModeMin time="5").
   - Refresh Time in seconds (ex. RefreshTime seconds="20").

@@ -115,6 +115,7 @@ inline int deIceTimeL;
 inline int deIceTimeM;
 inline int deIceTimeH;
 inline int deIceTimeJ;
+inline int deIceStandStartMinutes = 5;
 
 inline int deIceTaxiRem1;
 inline int deIceTaxiRem2;
