@@ -258,6 +258,20 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             }
         }
 
+        else if (FunctionId == TAG_FUNC_SET_ASRT_REA || FunctionId == TAG_FUNC_REMOVE_ASRT_REA) {
+            if (master && AtcMe) {
+                if (FunctionId == TAG_FUNC_SET_ASRT_REA) {
+                    if (getFlightStripInfo(fp, 0).empty()) {
+                        setFlightStripInfo(fp, GetActualTime(), 0);
+                    }
+                    runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/1");
+                } else {
+                    setFlightStripInfo(fp, "", 0);
+                    runDetachedTask(&CDM::setCdmSts, fp.GetCallsign(), "REA/0");
+                }
+            }
+        }
+
         else if (FunctionId == TAG_FUNC_TOGGLEASRT || FunctionId == TAG_FUNC_READYSTARTUP ||
                  FunctionId == TAG_FUNC_TOGGLEASRTREA) {
             if (master && AtcMe) {

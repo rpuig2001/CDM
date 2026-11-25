@@ -93,6 +93,8 @@ const int TAG_FUNC_READYEOBT = 163;
 const int TAG_FUNC_TOGGLE_AUTO_STARTUP = 164;
 const int TAG_FUNC_STARTUP_REQUEST = 165;
 const int TAG_FUNC_STARTUP_CLEAR = 166;
+const int TAG_FUNC_SET_ASRT_REA = 167;
+const int TAG_FUNC_REMOVE_ASRT_REA = 168;
 
 
 inline static bool startsWith(const char* pre, const char* str) {

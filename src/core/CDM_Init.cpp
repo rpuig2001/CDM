@@ -79,6 +79,8 @@ CDM::CDM(void)
     RegisterTagItemType("ASRT", TAG_ITEM_ASRT);
     RegisterTagItemFunction("Toggle ASRT", TAG_FUNC_TOGGLEASRT);
     RegisterTagItemFunction("Toggle ASRT+REA", TAG_FUNC_TOGGLEASRTREA);
+    RegisterTagItemFunction("Set ASRT+REA", TAG_FUNC_SET_ASRT_REA);
+    RegisterTagItemFunction("Remove ASRT+REA", TAG_FUNC_REMOVE_ASRT_REA);
 
     // Register Tag Item "CDM-ASAT"
     RegisterTagItemType("Ready Start-up", TAG_ITEM_READYSTARTUP);
