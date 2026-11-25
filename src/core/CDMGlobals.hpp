@@ -176,6 +176,8 @@ inline vector<string> CDMairports;
 inline vector<string> CTOTcheck;
 inline vector<string> finalTimesList;
 inline vector<string> disconnectionList;
+inline vector<vector<string>> asrtList;
+inline std::mutex asrtListMutex;
 inline vector<string> reaSent;
 inline vector<string> reaCTOTSent;
 inline vector<vector<string>> slotFile;

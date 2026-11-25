@@ -204,6 +204,20 @@ void CDM::setFlightStripInfo(CFlightPlan FlightPlan, string text, int position) 
             }
         }
         FlightPlan.GetControllerAssignedData().SetFlightStripAnnotation(0, finalString.c_str());
+        if (position == 0) {
+            const string callsign = FlightPlan.GetCallsign();
+            std::lock_guard<std::mutex> lock(asrtListMutex);
+            for (size_t i = 0; i < asrtList.size();) {
+                if (asrtList[i][0] == callsign) {
+                    asrtList.erase(asrtList.begin() + i);
+                } else {
+                    i++;
+                }
+            }
+            if (!text.empty()) {
+                asrtList.push_back({callsign, text});
+            }
+        }
     }
 }
 

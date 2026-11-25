@@ -163,6 +163,36 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             }
 
             if (isCDMairport) {
+                bool master = false;
+                for (string apt : masterAirports) {
+                    if (apt == origin) {
+                        master = true;
+                    }
+                }
+                if (master) {
+                    const string currentAsrt = getFlightStripInfo(FlightPlan, 0);
+                    string restoredAsrt;
+                    {
+                        std::lock_guard<std::mutex> lock(asrtListMutex);
+                        bool found = false;
+                        for (size_t i = 0; i < asrtList.size(); i++) {
+                            if (asrtList[i][0] == callsign) {
+                                if (currentAsrt.empty()) {
+                                    restoredAsrt = asrtList[i][1];
+                                } else {
+                                    asrtList[i][1] = currentAsrt;
+                                }
+                                found = true;
+                            }
+                        }
+                        if (!found && !currentAsrt.empty()) asrtList.push_back({callsign, currentAsrt});
+                    }
+                    if (!restoredAsrt.empty()) {
+                        setFlightStripInfo(FlightPlan, restoredAsrt, 0);
+                        tagCacheForAircraft.clear();
+                    }
+                }
+
                 // If aircraft is in aircraftFind Base vector
                 int pos = -1;
                 bool aircraftFind = false;
@@ -326,6 +356,13 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         }
                     }
                 }
+                for (size_t i = 0; i < disconnectionList.size();) {
+                    if (disconnectionList[i] == callsign) {
+                        disconnectionList.erase(disconnectionList.begin() + i);
+                    } else {
+                        i++;
+                    }
+                }
 
                 bool hasManualCtot = false;
                 if (aircraftFind) {
@@ -373,13 +410,6 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                         setFlightStripInfo(FlightPlan, "", 3);
                         if (!atotEnabled) {
                             setFlightStripInfo(FlightPlan, "", 4);
-                        }
-                    }
-
-                    bool master = false;
-                    for (string apt : masterAirports) {
-                        if (apt == origin) {
-                            master = true;
                         }
                     }
 
