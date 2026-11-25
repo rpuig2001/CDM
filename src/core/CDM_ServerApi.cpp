@@ -184,7 +184,21 @@ void CDM::sendWaitingCdmData() {
 
     for (const Plane& plane : callsignsToProcess) {
         addLogLine("sendWaitingCdmData - " + plane.callsign);
-        updateCdmDataApi(plane);
+        Plane currentPlane = plane;
+        bool isHidden = false;
+        for (const Plane& current : slotList) {
+            if (current.callsign == plane.callsign) {
+                isHidden = !current.showData;
+                currentPlane = current;
+                break;
+            }
+        }
+        if (isHidden) {
+            std::lock_guard<std::mutex> lock(later4Mutex);
+            setCdmDatalater.push_back(plane);
+            continue;
+        }
+        updateCdmDataApi(currentPlane);
     }
 }
 

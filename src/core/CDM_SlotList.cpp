@@ -3,6 +3,7 @@
 
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
+#include "src/core/CtotScratchpad.hpp"
 
 // CTOT flights remain eligible after TSAT passes until a ground state is set.
 static bool isFrozenSlot(const Plane& p, const string& timeNow) {
@@ -41,14 +42,16 @@ vector<Plane> CDM::backgroundProcess_recaulculate() {
                     (string)fplSelect.GetGroundState() != "PUSH" && (string)fplSelect.GetGroundState() != "TAXI" &&
                     (string)fplSelect.GetGroundState() != "DEPA") {
                     if (testCtot.length() >= 4 && remarksOptionCtot) {
+                        const string scratchPadOld = fplSelect.GetControllerAssignedData().GetScratchPadString();
                         fplSelect.GetControllerAssignedData().SetScratchPadString(
-                            std::string(".C" + testCtot.substr(0, 4)).c_str());
+                            ctot_scratchpad::setCtotRemark(scratchPadOld, testCtot).c_str());
                     } else if (testTsat.length() >= 4 && remarksOption) {
                         fplSelect.GetControllerAssignedData().SetScratchPadString(testTsat.substr(0, 4).c_str());
                     } else if (testCtot == "" && remarksOptionCtot) {
                         string scratchPadOld = fplSelect.GetControllerAssignedData().GetScratchPadString();
-                        if (scratchPadOld.find(".C") != string::npos) {
-                             fplSelect.GetControllerAssignedData().SetScratchPadString("");
+                        string scratchPadUpdated = ctot_scratchpad::removeCtotRemark(scratchPadOld);
+                        if (scratchPadUpdated != scratchPadOld) {
+                            fplSelect.GetControllerAssignedData().SetScratchPadString(scratchPadUpdated.c_str());
                         }
                     }
                 }

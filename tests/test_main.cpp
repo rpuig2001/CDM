@@ -1,5 +1,6 @@
 #include <gtest/gtest.h>
 #include "core/StartupRequests.hpp"
+#include "core/CtotScratchpad.hpp"
 
 TEST(StartupRequests, ConfirmedRemovalOnlyRemovesStartupRequests) {
     std::unordered_map<std::string, std::string> requests = {
@@ -17,4 +18,17 @@ TEST(StartupRequests, ConfirmedRemovalOnlyRemovesStartupRequests) {
 int main(int argc, char **argv) {
     ::testing::InitGoogleTest(&argc, argv);
     return RUN_ALL_TESTS();
+}
+
+TEST(CtotScratchpad, UpdatesCtotWithoutDiscardingFollowingRemarks) {
+    EXPECT_EQ(ctot_scratchpad::setCtotRemark(".c1234 testremark", "2345"), ".C2345 testremark");
+}
+
+TEST(CtotScratchpad, AddsCtotBeforeExistingRemarks) {
+    EXPECT_EQ(ctot_scratchpad::setCtotRemark("testremark", "2345"), ".C2345 testremark");
+}
+
+TEST(CtotScratchpad, RemovesOnlyCtotAndItsSeparator) {
+    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".C1234 testremark"), "testremark");
+    EXPECT_EQ(ctot_scratchpad::removeCtotRemark("testremark"), "testremark");
 }

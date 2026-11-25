@@ -35,7 +35,7 @@ void CDM::saveData() {
                         if (dataSaved[z].size() == 2) {
                             if (plane.callsign == dataSaved[z][0]) {
                                 foundData = true;
-                                if (dataString != dataSaved[z][1]) {
+                                if (plane.showData && dataString != dataSaved[z][1]) {
                                     dataSaved[z][1] = dataString;
                                     diffDataStored = true;
                                 }
@@ -43,18 +43,19 @@ void CDM::saveData() {
                             }
                         }
                     }
-                    if (plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat ||
-                        plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason || diffDataStored) {
+                    if (plane.showData &&
+                        (plane.ttot != planeSaved.ttot || plane.tsat != planeSaved.tsat ||
+                         plane.eobt != planeSaved.eobt || plane.flowReason != planeSaved.flowReason || diffDataStored)) {
                         updateCdmDataApi(plane);
                     }
                     break;
                 }
             }
-            if (!found && plane.isCdmAirport) {
+            if (!found && plane.isCdmAirport && plane.showData) {
                 // Plane is new in the slotList (not found int he latest slotListSaved)
                 updateCdmDataApi(plane);
             }
-            if (!foundData) {
+            if (!foundData && plane.showData) {
                 dataSaved.push_back({plane.callsign, dataString});
             }
         }
@@ -73,7 +74,20 @@ void CDM::saveData() {
                 updateCdmDataApi(myPlane);
             }
         }
-        slotListSaved = mySlotList;
+        vector<Plane> nextSlotListSaved;
+        for (const Plane& plane : mySlotList) {
+            if (plane.showData) {
+                nextSlotListSaved.push_back(plane);
+                continue;
+            }
+            for (const Plane& planeSaved : slotListSaved) {
+                if (plane.callsign == planeSaved.callsign) {
+                    nextSlotListSaved.push_back(planeSaved);
+                    break;
+                }
+            }
+        }
+        slotListSaved = nextSlotListSaved;
         if (!ftpHost.empty()) {
             if (!mySlotList.empty()) {
                 for (string airport : masterAirports) {
