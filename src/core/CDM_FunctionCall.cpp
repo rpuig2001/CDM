@@ -45,7 +45,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             AtcMe = true;
         }
 
-        if (FunctionId == TAG_FUNC_STARTUP_REQUEST || FunctionId == TAG_FUNC_STARTUP_CLEAR) {
+        if (FunctionId == TAG_FUNC_STARTUP_REQUEST || FunctionId == TAG_FUNC_STARTUP_CLEAR ||
+            FunctionId == TAG_FUNC_STARTUP_REMOVE) {
             string origin = fp.GetFlightPlanData().GetOrigin();
             boost::to_upper(origin);
             const auto frequencies = startupFrequencies.find(origin);
@@ -62,7 +63,6 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             const string assignedFrequency = startupClearedFrequency(startupRequest);
             if (serverEnabled && master && state != StartupRequestState::None) {
                 if (FunctionId == TAG_FUNC_STARTUP_REQUEST) {
-                    if (state == StartupRequestState::Requested && (!AtcMe || frequencies == startupFrequencies.end())) return;
                     OpenPopupList(Area, "Start-up frequency", 1);
                     bool selectedAdded = false;
                     if (state == StartupRequestState::Cleared) {
@@ -76,6 +76,9 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
                             if (selected) selectedAdded = true;
                         }
                     }
+                    AddPopupListElement("Revoke", "", TAG_FUNC_STARTUP_REMOVE, false, 2, !AtcMe);
+                } else if (FunctionId == TAG_FUNC_STARTUP_REMOVE) {
+                    if (AtcMe) runDetachedTask(&CDM::setCdmSts, string(fp.GetCallsign()), string("REQUEST/"));
                 } else if (AtcMe && frequencies != startupFrequencies.end() && ItemString &&
                            find(frequencies->second.begin(), frequencies->second.end(), ItemString) != frequencies->second.end() &&
                            assignedFrequency != ItemString) {

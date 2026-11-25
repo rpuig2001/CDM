@@ -34,6 +34,14 @@ inline bool applyConfirmedStartupClearance(std::unordered_map<std::string, std::
     return true;
 }
 
+inline bool applyConfirmedStartupRemoval(std::unordered_map<std::string, std::string>& requests,
+                                         const std::string& callsign) {
+    const auto request = requests.find(callsign);
+    if (request == requests.end() || startupRequestState(request->second) == StartupRequestState::None) return false;
+    requests.erase(request);
+    return true;
+}
+
 inline std::string vsidRequestScratchpad(const std::string& request, std::time_t timestamp) {
     if (request == "STUP") return ".VSID_REQ_STARTUP/" + std::to_string(timestamp);
     if (request == "PUSH") return ".VSID_REQ_PUSHBACK/" + std::to_string(timestamp);

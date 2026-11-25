@@ -467,11 +467,15 @@ void CDM::setCdmSts(string callsign, string cdmSts) {
             const auto response = restclient_->post(url, /*body=*/"", headers);
             int responseCode = response.statusCode;
 
-            if (cdmSts.compare(0, 12, "REQUEST/CLR-") == 0 && responseCode >= 200 && responseCode < 300 &&
+            if ((cdmSts == "REQUEST/" || cdmSts.compare(0, 12, "REQUEST/CLR-") == 0) &&
+                responseCode >= 200 && responseCode < 300 &&
                 boost::trim_copy(response.body) == "true") {
                 std::lock_guard<std::mutex> lock(startupRequestsMutex);
                 for (auto& airportRequests : startupRequests) {
-                    if (applyConfirmedStartupClearance(airportRequests.second, callsign, cdmSts)) {
+                    const bool updated = cdmSts == "REQUEST/"
+                        ? applyConfirmedStartupRemoval(airportRequests.second, callsign)
+                        : applyConfirmedStartupClearance(airportRequests.second, callsign, cdmSts);
+                    if (updated) {
                         ++startupRequestsVersion;
                     }
                 }
