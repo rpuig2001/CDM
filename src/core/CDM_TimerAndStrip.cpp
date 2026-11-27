@@ -4,7 +4,6 @@
 
 #include "CDMSingle.hpp"
 #include "src/core/CDMGlobals.hpp"
-#include "src/core/CtotScratchpad.hpp"
 #include "src/core/StartupRequests.hpp"
 
 namespace {
@@ -22,16 +21,7 @@ std::unordered_map<string, string> vsidDispatchedRequests;
 }
 
 void CDM::OnFlightPlanControllerAssignedDataUpdate(CFlightPlan flightPlan, int dataType) {
-    if (!flightPlan.IsValid()) return;
-    if (dataType == CTR_DATA_TYPE_GROUND_STATE && string(flightPlan.GetGroundState()) == "DEPA" &&
-        updateFlightRange(flightPlan, CRadarTarget())) {
-        const string scratchpad = flightPlan.GetControllerAssignedData().GetScratchPadString();
-        const string updated = ctot_scratchpad::removeCtotRemark(scratchpad);
-        if (updated != scratchpad) {
-            flightPlan.GetControllerAssignedData().SetScratchPadString(updated.c_str());
-        }
-    }
-    if (dataType != CTR_DATA_TYPE_SCRATCH_PAD_STRING) return;
+    if (dataType != CTR_DATA_TYPE_SCRATCH_PAD_STRING || !flightPlan.IsValid()) return;
     auto update = vsidScratchUpdates.find(flightPlan.GetCallsign());
     if (update != vsidScratchUpdates.end() &&
         string(flightPlan.GetControllerAssignedData().GetScratchPadString()) == update->second.message) {

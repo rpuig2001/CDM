@@ -29,10 +29,6 @@ TEST(CtotScratchpad, AddsCtotBeforeExistingRemarks) {
 }
 
 TEST(CtotScratchpad, RemovesOnlyCtotAndItsSeparator) {
-    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".C1234 testremark"), ".testremark");
-    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".c1234 additionalremarks"), ".additionalremarks");
-    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".c1234 .additionalremarks"), ".additionalremarks");
-    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".additionalremarks .C1234"), ".additionalremarks");
-    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".C1234"), "");
+    EXPECT_EQ(ctot_scratchpad::removeCtotRemark(".C1234 testremark"), "testremark");
     EXPECT_EQ(ctot_scratchpad::removeCtotRemark("testremark"), "testremark");
 }

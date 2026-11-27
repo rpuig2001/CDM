@@ -68,9 +68,6 @@ inline std::string removeCtotRemark(const std::string& scratchpad) {
 
     std::string updated = scratchpad;
     updated.erase(position, length);
-    if (token.position == 0 && !updated.empty() && updated[0] != '.' && !isRemarkBoundary(updated[0])) {
-        updated.insert(0, 1, '.');
-    }
     return updated;
 }
 
