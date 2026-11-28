@@ -61,7 +61,8 @@ void CDM::OnFunctionCall(int FunctionId, const char* ItemString, POINT Pt, RECT 
             }
             const StartupRequestState state = startupRequestState(startupRequest);
             const string assignedFrequency = startupClearedFrequency(startupRequest);
-            if (serverEnabled && master && state != StartupRequestState::None) {
+            if (serverEnabled && (master || position.find("_DEL") != string::npos) &&
+                state != StartupRequestState::None) {
                 if (FunctionId == TAG_FUNC_STARTUP_REQUEST) {
                     OpenPopupList(Area, "Start-up frequency", 1);
                     bool selectedAdded = false;
