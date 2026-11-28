@@ -63,6 +63,21 @@ void CDM::refreshFlightTimes() {
 
 void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int ItemCode, int TagData,
                        char sItemString[16], int* pColorCode, COLORREF* pRGB, double* pFontSize) {
+    const auto logTagException = [&](const string& error) {
+        string callsign = "<unavailable>";
+        string annotation = "<unavailable>";
+        try {
+            if (FlightPlan.IsValid()) {
+                const char* flightCallsign = FlightPlan.GetCallsign();
+                if (flightCallsign) callsign = flightCallsign;
+                const char* flightAnnotation = FlightPlan.GetControllerAssignedData().GetFlightStripAnnotation(0);
+                if (flightAnnotation) annotation = flightAnnotation;
+            }
+        } catch (...) {
+        }
+        addLogLine("ERROR: Unhandled exception OnGetTagItem: " + error + " | ItemCode=" + to_string(ItemCode) +
+                   " | callsign=" + callsign + " | annotation0=[" + annotation + "]");
+    };
     try {
         if (ItemCode == TAG_ITEM_TSAT || ItemCode == TAG_ITEM_TSAT_TOBT_DIFF) {
             // Check master status
@@ -2102,21 +2117,20 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             }
                         }
 
-                        bool TSATFind = true;
                         string TSATString = getFlightStripInfo(FlightPlan, 3);
                         string TTOTString = getFlightStripInfo(FlightPlan, 4);
+                        const bool TSATFind = TSATString.length() >= 4;
                         if (aircraftFind && pos < slotList.size()) {
                             syncAtotFromFlightStrip(FlightPlan, slotList[pos]);
                         }
-                        if (TSATString == "" &&
-                            (!atotEnabled || getFlightStripInfo(FlightPlan, 11).empty())) {
-                            TSATFind = false;
-                        }
+                        const bool retainFlight = !TSATString.empty() ||
+                            (atotEnabled && !getFlightStripInfo(FlightPlan, 11).empty());
 
                         if (aircraftFind) {
-                            if (!TSATFind) {
+                            if (!retainFlight) {
                                 if (pos < slotList.size()) {  // Check if pos is within bounds
                                     slotList.erase(slotList.begin() + pos);
+                                    aircraftFind = false;
                                 }
                             } else if (TSATString != slotList[pos].tsat || TTOTString != slotList[pos].ttot) {
                                 if (pos < slotList.size()) {  // Check if pos is within bounds
@@ -2125,7 +2139,7 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                                 }
                             }
                         } else {
-                            if (TSATFind) {
+                            if (retainFlight) {
                                 Plane p(callsign, EOBT, TSATString, TTOTString, "", "", hasManualCtot, true, true);
                                 syncAtotFromFlightStrip(FlightPlan, p);
                                 slotList.push_back(p);
@@ -2167,8 +2181,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
 
                         // If oldTSAT
                         if (TSATFind) {
-                            string TSAThour = TSATString.substr(TSATString.length() - 6, 2);
-                            string TSATmin = TSATString.substr(TSATString.length() - 4, 2);
+                            const size_t tsatOffset = TSATString.length() >= 6 ? TSATString.length() - 6 : 0;
+                            string TSAThour = TSATString.substr(tsatOffset, 2);
+                            string TSATmin = TSATString.substr(tsatOffset + 2, 2);
 
                             bool oldTSAT = false;
                             bool moreLessFive = false;
@@ -2900,6 +2915,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
                             } else if (ItemCode == TAG_ITEM_ETOBT) {
                                 ItemRGB = TAG_GREY;
                                 strcpy_s(sItemString, 16, "----");
+                            } else if (ItemCode == TAG_ITEM_TTOT && retainFlight && !TTOTString.empty()) {
+                                ItemRGB = TAG_TTOT;
+                                strcpy_s(sItemString, 16, TTOTString.substr(0, 4).c_str());
                             } else if (ItemCode == TAG_ITEM_FLOW_MESSAGE) {
                                 if (aircraftFind) {
                                     if (slotList[pos].hasManualCtot) {
@@ -3679,9 +3697,9 @@ void CDM::OnGetTagItem(CFlightPlan FlightPlan, CRadarTarget RadarTarget, int Ite
             cacheEntryToStore.rgb = *pRGB;
         }
     } catch (const std::exception& e) {
-        addLogLine("ERROR: Unhandled exception OnGetTagItem: " + (string)e.what());
+        logTagException(e.what());
     } catch (...) {
-        addLogLine("ERROR: Unhandled exception OnGetTagItem");
+        logTagException("unknown exception");
     }
 }
 
